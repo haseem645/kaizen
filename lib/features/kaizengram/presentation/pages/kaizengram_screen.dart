@@ -15,6 +15,7 @@ import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../routes/app_router.dart';
 import '../../../compliance/presentation/widgets/compliance_video_player.dart';
 import '../../data/datasources/kaizengram_remote_data_source.dart';
+import 'notifications/kaizengram_notifications_screen.dart';
 import '../providers/kaizengram_controller.dart';
 
 class KaizenGramScreen extends StatelessWidget {
@@ -30,8 +31,21 @@ class KaizenGramScreen extends StatelessWidget {
   }
 }
 
-class _KaizenGramView extends StatelessWidget {
+class _KaizenGramView extends StatefulWidget {
   const _KaizenGramView();
+
+  @override
+  State<_KaizenGramView> createState() => _KaizenGramViewState();
+}
+
+class _KaizenGramViewState extends State<_KaizenGramView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  final ScrollController _mixedFeedScrollController = ScrollController();
+  final ScrollController _auditFeedScrollController = ScrollController();
+  final ScrollController _learningFeedScrollController = ScrollController();
+  final ScrollController _documentFeedScrollController = ScrollController();
+  final Map<String, GlobalKey> _postKeys = <String, GlobalKey>{};
 
   static const bool _useSeparateFeedDemo = true;
 
@@ -52,6 +66,22 @@ class _KaizenGramView extends StatelessWidget {
           destination: _PowerListDestination.documentCompliance,
         ),
       ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _mixedFeedScrollController.dispose();
+    _auditFeedScrollController.dispose();
+    _learningFeedScrollController.dispose();
+    _documentFeedScrollController.dispose();
+    super.dispose();
+  }
 
   static const List<_PowerListEntry> _powerListEntriesSecondHalf =
       <_PowerListEntry>[
@@ -74,6 +104,7 @@ class _KaizenGramView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<KaizengramController>();
+    final unreadNotificationCount = controller.unreadNotificationCount;
 
     return DrawerMainScreen(
       title: AppStrings.homeKaizengram,
@@ -83,11 +114,40 @@ class _KaizenGramView extends StatelessWidget {
           padding: EdgeInsets.only(right: 16),
           child: InkWell(
             borderRadius: BorderRadius.circular(999),
-            // Notification icon click is temporarily disabled.
-            onTap: null,
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(Icons.favorite_border_rounded),
+            onTap: () => _openNotifications(context),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  const Icon(Icons.favorite_border_rounded),
+                  if (unreadNotificationCount > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF6B6B),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: AppTextView.body4(
+                            unreadNotificationCount > 9
+                                ? '9+'
+                                : '$unreadNotificationCount',
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -115,6 +175,7 @@ class _KaizenGramView extends StatelessWidget {
       onRefresh: () =>
           context.read<KaizengramController>().initialize(forceRefresh: true),
       child: ListView(
+        controller: _mixedFeedScrollController,
         padding: const EdgeInsets.only(bottom: 20),
         children: <Widget>[
           _StoriesRow(stories: controller.stories),
@@ -150,106 +211,108 @@ class _KaizenGramView extends StatelessWidget {
         )
         .toList(growable: false);
 
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: <Widget>[
-          _StoriesRow(stories: controller.stories),
-          if (controller.errorMessage != null && controller.posts.isEmpty)
-            const Expanded(
-              child: SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                child: _FeedStateMessage(
-                  message: AppStrings.kaizengramMessageUnableLoadFeed,
-                ),
-              ),
-            )
-          else if (controller.posts.isEmpty)
-            const Expanded(
-              child: SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                child: _FeedStateMessage(
-                  message: AppStrings.kaizengramMessageNoFeedItems,
-                ),
-              ),
-            )
-          else ...<Widget>[
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-              width: double.infinity,
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark.withValues(alpha: 0.72),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.textPrimary.withValues(alpha: 0.08),
-                ),
-              ),
-              child: TabBar(
-                dividerColor: Colors.transparent,
-                tabAlignment: TabAlignment.fill,
-                labelPadding: EdgeInsets.zero,
-                indicator: BoxDecoration(
-                  color: AppColors.secondaryColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: AppColors.mainBg,
-                unselectedLabelColor: AppColors.textSecondary,
-                labelStyle: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-                tabs: const <Widget>[
-                  SizedBox(
-                    height: 32,
-                    child: Tab(text: AppStrings.kaizengramTabWeeklyCheckIn),
-                  ),
-                  SizedBox(
-                    height: 32,
-                    child: Tab(text: AppStrings.kaizengramTabLearning),
-                  ),
-                  SizedBox(
-                    height: 32,
-                    child: Tab(text: AppStrings.kaizengramTabDocument),
-                  ),
-                ],
+    return Column(
+      children: <Widget>[
+        _StoriesRow(stories: controller.stories),
+        if (controller.errorMessage != null && controller.posts.isEmpty)
+          const Expanded(
+            child: SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: _FeedStateMessage(
+                message: AppStrings.kaizengramMessageUnableLoadFeed,
               ),
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: TabBarView(
-                children: <Widget>[
-                  _FeedTabList(
-                    posts: auditPosts,
-                    onRefresh: () => context
-                        .read<KaizengramController>()
-                        .initialize(forceRefresh: true),
-                    itemBuilder: (post) =>
-                        _buildPostCard(context, controller, post),
-                  ),
-                  _FeedTabList(
-                    posts: learningPosts,
-                    onRefresh: () => context
-                        .read<KaizengramController>()
-                        .initialize(forceRefresh: true),
-                    itemBuilder: (post) =>
-                        _buildPostCard(context, controller, post),
-                  ),
-                  _FeedTabList(
-                    posts: documentPosts,
-                    onRefresh: () => context
-                        .read<KaizengramController>()
-                        .initialize(forceRefresh: true),
-                    itemBuilder: (post) =>
-                        _buildPostCard(context, controller, post),
-                  ),
-                ],
+          )
+        else if (controller.posts.isEmpty)
+          const Expanded(
+            child: SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: _FeedStateMessage(
+                message: AppStrings.kaizengramMessageNoFeedItems,
               ),
             ),
-          ],
+          )
+        else ...<Widget>[
+          Container(
+            margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+            width: double.infinity,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.08),
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              dividerColor: Colors.transparent,
+              tabAlignment: TabAlignment.fill,
+              labelPadding: EdgeInsets.zero,
+              indicator: BoxDecoration(
+                color: AppColors.secondaryColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: AppColors.mainBg,
+              unselectedLabelColor: AppColors.textSecondary,
+              labelStyle: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+              tabs: const <Widget>[
+                SizedBox(
+                  height: 32,
+                  child: Tab(text: AppStrings.kaizengramTabWeeklyCheckIn),
+                ),
+                SizedBox(
+                  height: 32,
+                  child: Tab(text: AppStrings.kaizengramTabLearning),
+                ),
+                SizedBox(
+                  height: 32,
+                  child: Tab(text: AppStrings.kaizengramTabDocument),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: <Widget>[
+                _FeedTabList(
+                  posts: auditPosts,
+                  onRefresh: () => context
+                      .read<KaizengramController>()
+                      .initialize(forceRefresh: true),
+                  scrollController: _auditFeedScrollController,
+                  itemBuilder: (post) =>
+                      _buildPostCard(context, controller, post),
+                ),
+                _FeedTabList(
+                  posts: learningPosts,
+                  onRefresh: () => context
+                      .read<KaizengramController>()
+                      .initialize(forceRefresh: true),
+                  scrollController: _learningFeedScrollController,
+                  itemBuilder: (post) =>
+                      _buildPostCard(context, controller, post),
+                ),
+                _FeedTabList(
+                  posts: documentPosts,
+                  onRefresh: () => context
+                      .read<KaizengramController>()
+                      .initialize(forceRefresh: true),
+                  scrollController: _documentFeedScrollController,
+                  itemBuilder: (post) =>
+                      _buildPostCard(context, controller, post),
+                ),
+              ],
+            ),
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -271,11 +334,14 @@ class _KaizenGramView extends StatelessWidget {
     KaizengramController controller,
     KaizengramFeedItem post,
   ) {
-    return _PostCard(
-      post: post,
-      onTap: () => _openPost(context, post),
-      onLikeTap: () => controller.toggleLike(post.id),
-      onCommentTap: () => _openComments(context, post),
+    return KeyedSubtree(
+      key: _postKeyFor(post.id),
+      child: _PostCard(
+        post: post,
+        onTap: () => _openPost(context, post),
+        onLikeTap: () => controller.toggleLike(post.id),
+        onCommentTap: () => _openComments(context, post),
+      ),
     );
   }
 
@@ -317,6 +383,164 @@ class _KaizenGramView extends StatelessWidget {
     return widgets;
   }
 
+  GlobalKey _postKeyFor(String postId) {
+    return _postKeys.putIfAbsent(postId, () => GlobalObjectKey(postId));
+  }
+
+  Future<void> _openNotifications(BuildContext context) async {
+    final selectedNotification = await Navigator.of(context)
+        .push<KaizengramNotificationItem>(
+          MaterialPageRoute<KaizengramNotificationItem>(
+            builder: (_) => ChangeNotifierProvider<KaizengramController>.value(
+              value: context.read<KaizengramController>(),
+              child: const KaizengramNotificationsScreen(),
+            ),
+          ),
+        );
+
+    if (!context.mounted || selectedNotification == null) {
+      return;
+    }
+
+    await _handleNotificationSelection(context, selectedNotification);
+  }
+
+  Future<void> _handleNotificationSelection(
+    BuildContext context,
+    KaizengramNotificationItem notification,
+  ) async {
+    final controller = context.read<KaizengramController>();
+    final post = _findPostById(controller.posts, notification.post.id);
+    if (post == null) {
+      return;
+    }
+
+    await _focusPostInFeed(controller, post);
+    if (!context.mounted) {
+      return;
+    }
+
+    if (notification.type == KaizengramNotificationType.commented) {
+      await _showCommentsThreadSheet(context, post);
+    }
+  }
+
+  KaizengramFeedItem? _findPostById(
+    List<KaizengramFeedItem> posts,
+    String postId,
+  ) {
+    for (final post in posts) {
+      if (post.id == postId) {
+        return post;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _focusPostInFeed(
+    KaizengramController controller,
+    KaizengramFeedItem post,
+  ) async {
+    if (!_useSeparateFeedDemo) {
+      await _scrollToPost(
+        posts: controller.posts,
+        post: post,
+        scrollController: _mixedFeedScrollController,
+      );
+      return;
+    }
+
+    _tabController.animateTo(_tabIndexFor(post.resolvedPostCategory));
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) {
+      return;
+    }
+
+    await _scrollToPost(
+      posts: _postsForCategory(controller, post.resolvedPostCategory),
+      post: post,
+      scrollController: _scrollControllerFor(post.resolvedPostCategory),
+    );
+  }
+
+  List<KaizengramFeedItem> _postsForCategory(
+    KaizengramController controller,
+    KaizengramPostCategory category,
+  ) {
+    return controller.posts
+        .where((post) => post.resolvedPostCategory == category)
+        .toList(growable: false);
+  }
+
+  ScrollController _scrollControllerFor(KaizengramPostCategory category) {
+    switch (category) {
+      case KaizengramPostCategory.audit:
+        return _auditFeedScrollController;
+      case KaizengramPostCategory.learningCompliance:
+        return _learningFeedScrollController;
+      case KaizengramPostCategory.documentCompliance:
+        return _documentFeedScrollController;
+    }
+  }
+
+  int _tabIndexFor(KaizengramPostCategory category) {
+    switch (category) {
+      case KaizengramPostCategory.audit:
+        return 0;
+      case KaizengramPostCategory.learningCompliance:
+        return 1;
+      case KaizengramPostCategory.documentCompliance:
+        return 2;
+    }
+  }
+
+  Future<void> _scrollToPost({
+    required List<KaizengramFeedItem> posts,
+    required KaizengramFeedItem post,
+    required ScrollController scrollController,
+  }) async {
+    final postIndex = posts.indexWhere((item) => item.id == post.id);
+    if (postIndex == -1) {
+      return;
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (!mounted || !scrollController.hasClients) {
+      return;
+    }
+
+    final estimatedOffset = (_estimatedPostExtent(post) * postIndex)
+        .clamp(0.0, scrollController.position.maxScrollExtent)
+        .toDouble();
+    scrollController.jumpTo(estimatedOffset);
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    if (!mounted) {
+      return;
+    }
+
+    final targetContext = _postKeyFor(post.id).currentContext;
+    if (targetContext != null && targetContext.mounted) {
+      await Scrollable.ensureVisible(
+        targetContext,
+        alignment: 0.04,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  double _estimatedPostExtent(KaizengramFeedItem post) {
+    switch (post.resolvedPostCategory) {
+      case KaizengramPostCategory.audit:
+        return 760;
+      case KaizengramPostCategory.learningCompliance:
+        return post.hasVideo || post.hasMultipleImages ? 700 : 620;
+      case KaizengramPostCategory.documentCompliance:
+        return post.feedImageUrl?.trim().isNotEmpty == true ? 640 : 520;
+    }
+  }
+
   Future<void> _openComments(
     BuildContext context,
     KaizengramFeedItem post,
@@ -335,12 +559,19 @@ class _KaizenGramView extends StatelessWidget {
     KaizengramFeedItem post, {
     KaizengramAuditMediaItem? selectedAuditMediaItem,
   }) {
+    final rawDescription = CustomFunctions.resolvedText(post.description);
+    final resolvedDescription =
+        rawDescription == null || post.description == post.status
+        ? null
+        : post.description;
     final comments = post.commentThread.isNotEmpty
         ? post.commentThread
+        : resolvedDescription == null
+        ? const <KaizengramComment>[]
         : <KaizengramComment>[
             KaizengramComment(
               authorName: _resolvePrimaryActorName(post),
-              message: post.description,
+              message: resolvedDescription,
               timestampLabel: post.timestampLabel,
               avatarUrl: post.avatarUrl,
               isDescription: true,
@@ -653,11 +884,13 @@ class _FeedTabList extends StatelessWidget {
   const _FeedTabList({
     required this.posts,
     required this.onRefresh,
+    required this.scrollController,
     required this.itemBuilder,
   });
 
   final List<KaizengramFeedItem> posts;
   final Future<void> Function() onRefresh;
+  final ScrollController scrollController;
   final Widget Function(KaizengramFeedItem post) itemBuilder;
 
   @override
@@ -667,6 +900,7 @@ class _FeedTabList extends StatelessWidget {
       onRefresh: onRefresh,
       child: posts.isEmpty
           ? ListView(
+              controller: scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 24),
               children: const <Widget>[
@@ -676,6 +910,7 @@ class _FeedTabList extends StatelessWidget {
               ],
             )
           : ListView.separated(
+              controller: scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
               itemCount: posts.length,

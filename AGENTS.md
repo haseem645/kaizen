@@ -108,6 +108,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 - Prefer local feature data shaping inside providers/controllers instead of scattering UI-specific transforms across widgets.
 - Keep business logic, status mapping, and display label mapping out of widget trees when the logic is reused or non-trivial.
+- For Kaizengram Learning tab posts, `description` will not be present. UI, models, and mappers must not expect description content, must not reserve empty layout space for it, and must keep those posts visually correct without a description field.
 - When adding media selection or upload flows, use existing dependencies already present in the repo such as `image_picker` or `file_picker`.
 - If a feature already distinguishes image/video/document states, preserve that distinction through the UI and comments/detail sheets.
 - When a detail sheet opens from a tapped media item, keep the selected item in sync so the sheet shows the same image or video the user opened.

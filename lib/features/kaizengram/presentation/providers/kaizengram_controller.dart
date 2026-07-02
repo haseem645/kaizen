@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../data/datasources/kaizengram_remote_data_source.dart';
 
 enum KaizengramFeedType { learningCompliance, documentCompliance }
@@ -9,6 +10,17 @@ enum KaizengramPostCategory { audit, learningCompliance, documentCompliance }
 enum KaizengramFeedMediaKind { image, video, gallery }
 
 enum KaizengramAuditRating { bad, needsImprovement, good }
+
+enum KaizengramNotificationType {
+  assigned,
+  commented,
+  dueSoon,
+  reviewed,
+  readyForFollowUp,
+  requestedUpload,
+}
+
+enum KaizengramNotificationBucket { today, thisWeek, earlier }
 
 class KaizengramController extends ChangeNotifier {
   KaizengramController(this._remoteDataSource);
@@ -25,6 +37,14 @@ class KaizengramController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<KaizengramFeedItem> get posts =>
       List<KaizengramFeedItem>.unmodifiable(_posts);
+  List<KaizengramNotificationItem> get notifications =>
+      List<KaizengramNotificationItem>.unmodifiable(_buildNotifications());
+  List<KaizengramNotificationSection> get notificationSections =>
+      List<KaizengramNotificationSection>.unmodifiable(
+        _buildNotificationSections(),
+      );
+  int get unreadNotificationCount =>
+      notifications.where((item) => item.isUnread).length;
 
   List<KaizengramStory> get stories => _posts
       .map(
@@ -70,6 +90,194 @@ class KaizengramController extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<KaizengramNotificationSection> _buildNotificationSections() {
+    final notifications = _buildNotifications();
+    if (notifications.isEmpty) {
+      return const <KaizengramNotificationSection>[];
+    }
+
+    final grouped =
+        <KaizengramNotificationBucket, List<KaizengramNotificationItem>>{
+          KaizengramNotificationBucket.today: <KaizengramNotificationItem>[],
+          KaizengramNotificationBucket.thisWeek: <KaizengramNotificationItem>[],
+          KaizengramNotificationBucket.earlier: <KaizengramNotificationItem>[],
+        };
+
+    final now = DateTime.now();
+    for (final notification in notifications) {
+      grouped[_notificationBucketFor(notification.occurredAt, now)]!.add(
+        notification,
+      );
+    }
+
+    return KaizengramNotificationBucket.values
+        .where((bucket) => grouped[bucket]!.isNotEmpty)
+        .map(
+          (bucket) => KaizengramNotificationSection(
+            bucket: bucket,
+            items: List<KaizengramNotificationItem>.unmodifiable(
+              grouped[bucket]!,
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  List<KaizengramNotificationItem> _buildNotifications() {
+    if (_posts.isEmpty) {
+      return const <KaizengramNotificationItem>[];
+    }
+
+    final notifications = <KaizengramNotificationItem>[];
+    final now = DateTime.now();
+    var timelineIndex = 0;
+
+    for (final post in _posts) {
+      for (final notificationSeed in _notificationSeedsFor(post)) {
+        final occurredAt = now.subtract(
+          _notificationOffsets[timelineIndex % _notificationOffsets.length],
+        );
+        notifications.add(
+          KaizengramNotificationItem(
+            id: '${post.id}-notification-$timelineIndex',
+            actorName: notificationSeed.actorName,
+            type: notificationSeed.type,
+            post: post,
+            occurredAt: occurredAt,
+            isUnread: timelineIndex < 9,
+          ),
+        );
+        timelineIndex++;
+      }
+    }
+
+    notifications.sort(
+      (first, second) => second.occurredAt.compareTo(first.occurredAt),
+    );
+    return notifications;
+  }
+
+  List<({String actorName, KaizengramNotificationType type})>
+  _notificationSeedsFor(KaizengramFeedItem post) {
+    switch (post.resolvedPostCategory) {
+      case KaizengramPostCategory.audit:
+        return <({String actorName, KaizengramNotificationType type})>[
+          (
+            actorName: _notificationActor(
+              post.auditedBy,
+              fallback: AppStrings.kaizengramNotificationsActorKaizenQa,
+            ),
+            type: KaizengramNotificationType.commented,
+          ),
+          (
+            actorName: _notificationActor(
+              post.postedByName,
+              fallback: AppStrings.kaizengramNotificationsActorReviewBoard,
+            ),
+            type: KaizengramNotificationType.readyForFollowUp,
+          ),
+        ];
+      case KaizengramPostCategory.learningCompliance:
+        return <({String actorName, KaizengramNotificationType type})>[
+          (
+            actorName: _notificationActor(
+              post.postedByName,
+              fallback: AppStrings.kaizengramNotificationsActorTrainingDesk,
+            ),
+            type: KaizengramNotificationType.assigned,
+          ),
+          (
+            actorName: _notificationActor(
+              post.departmentName,
+              fallback: AppStrings.kaizengramNotificationsActorTrainingDesk,
+            ),
+            type: KaizengramNotificationType.dueSoon,
+          ),
+        ];
+      case KaizengramPostCategory.documentCompliance:
+        final normalizedStatus = post.status?.trim().toLowerCase() ?? '';
+        final needsUpload =
+            normalizedStatus.isNotEmpty &&
+            normalizedStatus != 'compliant' &&
+            normalizedStatus != 'no longer required';
+        return <({String actorName, KaizengramNotificationType type})>[
+          (
+            actorName: _notificationActor(
+              post.postedByName,
+              fallback: AppStrings.kaizengramNotificationsActorComplianceDesk,
+            ),
+            type: needsUpload
+                ? KaizengramNotificationType.requestedUpload
+                : KaizengramNotificationType.reviewed,
+          ),
+          (
+            actorName: _notificationActor(
+              post.departmentName,
+              fallback: AppStrings.kaizengramNotificationsActorReviewBoard,
+            ),
+            type: KaizengramNotificationType.reviewed,
+          ),
+        ];
+    }
+  }
+
+  KaizengramNotificationBucket _notificationBucketFor(
+    DateTime occurredAt,
+    DateTime now,
+  ) {
+    if (_isSameCalendarDay(occurredAt, now)) {
+      return KaizengramNotificationBucket.today;
+    }
+
+    if (now.difference(occurredAt).inDays < 7) {
+      return KaizengramNotificationBucket.thisWeek;
+    }
+
+    return KaizengramNotificationBucket.earlier;
+  }
+
+  bool _isSameCalendarDay(DateTime left, DateTime right) {
+    return left.year == right.year &&
+        left.month == right.month &&
+        left.day == right.day;
+  }
+
+  String _notificationActor(String? value, {required String fallback}) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return fallback;
+    }
+
+    return trimmed;
+  }
+
+  static const List<Duration> _notificationOffsets = <Duration>[
+    Duration(minutes: 2),
+    Duration(minutes: 11),
+    Duration(minutes: 24),
+    Duration(minutes: 48),
+    Duration(hours: 1, minutes: 18),
+    Duration(hours: 2, minutes: 10),
+    Duration(hours: 3, minutes: 40),
+    Duration(hours: 6, minutes: 15),
+    Duration(hours: 10, minutes: 25),
+    Duration(hours: 22),
+    Duration(days: 2, hours: 3),
+    Duration(days: 2, hours: 18),
+    Duration(days: 3, hours: 4),
+    Duration(days: 4, hours: 7),
+    Duration(days: 5, hours: 2),
+    Duration(days: 6, hours: 6),
+    Duration(days: 8, hours: 4),
+    Duration(days: 10, hours: 11),
+    Duration(days: 13, hours: 5),
+    Duration(days: 16, hours: 9),
+    Duration(days: 20, hours: 2),
+    Duration(days: 24, hours: 14),
+    Duration(days: 29, hours: 6),
+    Duration(days: 34, hours: 8),
+  ];
+
   List<KaizengramFeedItem> _buildDummyFeedItems() {
     _imageAssignments.clear();
     _nextImageIndex = 0;
@@ -113,8 +321,6 @@ class KaizengramController extends ChangeNotifier {
         schedule: 'Weekly',
         imageUrl: _image('learning-visionary'),
         mediaImageUrls: _gallery('learning-visionary-multi', 3),
-        descriptionComment:
-            'Leadership overview module is ready with refreshed talking points for the quarter. Managers can review the new scorecard summary and assign owners during the next huddle. The final recap slide now includes key milestones for onboarding, recognition, and quarterly execution planning.',
         likes: 24,
       ),
       _buildDocumentPost(
@@ -152,8 +358,6 @@ class KaizengramController extends ChangeNotifier {
         deadlineDate: '24 Jun, 2026',
         schedule: 'Monthly',
         imageUrl: _image('learning-hr'),
-        descriptionComment:
-            'Harassment prevention refresher has been assigned and the quiz now includes scenario updates.',
         likes: 10,
       ),
       _buildDocumentPost(
@@ -179,8 +383,6 @@ class KaizengramController extends ChangeNotifier {
         schedule: 'Quarterly',
         imageUrl: _image('learning-it-video-thumb'),
         videoUrl: _sampleVideoUrl,
-        descriptionComment:
-            'Security awareness walkthrough now includes a video module for phishing escalation.',
         likes: 31,
         isLiked: true,
       ),
@@ -220,8 +422,6 @@ class KaizengramController extends ChangeNotifier {
         schedule: 'Daily',
         imageUrl: _image('learning-front-desk-lead'),
         mediaImageUrls: _gallery('learning-front-desk-lead-multi', 4),
-        descriptionComment:
-            'Patient intake protocol needs to be retaken after a low assessment score on the last checkpoint.',
         likes: 2,
       ),
       _buildAuditPost(
@@ -261,8 +461,6 @@ class KaizengramController extends ChangeNotifier {
         schedule: 'Bi-Weekly',
         imageUrl: _image('learning-marketing-video-thumb'),
         videoUrl: _sampleVideoUrl,
-        descriptionComment:
-            'Brand standards course now includes a short reel on campaign approvals and revision ownership.',
         likes: 17,
       ),
       _buildAuditPost(
@@ -301,8 +499,6 @@ class KaizengramController extends ChangeNotifier {
         schedule: 'Monthly',
         imageUrl: _image('learning-facility'),
         mediaImageUrls: _gallery('learning-facility-multi', 5),
-        descriptionComment:
-            'Safety lockout training has been refreshed and includes the latest generator inspection checklist.',
         likes: 13,
       ),
       _buildAuditPost(
@@ -340,8 +536,6 @@ class KaizengramController extends ChangeNotifier {
         deadlineDate: '21 Jun, 2026',
         schedule: 'Weekly',
         imageUrl: _image('learning-dental-assist'),
-        descriptionComment:
-            'Radiography refresher is nearly complete and includes a checklist for setup, capture, and cleanup.',
         likes: 27,
       ),
     ]);
@@ -443,7 +637,6 @@ class KaizengramController extends ChangeNotifier {
     required String deadlineDate,
     required String schedule,
     required String imageUrl,
-    required String descriptionComment,
     required int likes,
     List<String>? mediaImageUrls,
     String? videoUrl,
@@ -459,8 +652,8 @@ class KaizengramController extends ChangeNotifier {
         normalizedImageUrl ??
         (normalizedMediaUrls.isEmpty ? null : normalizedMediaUrls.first);
     final comments = _buildCommentThread(
-      descriptionAuthor: postedByName,
-      descriptionMessage: descriptionComment,
+      descriptionAuthor: null,
+      descriptionMessage: null,
       avatarUrl: resolvedPrimaryImageUrl,
       replies: <({String author, String message, String time})>[
         (
@@ -488,7 +681,7 @@ class KaizengramController extends ChangeNotifier {
           ? KaizengramFeedMediaKind.gallery
           : KaizengramFeedMediaKind.image,
       title: seatName,
-      description: descriptionComment,
+      description: '',
       status: status,
       seatProfile: departmentName,
       rawDeadline: deadlineDate,
@@ -593,8 +786,8 @@ class KaizengramController extends ChangeNotifier {
   }
 
   List<KaizengramComment> _buildCommentThread({
-    required String descriptionAuthor,
-    required String descriptionMessage,
+    required String? descriptionAuthor,
+    required String? descriptionMessage,
     required String? avatarUrl,
     required List<({String author, String message, String time})> replies,
   }) {
@@ -609,14 +802,7 @@ class KaizengramController extends ChangeNotifier {
         )
         .toList(growable: false);
 
-    return <KaizengramComment>[
-      KaizengramComment(
-        authorName: descriptionAuthor,
-        message: descriptionMessage,
-        timestampLabel: 'Now',
-        avatarUrl: avatarUrl,
-        isDescription: true,
-      ),
+    final comments = <KaizengramComment>[
       if (threadedReplies.isNotEmpty)
         KaizengramComment(
           authorName: threadedReplies.first.authorName,
@@ -626,6 +812,26 @@ class KaizengramController extends ChangeNotifier {
           replies: threadedReplies.skip(1).toList(growable: false),
         ),
     ];
+
+    final normalizedDescription = descriptionMessage?.trim();
+    final normalizedAuthor = descriptionAuthor?.trim();
+    if (normalizedDescription != null &&
+        normalizedDescription.isNotEmpty &&
+        normalizedAuthor != null &&
+        normalizedAuthor.isNotEmpty) {
+      comments.insert(
+        0,
+        KaizengramComment(
+          authorName: normalizedAuthor,
+          message: normalizedDescription,
+          timestampLabel: 'Now',
+          avatarUrl: avatarUrl,
+          isDescription: true,
+        ),
+      );
+    }
+
+    return comments;
   }
 
   List<KaizengramAuditMediaItem> _buildAuditMediaItems({
@@ -980,6 +1186,34 @@ class KaizengramComment {
   final String? avatarUrl;
   final bool isDescription;
   final List<KaizengramComment> replies;
+}
+
+class KaizengramNotificationSection {
+  const KaizengramNotificationSection({
+    required this.bucket,
+    required this.items,
+  });
+
+  final KaizengramNotificationBucket bucket;
+  final List<KaizengramNotificationItem> items;
+}
+
+class KaizengramNotificationItem {
+  const KaizengramNotificationItem({
+    required this.id,
+    required this.actorName,
+    required this.type,
+    required this.post,
+    required this.occurredAt,
+    this.isUnread = false,
+  });
+
+  final String id;
+  final String actorName;
+  final KaizengramNotificationType type;
+  final KaizengramFeedItem post;
+  final DateTime occurredAt;
+  final bool isUnread;
 }
 
 class KaizengramAuditMediaItem {
