@@ -1,0 +1,1 @@
+enum ComplianceTabType { learningTrack, document }

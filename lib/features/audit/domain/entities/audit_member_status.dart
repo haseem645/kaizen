@@ -1,0 +1,1 @@
+enum AuditMemberStatus { active, deactivated }

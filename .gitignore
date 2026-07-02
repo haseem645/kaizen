@@ -1,0 +1,153 @@
+# ------------------------------------------------------------
+# OS / filesystem noise
+# ------------------------------------------------------------
+.DS_Store
+**/.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ------------------------------------------------------------
+# IDE / editor
+# ------------------------------------------------------------
+.idea/
+**/.idea/
+.vscode/
+.fleet/
+.history/
+*.iml
+*.ipr
+*.iws
+
+# ------------------------------------------------------------
+# Logs / temp / patches
+# ------------------------------------------------------------
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.orig
+*.rej
+*~
+
+# ------------------------------------------------------------
+# Local env / machine-specific config
+# ------------------------------------------------------------
+.env
+.env.*
+!.env.example
+pubspec_overrides.yaml
+
+# ------------------------------------------------------------
+# Secrets / signing / certificates
+# ------------------------------------------------------------
+*.jks
+*.keystore
+*.p12
+*.p8
+*.pem
+*.cer
+*.mobileprovision
+*.certSigningRequest
+key.properties
+android/key.properties
+android/local.properties
+android/**/local.properties
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# ------------------------------------------------------------
+# Dart / Flutter generated
+# ------------------------------------------------------------
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+**/build/
+coverage/
+doc/api/
+
+# ------------------------------------------------------------
+# Flutter generated registrants / plugin glue
+# ------------------------------------------------------------
+**/generated_plugin_registrant.dart
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.java
+**/GeneratedPluginRegistrant.swift
+**/GeneratedPluginRegistrant.h
+**/GeneratedPluginRegistrant.m
+
+# ------------------------------------------------------------
+# Android generated
+# ------------------------------------------------------------
+.gradle/
+**/.gradle/
+**/.cxx/
+**/.kotlin/
+android/captures/
+*.apk
+*.aab
+
+# ------------------------------------------------------------
+# iOS generated / simulator / Xcode user data
+# ------------------------------------------------------------
+ios/Pods/
+**/ios/Pods/
+ios/.symlinks/
+**/ios/.symlinks/
+ios/build/
+**/ios/build/
+ios/Flutter/App.framework
+**/ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+**/ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+**/ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+**/ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/flutter_export_environment.sh
+ios/Flutter/.last_build_id
+**/ios/Flutter/.last_build_id
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+ios/Runner.xcworkspace/xcuserdata/
+**/xcuserdata/
+*.xcuserstate
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.ipa
+
+# ------------------------------------------------------------
+# macOS generated
+# ------------------------------------------------------------
+macos/Pods/
+**/macos/Pods/
+macos/.symlinks/
+**/macos/.symlinks/
+macos/build/
+**/macos/build/
+macos/Flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+
+# ------------------------------------------------------------
+# Linux / Windows generated
+# ------------------------------------------------------------
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# ------------------------------------------------------------
+# Local tool managers
+# ------------------------------------------------------------
+.fvm/
+.melos_tool/

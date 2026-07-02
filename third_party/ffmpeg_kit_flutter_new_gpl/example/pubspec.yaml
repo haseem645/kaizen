@@ -1,0 +1,46 @@
+name: example
+description: "FFMPEG example"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  path_provider: ^2.1.5
+  ffmpeg_kit_flutter_new_gpl:
+    path: ../
+
+  video_player: ^2.8.2
+  chewie: ^1.7.5
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+  fonts:
+    - family: Gilroy
+      fonts:
+        - asset: fonts/gilroy_medium.otf
+          weight: 400
+        - asset: fonts/gilroy_bold.ttf
+          weight: 700
+        - asset: fonts/gilroy_extra_bold_italic.otf
+          weight: 800
+          style: italic
+        - asset: fonts/gilroy_heavy.otf
+          weight: 900
+    - family: PuHuiTi
+      fonts:
+        - asset: fonts/ali_puhuiti_heavy.otf
+          weight: 900

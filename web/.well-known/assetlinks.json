@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kaizen",
+      "sha256_cert_fingerprints": [
+        "0D:60:F3:A0:E0:46:07:77:DB:F8:6A:C3:77:81:47:60:07:33:92:2E:0C:5A:E8:C1:DE:07:AE:69:97:5B:12:4D"
+      ]
+    }
+  }
+]
