@@ -292,4 +292,62 @@ class AppStrings {
       'Capture your screen, then save it as a media comment.';
   static const String auditStopPrompt =
       'Tap stop below when you want to finish and review the recording.';
+
+  // Kaizengram Feed & Navigation
+  static const String kaizengramTabWeeklyCheckIn = 'Weekly Check-In';
+  static const String kaizengramTabLearning = 'Learning';
+  static const String kaizengramTabDocument = 'Document';
+
+  // Kaizengram Power List
+  static const String kaizengramPowerListTitle = 'Power List';
+  static const String kaizengramPowerListSubtitle =
+      'Insights across compliances and audits';
+  static const String kaizengramPowerListContinuedTitle = 'Power List Continued';
+  static const String kaizengramPowerListContinuedSubtitle =
+      'More highlights inside the feed';
+
+  // Kaizengram Power List Entries
+  static const String kaizengramLearningCompliancesTitle = 'Learning Compliances';
+  static const String kaizengramLearningCompliancesDue = '12 Due This Week';
+  static const String kaizengramDocumentCompliancesTitle = 'Document Compliances';
+  static const String kaizengramDocumentCompliancesPending = '8 Pending Uploads';
+  static const String kaizengramCheckInsTitle = 'Check-ins';
+  static const String kaizengramCheckInsActive = '5 Active Check-ins';
+  static const String kaizengramCheckInReportsTitle = 'Check-in Reports';
+  static const String kaizengramCheckInReportsReady = '3 Ready For Review';
+
+  // Kaizengram Post Actions
+  static const String kaizengramButtonComments = 'Comments';
+  static const String kaizengramLabelAuditedBy = 'Audited By';
+  static const String kaizengramLabelAssignedBy = 'Assigned By';
+
+  // Kaizengram Media & Upload
+  static const String kaizengramLabelUploadDoc = 'Upload Doc';
+  static const String kaizengramButtonUploadImage = 'Upload Image';
+  static const String kaizengramButtonChangeImage = 'Change Image';
+  static const String kaizengramLabelCheckInComments = 'Check-In Comments';
+
+  // Kaizengram Empty & Error States
+  static const String kaizengramMessageUnableLoadFeed =
+      'Unable to load Kaizen feed right now.';
+  static const String kaizengramMessageNoFeedItems = 'No feed items are available yet.';
+
+  // Kaizengram Error Messages
+  static const String kaizengramErrorCannotAccessCompliance =
+      'You cannot access this compliance';
+  static const String kaizengramErrorRestrictedTitle = 'Restricted';
+  static const String kaizengramErrorPickImageFailed =
+      'Unable to pick image right now';
+
+  // Kaizengram Comments Thread
+  static const String kaizengramMessageShowReplies = 'Show replies';
+  static const String kaizengramMessageHideReplies = 'Hide replies';
+
+  /// Get the show/hide replies text with count.
+  /// Example: "Show replies (5)" or "Hide replies"
+  static String kaizengramRepliesToggleText(int count, bool isShowing) {
+    return isShowing
+        ? kaizengramMessageHideReplies
+        : '${kaizengramMessageShowReplies} ($count)';
+  }
 }
