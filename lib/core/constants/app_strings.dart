@@ -216,15 +216,19 @@ class AppStrings {
 
   static String welcomeUser(String displayName) => 'Welcome, $displayName!';
 
+  static String commentAsUser(String displayName) => 'Comment as $displayName';
+
   static String apiRequestFailed(int statusCode) =>
       '$apiRequestFailedPrefix $statusCode';
 
   static const String cosmeticDentist = "Cosmetic Dentist";
   static const String claraBell = "Clara Bell";
   static const String lastAudit = "Last Audit";
+  static const String like = "Like";
   static const String comments = "Comments";
   static const String addTextComment = "Add Text Comment";
   static const String comment = "Comment";
+  static const String writeCommentHint = 'Write a comment...';
   static const String enterComment = "Enter Comment";
   static const String saveComment = "Save Comment";
   static const String unableToLoadComments = "Unable to load comments.";
@@ -353,6 +357,28 @@ class AppStrings {
   static const String kaizengramCheckInsActive = '5 Active Check-ins';
   static const String kaizengramCheckInReportsTitle = 'Check-in Reports';
   static const String kaizengramCheckInReportsReady = '3 Ready For Review';
+  static const String kaizengramWeeklySocialPostTitle = 'Kaizengram';
+  static const String kaizengramWeeklySocialPostSubtitle =
+      'Weekly Check-In Note';
+  static const String kaizengramWeeklySocialAuthorOne = 'Jordan Miles';
+  static const String kaizengramWeeklySocialAuthorTwo = 'Alyssa Grant';
+  static const String kaizengramWeeklySocialChannelOne = '#weekly-check-in';
+  static const String kaizengramWeeklySocialChannelTwo = '#ops-floor';
+  static const String kaizengramWeeklySocialTimeOne = '2h';
+  static const String kaizengramWeeklySocialTimeTwo = '1 Day';
+  static const String kaizengramWeeklySocialPostOne =
+      'Weekly check-ins are building strong momentum across teams. Keep turning each observation into one clear next action before the next review window opens.';
+  static const String kaizengramWeeklySocialPostTwo =
+      'The fastest wins this week came from teams who closed the loop in comments. Capture what changed, who owns it, and what will be rechecked next time.';
+  static const String kaizengramComposePrompt = 'What\'s on your mind?';
+  static const String kaizengramComposeSubtitle =
+      'Share a quick win, follow-up, or proof with your team.';
+  static const String kaizengramComposeSheetTitle = 'Write Post';
+  static const String kaizengramComposeSheetHint =
+      'Share a quick update with your team';
+  static const String kaizengramComposeButtonPost = 'Post';
+  static const String kaizengramComposeButtonCancel = 'Cancel';
+  static const String kaizengramComposeTimeLabel = '1m';
 
   // Kaizengram Post Actions
   static const String kaizengramButtonComments = 'Comments';

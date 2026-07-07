@@ -1,0 +1,590 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/widgets/app_text_view.dart';
+import '../chat_strings.dart';
+import '../providers/kaizengram_chat_controller.dart';
+import 'chat_full_screen_media_view.dart';
+import 'chat_mention_text.dart';
+import 'chat_mention_text_editing_controller.dart';
+import 'chat_user_initial_avatar.dart';
+import 'chat_video_preview.dart';
+
+//////
+class KaizengramChatMessageComposer extends StatefulWidget {
+  const KaizengramChatMessageComposer({super.key});
+
+  @override
+  State<KaizengramChatMessageComposer> createState() => _KaizengramChatMessageComposerState();
+}
+
+class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageComposer> {
+  late final ChatMentionTextEditingController _textController;
+  _MentionQuery? _activeMentionQuery;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = ChatMentionTextEditingController(
+      users: context.read<KaizengramChatController>().users,
+      text: context.read<KaizengramChatController>().draftMessage,
+    );
+    _textController.addListener(_handleTextControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    _textController.removeListener(_handleTextControllerChanged);
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<KaizengramChatController>();
+    final canSendMessage = controller.canSendMessage;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final draftAttachments = controller.draftAttachments;
+    final isPickingDraftMedia = controller.isPickingDraftMedia;
+    _textController.users = controller.users;
+    final replyingTo = controller.replyingTo;
+    final mentionSuggestions = _activeMentionQuery == null
+        ? const <KaizengramChatUser>[]
+        : controller.mentionSuggestions(_activeMentionQuery!.query);
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B1E27),
+          border: Border(top: BorderSide(color: AppColors.textPrimary.withValues(alpha: 0.06))),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (replyingTo != null) ...<Widget>[
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF24283D),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: 4,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.blue,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          AppTextView.body3(
+                            '${KaizengramChatStrings.replyingToLabel} ${replyingTo.sender.name}',
+                            color: AppColors.blue,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          const SizedBox(height: 4),
+                          ChatMentionText(
+                            text: replyingTo.previewText,
+                            users: controller.users,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            defaultStyle: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: controller.cancelReply,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (draftAttachments.isNotEmpty) ...<Widget>[
+              _DraftMediaPreviewStrip(
+                attachments: draftAttachments,
+                onOpenAttachment: _openDraftMediaViewer,
+                onRemoveAttachment: controller.removeDraftMedia,
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (_activeMentionQuery != null && mentionSuggestions.isNotEmpty) ...<Widget>[
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF24283D),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: mentionSuggestions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final user = mentionSuggestions[index];
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => _insertMention(user),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            child: Row(
+                              children: <Widget>[
+                                ChatUserInitialAvatar(
+                                  label: kaizengramChatInitialFor(user.name),
+                                  accentColor: kaizengramChatAccentColorForIndex(index),
+                                  size: 36,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text(
+                                        user.name,
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        user.email,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                _ComposerIconButton(
+                  onTap: isPickingDraftMedia ? null : _handlePickMedia,
+                  child: isPickingDraftMedia
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.photo_library_outlined,
+                          color: AppColors.textPrimary,
+                          size: 20,
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    onChanged: controller.updateDraftMessage,
+                    maxLines: 4,
+                    minLines: 1,
+                    cursorHeight: 16,
+                    cursorColor: AppColors.textPrimary,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: KaizengramChatStrings.messageHint,
+                      hintStyle: const TextStyle(color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: const Color(0xFF24283D),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: canSendMessage ? _handleSendMessage : null,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: canSendMessage ? AppColors.secondaryColor : const Color(0xFF3A3F52),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(Icons.send_rounded, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handlePickMedia() async {
+    final result = await context.read<KaizengramChatController>().pickDraftMedia();
+    if (!mounted) {
+      return;
+    }
+
+    if (result == KaizengramChatDraftMediaPickResult.failed) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text(KaizengramChatStrings.pickMediaError)));
+      return;
+    }
+
+    if (result == KaizengramChatDraftMediaPickResult.limitReached) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text(KaizengramChatStrings.mediaLimitError)));
+    }
+  }
+
+  void _handleSendMessage() {
+    final controller = context.read<KaizengramChatController>();
+    controller.updateDraftMessage(_textController.text);
+    final didSend = controller.sendMessage();
+    if (!didSend) {
+      return;
+    }
+
+    _textController.clear();
+    setState(() => _activeMentionQuery = null);
+  }
+
+  void _handleTextControllerChanged() {
+    final nextQuery = _findMentionQuery(_textController.text, _textController.selection);
+    if (_activeMentionQuery == nextQuery) {
+      return;
+    }
+    setState(() => _activeMentionQuery = nextQuery);
+  }
+
+  void _insertMention(KaizengramChatUser user) {
+    final mentionQuery = _activeMentionQuery;
+    if (mentionQuery == null) {
+      return;
+    }
+
+    final mentionText = '@${user.name} ';
+    final nextText = _textController.text.replaceRange(
+      mentionQuery.start,
+      mentionQuery.end,
+      mentionText,
+    );
+    final nextSelectionOffset = mentionQuery.start + mentionText.length;
+    _textController.value = TextEditingValue(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: nextSelectionOffset),
+    );
+    context.read<KaizengramChatController>().updateDraftMessage(nextText);
+    setState(() => _activeMentionQuery = null);
+  }
+
+  void _openDraftMediaViewer(int index) {
+    final attachments = context.read<KaizengramChatController>().draftAttachments;
+    if (attachments.isEmpty) {
+      return;
+    }
+
+    final selectedAttachment = attachments[index];
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => KaizengramChatFullScreenMediaView(
+          attachments: attachments,
+          initialIndex: index,
+          autoPlayInitialVideo: selectedAttachment.isVideo,
+        ),
+      ),
+    );
+  }
+}
+
+class _DraftMediaPreviewStrip extends StatelessWidget {
+  const _DraftMediaPreviewStrip({
+    required this.attachments,
+    required this.onOpenAttachment,
+    required this.onRemoveAttachment,
+  });
+
+  final List<KaizengramChatMediaAttachment> attachments;
+  final ValueChanged<int> onOpenAttachment;
+  final ValueChanged<String> onRemoveAttachment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF24283D),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppTextView.body4(
+            KaizengramChatStrings.selectedMediaLabel(
+              attachments.length,
+              KaizengramChatController.maxMessageMediaCount,
+            ),
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 8.0;
+              const maxSquareSide = 92.0;
+              final availableWidth = constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : MediaQuery.sizeOf(context).width;
+              final rawSquareSide =
+                  (availableWidth - (spacing * (attachments.length - 1))) / attachments.length;
+              final squareSide = rawSquareSide > maxSquareSide ? maxSquareSide : rawSquareSide;
+
+              return SizedBox(
+                height: squareSide,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List<Widget>.generate(attachments.length * 2 - 1, (index) {
+                    if (index.isOdd) {
+                      return const SizedBox(width: spacing);
+                    }
+
+                    final attachmentIndex = index ~/ 2;
+                    final attachment = attachments[attachmentIndex];
+                    return _DraftMediaPreviewCard(
+                      attachment: attachment,
+                      width: squareSide,
+                      height: squareSide,
+                      onOpen: () => onOpenAttachment(attachmentIndex),
+                      onRemove: () => onRemoveAttachment(attachment.path),
+                    );
+                  }),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DraftMediaPreviewCard extends StatelessWidget {
+  const _DraftMediaPreviewCard({
+    required this.attachment,
+    required this.width,
+    required this.height,
+    required this.onOpen,
+    required this.onRemove,
+  });
+
+  final KaizengramChatMediaAttachment attachment;
+  final double width;
+  final double height;
+  final VoidCallback onOpen;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                color: const Color(0xFF111317),
+                child: attachment.isVideo
+                    ? ChatVideoPreview(
+                        videoPath: attachment.path,
+                        maxHeight: height,
+                        muted: true,
+                        playButtonSize: 30,
+                        playIconSize: 16,
+                        onTapOverride: onOpen,
+                        onOpenFullScreen: onOpen,
+                      )
+                    : Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onOpen,
+                          child: attachment.path.startsWith('http')
+                              ? Image.network(
+                                  attachment.path,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => const _DraftMediaFallback(),
+                                )
+                              : Image.file(
+                                  File(attachment.path),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => const _DraftMediaFallback(),
+                                ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.44),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onRemove,
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DraftMediaFallback extends StatelessWidget {
+  const _DraftMediaFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Icon(Icons.broken_image_outlined, color: AppColors.textSecondary, size: 26),
+    );
+  }
+}
+
+class _ComposerIconButton extends StatelessWidget {
+  const _ComposerIconButton({required this.onTap, required this.child});
+
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFF24283D),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Center(child: child),
+      ),
+    );
+  }
+}
+
+_MentionQuery? _findMentionQuery(String text, TextSelection selection) {
+  if (!selection.isValid) {
+    return null;
+  }
+
+  final cursor = selection.baseOffset;
+  if (cursor < 0 || cursor > text.length) {
+    return null;
+  }
+
+  final beforeCursor = text.substring(0, cursor);
+  final atIndex = beforeCursor.lastIndexOf('@');
+  if (atIndex == -1) {
+    return null;
+  }
+  if (atIndex > 0) {
+    final prefix = beforeCursor[atIndex - 1];
+    final canStartMention = prefix == ' ' || prefix == '\n' || prefix == '\t';
+    if (!canStartMention) {
+      return null;
+    }
+  }
+
+  final query = beforeCursor.substring(atIndex + 1);
+  if (query.contains(RegExp(r'\s'))) {
+    return null;
+  }
+
+  return _MentionQuery(start: atIndex, end: cursor, query: query);
+}
+
+class _MentionQuery {
+  const _MentionQuery({required this.start, required this.end, required this.query});
+
+  final int start;
+  final int end;
+  final String query;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+
+    return other is _MentionQuery &&
+        other.start == start &&
+        other.end == end &&
+        other.query == query;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end, query);
+}

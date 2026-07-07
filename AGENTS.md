@@ -151,6 +151,7 @@ A change is complete only when all of the following are true:
 ## Good Defaults For Codex
 
 - Read the relevant feature folder before editing.
+- Consult `skills/skills.md` first, then open only the relevant module `skills/*_skills.md` file before reading wider feature context.
 - Prefer the smallest change that satisfies the request.
 - Verify UI changes with analyzer-friendly, overflow-safe widget code.
 - When a bug repeats, update this file with a concrete rule rather than adding vague guidance.

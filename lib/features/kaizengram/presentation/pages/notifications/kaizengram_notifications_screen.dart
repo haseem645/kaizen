@@ -9,7 +9,7 @@ import '../../providers/kaizengram_controller.dart';
 
 class KaizengramNotificationsScreen extends StatelessWidget {
   const KaizengramNotificationsScreen({super.key});
-
+  //
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<KaizengramController>();
@@ -17,38 +17,49 @@ class KaizengramNotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFF111317),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF111317),
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        titleSpacing: 18,
-        title: AppTextView.title1(
-          AppStrings.kaizengramNotificationsTitle,
-          color: AppColors.textPrimary,
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-        ),
+      appBar: _buildAppBar(),
+      body: SafeArea(top: false, child: _buildBody(controller, sections)),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: const Color(0xFF111317),
+      foregroundColor: AppColors.textPrimary,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleSpacing: 18,
+      title: AppTextView.title1(
+        AppStrings.kaizengramNotificationsTitle,
+        color: AppColors.textPrimary,
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
       ),
-      body: SafeArea(
-        top: false,
-        child: controller.isLoading
-            ? Center(child: FastCircularProgressIndicator())
-            : sections.isEmpty
-            ? _NotificationsStateView(
-                message: controller.errorMessage != null
-                    ? AppStrings.kaizengramNotificationsUnableToLoad
-                    : AppStrings.kaizengramNotificationsEmpty,
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(0, 6, 0, 28),
-                itemCount: sections.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  return _NotificationSectionView(section: sections[index]);
-                },
-              ),
-      ),
+    );
+  }
+
+  Widget _buildBody(
+    KaizengramController controller,
+    List<KaizengramNotificationSection> sections,
+  ) {
+    if (controller.isLoading) {
+      return Center(child: FastCircularProgressIndicator());
+    }
+
+    if (sections.isEmpty) {
+      return _NotificationsStateView(
+        message: controller.errorMessage != null
+            ? AppStrings.kaizengramNotificationsUnableToLoad
+            : AppStrings.kaizengramNotificationsEmpty,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(0, 6, 0, 28),
+      itemCount: sections.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) =>
+          _NotificationSectionView(section: sections[index]),
     );
   }
 }
@@ -124,75 +135,90 @@ class _NotificationRow extends StatelessWidget {
             Navigator.of(context).pop<KaizengramNotificationItem>(item),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _NotificationAvatar(item: item, accentColor: accentColor),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      RichText(
-                        text: TextSpan(
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            height: 1.38,
-                          ),
-                          children: <InlineSpan>[
-                            TextSpan(
-                              text: '${item.actorName} ',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            TextSpan(text: _messageFor(item)),
-                            TextSpan(
-                              text: ' ${_timeLabelFor(item.occurredAt)}',
-                              style: const TextStyle(
-                                color: Color(0xFF8D93A6),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: <Widget>[
-                          if (item.isUnread)
-                            Container(
-                              width: 8,
-                              height: 8,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: accentColor,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          Expanded(
-                            child: AppTextView.body2(
-                              _postMeta(item.post),
-                              color: AppColors.textSecondary,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              _NotificationPostPreview(item: item, accentColor: accentColor),
-            ],
-          ),
+          child: _buildRowContent(accentColor),
         ),
       ),
+    );
+  }
+
+  Widget _buildRowContent(Color accentColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _NotificationAvatar(item: item, accentColor: accentColor),
+        const SizedBox(width: 12),
+        Expanded(child: _buildMessageColumn(accentColor)),
+        const SizedBox(width: 12),
+        _NotificationPostPreview(item: item, accentColor: accentColor),
+      ],
+    );
+  }
+
+  Widget _buildMessageColumn(Color accentColor) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildMessageText(),
+          const SizedBox(height: 6),
+          _buildMetaRow(accentColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageText() {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.38),
+        children: <InlineSpan>[
+          TextSpan(
+            text: '${item.actorName} ',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          TextSpan(text: _messageFor(item)),
+          TextSpan(
+            text: ' ${_timeLabelFor(item.occurredAt)}',
+            style: const TextStyle(
+              color: Color(0xFF8D93A6),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaRow(Color accentColor) {
+    return Row(
+      children: <Widget>[
+        if (item.isUnread) _UnreadDot(accentColor: accentColor),
+        Expanded(
+          child: AppTextView.body2(
+            _postMeta(item.post),
+            color: AppColors.textSecondary,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UnreadDot extends StatelessWidget {
+  const _UnreadDot({required this.accentColor});
+
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
     );
   }
 }
