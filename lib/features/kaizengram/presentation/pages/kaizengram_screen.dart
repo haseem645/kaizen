@@ -31,6 +31,10 @@ import '../widgets/kaizengram_link_preview_card.dart';
 import '../widgets/kaizengram_link_utils.dart';
 import 'notifications/kaizengram_notifications_screen.dart';
 
+const double _commentComposerCornerRadius = 12;
+const double _commentComposerControlHeight = 44;
+const double _commentComposerActionWidth = 54;
+
 class KaizenGramScreen extends StatelessWidget {
   const KaizenGramScreen({super.key});
 
@@ -61,13 +65,13 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   late final KaizengramChatController _chatController;
-  final ImagePicker _composeImagePicker = ImagePicker();
   final ScrollController _mixedFeedScrollController = ScrollController();
   final ScrollController _auditFeedScrollController = ScrollController();
   final ScrollController _learningFeedScrollController = ScrollController();
   final ScrollController _documentFeedScrollController = ScrollController();
   final Map<String, GlobalKey> _postKeys = <String, GlobalKey>{};
   var _isPickingComposeImage = false;
+  var _isPickingComposeAttachment = false;
 
   static const List<_PowerListEntry> _powerListEntriesFirstHalf =
       <_PowerListEntry>[
@@ -384,10 +388,11 @@ class _KaizenGramViewState extends State<_KaizenGramView>
   ) {
     return _KaizengramComposeHeader(
       displayName: controller.currentUserDisplayName,
+      imagePath: controller.currentUserImagePath,
       imageUrl: controller.currentUserImageUrl,
-      isPickingImage: _isPickingComposeImage,
+      isPickingSource: _isPickingComposeImage || _isPickingComposeAttachment,
       onTap: () => _openCreatePostSheet(context),
-      onImageTap: _pickComposeImageAndOpenSheet,
+      onSourceTap: () => _handleComposeSourceTap(context),
     );
   }
 
@@ -748,8 +753,42 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     }
   }
 
-  Future<void> _pickComposeImageAndOpenSheet() async {
-    if (_isPickingComposeImage) {
+  Future<void> _handleComposeSourceTap(BuildContext context) async {
+    if (_isPickingComposeImage || _isPickingComposeAttachment) {
+      return;
+    }
+
+    final selectedOption = await _showComposeSourceOptions(context);
+    if (!mounted || selectedOption == null) {
+      return;
+    }
+
+    switch (selectedOption) {
+      case _ComposePostSourceOption.image:
+        await _pickComposeImagesAndOpenSheet();
+        return;
+      case _ComposePostSourceOption.attachment:
+        await _pickComposeAttachmentsAndOpenSheet();
+        return;
+    }
+  }
+
+  Future<_ComposePostSourceOption?> _showComposeSourceOptions(
+    BuildContext context,
+  ) {
+    if (!context.mounted) {
+      return Future<_ComposePostSourceOption?>.value(null);
+    }
+
+    return showModalBottomSheet<_ComposePostSourceOption>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ComposePostSourceSheet(),
+    );
+  }
+
+  Future<void> _pickComposeImagesAndOpenSheet() async {
+    if (_isPickingComposeImage || _isPickingComposeAttachment) {
       return;
     }
 
@@ -758,15 +797,16 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     });
 
     try {
-      final pickedImage = await _composeImagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-      if (pickedImage == null || !mounted) {
+      final pickedAttachments =
+          await KaizengramMessageAttachmentPicker.pickImages(availableSlots: 1);
+      if (pickedAttachments.isEmpty || !mounted) {
         return;
       }
 
-      await _openCreatePostSheet(context, initialImagePath: pickedImage.path);
+      await _openCreatePostSheet(
+        context,
+        initialAttachments: pickedAttachments,
+      );
     } catch (_) {
       if (!mounted) {
         return;
@@ -790,9 +830,53 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     }
   }
 
+  Future<void> _pickComposeAttachmentsAndOpenSheet() async {
+    if (_isPickingComposeImage || _isPickingComposeAttachment) {
+      return;
+    }
+
+    setState(() {
+      _isPickingComposeAttachment = true;
+    });
+
+    try {
+      final pickedAttachments =
+          await KaizengramMessageAttachmentPicker.pickPdfs(availableSlots: 1);
+      if (pickedAttachments.isEmpty || !mounted) {
+        return;
+      }
+
+      await _openCreatePostSheet(
+        context,
+        initialAttachments: pickedAttachments,
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(AppStrings.kaizengramErrorPickAttachmentFailed),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingComposeAttachment = false;
+        });
+      } else {
+        _isPickingComposeAttachment = false;
+      }
+    }
+  }
+
   Future<void> _openCreatePostSheet(
     BuildContext context, {
-    String? initialImagePath,
+    List<KaizengramMessageAttachment> initialAttachments =
+        const <KaizengramMessageAttachment>[],
   }) {
     final controller = context.read<KaizengramController>();
 
@@ -805,12 +889,13 @@ class _KaizenGramViewState extends State<_KaizenGramView>
       ),
       builder: (_) => _CreateSocialPostBottomSheet(
         authorName: controller.currentUserDisplayName,
+        avatarImagePath: controller.currentUserImagePath,
         avatarUrl: controller.currentUserImageUrl,
-        initialImagePath: initialImagePath,
-        onPostSubmitted: (message, imagePath) {
+        initialAttachments: initialAttachments,
+        onPostSubmitted: (message, attachments) {
           controller.createCurrentUserSocialPost(
             message: message,
-            mediaImagePath: imagePath,
+            attachments: attachments,
           );
           if (controller.useSeparateFeedDemo && _tabController.index != 0) {
             _tabController.animateTo(0);
@@ -1347,7 +1432,13 @@ class _WeeklyCheckInSocialTextCard extends StatelessWidget {
         ? null
         : previewComment.replies.last;
     final hasMessage = post.message.trim().isNotEmpty;
-    final hasMediaImage = post.hasMediaImage;
+    final hasLinkPreview = kaizengramFirstLinkInText(post.message) != null;
+    final attachments = post.resolvedAttachments;
+    final hasAttachments = attachments.isNotEmpty;
+    final avatarImageProvider = _resolvedAvatarImageProvider(
+      imagePath: post.avatarImagePath,
+      imageUrl: post.avatarUrl,
+    );
 
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 0, 0, 18),
@@ -1366,7 +1457,14 @@ class _WeeklyCheckInSocialTextCard extends StatelessWidget {
               CircleAvatar(
                 radius: 21,
                 backgroundColor: AppColors.surfaceDark3,
-                backgroundImage: NetworkImage(post.avatarUrl),
+                backgroundImage: avatarImageProvider,
+                child: avatarImageProvider != null
+                    ? null
+                    : AppTextView.body3(
+                        _initialsFromName(post.authorName),
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1392,16 +1490,24 @@ class _WeeklyCheckInSocialTextCard extends StatelessWidget {
           ),
           if (hasMessage) ...<Widget>[
             const SizedBox(height: 14),
-            AppTextView.body1(
-              post.message,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+            ChatMentionText(
+              text: post.message,
+              users: const <KaizengramChatUser>[],
+              defaultStyle: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                height: 1.45,
+              ),
             ),
           ],
-          if (hasMediaImage) ...<Widget>[
-            SizedBox(height: hasMessage ? 14 : 12),
-            _SocialPostMediaPreview(post: post),
+          if (hasLinkPreview) ...<Widget>[
+            const SizedBox(height: 10),
+            KaizengramTextLinkPreview(text: post.message, topSpacing: 0),
+          ],
+          if (hasAttachments) ...<Widget>[
+            SizedBox(height: hasMessage || hasLinkPreview ? 14 : 12),
+            _SocialPostAttachmentPreview(attachments: attachments),
           ],
           const SizedBox(height: 14),
           Container(
@@ -1452,77 +1558,50 @@ class _WeeklyCheckInSocialTextCard extends StatelessWidget {
   }
 }
 
-class _SocialPostMediaPreview extends StatelessWidget {
-  const _SocialPostMediaPreview({required this.post});
+class _SocialPostAttachmentPreview extends StatelessWidget {
+  const _SocialPostAttachmentPreview({required this.attachments});
 
-  final KaizengramSocialPost post;
+  final List<KaizengramMessageAttachment> attachments;
 
   @override
   Widget build(BuildContext context) {
-    final mediaImagePath = post.mediaImagePath?.trim();
-    final mediaImageUrl = post.mediaImageUrl?.trim();
-    Widget imageChild;
-
-    if (mediaImagePath != null && mediaImagePath.isNotEmpty) {
-      imageChild = ColoredBox(
-        color: AppColors.surfaceDark3,
-        child: Image.file(
-          File(mediaImagePath),
-          fit: BoxFit.contain,
-          width: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: AppColors.surfaceDark3,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.image_not_supported_outlined,
-                color: AppColors.textSecondary,
-                size: 40,
-              ),
-            );
-          },
-        ),
-      );
-    } else if (mediaImageUrl != null && mediaImageUrl.isNotEmpty) {
-      imageChild = ColoredBox(
-        color: AppColors.surfaceDark3,
-        child: Image.network(
-          mediaImageUrl,
-          fit: BoxFit.contain,
-          width: double.infinity,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) {
-              return child;
-            }
-
-            return Container(
-              color: AppColors.surfaceDark3,
-              alignment: Alignment.center,
-              child: const CircularProgressIndicator(
-                color: AppColors.secondaryColor,
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: AppColors.surfaceDark3,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.image_not_supported_outlined,
-                color: AppColors.textSecondary,
-                size: 40,
-              ),
-            );
-          },
-        ),
-      );
-    } else {
+    if (attachments.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(height: 220, width: double.infinity, child: imageChild),
+    if (attachments.length == 1) {
+      final selectedAttachment = attachments.first;
+      return _CommentAttachmentPreviewCard(
+        attachment: selectedAttachment,
+        height: selectedAttachment.isPdf ? 104 : 220,
+        onOpen: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => KaizengramFullScreenAttachmentView(
+                attachments: attachments,
+                initialIndex: 0,
+                autoPlayInitialVideo: selectedAttachment.isVideo,
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return _CommentAttachmentPreviewStrip(
+      attachments: attachments,
+      onOpenAttachment: (index) {
+        final selectedAttachment = attachments[index];
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => KaizengramFullScreenAttachmentView(
+              attachments: attachments,
+              initialIndex: index,
+              autoPlayInitialVideo: selectedAttachment.isVideo,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1696,6 +1775,7 @@ class _InlineSocialCommentComposerState
   late final TextEditingController _controller;
   List<KaizengramMessageAttachment> _draftAttachments =
       <KaizengramMessageAttachment>[];
+  bool _isPickingAttachments = false;
 
   @override
   void initState() {
@@ -1726,12 +1806,18 @@ class _InlineSocialCommentComposerState
   }
 
   Future<void> _pickAttachments() async {
+    if (_isPickingAttachments) {
+      return;
+    }
+
     final availableSlots =
         kaizengramMessageAttachmentLimit - _draftAttachments.length;
     if (availableSlots <= 0) {
       _showAttachmentSnackBar(KaizengramChatStrings.mediaLimitError);
       return;
     }
+
+    setState(() => _isPickingAttachments = true);
 
     try {
       final source = await KaizengramMessageAttachmentPicker.pickSource(
@@ -1761,6 +1847,10 @@ class _InlineSocialCommentComposerState
         return;
       }
       _showAttachmentSnackBar(KaizengramChatStrings.pickMediaError);
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingAttachments = false);
+      }
     }
   }
 
@@ -1829,16 +1919,22 @@ class _InlineSocialCommentComposerState
             _CommentAvatar(comment: currentUserComment),
             const SizedBox(width: 10),
             _CommentComposerActionButton(
-              onTap: _pickAttachments,
+              onTap: _isPickingAttachments ? null : _pickAttachments,
               icon: Icons.attach_file_rounded,
+              isBusy: _isPickingAttachments,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: _commentComposerControlHeight,
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceDark3.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(
+                    _commentComposerCornerRadius,
+                  ),
                   border: Border.all(
                     color: AppColors.textPrimary.withValues(alpha: 0.08),
                   ),
@@ -1860,6 +1956,7 @@ class _InlineSocialCommentComposerState
                       color: AppColors.textSecondary,
                       fontSize: 14,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 11),
                     border: InputBorder.none,
                   ),
                   onChanged: (_) => setState(() {}),
@@ -2080,20 +2177,24 @@ class _StoryEntry {
   bool get isChannel => kind == _StoryEntryKind.channel;
 }
 
+enum _ComposePostSourceOption { image, attachment }
+
 class _KaizengramComposeHeader extends StatelessWidget {
   const _KaizengramComposeHeader({
     required this.displayName,
+    this.imagePath,
     required this.imageUrl,
-    required this.isPickingImage,
+    required this.isPickingSource,
     required this.onTap,
-    required this.onImageTap,
+    required this.onSourceTap,
   });
 
   final String displayName;
+  final String? imagePath;
   final String? imageUrl;
-  final bool isPickingImage;
+  final bool isPickingSource;
   final VoidCallback onTap;
-  final VoidCallback onImageTap;
+  final VoidCallback onSourceTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2120,6 +2221,7 @@ class _KaizengramComposeHeader extends StatelessWidget {
             children: <Widget>[
               _ComposerHeaderAvatar(
                 displayName: displayName,
+                imagePath: imagePath,
                 imageUrl: imageUrl,
               ),
               const SizedBox(width: 12),
@@ -2151,41 +2253,11 @@ class _KaizengramComposeHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Tooltip(
-                message: AppStrings.kaizengramButtonUploadImage,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isPickingImage ? null : onImageTap,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceDark3.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.textPrimary.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: isPickingImage
-                          ? const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.photo_library_outlined,
-                              color: AppColors.textPrimary,
-                            ),
-                    ),
-                  ),
-                ),
+              _ComposeHeaderIconButton(
+                tooltip: AppStrings.kaizengramComposeSourceTitle,
+                icon: Icons.attach_file_rounded,
+                isBusy: isPickingSource,
+                onTap: isPickingSource ? null : onSourceTap,
               ),
             ],
           ),
@@ -2200,30 +2272,198 @@ class _KaizengramComposeHeader extends StatelessWidget {
   }
 }
 
+class _ComposeHeaderIconButton extends StatelessWidget {
+  const _ComposeHeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+    this.isBusy = false,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark3.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.08),
+              ),
+            ),
+            child: isBusy
+                ? const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  )
+                : Icon(icon, color: AppColors.textPrimary),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComposePostSourceSheet extends StatelessWidget {
+  const _ComposePostSourceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.grey1,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          AppTextView.body1(
+            AppStrings.kaizengramComposeSourceTitle,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+          const SizedBox(height: 14),
+          _ComposePostSourceTile(
+            icon: Icons.photo_library_outlined,
+            title: AppStrings.kaizengramComposeActionImage,
+            subtitle: AppStrings.kaizengramComposeActionImageHint,
+            onTap: () {
+              Navigator.of(context).pop(_ComposePostSourceOption.image);
+            },
+          ),
+          const SizedBox(height: 12),
+          _ComposePostSourceTile(
+            icon: Icons.attach_file_rounded,
+            title: AppStrings.kaizengramComposeActionAttachment,
+            subtitle: AppStrings.kaizengramComposeActionAttachmentHint,
+            onTap: () {
+              Navigator.of(context).pop(_ComposePostSourceOption.attachment);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComposePostSourceTile extends StatelessWidget {
+  const _ComposePostSourceTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF24283D),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryColor.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: AppColors.secondaryColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    AppTextView.body2(
+                      title,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    const SizedBox(height: 3),
+                    AppTextView.body4(
+                      subtitle,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ComposerHeaderAvatar extends StatelessWidget {
   const _ComposerHeaderAvatar({
     required this.displayName,
+    this.imagePath,
     required this.imageUrl,
   });
 
   final String displayName;
+  final String? imagePath;
   final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    final initials = displayName
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .map((part) => part[0].toUpperCase())
-        .join();
+    final initials = _initialsFromName(displayName);
+    final imageProvider = _resolvedAvatarImageProvider(
+      imagePath: imagePath,
+      imageUrl: imageUrl,
+    );
 
     return CircleAvatar(
       radius: 24,
       backgroundColor: AppColors.secondaryColor.withValues(alpha: 0.16),
-      backgroundImage: imageUrl == null ? null : NetworkImage(imageUrl!),
-      child: imageUrl != null
+      backgroundImage: imageProvider,
+      child: imageProvider != null
           ? null
           : AppTextView.body3(
               initials.isEmpty ? 'Y' : initials,
@@ -2232,6 +2472,48 @@ class _ComposerHeaderAvatar extends StatelessWidget {
             ),
     );
   }
+}
+
+String _initialsFromName(String displayName) {
+  final initials = displayName
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .take(2)
+      .map((part) => part[0].toUpperCase())
+      .join();
+
+  return initials.isEmpty ? 'Y' : initials;
+}
+
+ImageProvider<Object>? _resolvedAvatarImageProvider({
+  String? imagePath,
+  String? imageUrl,
+}) {
+  final candidates = <String?>[imagePath, imageUrl];
+
+  for (final candidate in candidates) {
+    final value = candidate?.trim();
+    if (value == null || value.isEmpty) {
+      continue;
+    }
+
+    if (CustomFunctions.isAssetImagePath(value)) {
+      return AssetImage(value);
+    }
+
+    final localFile = File(value);
+    if (localFile.existsSync()) {
+      return FileImage(localFile);
+    }
+
+    final networkUrl = CustomFunctions.resolveNetworkUrl(value);
+    if (networkUrl != null) {
+      return NetworkImage(networkUrl);
+    }
+  }
+
+  return null;
 }
 
 class _PostCard extends StatefulWidget {
@@ -2975,6 +3257,7 @@ class _CommentsThreadBottomSheetState
       <String, ScrollController>{};
   List<KaizengramMessageAttachment> _draftAttachments =
       <KaizengramMessageAttachment>[];
+  bool _isPickingAttachments = false;
   KaizengramComment? _replyingTo;
   String? _highlightedCommentId;
   File? _documentImageFile;
@@ -3233,12 +3516,18 @@ class _CommentsThreadBottomSheetState
   }
 
   Future<void> _pickAttachments() async {
+    if (_isPickingAttachments) {
+      return;
+    }
+
     final availableSlots =
         kaizengramMessageAttachmentLimit - _draftAttachments.length;
     if (availableSlots <= 0) {
       _showAttachmentSnackBar(KaizengramChatStrings.mediaLimitError);
       return;
     }
+
+    setState(() => _isPickingAttachments = true);
 
     try {
       final source = await KaizengramMessageAttachmentPicker.pickSource(
@@ -3268,6 +3557,10 @@ class _CommentsThreadBottomSheetState
         return;
       }
       _showAttachmentSnackBar(KaizengramChatStrings.pickMediaError);
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingAttachments = false);
+      }
     }
   }
 
@@ -3397,6 +3690,7 @@ class _CommentsThreadBottomSheetState
               onSend: _sendComment,
               attachments: _draftAttachments,
               allowAttachments: true,
+              isPickingAttachment: _isPickingAttachments,
               onPickAttachment: _pickAttachments,
               onOpenAttachment: _openAttachmentViewer,
               onRemoveAttachment: _removeAttachment,
@@ -3525,15 +3819,21 @@ class _CommentsThreadBottomSheetState
 class _CreateSocialPostBottomSheet extends StatefulWidget {
   const _CreateSocialPostBottomSheet({
     required this.authorName,
+    this.avatarImagePath,
     required this.avatarUrl,
-    this.initialImagePath,
+    this.initialAttachments = const <KaizengramMessageAttachment>[],
     required this.onPostSubmitted,
   });
 
   final String authorName;
+  final String? avatarImagePath;
   final String? avatarUrl;
-  final String? initialImagePath;
-  final void Function(String message, String? imagePath) onPostSubmitted;
+  final List<KaizengramMessageAttachment> initialAttachments;
+  final void Function(
+    String message,
+    List<KaizengramMessageAttachment> attachments,
+  )
+  onPostSubmitted;
 
   @override
   State<_CreateSocialPostBottomSheet> createState() =>
@@ -3542,20 +3842,21 @@ class _CreateSocialPostBottomSheet extends StatefulWidget {
 
 class _CreateSocialPostBottomSheetState
     extends State<_CreateSocialPostBottomSheet> {
-  final ImagePicker _imagePicker = ImagePicker();
   late final TextEditingController _controller;
-  File? _selectedImageFile;
+  List<KaizengramMessageAttachment> _draftAttachments =
+      <KaizengramMessageAttachment>[];
   var _draftText = '';
   var _isPickingImage = false;
+  var _isPickingAttachment = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    final initialImagePath = widget.initialImagePath?.trim();
-    if (initialImagePath != null && initialImagePath.isNotEmpty) {
-      _selectedImageFile = File(initialImagePath);
-    }
+    _draftAttachments = widget.initialAttachments
+        .where((attachment) => attachment.path.trim().isNotEmpty)
+        .take(kaizengramMessageAttachmentLimit)
+        .toList(growable: false);
   }
 
   @override
@@ -3566,16 +3867,26 @@ class _CreateSocialPostBottomSheetState
 
   void _submit() {
     final message = _controller.text.trim();
-    if (message.isEmpty && _selectedImageFile == null) {
+    if (message.isEmpty && _draftAttachments.isEmpty) {
       return;
     }
 
-    widget.onPostSubmitted(message, _selectedImageFile?.path);
+    widget.onPostSubmitted(
+      message,
+      List<KaizengramMessageAttachment>.unmodifiable(_draftAttachments),
+    );
     Navigator.of(context).pop();
   }
 
-  Future<void> _pickImage() async {
-    if (_isPickingImage) {
+  Future<void> _pickImages() async {
+    if (_isPickingImage || _isPickingAttachment) {
+      return;
+    }
+
+    final availableSlots =
+        kaizengramMessageAttachmentLimit - _draftAttachments.length;
+    if (availableSlots <= 0) {
+      _showDraftSnackBar(KaizengramChatStrings.mediaLimitError);
       return;
     }
 
@@ -3584,29 +3895,29 @@ class _CreateSocialPostBottomSheetState
     });
 
     try {
-      final pickedImage = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-      if (pickedImage == null || !mounted) {
+      final nextAttachments =
+          await KaizengramMessageAttachmentPicker.pickImages(
+            availableSlots: availableSlots,
+            existingPaths: _draftAttachments.map(
+              (attachment) => attachment.path,
+            ),
+          );
+      if (nextAttachments.isEmpty || !mounted) {
         return;
       }
 
       setState(() {
-        _selectedImageFile = File(pickedImage.path);
+        _draftAttachments = <KaizengramMessageAttachment>[
+          ..._draftAttachments,
+          ...nextAttachments,
+        ];
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.kaizengramErrorPickImageFailed),
-          ),
-        );
+      _showDraftSnackBar(AppStrings.kaizengramErrorPickImageFailed);
     } finally {
       if (mounted) {
         setState(() {
@@ -3618,9 +3929,90 @@ class _CreateSocialPostBottomSheetState
     }
   }
 
+  Future<void> _pickAttachments() async {
+    if (_isPickingImage || _isPickingAttachment) {
+      return;
+    }
+
+    final availableSlots =
+        kaizengramMessageAttachmentLimit - _draftAttachments.length;
+    if (availableSlots <= 0) {
+      _showDraftSnackBar(KaizengramChatStrings.mediaLimitError);
+      return;
+    }
+
+    setState(() {
+      _isPickingAttachment = true;
+    });
+
+    try {
+      final nextAttachments = await KaizengramMessageAttachmentPicker.pickPdfs(
+        availableSlots: availableSlots,
+        existingPaths: _draftAttachments.map((attachment) => attachment.path),
+      );
+      if (nextAttachments.isEmpty || !mounted) {
+        return;
+      }
+
+      setState(() {
+        _draftAttachments = <KaizengramMessageAttachment>[
+          ..._draftAttachments,
+          ...nextAttachments,
+        ];
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      _showDraftSnackBar(AppStrings.kaizengramErrorPickAttachmentFailed);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingAttachment = false;
+        });
+      } else {
+        _isPickingAttachment = false;
+      }
+    }
+  }
+
+  void _removeAttachment(String attachmentPath) {
+    setState(() {
+      _draftAttachments = _draftAttachments
+          .where((attachment) => attachment.path != attachmentPath)
+          .toList(growable: false);
+    });
+  }
+
+  void _openAttachmentViewer(int index) {
+    if (_draftAttachments.isEmpty) {
+      return;
+    }
+
+    final selectedAttachment = _draftAttachments[index];
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => KaizengramFullScreenAttachmentView(
+          attachments: _draftAttachments,
+          initialIndex: index,
+          autoPlayInitialVideo: selectedAttachment.isVideo,
+        ),
+      ),
+    );
+  }
+
+  void _showDraftSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final canPost = _draftText.trim().isNotEmpty || _selectedImageFile != null;
+    final canPost =
+        _draftText.trim().isNotEmpty || _draftAttachments.isNotEmpty;
+    final hasLinkPreview = kaizengramFirstLinkInText(_draftText) != null;
 
     return SafeArea(
       top: false,
@@ -3629,7 +4021,7 @@ class _CreateSocialPostBottomSheetState
           left: 18,
           right: 18,
           top: 16,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 22,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + 12,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -3656,6 +4048,7 @@ class _CreateSocialPostBottomSheetState
               children: <Widget>[
                 _ComposerHeaderAvatar(
                   displayName: widget.authorName,
+                  imagePath: widget.avatarImagePath,
                   imageUrl: widget.avatarUrl,
                 ),
                 const SizedBox(width: 12),
@@ -3668,18 +4061,30 @@ class _CreateSocialPostBottomSheetState
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            if (_selectedImageFile != null) ...<Widget>[
-              _ComposePostImagePreview(
-                imageFile: _selectedImageFile!,
-                isPickingImage: _isPickingImage,
-                onPickImage: _pickImage,
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF20253A),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.textPrimary.withValues(alpha: 0.06),
+                ),
               ),
-              const SizedBox(height: 14),
-            ] else ...<Widget>[
-              _ComposeImagePickerButton(
+              child: _ComposePostActionRow(
                 isPickingImage: _isPickingImage,
-                onTap: _pickImage,
+                isPickingAttachment: _isPickingAttachment,
+                onPickImage: _pickImages,
+                onPickAttachment: _pickAttachments,
+              ),
+            ),
+            if (_draftAttachments.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 14),
+              _CommentAttachmentPreviewStrip(
+                attachments: _draftAttachments,
+                removable: true,
+                onOpenAttachment: _openAttachmentViewer,
+                onRemoveAttachment: _removeAttachment,
               ),
               const SizedBox(height: 14),
             ],
@@ -3693,8 +4098,8 @@ class _CreateSocialPostBottomSheetState
               ),
               child: TextField(
                 controller: _controller,
-                maxLines: 6,
-                minLines: 5,
+                maxLines: 8,
+                minLines: 7,
                 cursorHeight: 17,
                 cursorColor: AppColors.textPrimary,
                 style: const TextStyle(color: AppColors.textPrimary),
@@ -3703,16 +4108,20 @@ class _CreateSocialPostBottomSheetState
                   hintText: AppStrings.kaizengramComposeSheetHint,
                   hintStyle: TextStyle(color: AppColors.textSecondary),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
+                  contentPadding: EdgeInsets.fromLTRB(16, 18, 16, 18),
                 ),
               ),
             ),
+            if (hasLinkPreview) ...<Widget>[
+              const SizedBox(height: 12),
+              KaizengramTextLinkPreview(text: _draftText, topSpacing: 0),
+            ],
             const SizedBox(height: 12),
             AppTextView.body4(
               AppStrings.kaizengramComposeSubtitle,
               color: AppColors.textSecondary,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: <Widget>[
                 Expanded(
@@ -3775,24 +4184,68 @@ class _CreateSocialPostBottomSheetState
   }
 }
 
-class _ComposeImagePickerButton extends StatelessWidget {
-  const _ComposeImagePickerButton({
+class _ComposePostActionRow extends StatelessWidget {
+  const _ComposePostActionRow({
     required this.isPickingImage,
-    required this.onTap,
+    required this.isPickingAttachment,
+    required this.onPickImage,
+    required this.onPickAttachment,
   });
 
   final bool isPickingImage;
-  final VoidCallback onTap;
+  final bool isPickingAttachment;
+  final VoidCallback onPickImage;
+  final VoidCallback onPickAttachment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: _ComposePostActionButton(
+            icon: Icons.photo_library_outlined,
+            label: AppStrings.kaizengramComposeActionImage,
+            isBusy: isPickingImage,
+            onTap: isPickingImage || isPickingAttachment ? null : onPickImage,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _ComposePostActionButton(
+            icon: Icons.attach_file_rounded,
+            label: AppStrings.kaizengramComposeActionAttachment,
+            isBusy: isPickingAttachment,
+            onTap: isPickingImage || isPickingAttachment
+                ? null
+                : onPickAttachment,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ComposePostActionButton extends StatelessWidget {
+  const _ComposePostActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isBusy = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isPickingImage ? null : onTap,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3.withValues(alpha: 0.92),
@@ -3804,7 +4257,7 @@ class _ComposeImagePickerButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              if (isPickingImage)
+              if (isBusy)
                 const SizedBox(
                   width: 16,
                   height: 16,
@@ -3814,115 +4267,21 @@ class _ComposeImagePickerButton extends StatelessWidget {
                   ),
                 )
               else
-                const Icon(
-                  Icons.photo_library_outlined,
-                  color: AppColors.textPrimary,
-                ),
+                Icon(icon, color: AppColors.textPrimary, size: 20),
               const SizedBox(width: 8),
-              AppTextView.body3(
-                AppStrings.kaizengramButtonUploadImage,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
+              Flexible(
+                child: AppTextView.body3(
+                  label,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ComposePostImagePreview extends StatelessWidget {
-  const _ComposePostImagePreview({
-    required this.imageFile,
-    required this.isPickingImage,
-    required this.onPickImage,
-  });
-
-  final File imageFile;
-  final bool isPickingImage;
-  final VoidCallback onPickImage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: SizedBox(
-            height: 220,
-            width: double.infinity,
-            child: ColoredBox(
-              color: AppColors.surfaceDark3,
-              child: Image.file(
-                imageFile,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.surfaceDark3,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: AppColors.textSecondary,
-                      size: 40,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          right: 12,
-          bottom: 12,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: isPickingImage ? null : onPickImage,
-              borderRadius: BorderRadius.circular(999),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.58),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: AppColors.textPrimary.withValues(alpha: 0.12),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    if (isPickingImage)
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.textPrimary,
-                        ),
-                      )
-                    else
-                      const Icon(
-                        Icons.upload_rounded,
-                        color: AppColors.textPrimary,
-                        size: 16,
-                      ),
-                    const SizedBox(width: 6),
-                    AppTextView.body3(
-                      AppStrings.kaizengramButtonChangeImage,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -3948,6 +4307,7 @@ class _SocialPostCommentsBottomSheetState
   final Map<String, GlobalKey> _commentKeys = <String, GlobalKey>{};
   List<KaizengramMessageAttachment> _draftAttachments =
       <KaizengramMessageAttachment>[];
+  bool _isPickingAttachments = false;
   String? _replyingToCommentId;
   String? _highlightedCommentId;
   int _highlightSequence = 0;
@@ -4043,12 +4403,18 @@ class _SocialPostCommentsBottomSheetState
   }
 
   Future<void> _pickAttachments() async {
+    if (_isPickingAttachments) {
+      return;
+    }
+
     final availableSlots =
         kaizengramMessageAttachmentLimit - _draftAttachments.length;
     if (availableSlots <= 0) {
       _showAttachmentSnackBar(KaizengramChatStrings.mediaLimitError);
       return;
     }
+
+    setState(() => _isPickingAttachments = true);
 
     try {
       final source = await KaizengramMessageAttachmentPicker.pickSource(
@@ -4078,6 +4444,10 @@ class _SocialPostCommentsBottomSheetState
         return;
       }
       _showAttachmentSnackBar(KaizengramChatStrings.pickMediaError);
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingAttachments = false);
+      }
     }
   }
 
@@ -4191,6 +4561,7 @@ class _SocialPostCommentsBottomSheetState
               hintText: AppStrings.commentAsUser(widget.loggedInUserName),
               attachments: _draftAttachments,
               allowAttachments: true,
+              isPickingAttachment: _isPickingAttachments,
               onPickAttachment: _pickAttachments,
               onOpenAttachment: _openAttachmentViewer,
               onRemoveAttachment: _removeAttachment,
@@ -4742,6 +5113,7 @@ class _CommentComposer extends StatelessWidget {
     this.hintText = AppStrings.writeCommentHint,
     this.attachments = const <KaizengramMessageAttachment>[],
     this.allowAttachments = false,
+    this.isPickingAttachment = false,
     this.onPickAttachment,
     this.onOpenAttachment,
     this.onRemoveAttachment,
@@ -4754,6 +5126,7 @@ class _CommentComposer extends StatelessWidget {
   final String hintText;
   final List<KaizengramMessageAttachment> attachments;
   final bool allowAttachments;
+  final bool isPickingAttachment;
   final VoidCallback? onPickAttachment;
   final ValueChanged<int>? onOpenAttachment;
   final ValueChanged<String>? onRemoveAttachment;
@@ -4840,17 +5213,23 @@ class _CommentComposer extends StatelessWidget {
                   children: <Widget>[
                     if (allowAttachments) ...<Widget>[
                       _CommentComposerActionButton(
-                        onTap: onPickAttachment,
+                        onTap: isPickingAttachment ? null : onPickAttachment,
                         icon: Icons.attach_file_rounded,
+                        isBusy: isPickingAttachment,
                       ),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
                       child: Container(
+                        constraints: const BoxConstraints(
+                          minHeight: _commentComposerControlHeight,
+                        ),
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceDark3.withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(
+                            _commentComposerCornerRadius,
+                          ),
                           border: Border.all(
                             color: AppColors.textPrimary.withValues(
                               alpha: 0.08,
@@ -4869,6 +5248,9 @@ class _CommentComposer extends StatelessWidget {
                             hintText: hintText,
                             hintStyle: const TextStyle(
                               color: AppColors.textSecondary,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 11,
                             ),
                             border: InputBorder.none,
                           ),
@@ -4893,27 +5275,43 @@ class _CommentComposer extends StatelessWidget {
 }
 
 class _CommentComposerActionButton extends StatelessWidget {
-  const _CommentComposerActionButton({required this.onTap, required this.icon});
+  const _CommentComposerActionButton({
+    required this.onTap,
+    required this.icon,
+    this.isBusy = false,
+  });
 
   final VoidCallback? onTap;
   final IconData icon;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(_commentComposerCornerRadius),
       child: Container(
-        width: 54,
-        height: 44,
+        width: _commentComposerActionWidth,
+        height: _commentComposerControlHeight,
         decoration: BoxDecoration(
           color: AppColors.surfaceDark3.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(_commentComposerCornerRadius),
           border: Border.all(
             color: AppColors.textPrimary.withValues(alpha: 0.08),
           ),
         ),
-        child: Icon(icon, color: AppColors.textPrimary, size: 20),
+        child: isBusy
+            ? const Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              )
+            : Icon(icon, color: AppColors.textPrimary, size: 20),
       ),
     );
   }
@@ -4932,15 +5330,13 @@ class _CommentComposerSendButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(_commentComposerCornerRadius),
       child: Container(
-        width: 54,
-        height: 44,
+        width: _commentComposerActionWidth,
+        height: _commentComposerControlHeight,
         decoration: BoxDecoration(
-          color: canSend
-              ? AppColors.secondaryColor
-              : AppColors.surfaceDark3.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.surfaceDark3.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(_commentComposerCornerRadius),
           border: Border.all(
             color: canSend
                 ? AppColors.secondaryColor
@@ -4949,7 +5345,7 @@ class _CommentComposerSendButton extends StatelessWidget {
         ),
         child: Icon(
           Icons.send_rounded,
-          color: canSend ? AppColors.mainBg : AppColors.textSecondary,
+          color: canSend ? AppColors.secondaryColor : AppColors.textSecondary,
           size: 20,
         ),
       ),
@@ -4972,6 +5368,67 @@ class _CommentAttachmentPreviewStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (removable) {
+      const spacing = 8.0;
+      const mediaCardSize = 92.0;
+      const pdfCardWidth = 220.0;
+
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF24283D),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: AppColors.textPrimary.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            AppTextView.body4(
+              KaizengramChatStrings.selectedMediaLabel(
+                attachments.length,
+                kaizengramMessageAttachmentLimit,
+              ),
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: mediaCardSize,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List<Widget>.generate(attachments.length * 2 - 1, (
+                    index,
+                  ) {
+                    if (index.isOdd) {
+                      return const SizedBox(width: spacing);
+                    }
+
+                    final attachmentIndex = index ~/ 2;
+                    final attachment = attachments[attachmentIndex];
+                    return _CommentAttachmentPreviewCard(
+                      attachment: attachment,
+                      width: attachment.isPdf ? pdfCardWidth : mediaCardSize,
+                      height: mediaCardSize,
+                      useDraftStyle: true,
+                      onOpen: onOpenAttachment == null
+                          ? null
+                          : () => onOpenAttachment!(attachmentIndex),
+                      onRemove: onRemoveAttachment == null
+                          ? null
+                          : () => onRemoveAttachment!(attachment.path),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (attachments.length == 1) {
       return _CommentAttachmentPreviewCard(
         attachment: attachments.first,
@@ -5034,6 +5491,7 @@ class _CommentAttachmentPreviewCard extends StatelessWidget {
     required this.attachment,
     required this.height,
     this.width,
+    this.useDraftStyle = false,
     this.onOpen,
     this.onRemove,
   });
@@ -5041,20 +5499,35 @@ class _CommentAttachmentPreviewCard extends StatelessWidget {
   final KaizengramMessageAttachment attachment;
   final double height;
   final double? width;
+  final bool useDraftStyle;
   final VoidCallback? onOpen;
   final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final useCompactStyle = !useDraftStyle && width != null;
     final mediaChild = attachment.isPdf
-        ? _CommentPdfPreviewCard(attachment: attachment, onOpen: onOpen)
+        ? _CommentPdfPreviewCard(
+            attachment: attachment,
+            onOpen: onOpen,
+            useDraftStyle: useDraftStyle,
+            useCompactStyle: useCompactStyle,
+          )
         : attachment.isVideo
         ? ChatVideoPreview(
             videoPath: attachment.path,
             maxHeight: height,
             muted: true,
-            playButtonSize: width == null ? 48 : 34,
-            playIconSize: width == null ? 26 : 18,
+            playButtonSize: useDraftStyle
+                ? 30
+                : width == null
+                ? 48
+                : 34,
+            playIconSize: useDraftStyle
+                ? 16
+                : width == null
+                ? 26
+                : 18,
             onTapOverride: onOpen,
             onOpenFullScreen: onOpen,
           )
@@ -5087,7 +5560,9 @@ class _CommentAttachmentPreviewCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                color: AppColors.surfaceDark3,
+                color: useDraftStyle
+                    ? const Color(0xFF111317)
+                    : AppColors.surfaceDark3,
                 child: mediaChild,
               ),
             ),
@@ -5120,10 +5595,17 @@ class _CommentAttachmentPreviewCard extends StatelessWidget {
 }
 
 class _CommentPdfPreviewCard extends StatelessWidget {
-  const _CommentPdfPreviewCard({required this.attachment, this.onOpen});
+  const _CommentPdfPreviewCard({
+    required this.attachment,
+    this.onOpen,
+    this.useDraftStyle = false,
+    this.useCompactStyle = false,
+  });
 
   final KaizengramMessageAttachment attachment;
   final VoidCallback? onOpen;
+  final bool useDraftStyle;
+  final bool useCompactStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -5131,42 +5613,140 @@ class _CommentPdfPreviewCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryColor.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (useDraftStyle) {
+              return Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondaryColor.withValues(alpha: 0.20),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.picture_as_pdf_rounded,
+                        color: AppColors.secondaryColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        CustomFunctions.fileNameFromPath(
+                          attachment.path,
+                          fallback: KaizengramChatStrings.documentMessageLabel,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Icon(
-                  Icons.picture_as_pdf_rounded,
-                  color: AppColors.secondaryColor,
-                  size: 24,
+              );
+            }
+
+            if (useCompactStyle) {
+              final isTight = constraints.maxHeight < 86;
+              final cardPadding = isTight ? 8.0 : 10.0;
+              final iconBoxSize = isTight ? 32.0 : 36.0;
+              final iconSize = isTight ? 18.0 : 20.0;
+              final spacing = isTight ? 6.0 : 8.0;
+              final titleLines = isTight ? 1 : 2;
+
+              return Padding(
+                padding: EdgeInsets.all(cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: iconBoxSize,
+                      height: iconBoxSize,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondaryColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.picture_as_pdf_rounded,
+                        color: AppColors.secondaryColor,
+                        size: iconSize,
+                      ),
+                    ),
+                    SizedBox(height: spacing),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(
+                          CustomFunctions.fileNameFromPath(
+                            attachment.path,
+                            fallback:
+                                KaizengramChatStrings.documentMessageLabel,
+                          ),
+                          maxLines: titleLines,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: isTight ? 10 : 11,
+                            fontWeight: FontWeight.w700,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryColor.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.picture_as_pdf_rounded,
+                      color: AppColors.secondaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    CustomFunctions.fileNameFromPath(
+                      attachment.path,
+                      fallback: KaizengramChatStrings.documentMessageLabel,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                CustomFunctions.fileNameFromPath(
-                  attachment.path,
-                  fallback: KaizengramChatStrings.documentMessageLabel,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

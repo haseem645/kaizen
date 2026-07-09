@@ -61,6 +61,11 @@ class KaizengramController extends ChangeNotifier {
     return resolvedName.isEmpty ? 'You' : resolvedName;
   }
 
+  String? get currentUserImagePath {
+    final imagePath = _currentUser?.image?.trim();
+    return imagePath == null || imagePath.isEmpty ? null : imagePath;
+  }
+
   String? get currentUserImageUrl => CustomFunctions.resolveImageUrl(
     _currentUser?.imageUrl ?? _currentUser?.image,
   );
@@ -126,18 +131,32 @@ class KaizengramController extends ChangeNotifier {
     required String authorName,
     required String message,
     required String channelName,
+    String? avatarImagePath,
     String? avatarUrl,
+    List<KaizengramMessageAttachment> attachments =
+        const <KaizengramMessageAttachment>[],
     String? mediaImagePath,
     String? mediaImageUrl,
   }) {
     final normalizedMessage = message.trim();
+    final normalizedAvatarImagePath = avatarImagePath?.trim();
     final normalizedMediaImagePath = mediaImagePath?.trim();
     final normalizedMediaImageUrl = mediaImageUrl?.trim();
-    final hasImage =
-        (normalizedMediaImagePath != null &&
-            normalizedMediaImagePath.isNotEmpty) ||
-        (normalizedMediaImageUrl != null && normalizedMediaImageUrl.isNotEmpty);
-    if (normalizedMessage.isEmpty && !hasImage) {
+    final normalizedAttachments = attachments
+        .where((attachment) => attachment.path.trim().isNotEmpty)
+        .take(kaizengramMessageAttachmentLimit)
+        .toList(growable: false);
+    final legacyAttachments = <KaizengramMessageAttachment>[
+      if (normalizedMediaImagePath != null &&
+          normalizedMediaImagePath.isNotEmpty)
+        KaizengramMessageAttachment.fromPath(normalizedMediaImagePath),
+      if (normalizedMediaImageUrl != null && normalizedMediaImageUrl.isNotEmpty)
+        KaizengramMessageAttachment.fromPath(normalizedMediaImageUrl),
+    ];
+    final resolvedAttachments = normalizedAttachments.isNotEmpty
+        ? normalizedAttachments
+        : legacyAttachments;
+    if (normalizedMessage.isEmpty && resolvedAttachments.isEmpty) {
       return;
     }
 
@@ -148,12 +167,12 @@ class KaizengramController extends ChangeNotifier {
       KaizengramSocialPost(
         id: 'social-post-$seed',
         authorName: authorName.trim().isEmpty ? 'You' : authorName.trim(),
-        avatarUrl: avatarUrl?.trim().isNotEmpty == true
-            ? avatarUrl!.trim()
-            : _personImage(authorName) ?? _image('social-post-$seed-avatar'),
+        avatarImagePath: normalizedAvatarImagePath,
+        avatarUrl: avatarUrl?.trim() ?? '',
         channelName: channelName,
         timeLabel: AppStrings.kaizengramComposeTimeLabel,
         message: normalizedMessage,
+        attachments: resolvedAttachments,
         mediaImagePath: normalizedMediaImagePath,
         mediaImageUrl: normalizedMediaImageUrl,
       ),
@@ -163,14 +182,18 @@ class KaizengramController extends ChangeNotifier {
 
   void createCurrentUserSocialPost({
     required String message,
+    List<KaizengramMessageAttachment> attachments =
+        const <KaizengramMessageAttachment>[],
     String? mediaImagePath,
     String? mediaImageUrl,
   }) {
     createSocialPost(
       authorName: currentUserDisplayName,
+      avatarImagePath: currentUserImagePath,
       avatarUrl: currentUserImageUrl,
       message: message,
       channelName: AppStrings.kaizengramWeeklySocialChannelOne,
+      attachments: attachments,
       mediaImagePath: mediaImagePath,
       mediaImageUrl: mediaImageUrl,
     );
@@ -2089,49 +2112,70 @@ class KaizengramSocialPost {
   const KaizengramSocialPost({
     required this.id,
     required this.authorName,
+    this.avatarImagePath,
     required this.avatarUrl,
     required this.channelName,
     required this.timeLabel,
     required this.message,
     this.mediaImagePath,
     this.mediaImageUrl,
+    this.attachments = const <KaizengramMessageAttachment>[],
     this.comments = const <KaizengramComment>[],
   });
 
   final String id;
   final String authorName;
+  final String? avatarImagePath;
   final String avatarUrl;
   final String channelName;
   final String timeLabel;
   final String message;
   final String? mediaImagePath;
   final String? mediaImageUrl;
+  final List<KaizengramMessageAttachment> attachments;
   final List<KaizengramComment> comments;
 
+  List<KaizengramMessageAttachment> get resolvedAttachments {
+    if (attachments.isNotEmpty) {
+      return attachments;
+    }
+
+    return <KaizengramMessageAttachment>[
+      if (mediaImagePath?.trim().isNotEmpty == true)
+        KaizengramMessageAttachment.fromPath(mediaImagePath!.trim()),
+      if (mediaImageUrl?.trim().isNotEmpty == true)
+        KaizengramMessageAttachment.fromPath(mediaImageUrl!.trim()),
+    ];
+  }
+
+  bool get hasAttachments => resolvedAttachments.isNotEmpty;
   bool get hasMediaImage =>
-      mediaImagePath?.trim().isNotEmpty == true ||
-      mediaImageUrl?.trim().isNotEmpty == true;
+      resolvedAttachments.any((attachment) => attachment.isImage);
 
   KaizengramSocialPost copyWith({
     String? id,
     String? authorName,
+    String? avatarImagePath,
     String? avatarUrl,
     String? channelName,
     String? timeLabel,
     String? message,
     String? mediaImagePath,
     String? mediaImageUrl,
+    List<KaizengramMessageAttachment>? attachments,
     List<KaizengramComment>? comments,
   }) {
     return KaizengramSocialPost(
       id: id ?? this.id,
       authorName: authorName ?? this.authorName,
+      avatarImagePath: avatarImagePath ?? this.avatarImagePath,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       channelName: channelName ?? this.channelName,
       timeLabel: timeLabel ?? this.timeLabel,
       message: message ?? this.message,
       mediaImagePath: mediaImagePath ?? this.mediaImagePath,
       mediaImageUrl: mediaImageUrl ?? this.mediaImageUrl,
+      attachments: attachments ?? this.attachments,
       comments: comments ?? this.comments,
     );
   }

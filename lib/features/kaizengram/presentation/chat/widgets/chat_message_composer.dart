@@ -17,6 +17,11 @@ import 'chat_mention_text_editing_controller.dart';
 import 'chat_user_initial_avatar.dart';
 import 'chat_video_preview.dart';
 
+const double _chatComposerCornerRadius = 12;
+const double _chatComposerControlHeight = 44;
+const double _chatComposerActionWidth = 56;
+const Color _chatComposerSurfaceColor = Color(0xFF24283D);
+
 //////
 class KaizengramChatMessageComposer extends StatefulWidget {
   const KaizengramChatMessageComposer({super.key});
@@ -257,46 +262,67 @@ class _KaizengramChatMessageComposerState
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    onChanged: controller.updateDraftMessage,
-                    maxLines: 4,
-                    minLines: 1,
-                    cursorHeight: 16,
-                    cursorColor: AppColors.textPrimary,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: KaizengramChatStrings.messageHint,
-                      hintStyle: const TextStyle(
-                        color: AppColors.textSecondary,
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: _chatComposerControlHeight,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _chatComposerSurfaceColor,
+                      borderRadius: BorderRadius.circular(
+                        _chatComposerCornerRadius,
                       ),
-                      filled: true,
-                      fillColor: const Color(0xFF24283D),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                      border: Border.all(
+                        color: AppColors.textPrimary.withValues(alpha: 0.08),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
+                    ),
+                    child: TextField(
+                      controller: _textController,
+                      onChanged: controller.updateDraftMessage,
+                      maxLines: 4,
+                      minLines: 1,
+                      cursorHeight: 16,
+                      cursorColor: AppColors.textPrimary,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: KaizengramChatStrings.messageHint,
+                        hintStyle: TextStyle(color: AppColors.textSecondary),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 11,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 InkWell(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(
+                    _chatComposerCornerRadius,
+                  ),
                   onTap: canSendMessage ? _handleSendMessage : null,
                   child: Container(
-                    width: 56,
-                    height: 44,
+                    width: _chatComposerActionWidth,
+                    height: _chatComposerControlHeight,
                     decoration: BoxDecoration(
+                      color: _chatComposerSurfaceColor,
+                      borderRadius: BorderRadius.circular(
+                        _chatComposerCornerRadius,
+                      ),
+                      border: Border.all(
+                        color: canSendMessage
+                            ? AppColors.secondaryColor.withValues(alpha: 0.55)
+                            : AppColors.textPrimary.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.send_rounded,
                       color: canSendMessage
                           ? AppColors.secondaryColor
-                          : const Color(0xFF3A3F52),
-                      borderRadius: BorderRadius.circular(14),
+                          : AppColors.textSecondary,
                     ),
-                    child: const Icon(Icons.send_rounded, color: Colors.white),
                   ),
                 ),
               ],
@@ -643,14 +669,17 @@ class _ComposerIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(_chatComposerCornerRadius),
       onTap: onTap,
       child: Container(
-        width: 56,
-        height: 44,
+        width: _chatComposerActionWidth,
+        height: _chatComposerControlHeight,
         decoration: BoxDecoration(
-          color: const Color(0xFF24283D),
-          borderRadius: BorderRadius.circular(14),
+          color: _chatComposerSurfaceColor,
+          borderRadius: BorderRadius.circular(_chatComposerCornerRadius),
+          border: Border.all(
+            color: AppColors.textPrimary.withValues(alpha: 0.08),
+          ),
         ),
         child: Center(child: child),
       ),

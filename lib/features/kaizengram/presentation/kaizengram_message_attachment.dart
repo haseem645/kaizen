@@ -20,6 +20,10 @@ class KaizengramMessageAttachmentPicker {
   static Future<KaizengramMessageAttachmentPickSource?> pickSource(
     BuildContext context,
   ) {
+    if (!context.mounted) {
+      return Future<KaizengramMessageAttachmentPickSource?>.value(null);
+    }
+
     return showModalBottomSheet<KaizengramMessageAttachmentPickSource>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -48,6 +52,47 @@ class KaizengramMessageAttachmentPicker {
           existingPaths: existingPaths,
         );
     }
+  }
+
+  static Future<List<KaizengramMessageAttachment>> pickImages({
+    required int availableSlots,
+    Iterable<String> existingPaths = const <String>[],
+  }) async {
+    if (availableSlots <= 0) {
+      return const <KaizengramMessageAttachment>[];
+    }
+
+    final List<XFile> pickedImages;
+    if (availableSlots == 1) {
+      final pickedSingleImage = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      pickedImages = pickedSingleImage == null
+          ? <XFile>[]
+          : <XFile>[pickedSingleImage];
+    } else {
+      pickedImages = await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+        limit: availableSlots,
+      );
+    }
+
+    return _normalizedAttachmentsFromPaths(
+      pickedImages.map((file) => file.path),
+      existingPaths: existingPaths,
+      availableSlots: availableSlots,
+    );
+  }
+
+  static Future<List<KaizengramMessageAttachment>> pickPdfs({
+    required int availableSlots,
+    Iterable<String> existingPaths = const <String>[],
+  }) {
+    return _pickPdf(
+      availableSlots: availableSlots,
+      existingPaths: existingPaths,
+    );
   }
 
   static Future<List<KaizengramMessageAttachment>> _pickMedia({

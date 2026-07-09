@@ -385,6 +385,13 @@ class AppStrings {
   static const String kaizengramComposeButtonPost = 'Post';
   static const String kaizengramComposeButtonCancel = 'Cancel';
   static const String kaizengramComposeTimeLabel = '1m';
+  static const String kaizengramComposeSourceTitle = 'Add to Post';
+  static const String kaizengramComposeActionImage = 'Image';
+  static const String kaizengramComposeActionAttachment = 'Attachment';
+  static const String kaizengramComposeActionImageHint =
+      'Choose an image from your device.';
+  static const String kaizengramComposeActionAttachmentHint =
+      'Choose a PDF file from your device.';
 
   // Kaizengram Post Actions
   static const String kaizengramButtonComments = 'Comments';
@@ -426,6 +433,8 @@ class AppStrings {
   static const String kaizengramErrorRestrictedTitle = 'Restricted';
   static const String kaizengramErrorPickImageFailed =
       'Unable to pick image right now';
+  static const String kaizengramErrorPickAttachmentFailed =
+      'Unable to pick file right now';
 
   // Kaizengram Comments Thread
   static const String kaizengramMessageShowReplies = 'Show replies';
