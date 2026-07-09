@@ -1,4 +1,4 @@
-# onboarding_skills.md
+# Onboarding Skill
 
 This file is a lightweight routing index for `lib/features/onboarding`.
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../kaizengram_message_attachment.dart';
 import '../chat_strings.dart';
 
-////
 class KaizengramChatController extends ChangeNotifier {
   KaizengramChatController() {
     _currentUser = const KaizengramChatUser(
@@ -33,10 +33,37 @@ class KaizengramChatController extends ChangeNotifier {
         email: KaizengramChatStrings.userBotEmail,
       ),
     ];
-    _channels = <String>[
-      KaizengramChatStrings.channelGeneral,
-      KaizengramChatStrings.channelAnnouncements,
-      KaizengramChatStrings.channelWins,
+    _channels = <KaizengramChatChannel>[
+      const KaizengramChatChannel(
+        name: KaizengramChatStrings.channelGeneral,
+        imagePath:
+            'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
+      ),
+      const KaizengramChatChannel(
+        name: KaizengramChatStrings.channelAnnouncements,
+        imagePath:
+            'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=400&q=80',
+      ),
+      const KaizengramChatChannel(
+        name: KaizengramChatStrings.channelWins,
+        imagePath:
+            'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=400&q=80',
+      ),
+      const KaizengramChatChannel(
+        name: KaizengramChatStrings.channelCoaching,
+        imagePath:
+            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80',
+      ),
+      const KaizengramChatChannel(
+        name: KaizengramChatStrings.channelTrainingHub,
+        imagePath:
+            'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80',
+      ),
+      const KaizengramChatChannel(
+        name: KaizengramChatStrings.channelQaReview,
+        imagePath:
+            'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=400&q=80',
+      ),
     ];
     _channelMemberEmailsByChannel = <String, List<String>>{
       KaizengramChatStrings.channelGeneral: <String>[
@@ -55,6 +82,21 @@ class KaizengramChatController extends ChangeNotifier {
         KaizengramChatStrings.userYouEmail,
         KaizengramChatStrings.userNinaEmail,
         KaizengramChatStrings.userChrisEmail,
+      ],
+      KaizengramChatStrings.channelCoaching: <String>[
+        KaizengramChatStrings.userYouEmail,
+        KaizengramChatStrings.userOliviaEmail,
+        KaizengramChatStrings.userNinaEmail,
+      ],
+      KaizengramChatStrings.channelTrainingHub: <String>[
+        KaizengramChatStrings.userYouEmail,
+        KaizengramChatStrings.userMarcusEmail,
+        KaizengramChatStrings.userChrisEmail,
+      ],
+      KaizengramChatStrings.channelQaReview: <String>[
+        KaizengramChatStrings.userYouEmail,
+        KaizengramChatStrings.userOliviaEmail,
+        KaizengramChatStrings.userBotEmail,
       ],
     };
     _directMessageEmails = <String>[KaizengramChatStrings.userOliviaEmail];
@@ -115,6 +157,27 @@ class KaizengramChatController extends ChangeNotifier {
           message: KaizengramChatStrings.winsMessage,
         ),
       ],
+      _channelConversationKey(KaizengramChatStrings.channelCoaching): <KaizengramChatMessage>[
+        KaizengramChatMessage(
+          id: 'coaching-1',
+          sender: _userByEmail(KaizengramChatStrings.userOliviaEmail),
+          message: KaizengramChatStrings.coachingMessage,
+        ),
+      ],
+      _channelConversationKey(KaizengramChatStrings.channelTrainingHub): <KaizengramChatMessage>[
+        KaizengramChatMessage(
+          id: 'training-hub-1',
+          sender: _userByEmail(KaizengramChatStrings.userMarcusEmail),
+          message: KaizengramChatStrings.trainingHubMessage,
+        ),
+      ],
+      _channelConversationKey(KaizengramChatStrings.channelQaReview): <KaizengramChatMessage>[
+        KaizengramChatMessage(
+          id: 'qa-review-1',
+          sender: _userByEmail(KaizengramChatStrings.userBotEmail),
+          message: KaizengramChatStrings.qaReviewMessage,
+        ),
+      ],
       _directConversationKey(KaizengramChatStrings.userOliviaEmail): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'dm-olivia-1',
@@ -139,24 +202,24 @@ class KaizengramChatController extends ChangeNotifier {
     };
   }
 
-  static const int maxMessageMediaCount = 3;
+  static const int maxMessageMediaCount = kaizengramMessageAttachmentLimit;
 
   late final List<KaizengramChatUser> _users;
   final ImagePicker _imagePicker = ImagePicker();
   late final KaizengramChatUser _currentUser;
-  late final List<String> _channels;
+  late final List<KaizengramChatChannel> _channels;
   late final Map<String, List<String>> _channelMemberEmailsByChannel;
   late final List<String> _directMessageEmails;
   late final Map<String, List<KaizengramChatMessage>> _messagesByConversation;
   KaizengramChatConversationTarget? _selectedConversation;
   String _draftMessage = '';
-  List<KaizengramChatMediaAttachment> _draftAttachments = <KaizengramChatMediaAttachment>[];
+  List<KaizengramMessageAttachment> _draftAttachments = <KaizengramMessageAttachment>[];
   bool _isPickingDraftMedia = false;
   int _messageVersion = 0;
   KaizengramChatMessage? _replyingTo;
 
   List<KaizengramChatUser> get users => List<KaizengramChatUser>.unmodifiable(_users);
-  List<String> get channels => List<String>.unmodifiable(_channels);
+  List<KaizengramChatChannel> get channels => List<KaizengramChatChannel>.unmodifiable(_channels);
   List<KaizengramChatUser> get currentChannelUsers {
     final channelName = activeChannelName;
     if (channelName == null) {
@@ -178,9 +241,28 @@ class KaizengramChatController extends ChangeNotifier {
         .where((user) => !_directMessageEmails.contains(user.email))
         .toList(growable: false),
   );
+  List<KaizengramChatUser> get shareDirectMessageTargets {
+    final seenEmails = <String>{};
+    final orderedUsers = <KaizengramChatUser>[];
+
+    for (final user in directMessageUsers) {
+      if (seenEmails.add(user.email)) {
+        orderedUsers.add(user);
+      }
+    }
+
+    for (final user in directMessageCandidates) {
+      if (seenEmails.add(user.email)) {
+        orderedUsers.add(user);
+      }
+    }
+
+    return List<KaizengramChatUser>.unmodifiable(orderedUsers);
+  }
+
   String get draftMessage => _draftMessage;
-  List<KaizengramChatMediaAttachment> get draftAttachments =>
-      List<KaizengramChatMediaAttachment>.unmodifiable(_draftAttachments);
+  List<KaizengramMessageAttachment> get draftAttachments =>
+      List<KaizengramMessageAttachment>.unmodifiable(_draftAttachments);
   bool get isPickingDraftMedia => _isPickingDraftMedia;
   int get messageVersion => _messageVersion;
   bool get hasDraftMedia => _draftAttachments.isNotEmpty;
@@ -266,6 +348,12 @@ class KaizengramChatController extends ChangeNotifier {
   }
 
   Future<KaizengramChatDraftMediaPickResult> pickDraftMedia() async {
+    return pickDraftMediaForSource(source: KaizengramMessageAttachmentPickSource.media);
+  }
+
+  Future<KaizengramChatDraftMediaPickResult> pickDraftMediaForSource({
+    required KaizengramMessageAttachmentPickSource source,
+  }) async {
     if (isPickingDraftMedia) {
       return KaizengramChatDraftMediaPickResult.cancelled;
     }
@@ -279,30 +367,16 @@ class KaizengramChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final List<XFile> pickedMedia;
-      if (availableSlots == 1) {
-        final pickedSingleMedia = await _imagePicker.pickMedia(imageQuality: 85);
-        pickedMedia = pickedSingleMedia == null ? <XFile>[] : <XFile>[pickedSingleMedia];
-      } else {
-        pickedMedia = await _imagePicker.pickMultipleMedia(imageQuality: 85, limit: availableSlots);
-      }
-      if (pickedMedia.isEmpty) {
-        return KaizengramChatDraftMediaPickResult.cancelled;
-      }
-
-      final existingPaths = _draftAttachments.map((attachment) => attachment.path).toSet();
-      final nextAttachments = pickedMedia
-          .map((file) => KaizengramChatMediaAttachment.fromPath(file.path))
-          .where(
-            (attachment) => attachment.path.isNotEmpty && !existingPaths.contains(attachment.path),
-          )
-          .take(availableSlots)
-          .toList(growable: false);
+      final nextAttachments = await KaizengramMessageAttachmentPicker.pick(
+        source: source,
+        availableSlots: availableSlots,
+        existingPaths: _draftAttachments.map((attachment) => attachment.path),
+      );
       if (nextAttachments.isEmpty) {
         return KaizengramChatDraftMediaPickResult.cancelled;
       }
 
-      _draftAttachments = <KaizengramChatMediaAttachment>[..._draftAttachments, ...nextAttachments];
+      _draftAttachments = <KaizengramMessageAttachment>[..._draftAttachments, ...nextAttachments];
       notifyListeners();
       return KaizengramChatDraftMediaPickResult.selected;
     } catch (_) {
@@ -330,8 +404,13 @@ class KaizengramChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<String?> pickChannelImage() async {
+    final pickedImage = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    return pickedImage?.path;
+  }
+
   void selectChannel(String channelName) {
-    if (!_channels.contains(channelName)) {
+    if (!_hasChannelNamed(channelName)) {
       return;
     }
 
@@ -360,7 +439,7 @@ class KaizengramChatController extends ChangeNotifier {
     if (channelName.isEmpty) {
       return KaizengramChatStrings.emptyChannelNameError;
     }
-    if (_channels.contains(channelName)) {
+    if (_hasChannelNamed(channelName)) {
       return KaizengramChatStrings.duplicateChannelNameError;
     }
 
@@ -400,14 +479,22 @@ class KaizengramChatController extends ChangeNotifier {
     return null;
   }
 
-  String createChannel(String rawName) {
+  String createChannel(String rawName, {String? imagePath}) {
     final validationMessage = validateChannelName(rawName);
     if (validationMessage != null) {
       return '';
     }
 
     final channelName = _normalizedChannelName(rawName);
-    _channels.add(channelName);
+    final normalizedImagePath = imagePath?.trim();
+    _channels.add(
+      KaizengramChatChannel(
+        name: channelName,
+        imagePath: normalizedImagePath == null || normalizedImagePath.isEmpty
+            ? null
+            : normalizedImagePath,
+      ),
+    );
     _channelMemberEmailsByChannel[channelName] = <String>[_currentUser.email];
     _messagesByConversation[_channelConversationKey(channelName)] = <KaizengramChatMessage>[
       KaizengramChatMessage(
@@ -430,12 +517,13 @@ class KaizengramChatController extends ChangeNotifier {
   }
 
   bool deleteChannel(String channelName) {
-    if (_channels.length <= 1 || !_channels.contains(channelName)) {
+    final deletedIndex = _channels.indexWhere((channel) => channel.name == channelName);
+    if (_channels.length <= 1 || deletedIndex == -1) {
       return false;
     }
 
     final deletedChannel = channelName;
-    _channels.remove(deletedChannel);
+    _channels.removeAt(deletedIndex);
     _channelMemberEmailsByChannel.remove(deletedChannel);
     _messagesByConversation.remove(_channelConversationKey(deletedChannel));
 
@@ -466,7 +554,7 @@ class KaizengramChatController extends ChangeNotifier {
   bool sendMessage() {
     final conversationKey = _selectedConversation?.key;
     final trimmedMessage = _draftMessage.trim();
-    final attachments = List<KaizengramChatMediaAttachment>.unmodifiable(_draftAttachments);
+    final attachments = List<KaizengramMessageAttachment>.unmodifiable(_draftAttachments);
     if (conversationKey == null || (trimmedMessage.isEmpty && attachments.isEmpty)) {
       return false;
     }
@@ -490,6 +578,42 @@ class KaizengramChatController extends ChangeNotifier {
               ),
       ),
     );
+    _clearDraftState();
+    _messageVersion++;
+    notifyListeners();
+    return true;
+  }
+
+  bool sendPresetMessage({
+    required KaizengramChatConversationTarget conversation,
+    required String message,
+    List<KaizengramMessageAttachment> attachments = const <KaizengramMessageAttachment>[],
+  }) {
+    final trimmedMessage = message.trim();
+    final normalizedAttachments = attachments
+        .where((attachment) => attachment.path.trim().isNotEmpty)
+        .take(maxMessageMediaCount)
+        .toList(growable: false);
+    final resolvedConversation = _ensureConversationExists(conversation);
+
+    if (resolvedConversation == null || (trimmedMessage.isEmpty && normalizedAttachments.isEmpty)) {
+      return false;
+    }
+
+    final conversationMessages = _messagesByConversation.putIfAbsent(
+      resolvedConversation.key,
+      () => <KaizengramChatMessage>[],
+    );
+    conversationMessages.add(
+      KaizengramChatMessage(
+        id: '${resolvedConversation.key}-${DateTime.now().microsecondsSinceEpoch}',
+        sender: _currentUser,
+        message: trimmedMessage,
+        attachments: normalizedAttachments,
+      ),
+    );
+
+    _selectedConversation = resolvedConversation;
     _clearDraftState();
     _messageVersion++;
     notifyListeners();
@@ -568,7 +692,7 @@ class KaizengramChatController extends ChangeNotifier {
 
   void _clearDraftState() {
     _draftMessage = '';
-    _draftAttachments = <KaizengramChatMediaAttachment>[];
+    _draftAttachments = <KaizengramMessageAttachment>[];
     _replyingTo = null;
   }
 
@@ -598,6 +722,39 @@ class KaizengramChatController extends ChangeNotifier {
 
   String _directConversationKey(String email) {
     return 'direct:$email';
+  }
+
+  bool _hasChannelNamed(String channelName) {
+    return _channels.any((channel) => channel.name == channelName);
+  }
+
+  KaizengramChatConversationTarget? _ensureConversationExists(
+    KaizengramChatConversationTarget conversation,
+  ) {
+    switch (conversation.type) {
+      case KaizengramChatConversationType.channel:
+        final channelName = conversation.id.trim();
+        if (!_hasChannelNamed(channelName)) {
+          return null;
+        }
+
+        return KaizengramChatConversationTarget.channel(channelName);
+      case KaizengramChatConversationType.directMessage:
+        final email = conversation.id.trim().toLowerCase();
+        if (!_canStartDirectMessageWithEmail(email)) {
+          return null;
+        }
+
+        if (!_directMessageEmails.contains(email)) {
+          _directMessageEmails.add(email);
+          _messagesByConversation.putIfAbsent(
+            _directConversationKey(email),
+            () => <KaizengramChatMessage>[],
+          );
+        }
+
+        return KaizengramChatConversationTarget.directMessage(email);
+    }
   }
 }
 
@@ -644,26 +801,11 @@ class KaizengramChatUser {
   final String email;
 }
 
-enum KaizengramChatMediaType { image, video }
+class KaizengramChatChannel {
+  const KaizengramChatChannel({required this.name, this.imagePath});
 
-class KaizengramChatMediaAttachment {
-  const KaizengramChatMediaAttachment({required this.path, required this.type});
-
-  factory KaizengramChatMediaAttachment.fromPath(String rawPath) {
-    final normalizedPath = rawPath.trim();
-    return KaizengramChatMediaAttachment(
-      path: normalizedPath,
-      type: _isKaizengramChatVideoPath(normalizedPath)
-          ? KaizengramChatMediaType.video
-          : KaizengramChatMediaType.image,
-    );
-  }
-
-  final String path;
-  final KaizengramChatMediaType type;
-
-  bool get isImage => type == KaizengramChatMediaType.image;
-  bool get isVideo => type == KaizengramChatMediaType.video;
+  final String name;
+  final String? imagePath;
 }
 
 class KaizengramChatMessage {
@@ -671,24 +813,27 @@ class KaizengramChatMessage {
     required this.id,
     required this.sender,
     required this.message,
-    this.attachments = const <KaizengramChatMediaAttachment>[],
+    this.attachments = const <KaizengramMessageAttachment>[],
     this.replyTo,
   });
 
   final String id;
   final KaizengramChatUser sender;
   final String message;
-  final List<KaizengramChatMediaAttachment> attachments;
+  final List<KaizengramMessageAttachment> attachments;
   final KaizengramChatReplyPreview? replyTo;
 
   bool get hasText => message.trim().isNotEmpty;
   bool get hasMedia => attachments.isNotEmpty;
   bool get hasImage => attachments.any((attachment) => attachment.isImage);
   bool get hasVideo => attachments.any((attachment) => attachment.isVideo);
+  bool get hasPdf => attachments.any((attachment) => attachment.isPdf);
   String get previewText => hasText
       ? message
       : attachments.length > 1
       ? KaizengramChatStrings.mediaMessageLabel
+      : hasPdf
+      ? KaizengramChatStrings.documentMessageLabel
       : hasVideo
       ? KaizengramChatStrings.videoMessageLabel
       : KaizengramChatStrings.photoMessageLabel;
@@ -707,14 +852,3 @@ class KaizengramChatReplyPreview {
 }
 
 enum KaizengramChatDraftMediaPickResult { selected, cancelled, failed, limitReached }
-
-bool _isKaizengramChatVideoPath(String path) {
-  final normalizedPath = path.trim().toLowerCase();
-  return normalizedPath.endsWith('.mp4') ||
-      normalizedPath.endsWith('.mov') ||
-      normalizedPath.endsWith('.m4v') ||
-      normalizedPath.endsWith('.avi') ||
-      normalizedPath.endsWith('.webm') ||
-      normalizedPath.endsWith('.mkv') ||
-      normalizedPath.endsWith('.3gp');
-}

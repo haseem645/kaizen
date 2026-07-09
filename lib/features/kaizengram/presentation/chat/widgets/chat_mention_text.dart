@@ -1,7 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../providers/kaizengram_chat_controller.dart';
+import '../../widgets/kaizengram_link_utils.dart';
 
 class ChatMentionText extends StatelessWidget {
   const ChatMentionText({
@@ -12,6 +14,7 @@ class ChatMentionText extends StatelessWidget {
     this.maxLines,
     this.overflow,
     this.textAlign,
+    this.onOpenUrl,
   });
 
   final String text;
@@ -20,6 +23,7 @@ class ChatMentionText extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
   final TextAlign? textAlign;
+  final Future<void> Function(String url)? onOpenUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +37,7 @@ class ChatMentionText extends StatelessWidget {
           text: text,
           users: users,
           defaultStyle: defaultStyle,
+          onOpenUrl: onOpenUrl ?? kaizengramOpenUrl,
         ),
       ),
     );
@@ -43,6 +48,7 @@ List<InlineSpan> buildChatMentionSpans({
   required String text,
   required List<KaizengramChatUser> users,
   required TextStyle defaultStyle,
+  Future<void> Function(String url)? onOpenUrl,
 }) {
   if (text.isEmpty) {
     return <InlineSpan>[TextSpan(text: text, style: defaultStyle)];
@@ -61,6 +67,39 @@ List<InlineSpan> buildChatMentionSpans({
   var plainBuffer = StringBuffer();
 
   while (cursor < text.length) {
+    final urlToken = kaizengramLinkTokenAt(text, cursor);
+    if (urlToken != null) {
+      if (plainBuffer.isNotEmpty) {
+        spans.add(TextSpan(text: plainBuffer.toString(), style: defaultStyle));
+        plainBuffer = StringBuffer();
+      }
+
+      spans.add(
+        TextSpan(
+          text: urlToken.value,
+          style: defaultStyle.copyWith(
+            color: AppColors.blue,
+            fontWeight: FontWeight.w700,
+            decoration: TextDecoration.underline,
+            decorationColor: AppColors.blue,
+          ),
+          recognizer: onOpenUrl == null
+              ? null
+              : (TapGestureRecognizer()
+                  ..onTap = () {
+                    onOpenUrl(urlToken.value);
+                  }),
+        ),
+      );
+
+      if (urlToken.trailingText.isNotEmpty) {
+        spans.add(TextSpan(text: urlToken.trailingText, style: defaultStyle));
+      }
+
+      cursor += urlToken.consumedLength;
+      continue;
+    }
+
     String? mentionLabel;
     if (text[cursor] == '@') {
       for (final name in sortedNames) {

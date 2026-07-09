@@ -7,6 +7,9 @@ class KaizengramChatStrings {
   static const String channelGeneral = 'general';
   static const String channelAnnouncements = 'announcements';
   static const String channelWins = 'wins';
+  static const String channelCoaching = 'coaching';
+  static const String channelTrainingHub = 'training-hub';
+  static const String channelQaReview = 'qa-review';
 
   static const String menuCreateChannel = 'Create Channel';
   static const String menuOpenChannel = 'Open Channel';
@@ -15,10 +18,22 @@ class KaizengramChatStrings {
   static const String chatHomeTitle = 'Talk Zone';
   static const String channelsTitle = 'Channels';
   static const String directMessagesTitle = 'One to One Chat';
+  static const String sharePostTitle = 'Send Post';
+  static const String sharePostSubtitle =
+      'Choose a channel or one-to-one chat for this post.';
+  static const String sharePostOriginLabel = 'Shared from Kaizengram';
+  static const String sharePostLinkLabel = 'Link';
+  static const String sharePostEmptyState =
+      'Create a channel or one-to-one chat first.';
 
   static const String createChannelTitle = 'Create Channel';
   static const String createChannelSubtitle =
       'Set a name for the new Kaizengram channel.';
+  static const String createChannelImageLabel = 'Channel Image';
+  static const String createChannelImageHint =
+      'Upload an image for this channel story.';
+  static const String createChannelImageSelectedHint =
+      'Tap to change the current channel image.';
   static const String startDirectMessageTitle = 'Users';
   static const String startDirectMessageSubtitle =
       'Choose a user to begin a one-to-one chat.';
@@ -39,6 +54,7 @@ class KaizengramChatStrings {
   static const String actionStartChat = 'Start Chat';
   static const String actionReply = 'Reply';
   static const String actionAddImage = 'Add Image';
+  static const String actionChangeImage = 'Change Image';
   static const String actionAddVideo = 'Add Video';
   static const String actionRemoveImage = 'Remove Image';
   static const String actionRemoveVideo = 'Remove Video';
@@ -50,9 +66,18 @@ class KaizengramChatStrings {
   static const String actionRemove = 'Remove';
   static const String selectedImageLabel = 'Selected image';
   static const String selectedVideoLabel = 'Selected video';
+  static const String selectedDocumentLabel = 'Selected PDF';
   static const String photoMessageLabel = 'Photo';
   static const String videoMessageLabel = 'Video';
-  static const String mediaMessageLabel = 'Media';
+  static const String documentMessageLabel = 'Document';
+  static const String mediaMessageLabel = 'Attachments';
+  static const String attachmentPickerTitle = 'Choose Attachment';
+  static const String attachmentPickerMediaTitle = 'Photos & Videos';
+  static const String attachmentPickerMediaSubtitle =
+      'Pick images or videos from your device.';
+  static const String attachmentPickerPdfTitle = 'PDF Document';
+  static const String attachmentPickerPdfSubtitle =
+      'Pick a PDF file from your documents.';
 
   static const String emptyChannelNameError = 'Please enter a channel name.';
   static const String duplicateChannelNameError =
@@ -60,10 +85,13 @@ class KaizengramChatStrings {
   static const String lastChannelError = 'At least one channel must remain.';
   static const String invalidEmailError = 'Please enter a valid email address.';
   static const String pickImageError = 'Unable to pick image right now.';
+  static const String pickChannelImageError =
+      'Unable to pick channel image right now.';
   static const String pickVideoError = 'Unable to pick video right now.';
-  static const String pickMediaError = 'Unable to open gallery right now.';
+  static const String pickMediaError =
+      'Unable to open the attachment picker right now.';
   static const String mediaLimitError =
-      'You can attach up to 3 images or videos in one message.';
+      'You can attach up to 3 images, videos, or PDF files in one message.';
   static const String duplicateUserError = 'This user is already in the list.';
   static const String duplicateChannelUserError =
       'This user is already in this channel.';
@@ -105,6 +133,12 @@ class KaizengramChatStrings {
       'Reminder: tomorrow\'s coaching recap will be posted here for everyone.';
   static const String winsMessage =
       'Big win today. The weekly check-in completion rate crossed 90 percent.';
+  static const String coachingMessage =
+      'Coaching notes live here. Drop one follow-up action after each session.';
+  static const String trainingHubMessage =
+      'Training Hub is open for reminders, deadlines, and learning support.';
+  static const String qaReviewMessage =
+      'QA review updates go here so the next check-in can close the loop faster.';
   static const String directMessageOlivia =
       'Can you review the handoff note when you have a minute?';
   static const String directMessageMarcus =
@@ -153,6 +187,6 @@ class KaizengramChatStrings {
   }
 
   static String selectedMediaLabel(int count, int maxCount) {
-    return 'Selected media ($count/$maxCount)';
+    return 'Selected attachments ($count/$maxCount)';
   }
 }

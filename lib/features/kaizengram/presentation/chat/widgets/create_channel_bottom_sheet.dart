@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -19,6 +21,8 @@ class CreateChannelBottomSheet extends StatefulWidget {
 class _CreateChannelBottomSheetState extends State<CreateChannelBottomSheet> {
   late final TextEditingController _textController = TextEditingController();
   String? _errorText;
+  String? _selectedImagePath;
+  var _isPickingImage = false;
 
   @override
   void dispose() {
@@ -69,6 +73,96 @@ class _CreateChannelBottomSheetState extends State<CreateChannelBottomSheet> {
               const AppTextView.body2(
                 KaizengramChatStrings.createChannelSubtitle,
                 color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 16),
+              AppTextView.body2(
+                KaizengramChatStrings.createChannelImageLabel,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+              const SizedBox(height: 10),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isPickingImage ? null : _handlePickImage,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF24283D),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.textPrimary.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: SizedBox(
+                            width: 58,
+                            height: 58,
+                            child: _selectedImagePath == null
+                                ? Container(
+                                    color: AppColors.surfaceDark3,
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.tag_rounded,
+                                      color: AppColors.secondaryColor,
+                                      size: 24,
+                                    ),
+                                  )
+                                : Image.file(
+                                    File(_selectedImagePath!),
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              AppTextView.body2(
+                                _selectedImagePath == null
+                                    ? KaizengramChatStrings
+                                          .createChannelImageHint
+                                    : KaizengramChatStrings.actionChangeImage,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              const SizedBox(height: 4),
+                              AppTextView.body3(
+                                _selectedImagePath == null
+                                    ? KaizengramChatStrings.actionAddImage
+                                    : KaizengramChatStrings
+                                          .createChannelImageSelectedHint,
+                                color: AppColors.textSecondary,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _isPickingImage
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.textPrimary,
+                                ),
+                              )
+                            : Icon(
+                                _selectedImagePath == null
+                                    ? Icons.add_photo_alternate_outlined
+                                    : Icons.edit_outlined,
+                                color: AppColors.textPrimary,
+                                size: 20,
+                              ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -145,6 +239,7 @@ class _CreateChannelBottomSheetState extends State<CreateChannelBottomSheet> {
     final messenger = ScaffoldMessenger.of(context);
     final createdChannel = widget.controller.createChannel(
       _textController.text,
+      imagePath: _selectedImagePath,
     );
     Navigator.of(context).pop(createdChannel);
     messenger
@@ -156,5 +251,41 @@ class _CreateChannelBottomSheetState extends State<CreateChannelBottomSheet> {
           ),
         ),
       );
+  }
+
+  Future<void> _handlePickImage() async {
+    setState(() {
+      _isPickingImage = true;
+    });
+
+    try {
+      final selectedImagePath = await widget.controller.pickChannelImage();
+      if (!mounted || selectedImagePath == null || selectedImagePath.isEmpty) {
+        return;
+      }
+
+      setState(() {
+        _selectedImagePath = selectedImagePath;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(KaizengramChatStrings.pickChannelImageError),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingImage = false;
+        });
+      } else {
+        _isPickingImage = false;
+      }
+    }
   }
 }

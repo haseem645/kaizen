@@ -1,4 +1,4 @@
-# organizations_skills.md
+# Organizations Skill
 
 This file is a lightweight routing index for `lib/features/organizations`.
 

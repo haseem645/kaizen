@@ -1,4 +1,4 @@
-# kaizen_gpt_skills.md
+# Kaizen GPT Skill
 
 This file is a lightweight routing index for `lib/features/kaizen_gpt`.
 

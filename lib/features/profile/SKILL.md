@@ -1,4 +1,4 @@
-# profile_skills.md
+# Profile Skill
 
 This file is a lightweight routing index for `lib/features/profile`.
 

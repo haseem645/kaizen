@@ -1,4 +1,4 @@
-# seat_profile_skills.md
+# Seat Profile Skill
 
 This file is a lightweight routing index for `lib/features/seat_profile`.
 

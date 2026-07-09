@@ -1,4 +1,4 @@
-# splash_skills.md
+# Splash Skill
 
 This file is a lightweight routing index for `lib/features/splash`.
 

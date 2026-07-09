@@ -1,30 +1,32 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:pdfrx/pdfrx.dart';
 
-import '../../../../../core/constants/app_colors.dart';
-import '../providers/kaizengram_chat_controller.dart';
-import 'chat_video_preview.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/fast_circular_progress.dart';
+import '../chat/widgets/chat_video_preview.dart';
+import '../kaizengram_message_attachment.dart';
 
-class KaizengramChatFullScreenMediaView extends StatefulWidget {
-  const KaizengramChatFullScreenMediaView({
+class KaizengramFullScreenAttachmentView extends StatefulWidget {
+  const KaizengramFullScreenAttachmentView({
     super.key,
     required this.attachments,
     this.initialIndex = 0,
     this.autoPlayInitialVideo = false,
   });
 
-  final List<KaizengramChatMediaAttachment> attachments;
+  final List<KaizengramMessageAttachment> attachments;
   final int initialIndex;
   final bool autoPlayInitialVideo;
 
   @override
-  State<KaizengramChatFullScreenMediaView> createState() =>
-      _KaizengramChatFullScreenMediaViewState();
+  State<KaizengramFullScreenAttachmentView> createState() =>
+      _KaizengramFullScreenAttachmentViewState();
 }
 
-class _KaizengramChatFullScreenMediaViewState
-    extends State<KaizengramChatFullScreenMediaView> {
+class _KaizengramFullScreenAttachmentViewState
+    extends State<KaizengramFullScreenAttachmentView> {
   late final PageController _pageController;
   late int _currentIndex;
 
@@ -71,7 +73,9 @@ class _KaizengramChatFullScreenMediaViewState
                                 widget.autoPlayInitialVideo &&
                                 index == widget.initialIndex,
                           )
-                        : _FullScreenChatImage(imagePath: attachment.path),
+                        : attachment.isPdf
+                        ? _FullScreenPdfPreview(attachment: attachment)
+                        : _FullScreenChatImage(attachment: attachment),
                   ),
                 );
               },
@@ -121,22 +125,22 @@ class _KaizengramChatFullScreenMediaViewState
 }
 
 class _FullScreenChatImage extends StatelessWidget {
-  const _FullScreenChatImage({required this.imagePath});
+  const _FullScreenChatImage({required this.attachment});
 
-  final String imagePath;
+  final KaizengramMessageAttachment attachment;
 
   @override
   Widget build(BuildContext context) {
-    final image = imagePath.startsWith('http')
+    final image = attachment.isNetworkPath
         ? Image.network(
-            imagePath,
+            attachment.path,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const _FullScreenMediaFallback(
               icon: Icons.broken_image_outlined,
             ),
           )
         : Image.file(
-            File(imagePath),
+            File(attachment.path),
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const _FullScreenMediaFallback(
               icon: Icons.broken_image_outlined,
@@ -144,6 +148,63 @@ class _FullScreenChatImage extends StatelessWidget {
           );
 
     return InteractiveViewer(minScale: 1, maxScale: 4, child: image);
+  }
+}
+
+class _FullScreenPdfPreview extends StatelessWidget {
+  const _FullScreenPdfPreview({required this.attachment});
+
+  final KaizengramMessageAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.mainBg,
+      child: attachment.isNetworkPath
+          ? PdfViewer.uri(
+              Uri.parse(attachment.path),
+              useProgressiveLoading: true,
+              preferRangeAccess: true,
+              params: _pdfViewerParams(),
+            )
+          : PdfViewer.file(
+              attachment.path,
+              useProgressiveLoading: true,
+              params: _pdfViewerParams(),
+            ),
+    );
+  }
+
+  PdfViewerParams _pdfViewerParams() {
+    return PdfViewerParams(
+      margin: 0,
+      backgroundColor: AppColors.mainBg,
+      pageDropShadow: const BoxShadow(color: Colors.transparent),
+      loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+        return ColoredBox(
+          color: AppColors.mainBg,
+          child: Center(
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: FastCircularProgressIndicator(),
+            ),
+          ),
+        );
+      },
+      errorBannerBuilder: (context, error, stackTrace, documentRef) {
+        return const ColoredBox(
+          color: AppColors.mainBg,
+          child: Center(
+            child: Icon(
+              Icons.picture_as_pdf_rounded,
+              color: Colors.white70,
+              size: 56,
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

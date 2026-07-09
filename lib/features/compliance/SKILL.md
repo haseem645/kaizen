@@ -1,4 +1,4 @@
-# compliance_skills.md
+# Compliance Skill
 
 This file is a lightweight routing index for `lib/features/compliance`.
 

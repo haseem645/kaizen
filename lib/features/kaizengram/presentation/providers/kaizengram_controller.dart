@@ -4,6 +4,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../data/datasources/kaizengram_remote_data_source.dart';
 import '../../../login/domain/entities/user.dart';
+import '../kaizengram_message_attachment.dart';
 
 enum KaizengramFeedType { learningCompliance, documentCompliance }
 
@@ -189,9 +190,15 @@ class KaizengramController extends ChangeNotifier {
     required String authorName,
     required String message,
     String? replyToCommentId,
+    List<KaizengramMessageAttachment> attachments =
+        const <KaizengramMessageAttachment>[],
   }) {
     final normalizedMessage = message.trim();
-    if (normalizedMessage.isEmpty) {
+    final normalizedAttachments = attachments
+        .where((attachment) => attachment.path.trim().isNotEmpty)
+        .take(kaizengramMessageAttachmentLimit)
+        .toList(growable: false);
+    if (normalizedMessage.isEmpty && normalizedAttachments.isEmpty) {
       return null;
     }
 
@@ -213,6 +220,7 @@ class KaizengramController extends ChangeNotifier {
           authorName: normalizedAuthorName,
           message: normalizedMessage,
           timestampLabel: 'Now',
+          attachments: normalizedAttachments,
         );
         sentCommentId = reply.id;
         updatedComments[targetIndex] = target.copyWith(
@@ -227,6 +235,7 @@ class KaizengramController extends ChangeNotifier {
         authorName: normalizedAuthorName,
         message: normalizedMessage,
         timestampLabel: 'Now',
+        attachments: normalizedAttachments,
       );
       sentCommentId = newComment.id;
       updatedComments.add(newComment);
@@ -244,12 +253,15 @@ class KaizengramController extends ChangeNotifier {
     required KaizengramSocialPost post,
     required String message,
     String? replyToCommentId,
+    List<KaizengramMessageAttachment> attachments =
+        const <KaizengramMessageAttachment>[],
   }) {
     return addSocialPostComment(
       post: post,
       authorName: currentUserDisplayName,
       message: message,
       replyToCommentId: replyToCommentId,
+      attachments: attachments,
     );
   }
 
@@ -1158,6 +1170,7 @@ class KaizengramController extends ChangeNotifier {
     required String? descriptionMessage,
     required String? avatarUrl,
     required List<({String author, String message, String time})> replies,
+    bool descriptionFirst = true,
   }) {
     final threadedReplies = replies
         .map(
@@ -1189,17 +1202,19 @@ class KaizengramController extends ChangeNotifier {
         normalizedDescription.isNotEmpty &&
         normalizedAuthor != null &&
         normalizedAuthor.isNotEmpty) {
-      comments.insert(
-        0,
-        KaizengramComment(
-          id: 'comment-description-$normalizedAuthor-${normalizedDescription.hashCode}',
-          authorName: normalizedAuthor,
-          message: normalizedDescription,
-          timestampLabel: 'Now',
-          avatarUrl: avatarUrl,
-          isDescription: true,
-        ),
+      final descriptionComment = KaizengramComment(
+        id: 'comment-description-$normalizedAuthor-${normalizedDescription.hashCode}',
+        authorName: normalizedAuthor,
+        message: normalizedDescription,
+        timestampLabel: 'Now',
+        avatarUrl: avatarUrl,
+        isDescription: true,
       );
+      if (descriptionFirst) {
+        comments.insert(0, descriptionComment);
+      } else {
+        comments.add(descriptionComment);
+      }
     }
 
     return comments;
@@ -1712,6 +1727,7 @@ class KaizengramController extends ChangeNotifier {
       descriptionMessage:
           '$title was marked as $ratingLabel. ${findingDetails[offset]}',
       avatarUrl: thumbnailUrl,
+      descriptionFirst: false,
       replies: <({String author, String message, String time})>[
         (
           author: ownerName,
@@ -2033,6 +2049,7 @@ class KaizengramComment {
     required this.timestampLabel,
     this.avatarUrl,
     this.isDescription = false,
+    this.attachments = const <KaizengramMessageAttachment>[],
     this.replies = const <KaizengramComment>[],
   });
 
@@ -2042,6 +2059,7 @@ class KaizengramComment {
   final String timestampLabel;
   final String? avatarUrl;
   final bool isDescription;
+  final List<KaizengramMessageAttachment> attachments;
   final List<KaizengramComment> replies;
 
   KaizengramComment copyWith({
@@ -2051,6 +2069,7 @@ class KaizengramComment {
     String? timestampLabel,
     String? avatarUrl,
     bool? isDescription,
+    List<KaizengramMessageAttachment>? attachments,
     List<KaizengramComment>? replies,
   }) {
     return KaizengramComment(
@@ -2060,6 +2079,7 @@ class KaizengramComment {
       timestampLabel: timestampLabel ?? this.timestampLabel,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isDescription: isDescription ?? this.isDescription,
+      attachments: attachments ?? this.attachments,
       replies: replies ?? this.replies,
     );
   }
@@ -2164,5 +2184,6 @@ class KaizengramAuditMediaItem {
   final String? videoUrl;
   final List<KaizengramComment> commentThread;
 
+  bool get hasThumbnail => thumbnailUrl.trim().isNotEmpty;
   bool get hasVideo => videoUrl?.trim().isNotEmpty ?? false;
 }

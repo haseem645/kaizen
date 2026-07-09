@@ -1,4 +1,4 @@
-# kaizengram_skills.md
+# Kaizengram Skill
 
 This file is a lightweight routing index for `lib/features/kaizengram`.
 

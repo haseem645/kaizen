@@ -1,4 +1,4 @@
-# audit_skills.md
+# Audit Skill
 
 This file is a lightweight routing index for `lib/features/audit`.
 

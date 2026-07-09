@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_text_view.dart';
+import '../../kaizengram_message_attachment.dart';
+import '../../widgets/kaizengram_full_screen_attachment_view.dart';
 import '../chat_strings.dart';
 import '../providers/kaizengram_chat_controller.dart';
-import 'chat_full_screen_media_view.dart';
+import '../../widgets/kaizengram_link_utils.dart';
+import '../../widgets/kaizengram_link_preview_card.dart';
 import 'chat_mention_text.dart';
 import 'chat_mention_text_editing_controller.dart';
 import 'chat_user_initial_avatar.dart';
@@ -18,10 +22,12 @@ class KaizengramChatMessageComposer extends StatefulWidget {
   const KaizengramChatMessageComposer({super.key});
 
   @override
-  State<KaizengramChatMessageComposer> createState() => _KaizengramChatMessageComposerState();
+  State<KaizengramChatMessageComposer> createState() =>
+      _KaizengramChatMessageComposerState();
 }
 
-class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageComposer> {
+class _KaizengramChatMessageComposerState
+    extends State<KaizengramChatMessageComposer> {
   late final ChatMentionTextEditingController _textController;
   _MentionQuery? _activeMentionQuery;
 
@@ -50,6 +56,8 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
     final draftAttachments = controller.draftAttachments;
     final isPickingDraftMedia = controller.isPickingDraftMedia;
     _textController.users = controller.users;
+    final draftText = _textController.text;
+    final hasDraftLink = kaizengramFirstLinkInText(draftText) != null;
     final replyingTo = controller.replyingTo;
     final mentionSuggestions = _activeMentionQuery == null
         ? const <KaizengramChatUser>[]
@@ -64,7 +72,11 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
         decoration: BoxDecoration(
           color: const Color(0xFF1B1E27),
-          border: Border(top: BorderSide(color: AppColors.textPrimary.withValues(alpha: 0.06))),
+          border: Border(
+            top: BorderSide(
+              color: AppColors.textPrimary.withValues(alpha: 0.06),
+            ),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -77,7 +89,9 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                 decoration: BoxDecoration(
                   color: const Color(0xFF24283D),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+                  border: Border.all(
+                    color: AppColors.textPrimary.withValues(alpha: 0.06),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +136,11 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                       onTap: controller.cancelReply,
                       child: const Padding(
                         padding: EdgeInsets.all(4),
-                        child: Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 18),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: AppColors.textSecondary,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -137,13 +155,16 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
               ),
               const SizedBox(height: 10),
             ],
-            if (_activeMentionQuery != null && mentionSuggestions.isNotEmpty) ...<Widget>[
+            if (_activeMentionQuery != null &&
+                mentionSuggestions.isNotEmpty) ...<Widget>[
               Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFF24283D),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+                  border: Border.all(
+                    color: AppColors.textPrimary.withValues(alpha: 0.06),
+                  ),
                 ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 220),
@@ -160,18 +181,23 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                           borderRadius: BorderRadius.circular(14),
                           onTap: () => _insertMention(user),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                             child: Row(
                               children: <Widget>[
                                 ChatUserInitialAvatar(
                                   label: kaizengramChatInitialFor(user.name),
-                                  accentColor: kaizengramChatAccentColorForIndex(index),
+                                  accentColor:
+                                      kaizengramChatAccentColorForIndex(index),
                                   size: 36,
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: <Widget>[
                                       Text(
                                         user.name,
@@ -203,6 +229,10 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                 ),
               ),
             ],
+            if (hasDraftLink) ...<Widget>[
+              KaizengramTextLinkPreview(text: draftText, topSpacing: 0),
+              const SizedBox(height: 10),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
@@ -214,11 +244,13 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.textPrimary,
+                            ),
                           ),
                         )
                       : const Icon(
-                          Icons.photo_library_outlined,
+                          Icons.attach_file_rounded,
                           color: AppColors.textPrimary,
                           size: 20,
                         ),
@@ -235,10 +267,15 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: KaizengramChatStrings.messageHint,
-                      hintStyle: const TextStyle(color: AppColors.textSecondary),
+                      hintStyle: const TextStyle(
+                        color: AppColors.textSecondary,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFF24283D),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(18),
                         borderSide: BorderSide.none,
@@ -248,14 +285,16 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
                 ),
                 const SizedBox(width: 12),
                 InkWell(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(14),
                   onTap: canSendMessage ? _handleSendMessage : null,
                   child: Container(
-                    width: 48,
-                    height: 48,
+                    width: 56,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: canSendMessage ? AppColors.secondaryColor : const Color(0xFF3A3F52),
-                      borderRadius: BorderRadius.circular(18),
+                      color: canSendMessage
+                          ? AppColors.secondaryColor
+                          : const Color(0xFF3A3F52),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(Icons.send_rounded, color: Colors.white),
                   ),
@@ -269,7 +308,14 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
   }
 
   Future<void> _handlePickMedia() async {
-    final result = await context.read<KaizengramChatController>().pickDraftMedia();
+    final source = await KaizengramMessageAttachmentPicker.pickSource(context);
+    if (!mounted || source == null) {
+      return;
+    }
+
+    final result = await context
+        .read<KaizengramChatController>()
+        .pickDraftMediaForSource(source: source);
     if (!mounted) {
       return;
     }
@@ -277,14 +323,18 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
     if (result == KaizengramChatDraftMediaPickResult.failed) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text(KaizengramChatStrings.pickMediaError)));
+        ..showSnackBar(
+          const SnackBar(content: Text(KaizengramChatStrings.pickMediaError)),
+        );
       return;
     }
 
     if (result == KaizengramChatDraftMediaPickResult.limitReached) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text(KaizengramChatStrings.mediaLimitError)));
+        ..showSnackBar(
+          const SnackBar(content: Text(KaizengramChatStrings.mediaLimitError)),
+        );
     }
   }
 
@@ -301,7 +351,10 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
   }
 
   void _handleTextControllerChanged() {
-    final nextQuery = _findMentionQuery(_textController.text, _textController.selection);
+    final nextQuery = _findMentionQuery(
+      _textController.text,
+      _textController.selection,
+    );
     if (_activeMentionQuery == nextQuery) {
       return;
     }
@@ -330,7 +383,9 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
   }
 
   void _openDraftMediaViewer(int index) {
-    final attachments = context.read<KaizengramChatController>().draftAttachments;
+    final attachments = context
+        .read<KaizengramChatController>()
+        .draftAttachments;
     if (attachments.isEmpty) {
       return;
     }
@@ -339,7 +394,7 @@ class _KaizengramChatMessageComposerState extends State<KaizengramChatMessageCom
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => KaizengramChatFullScreenMediaView(
+        builder: (_) => KaizengramFullScreenAttachmentView(
           attachments: attachments,
           initialIndex: index,
           autoPlayInitialVideo: selectedAttachment.isVideo,
@@ -356,18 +411,24 @@ class _DraftMediaPreviewStrip extends StatelessWidget {
     required this.onRemoveAttachment,
   });
 
-  final List<KaizengramChatMediaAttachment> attachments;
+  final List<KaizengramMessageAttachment> attachments;
   final ValueChanged<int> onOpenAttachment;
   final ValueChanged<String> onRemoveAttachment;
 
   @override
   Widget build(BuildContext context) {
+    const spacing = 8.0;
+    const mediaCardSize = 92.0;
+    const pdfCardWidth = 220.0;
+
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFF24283D),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.06),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,39 +442,30 @@ class _DraftMediaPreviewStrip extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
           const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const spacing = 8.0;
-              const maxSquareSide = 92.0;
-              final availableWidth = constraints.maxWidth.isFinite
-                  ? constraints.maxWidth
-                  : MediaQuery.sizeOf(context).width;
-              final rawSquareSide =
-                  (availableWidth - (spacing * (attachments.length - 1))) / attachments.length;
-              final squareSide = rawSquareSide > maxSquareSide ? maxSquareSide : rawSquareSide;
+          SizedBox(
+            height: mediaCardSize,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List<Widget>.generate(attachments.length * 2 - 1, (
+                  index,
+                ) {
+                  if (index.isOdd) {
+                    return const SizedBox(width: spacing);
+                  }
 
-              return SizedBox(
-                height: squareSide,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List<Widget>.generate(attachments.length * 2 - 1, (index) {
-                    if (index.isOdd) {
-                      return const SizedBox(width: spacing);
-                    }
-
-                    final attachmentIndex = index ~/ 2;
-                    final attachment = attachments[attachmentIndex];
-                    return _DraftMediaPreviewCard(
-                      attachment: attachment,
-                      width: squareSide,
-                      height: squareSide,
-                      onOpen: () => onOpenAttachment(attachmentIndex),
-                      onRemove: () => onRemoveAttachment(attachment.path),
-                    );
-                  }),
-                ),
-              );
-            },
+                  final attachmentIndex = index ~/ 2;
+                  final attachment = attachments[attachmentIndex];
+                  return _DraftMediaPreviewCard(
+                    attachment: attachment,
+                    width: attachment.isPdf ? pdfCardWidth : mediaCardSize,
+                    height: mediaCardSize,
+                    onOpen: () => onOpenAttachment(attachmentIndex),
+                    onRemove: () => onRemoveAttachment(attachment.path),
+                  );
+                }),
+              ),
+            ),
           ),
         ],
       ),
@@ -430,7 +482,7 @@ class _DraftMediaPreviewCard extends StatelessWidget {
     required this.onRemove,
   });
 
-  final KaizengramChatMediaAttachment attachment;
+  final KaizengramMessageAttachment attachment;
   final double width;
   final double height;
   final VoidCallback onOpen;
@@ -448,7 +500,12 @@ class _DraftMediaPreviewCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 color: const Color(0xFF111317),
-                child: attachment.isVideo
+                child: attachment.isPdf
+                    ? _DraftPdfPreviewCard(
+                        attachment: attachment,
+                        onOpen: onOpen,
+                      )
+                    : attachment.isVideo
                     ? ChatVideoPreview(
                         videoPath: attachment.path,
                         maxHeight: height,
@@ -462,16 +519,18 @@ class _DraftMediaPreviewCard extends StatelessWidget {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: onOpen,
-                          child: attachment.path.startsWith('http')
+                          child: attachment.isNetworkPath
                               ? Image.network(
                                   attachment.path,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => const _DraftMediaFallback(),
+                                  errorBuilder: (_, __, ___) =>
+                                      const _DraftMediaFallback(),
                                 )
                               : Image.file(
                                   File(attachment.path),
                                   fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => const _DraftMediaFallback(),
+                                  errorBuilder: (_, __, ___) =>
+                                      const _DraftMediaFallback(),
                                 ),
                         ),
                       ),
@@ -489,12 +548,72 @@ class _DraftMediaPreviewCard extends StatelessWidget {
                 onTap: onRemove,
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DraftPdfPreviewCard extends StatelessWidget {
+  const _DraftPdfPreviewCard({required this.attachment, required this.onOpen});
+
+  final KaizengramMessageAttachment attachment;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryColor.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: AppColors.secondaryColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  CustomFunctions.fileNameFromPath(
+                    attachment.path,
+                    fallback: KaizengramChatStrings.documentMessageLabel,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -506,7 +625,11 @@ class _DraftMediaFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Icon(Icons.broken_image_outlined, color: AppColors.textSecondary, size: 26),
+      child: Icon(
+        Icons.broken_image_outlined,
+        color: AppColors.textSecondary,
+        size: 26,
+      ),
     );
   }
 }
@@ -520,14 +643,14 @@ class _ComposerIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 56,
+        height: 44,
         decoration: BoxDecoration(
           color: const Color(0xFF24283D),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Center(child: child),
       ),
@@ -567,7 +690,11 @@ _MentionQuery? _findMentionQuery(String text, TextSelection selection) {
 }
 
 class _MentionQuery {
-  const _MentionQuery({required this.start, required this.end, required this.query});
+  const _MentionQuery({
+    required this.start,
+    required this.end,
+    required this.query,
+  });
 
   final int start;
   final int end;

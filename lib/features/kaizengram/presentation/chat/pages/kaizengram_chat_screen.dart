@@ -4,17 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_text_view.dart';
+import '../../kaizengram_message_attachment.dart';
+import '../../widgets/kaizengram_full_screen_attachment_view.dart';
 import '../chat_strings.dart';
 import '../providers/kaizengram_chat_controller.dart';
 import '../widgets/chat_mention_text.dart';
-import '../widgets/chat_full_screen_media_view.dart';
 import '../widgets/chat_message_composer.dart';
 import '../widgets/chat_user_initial_avatar.dart';
 import '../widgets/chat_users_bottom_sheet.dart';
 import '../widgets/chat_video_preview.dart';
 import '../widgets/delete_channel_confirmation_dialog.dart';
+import '../../widgets/kaizengram_link_preview_card.dart';
 
+////
 class KaizengramChatScreen extends StatelessWidget {
   const KaizengramChatScreen({super.key, this.controller});
 
@@ -486,15 +490,21 @@ class _ChatMessageTile extends StatelessWidget {
                           if (message.hasText) const SizedBox(height: 10),
                         ],
                         if (message.hasText)
-                          ChatMentionText(
-                            text: message.message,
-                            users: controller.users,
-                            defaultStyle: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              height: 1.45,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              ChatMentionText(
+                                text: message.message,
+                                users: controller.users,
+                                defaultStyle: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.45,
+                                ),
+                              ),
+                              KaizengramTextLinkPreview(text: message.message),
+                            ],
                           ),
                       ],
                     ),
@@ -524,7 +534,7 @@ class _ChatMessageTile extends StatelessWidget {
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => KaizengramChatFullScreenMediaView(
+        builder: (_) => KaizengramFullScreenAttachmentView(
           attachments: message.attachments,
           initialIndex: initialIndex,
           autoPlayInitialVideo: selectedAttachment.isVideo,
@@ -662,7 +672,7 @@ class _ChatMessageMediaStrip extends StatelessWidget {
     required this.onOpenAttachment,
   });
 
-  final List<KaizengramChatMediaAttachment> attachments;
+  final List<KaizengramMessageAttachment> attachments;
   final ValueChanged<int> onOpenAttachment;
 
   @override
@@ -723,14 +733,16 @@ class _ChatMessageMediaCard extends StatelessWidget {
     required this.onOpen,
   });
 
-  final KaizengramChatMediaAttachment attachment;
+  final KaizengramMessageAttachment attachment;
   final double height;
   final double? width;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final mediaChild = attachment.isVideo
+    final mediaChild = attachment.isPdf
+        ? _ChatMessagePdfCard(attachment: attachment, onOpen: onOpen)
+        : attachment.isVideo
         ? ChatVideoPreview(
             videoPath: attachment.path,
             maxHeight: height,
@@ -744,7 +756,7 @@ class _ChatMessageMediaCard extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: onOpen,
-              child: attachment.path.startsWith('http')
+              child: attachment.isNetworkPath
                   ? Image.network(
                       attachment.path,
                       fit: BoxFit.contain,
@@ -770,6 +782,60 @@ class _ChatMessageMediaCard extends StatelessWidget {
           height: double.infinity,
           color: const Color(0xFF111317),
           child: mediaChild,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatMessagePdfCard extends StatelessWidget {
+  const _ChatMessagePdfCard({required this.attachment, required this.onOpen});
+
+  final KaizengramMessageAttachment attachment;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: AppColors.secondaryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                CustomFunctions.fileNameFromPath(
+                  attachment.path,
+                  fallback: KaizengramChatStrings.documentMessageLabel,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

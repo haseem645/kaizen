@@ -1,4 +1,4 @@
-# paygrades_skills.md
+# Paygrades Skill
 
 This file is a lightweight routing index for `lib/features/paygrades`.
 

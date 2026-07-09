@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_text_view.dart';
 import '../chat_strings.dart';
 import '../providers/kaizengram_chat_controller.dart';
@@ -67,7 +70,7 @@ class _KaizengramChannelsView extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: _ChannelListTile(
                 channel: channel,
-                onTap: () => _openChannel(context, channel),
+                onTap: () => _openChannel(context, channel.name),
               ),
             ),
           ),
@@ -131,7 +134,9 @@ class _KaizengramChannelsView extends StatelessWidget {
     final controller = context.read<KaizengramChatController>();
     controller.selectChannel(channelName);
     return Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => KaizengramChatScreen(controller: controller)),
+      MaterialPageRoute<void>(
+        builder: (_) => KaizengramChatScreen(controller: controller),
+      ),
     );
   }
 
@@ -139,13 +144,19 @@ class _KaizengramChannelsView extends StatelessWidget {
     final controller = context.read<KaizengramChatController>();
     controller.openDirectMessage(userEmail);
     return Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => KaizengramChatScreen(controller: controller)),
+      MaterialPageRoute<void>(
+        builder: (_) => KaizengramChatScreen(controller: controller),
+      ),
     );
   }
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.actionIcon, required this.onActionTap});
+  const _SectionHeader({
+    required this.title,
+    required this.actionIcon,
+    required this.onActionTap,
+  });
 
   final String title;
   final IconData actionIcon;
@@ -171,7 +182,9 @@ class _SectionHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF1B1E27),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.08)),
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.08),
+              ),
             ),
             child: Icon(actionIcon, color: AppColors.textPrimary, size: 18),
           ),
@@ -184,7 +197,7 @@ class _SectionHeader extends StatelessWidget {
 class _ChannelListTile extends StatelessWidget {
   const _ChannelListTile({required this.channel, required this.onTap});
 
-  final String channel;
+  final KaizengramChatChannel channel;
   final VoidCallback onTap;
   //
   @override
@@ -196,7 +209,9 @@ class _ChannelListTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1B1E27),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+          border: Border.all(
+            color: AppColors.textPrimary.withValues(alpha: 0.06),
+          ),
         ),
         child: Row(
           children: <Widget>[
@@ -208,11 +223,11 @@ class _ChannelListTile extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
                   child: Row(
                     children: <Widget>[
-                      const Icon(Icons.tag_rounded, color: AppColors.secondaryColor, size: 18),
+                      _ChannelAvatar(channel: channel),
                       const SizedBox(width: 10),
                       Expanded(
                         child: AppTextView.body2(
-                          '#$channel',
+                          '#${channel.name}',
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
@@ -224,6 +239,45 @@ class _ChannelListTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ChannelAvatar extends StatelessWidget {
+  const _ChannelAvatar({required this.channel});
+
+  final KaizengramChatChannel channel;
+
+  @override
+  Widget build(BuildContext context) {
+    final imagePath = channel.imagePath?.trim();
+    if (imagePath != null && imagePath.isNotEmpty) {
+      final networkUrl = CustomFunctions.resolveNetworkUrl(imagePath);
+      final imageProvider = networkUrl != null
+          ? NetworkImage(networkUrl)
+          : FileImage(File(imagePath)) as ImageProvider<Object>;
+      return CircleAvatar(
+        radius: 16,
+        backgroundColor: const Color(0xFF24283D),
+        backgroundImage: imageProvider,
+      );
+    }
+
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: const Color(0xFF24283D),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.06),
+        ),
+      ),
+      child: const Icon(
+        Icons.tag_rounded,
+        color: AppColors.secondaryColor,
+        size: 18,
       ),
     );
   }
@@ -247,7 +301,9 @@ class _DirectMessageListTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF1B1E27),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+            border: Border.all(
+              color: AppColors.textPrimary.withValues(alpha: 0.06),
+            ),
           ),
           child: Row(
             children: <Widget>[
@@ -294,7 +350,9 @@ class _EmptyDirectMessagesCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1B1E27),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.06),
+        ),
       ),
       child: const AppTextView.body3(
         KaizengramChatStrings.noDirectMessages,
@@ -352,7 +410,9 @@ class _StartDirectMessageBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.46),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.46,
+              ),
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: candidates.length,
@@ -365,17 +425,26 @@ class _StartDirectMessageBottomSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       onTap: () => Navigator.of(context).pop(user.email),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF24283D),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.06)),
+                          border: Border.all(
+                            color: AppColors.textPrimary.withValues(
+                              alpha: 0.06,
+                            ),
+                          ),
                         ),
                         child: Row(
                           children: <Widget>[
                             ChatUserInitialAvatar(
                               label: kaizengramChatInitialFor(user.name),
-                              accentColor: kaizengramChatAccentColorForIndex(index),
+                              accentColor: kaizengramChatAccentColorForIndex(
+                                index,
+                              ),
                               size: 38,
                             ),
                             const SizedBox(width: 10),
@@ -397,7 +466,10 @@ class _StartDirectMessageBottomSheet extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                           ],
                         ),
                       ),

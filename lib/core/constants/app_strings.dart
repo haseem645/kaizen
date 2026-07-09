@@ -216,7 +216,13 @@ class AppStrings {
 
   static String welcomeUser(String displayName) => 'Welcome, $displayName!';
 
-  static String commentAsUser(String displayName) => 'Comment as $displayName';
+  static String commentAsUser(String displayName) {
+    final normalizedName = displayName.trim();
+    final firstName = normalizedName.isEmpty
+        ? 'You'
+        : normalizedName.split(RegExp(r'\s+')).first;
+    return 'Comment as $firstName';
+  }
 
   static String apiRequestFailed(int statusCode) =>
       '$apiRequestFailedPrefix $statusCode';
@@ -404,6 +410,9 @@ class AppStrings {
   static const String kaizengramButtonUploadImage = 'Upload Image';
   static const String kaizengramButtonChangeImage = 'Change Image';
   static const String kaizengramLabelCheckInComments = 'Check-In Comments';
+  static const String kaizengramNoImageThreadTitle = 'No Image Follow-Up';
+  static const String kaizengramNoImageThreadPlaceholder =
+      'No image attached to this thread.';
 
   // Kaizengram Empty & Error States
   static const String kaizengramMessageUnableLoadFeed =
