@@ -1,12 +1,12 @@
 import 'dart:async';
 
+import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/services/video_playback_service.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
@@ -40,25 +40,19 @@ class ComplianceVideoPlayer extends StatefulWidget {
 
 class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   static const _cacheMaxAge = Duration(days: 30);
-  static const _deferredPreparationDelay = Duration(milliseconds: 140);
-  static const _playbackStartWaitTimeout = Duration(milliseconds: 900);
 
+  CachedVideoPlayerPlus? _cachedPlayer;
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
   Object? _initializationError;
   int _initializationGeneration = 0;
   late bool _showThumbnailPreview;
-  Timer? _deferredPreparationTimer;
-  bool _isPreparingPlayback = false;
-  bool _isScrubbing = false;
-  double? _scrubPositionMillis;
 
   @override
   void initState() {
     super.initState();
     _showThumbnailPreview = _hasThumbnail;
-    _warmUpVideoCache();
-    _prepareControllerForCurrentState();
+    _setupController();
   }
 
   @override
@@ -67,92 +61,108 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     if (oldWidget.videoUrl != widget.videoUrl ||
         oldWidget.thumbnailLink != widget.thumbnailLink) {
       _showThumbnailPreview = _hasThumbnail;
-      _isScrubbing = false;
-      _scrubPositionMillis = null;
     }
 
     if (oldWidget.videoUrl != widget.videoUrl) {
       _disposeController();
-      _warmUpVideoCache();
-      _prepareControllerForCurrentState();
+      _setupController();
     }
   }
 
   @override
   void dispose() {
-    _deferredPreparationTimer?.cancel();
     _disposeController();
     super.dispose();
   }
 
-  void _warmUpVideoCache() {
-    unawaited(
-      VideoPlaybackService.warmUp(widget.videoUrl, cacheMaxAge: _cacheMaxAge),
-    );
-  }
-
   void _setupController() {
-    _deferredPreparationTimer?.cancel();
-    _initializationError = null;
-    _controller = null;
-    final generation = ++_initializationGeneration;
-    _initializeFuture = _initializeController(generation);
-  }
-
-  void _prepareControllerForCurrentState() {
-    _deferredPreparationTimer?.cancel();
-    if (_hasThumbnail) {
-      _deferredPreparationTimer = Timer(_deferredPreparationDelay, () {
-        if (!mounted || _initializeFuture != null) {
-          return;
-        }
-        _setupController();
-        setState(() {});
-      });
+    final resolvedVideoUrl = CustomFunctions.resolveNetworkUrl(widget.videoUrl);
+    if (resolvedVideoUrl == null) {
+      _initializationError = ArgumentError('Invalid video URL');
+      _initializeFuture = Future<void>.error(_initializationError!);
       return;
     }
 
-    _setupController();
+    _initializationError = null;
+    _controller = null;
+    final generation = ++_initializationGeneration;
+    _initializeFuture = _initializeWithCacheFallback(
+      Uri.parse(resolvedVideoUrl),
+      generation,
+    );
   }
 
-  Future<void> _initializeController(int generation) async {
-    VideoPlayerController? controller;
-
+  Future<void> _initializeWithCacheFallback(
+    Uri videoUri,
+    int generation,
+  ) async {
     try {
-      controller = await VideoPlaybackService.createInitializedController(
-        widget.videoUrl,
-        cacheMaxAge: _cacheMaxAge,
-      );
-      if (controller == null) {
-        throw ArgumentError('Invalid video URL');
-      }
-
-      if (!mounted || !_isActiveGeneration(generation)) {
-        await controller.dispose();
-        return;
-      }
-
-      await controller.setLooping(false);
-      await controller.setVolume(1);
-      if (!mounted || !_isActiveGeneration(generation)) {
-        await controller.dispose();
-        return;
-      }
-
-      setState(() {
-        _controller = controller;
-      });
+      await _initializeCachedPlayer(videoUri, generation);
     } catch (error) {
-      if (controller != null) {
-        await controller.dispose();
+      if (!_isActiveGeneration(generation)) {
+        return;
       }
-      if (mounted && _isActiveGeneration(generation)) {
-        setState(() {
-          _initializationError = error;
-        });
+
+      await _clearFailedCachedPlayer(videoUri, generation);
+      if (!_isActiveGeneration(generation)) {
+        return;
       }
-      rethrow;
+
+      try {
+        await _initializeCachedPlayer(videoUri, generation);
+      } catch (retryError) {
+        if (mounted && _isActiveGeneration(generation)) {
+          setState(() {
+            _initializationError = retryError;
+          });
+        }
+
+        rethrow;
+      }
     }
+  }
+
+  Future<void> _initializeCachedPlayer(Uri videoUri, int generation) async {
+    final cachedPlayer = CachedVideoPlayerPlus.networkUrl(
+      videoUri,
+      invalidateCacheIfOlderThan: _cacheMaxAge,
+    );
+    if (!_isActiveGeneration(generation)) {
+      unawaited(cachedPlayer.dispose());
+      return;
+    }
+
+    _cachedPlayer = cachedPlayer;
+
+    await cachedPlayer.initialize();
+    if (!mounted ||
+        !_isActiveGeneration(generation) ||
+        !identical(_cachedPlayer, cachedPlayer)) {
+      unawaited(cachedPlayer.dispose());
+      return;
+    }
+
+    final controller = cachedPlayer.controller;
+    controller.addListener(_handleVideoChanged);
+    setState(() {
+      _controller = controller;
+    });
+  }
+
+  Future<void> _clearFailedCachedPlayer(Uri videoUri, int generation) async {
+    if (!_isActiveGeneration(generation)) {
+      return;
+    }
+
+    final cachedPlayer = _cachedPlayer;
+    if (cachedPlayer != null) {
+      unawaited(cachedPlayer.dispose());
+      if (identical(_cachedPlayer, cachedPlayer)) {
+        _cachedPlayer = null;
+      }
+    }
+
+    await CachedVideoPlayerPlus.removeFileFromCache(videoUri);
   }
 
   bool _isActiveGeneration(int generation) {
@@ -161,18 +171,26 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
 
   void _disposeController() {
     _initializationGeneration++;
-    _deferredPreparationTimer?.cancel();
-    _deferredPreparationTimer = null;
 
+    final cachedPlayer = _cachedPlayer;
     final controller = _controller;
-    _controller = null;
+    if (controller != null) {
+      controller.removeListener(_handleVideoChanged);
+      _controller = null;
+    }
+
+    if (cachedPlayer != null) {
+      unawaited(cachedPlayer.dispose());
+      _cachedPlayer = null;
+    }
+
     _initializeFuture = null;
     _initializationError = null;
-    _isPreparingPlayback = false;
-    _isScrubbing = false;
-    _scrubPositionMillis = null;
-    if (controller != null) {
-      unawaited(controller.dispose());
+  }
+
+  void _handleVideoChanged() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -180,63 +198,26 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     return CustomFunctions.resolveImageUrl(widget.thumbnailLink) != null;
   }
 
-  Future<VideoPlayerController?> _ensureControllerReady() async {
-    final currentController = _controller;
-    if (currentController != null && currentController.value.isInitialized) {
-      return currentController;
-    }
-
-    try {
-      if (_initializeFuture == null || _initializationError != null) {
-        _setupController();
-        if (mounted) {
-          setState(() {});
-        }
-      }
-
-      final initializeFuture = _initializeFuture;
-      if (initializeFuture != null) {
-        await initializeFuture;
-      }
-
-      final controller = _controller;
-      if (controller == null || !controller.value.isInitialized) {
-        return null;
-      }
-
-      return controller;
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<void> _togglePlayback() async {
-    final activeController = _controller;
-    final wasReadyBeforeTap =
-        activeController != null && activeController.value.isInitialized;
-    if (!wasReadyBeforeTap && mounted) {
-      setState(() {
-        _isPreparingPlayback = true;
-      });
+    final controller = _controller;
+    if (controller == null) {
+      return;
     }
 
-    final controller = await _ensureControllerReady();
-    if (controller == null || !controller.value.isInitialized) {
-      if (mounted) {
-        setState(() {
-          _isPreparingPlayback = false;
-        });
+    if (!controller.value.isInitialized) {
+      try {
+        await _initializeFuture;
+      } catch (_) {
+        return;
       }
+    }
+
+    if (!controller.value.isInitialized) {
       return;
     }
 
     if (controller.value.isPlaying) {
       await controller.pause();
-      if (mounted) {
-        setState(() {
-          _isPreparingPlayback = false;
-        });
-      }
       return;
     }
 
@@ -247,22 +228,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     }
 
     await controller.play();
-    await _waitForPlaybackToStart(
-      controller,
-      initialPosition: controller.value.position < position
-          ? controller.value.position
-          : position,
-    );
-    if (_showThumbnailPreview && mounted) {
-      setState(() {
-        _showThumbnailPreview = false;
-      });
-    }
-    if (mounted) {
-      setState(() {
-        _isPreparingPlayback = false;
-      });
-    }
   }
 
   Future<void> _seekBy(Duration offset) async {
@@ -289,30 +254,22 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   }
 
   Future<void> _openFullScreenVideo() async {
-    final wasReadyBeforeOpen =
-        _controller != null && _controller!.value.isInitialized;
-    if (!wasReadyBeforeOpen && mounted) {
-      setState(() {
-        _isPreparingPlayback = true;
-      });
-    }
-
-    final controller = await _ensureControllerReady();
-    if (controller == null || !controller.value.isInitialized || !mounted) {
-      if (mounted) {
-        setState(() {
-          _isPreparingPlayback = false;
-        });
-      }
+    final controller = _controller;
+    if (controller == null) {
       return;
     }
-
-    final initialPosition = controller.value.position;
-    if (mounted) {
-      setState(() {
-        _isPreparingPlayback = false;
-      });
+    if (!controller.value.isInitialized) {
+      try {
+        await _initializeFuture;
+      } catch (_) {
+        return;
+      }
     }
+    if (!controller.value.isInitialized || !mounted) {
+      return;
+    }
+    final initialPosition = controller.value.position;
+
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => ComplianceFullScreenVideoView(
@@ -324,215 +281,147 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     );
   }
 
-  Future<void> _waitForPlaybackToStart(
-    VideoPlayerController controller, {
-    required Duration initialPosition,
-  }) async {
-    final value = controller.value;
-    if (_hasPlaybackStarted(value, initialPosition)) {
-      return;
-    }
-
-    final completer = Completer<void>();
-    late VoidCallback listener;
-    listener = () {
-      final nextValue = controller.value;
-      if (_hasPlaybackStarted(nextValue, initialPosition)) {
-        controller.removeListener(listener);
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
-      }
-    };
-
-    controller.addListener(listener);
-    try {
-      await completer.future.timeout(
-        _playbackStartWaitTimeout,
-        onTimeout: () {},
-      );
-    } finally {
-      controller.removeListener(listener);
-    }
-  }
-
-  bool _hasPlaybackStarted(VideoPlayerValue value, Duration initialPosition) {
-    return value.position > initialPosition ||
-        (value.isPlaying && !value.isBuffering);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-
     return FutureBuilder<void>(
       future: _initializeFuture,
       builder: (context, snapshot) {
-        if (controller == null) {
-          return _buildPlayerContent(
-            snapshot: snapshot,
-            controller: null,
-            controllerValue: null,
-          );
-        }
+        final controller = _controller;
+        final thumbnailUrl = CustomFunctions.resolveImageUrl(
+          widget.thumbnailLink,
+        );
+        final initializationError = _initializationError ?? snapshot.error;
+        final isReady =
+            snapshot.connectionState == ConnectionState.done &&
+            controller != null &&
+            controller.value.isInitialized &&
+            initializationError == null;
+        final showThumbnailPreview =
+            _showThumbnailPreview &&
+            thumbnailUrl != null &&
+            !(controller?.value.isPlaying ?? false) &&
+            initializationError == null;
 
-        return ValueListenableBuilder<VideoPlayerValue>(
-          valueListenable: controller,
-          builder: (context, controllerValue, child) {
-            return _buildPlayerContent(
-              snapshot: snapshot,
-              controller: controller,
-              controllerValue: controllerValue,
-            );
-          },
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: widget.height,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: widget.fillBounds
+                    ? SizedBox.expand(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 280),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: showThumbnailPreview
+                                  ? Image.network(
+                                      thumbnailUrl,
+                                      key: const ValueKey(
+                                        'video-thumbnail-preview',
+                                      ),
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return const ColoredBox(
+                                              key: ValueKey(
+                                                'video-loading-background',
+                                              ),
+                                              color: Colors.black,
+                                            );
+                                          },
+                                    )
+                                  : isReady
+                                  ? FittedBox(
+                                      key: ValueKey(controller),
+                                      fit: BoxFit.cover,
+                                      child: SizedBox(
+                                        width: controller.value.size.width,
+                                        height: controller.value.size.height,
+                                        child: VideoPlayer(controller),
+                                      ),
+                                    )
+                                  : const ColoredBox(
+                                      key: ValueKey('video-loading-background'),
+                                      color: Colors.black,
+                                    ),
+                            ),
+                            _buildOverlay(
+                              controller: controller,
+                              initializationError: initializationError,
+                              isReady: isReady,
+                              showThumbnailPreview: showThumbnailPreview,
+                            ),
+                          ],
+                        ),
+                      )
+                    : AspectRatio(
+                        aspectRatio: isReady
+                            ? controller.value.aspectRatio
+                            : 1.7,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 280),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: showThumbnailPreview
+                                  ? Image.network(
+                                      thumbnailUrl,
+                                      key: const ValueKey(
+                                        'video-thumbnail-preview',
+                                      ),
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return const ColoredBox(
+                                              key: ValueKey(
+                                                'video-loading-background',
+                                              ),
+                                              color: Colors.black,
+                                            );
+                                          },
+                                    )
+                                  : isReady
+                                  ? VideoPlayer(
+                                      controller,
+                                      key: ValueKey(controller),
+                                    )
+                                  : const ColoredBox(
+                                      key: ValueKey('video-loading-background'),
+                                      color: Colors.black,
+                                    ),
+                            ),
+                            _buildOverlay(
+                              controller: controller,
+                              initializationError: initializationError,
+                              isReady: isReady,
+                              showThumbnailPreview: showThumbnailPreview,
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildPlayerContent({
-    required AsyncSnapshot<void> snapshot,
-    required VideoPlayerController? controller,
-    required VideoPlayerValue? controllerValue,
-  }) {
-    final thumbnailUrl = CustomFunctions.resolveImageUrl(widget.thumbnailLink);
-    final initializationError = _initializationError ?? snapshot.error;
-    final isReady =
-        controller != null &&
-        controllerValue?.isInitialized == true &&
-        initializationError == null;
-    final isBuffering = isReady && (controllerValue?.isBuffering ?? false);
-    final showThumbnailPreview =
-        _showThumbnailPreview &&
-        thumbnailUrl != null &&
-        !(controllerValue?.isPlaying ?? false) &&
-        initializationError == null;
-    final isLoading =
-        _isPreparingPlayback ||
-        (!showThumbnailPreview &&
-            initializationError == null &&
-            !isReady &&
-            snapshot.connectionState == ConnectionState.waiting);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: widget.fillBounds
-                ? SizedBox.expand(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 280),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          child: showThumbnailPreview
-                              ? Image.network(
-                                  thumbnailUrl,
-                                  key: const ValueKey(
-                                    'video-thumbnail-preview',
-                                  ),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const ColoredBox(
-                                      key: ValueKey('video-loading-background'),
-                                      color: Colors.black,
-                                    );
-                                  },
-                                )
-                              : isReady
-                              ? FittedBox(
-                                  key: ValueKey(controller),
-                                  fit: BoxFit.cover,
-                                  child: SizedBox(
-                                    width: controllerValue!.size.width,
-                                    height: controllerValue.size.height,
-                                    child: VideoPlayer(controller),
-                                  ),
-                                )
-                              : const ColoredBox(
-                                  key: ValueKey('video-loading-background'),
-                                  color: Colors.black,
-                                ),
-                        ),
-                        _buildOverlay(
-                          controller: controller,
-                          controllerValue: controllerValue,
-                          initializationError: initializationError,
-                          isReady: isReady,
-                          isLoading: isLoading,
-                          isBuffering: isBuffering,
-                          showThumbnailPreview: showThumbnailPreview,
-                        ),
-                      ],
-                    ),
-                  )
-                : AspectRatio(
-                    aspectRatio: isReady ? controllerValue!.aspectRatio : 1.7,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 280),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          child: showThumbnailPreview
-                              ? Image.network(
-                                  thumbnailUrl,
-                                  key: const ValueKey(
-                                    'video-thumbnail-preview',
-                                  ),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const ColoredBox(
-                                      key: ValueKey('video-loading-background'),
-                                      color: Colors.black,
-                                    );
-                                  },
-                                )
-                              : isReady
-                              ? VideoPlayer(
-                                  controller,
-                                  key: ValueKey(controller),
-                                )
-                              : const ColoredBox(
-                                  key: ValueKey('video-loading-background'),
-                                  color: Colors.black,
-                                ),
-                        ),
-                        _buildOverlay(
-                          controller: controller,
-                          controllerValue: controllerValue,
-                          initializationError: initializationError,
-                          isReady: isReady,
-                          isLoading: isLoading,
-                          isBuffering: isBuffering,
-                          showThumbnailPreview: showThumbnailPreview,
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildOverlay({
     required VideoPlayerController? controller,
-    required VideoPlayerValue? controllerValue,
     required Object? initializationError,
     required bool isReady,
-    required bool isLoading,
-    required bool isBuffering,
     required bool showThumbnailPreview,
   }) {
     return Stack(
@@ -561,14 +450,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
               ),
             ),
           ),
-        if (isReady && isBuffering && !showThumbnailPreview)
-          Center(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: FastCircularProgressIndicator(),
-            ),
-          ),
         Positioned(
           top: 10,
           right: 10,
@@ -590,6 +471,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
             ),
           ),
         ),
+
         Positioned(
           left: 20,
           right: 20,
@@ -606,9 +488,21 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
               ),
               const SizedBox(width: 8),
               _PlayButton(
-                isLoading: isLoading,
-                isPlaying: controllerValue?.isPlaying ?? false,
-                onTap: initializationError != null ? null : _togglePlayback,
+                isLoading:
+                    !showThumbnailPreview &&
+                    initializationError == null &&
+                    !isReady,
+                isPlaying: controller?.value.isPlaying ?? false,
+                onTap: initializationError != null
+                    ? null
+                    : () async {
+                        if (_showThumbnailPreview) {
+                          setState(() {
+                            _showThumbnailPreview = false;
+                          });
+                        }
+                        await _togglePlayback();
+                      },
               ),
               const SizedBox(width: 8),
               _CircleIconButton(
@@ -620,13 +514,15 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
             ],
           ),
         ),
+
         if (widget.showSeekBar)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildSeekBar(controller, controllerValue),
+            child: _buildSeekBar(controller),
           ),
+
         if (widget.showTitle)
           Positioned(
             left: 20,
@@ -638,22 +534,20 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
               fontWeight: FontWeight.w700,
             ),
           ),
+
         if (widget.showDuration)
           Positioned(
             right: 23,
             bottom: 35,
-            child: _buildDurationRow(controllerValue),
+            child: _buildDurationRow(controller),
           ),
       ],
     );
   }
 
-  Widget _buildSeekBar(
-    VideoPlayerController? controller,
-    VideoPlayerValue? controllerValue,
-  ) {
-    final duration = controllerValue?.duration ?? Duration.zero;
-    final position = _resolvedDisplayedPosition(controllerValue);
+  Widget _buildSeekBar(VideoPlayerController? controller) {
+    final duration = controller?.value.duration ?? Duration.zero;
+    final position = controller?.value.position ?? Duration.zero;
     final maxMillis = duration.inMilliseconds <= 0
         ? 1.0
         : duration.inMilliseconds.toDouble();
@@ -668,53 +562,24 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
         thumbColor: AppColors.textPrimary,
         overlayColor: AppColors.secondaryColor.withValues(alpha: 0.18),
         trackHeight: 3,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 4.0),
       ),
       child: Slider(
         value: currentMillis,
         min: 0,
         max: maxMillis,
-        onChangeStart:
-            controller == null || controllerValue?.isInitialized != true
+        onChanged: controller == null || !controller.value.isInitialized
             ? null
             : (value) {
-                setState(() {
-                  _isScrubbing = true;
-                  _scrubPositionMillis = value;
-                });
-              },
-        onChanged: controller == null || controllerValue?.isInitialized != true
-            ? null
-            : (value) {
-                setState(() {
-                  _scrubPositionMillis = value;
-                });
-              },
-        onChangeEnd:
-            controller == null || controllerValue?.isInitialized != true
-            ? null
-            : (value) async {
-                setState(() {
-                  _isScrubbing = false;
-                  _scrubPositionMillis = null;
-                });
-                await controller.seekTo(Duration(milliseconds: value.round()));
+                controller.seekTo(Duration(milliseconds: value.round()));
               },
       ),
     );
   }
 
-  Duration _resolvedDisplayedPosition(VideoPlayerValue? controllerValue) {
-    if (_isScrubbing && _scrubPositionMillis != null) {
-      return Duration(milliseconds: _scrubPositionMillis!.round());
-    }
-
-    return controllerValue?.position ?? Duration.zero;
-  }
-
-  Widget _buildDurationRow(VideoPlayerValue? controllerValue) {
-    final position = _resolvedDisplayedPosition(controllerValue);
-    final duration = controllerValue?.duration ?? Duration.zero;
+  Widget _buildDurationRow(VideoPlayerController? controller) {
+    final position = controller?.value.position ?? Duration.zero;
+    final duration = controller?.value.duration ?? Duration.zero;
 
     return Row(
       children: [
