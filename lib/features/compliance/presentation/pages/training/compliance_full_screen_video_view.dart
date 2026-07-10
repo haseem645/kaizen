@@ -20,14 +20,18 @@ class ComplianceFullScreenVideoView extends StatefulWidget {
   final Duration initialPosition;
 
   @override
-  State<ComplianceFullScreenVideoView> createState() => _ComplianceFullScreenVideoViewState();
+  State<ComplianceFullScreenVideoView> createState() =>
+      _ComplianceFullScreenVideoViewState();
 }
 
-class _ComplianceFullScreenVideoViewState extends State<ComplianceFullScreenVideoView> {
+class _ComplianceFullScreenVideoViewState
+    extends State<ComplianceFullScreenVideoView> {
+  bool _isScrubbing = false;
+  double? _scrubPositionMillis;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_handleVideoChanged);
     _syncInitialPosition();
   }
 
@@ -35,16 +39,10 @@ class _ComplianceFullScreenVideoViewState extends State<ComplianceFullScreenVide
   void didUpdateWidget(covariant ComplianceFullScreenVideoView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
-      oldWidget.controller.removeListener(_handleVideoChanged);
-      widget.controller.addListener(_handleVideoChanged);
+      _isScrubbing = false;
+      _scrubPositionMillis = null;
       _syncInitialPosition();
     }
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_handleVideoChanged);
-    super.dispose();
   }
 
   Future<void> _syncInitialPosition() async {
@@ -59,13 +57,9 @@ class _ComplianceFullScreenVideoViewState extends State<ComplianceFullScreenVide
       return;
     }
 
-    await controller.seekTo(initialPosition >= duration ? duration : initialPosition);
-  }
-
-  void _handleVideoChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    await controller.seekTo(
+      initialPosition >= duration ? duration : initialPosition,
+    );
   }
 
   Future<void> _togglePlayback() async {
@@ -92,25 +86,37 @@ class _ComplianceFullScreenVideoViewState extends State<ComplianceFullScreenVide
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Builder(
-          builder: (context) {
+        child: ValueListenableBuilder<VideoPlayerValue>(
+          valueListenable: widget.controller,
+          child: VideoPlayer(widget.controller),
+          builder: (context, controllerValue, child) {
             final controller = widget.controller;
-            final isReady = controller.value.isInitialized;
+            final isReady = controllerValue.isInitialized;
 
             return Stack(
               children: [
                 Center(
                   child: isReady
                       ? AspectRatio(
-                          aspectRatio: controller.value.aspectRatio,
-                          child: VideoPlayer(controller),
+                          aspectRatio: controllerValue.aspectRatio,
+                          child: child ?? VideoPlayer(controller),
                         )
                       : FastCircularProgressIndicator(width: 32, height: 32),
                 ),
+                if (isReady && controllerValue.isBuffering)
+                  Center(
+                    child: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: FastCircularProgressIndicator(),
+                    ),
+                  ),
                 Positioned(
                   left: 12,
                   top: 12,
-                  child: AppBackButton(onPressed: () => Navigator.of(context).pop()),
+                  child: AppBackButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
                 Positioned(
                   left: 24,
@@ -127,9 +133,31 @@ class _ComplianceFullScreenVideoViewState extends State<ComplianceFullScreenVide
                       ),
                       const SizedBox(height: 8),
                       _FullScreenVideoControls(
-                        controller: controller,
+                        controllerValue: controllerValue,
                         isReady: isReady,
+                        isScrubbing: _isScrubbing,
+                        scrubPositionMillis: _scrubPositionMillis,
                         onTogglePlayback: _togglePlayback,
+                        onScrubStart: (value) {
+                          setState(() {
+                            _isScrubbing = true;
+                            _scrubPositionMillis = value;
+                          });
+                        },
+                        onScrubChanged: (value) {
+                          setState(() {
+                            _scrubPositionMillis = value;
+                          });
+                        },
+                        onScrubEnd: (value) async {
+                          setState(() {
+                            _isScrubbing = false;
+                            _scrubPositionMillis = null;
+                          });
+                          await controller.seekTo(
+                            Duration(milliseconds: value.round()),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -145,28 +173,46 @@ class _ComplianceFullScreenVideoViewState extends State<ComplianceFullScreenVide
 
 class _FullScreenVideoControls extends StatelessWidget {
   const _FullScreenVideoControls({
-    required this.controller,
+    required this.controllerValue,
     required this.isReady,
+    required this.isScrubbing,
+    required this.scrubPositionMillis,
     required this.onTogglePlayback,
+    required this.onScrubStart,
+    required this.onScrubChanged,
+    required this.onScrubEnd,
   });
 
-  final VideoPlayerController? controller;
+  final VideoPlayerValue controllerValue;
   final bool isReady;
+  final bool isScrubbing;
+  final double? scrubPositionMillis;
   final VoidCallback onTogglePlayback;
+  final ValueChanged<double> onScrubStart;
+  final ValueChanged<double> onScrubChanged;
+  final ValueChanged<double> onScrubEnd;
 
   @override
   Widget build(BuildContext context) {
-    final position = controller?.value.position ?? Duration.zero;
-    final duration = controller?.value.duration ?? Duration.zero;
-    final maxMillis = duration.inMilliseconds <= 0 ? 1.0 : duration.inMilliseconds.toDouble();
-    final currentMillis = position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
+    final duration = controllerValue.duration;
+    final position = isScrubbing && scrubPositionMillis != null
+        ? Duration(milliseconds: scrubPositionMillis!.round())
+        : controllerValue.position;
+    final maxMillis = duration.inMilliseconds <= 0
+        ? 1.0
+        : duration.inMilliseconds.toDouble();
+    final currentMillis = position.inMilliseconds
+        .clamp(0, duration.inMilliseconds)
+        .toDouble();
 
     return Row(
       children: [
         IconButton(
           onPressed: isReady ? onTogglePlayback : null,
           icon: Icon(
-            controller?.value.isPlaying == true ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            controllerValue.isPlaying
+                ? Icons.pause_rounded
+                : Icons.play_arrow_rounded,
             color: AppColors.textPrimary,
             size: 34,
           ),
@@ -185,11 +231,9 @@ class _FullScreenVideoControls extends StatelessWidget {
               value: currentMillis,
               min: 0,
               max: maxMillis,
-              onChanged: !isReady || controller == null
-                  ? null
-                  : (value) {
-                      controller!.seekTo(Duration(milliseconds: value.round()));
-                    },
+              onChangeStart: !isReady ? null : onScrubStart,
+              onChanged: !isReady ? null : onScrubChanged,
+              onChangeEnd: !isReady ? null : onScrubEnd,
             ),
           ),
         ),
