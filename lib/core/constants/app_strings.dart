@@ -147,6 +147,8 @@ class AppStrings {
   static const String auditNoMembersFound = 'No audit team members available.';
   static const String auditFiltersTitle = 'Filters';
   static const String auditSelectYearQuarter = 'Select Year & Quarter';
+  static const String auditYear = 'Year';
+  static const String auditQuarter = 'Quarter';
   static const String auditSeatProfile = 'Seat Profile';
   static const String auditApplyFilters = 'Apply Filters';
   static const String auditSearchSeatProfile = 'Search Seat Profile';
@@ -180,11 +182,18 @@ class AppStrings {
   static const String complianceNoDocumentsFound = 'No Documents Found';
   static const String trainingVideoTab = 'Video';
   static const String trainingDocumentTab = 'Document';
+  static const String trainingSopTab = 'SOP';
   static const String trainingQuizTab = 'Quiz';
   static const String trainingProgressLabel = 'Progress';
   static const String trainingTrackModules = 'Track Modules';
   static const String trainingTakeQuiz = 'Take Quiz';
   static const String trainingSubmitQuiz = 'Submit Quiz';
+  static const String trainingNoModulesAvailable =
+      'No training modules available.';
+  static const String trainingNoVideoAvailable = 'No video available.';
+  static const String trainingNoSopAvailable = 'No SOP available.';
+  static const String trainingNoTranscriptAvailable =
+      'No transcript available.';
   static const String trainingWelcomeQuizTitle = 'Welcome To Quiz';
   static const String trainingPassingScore = 'Passing: above: ';
   static const String start = 'Start';

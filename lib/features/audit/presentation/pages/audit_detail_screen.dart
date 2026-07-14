@@ -24,9 +24,16 @@ import '../widgets/upgrade_plan_dialog.dart';
 import 'audit_single_description.dart';
 
 class AuditDetailsScreen extends StatelessWidget {
-  const AuditDetailsScreen({super.key, required this.profileJobId});
+  const AuditDetailsScreen({
+    super.key,
+    required this.profileJobId,
+    this.year,
+    this.quarter,
+  });
 
   final String profileJobId;
+  final int? year;
+  final int? quarter;
 
   @override
   Widget build(BuildContext context) {
@@ -65,17 +72,27 @@ class AuditDetailsScreen extends StatelessWidget {
             null,
             null,
             context.read<AuditRepositoryImpl>(),
-          )..initializeDetails(profileJobId),
+          )..initializeDetails(profileJobId, year: year, quarter: quarter),
         ),
       ],
-      child: _AuditDetailsScreenView(profileJobId: profileJobId),
+      child: _AuditDetailsScreenView(
+        profileJobId: profileJobId,
+        year: year,
+        quarter: quarter,
+      ),
     );
   }
 }
 
 class _AuditDetailsScreenView extends StatelessWidget {
-  const _AuditDetailsScreenView({required this.profileJobId});
+  const _AuditDetailsScreenView({
+    required this.profileJobId,
+    this.year,
+    this.quarter,
+  });
   final String profileJobId;
+  final int? year;
+  final int? quarter;
 
   @override
   Widget build(BuildContext context) {
@@ -397,19 +414,6 @@ class _AuditDetailsScreenView extends StatelessWidget {
     );
   }
 
-  Future<void> _openAuditReport(BuildContext context, AuditDetails details) {
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
-    return AppRouter.pushNamed(
-      context,
-      AppRouter.auditReport,
-      arguments: AuditReportRouteArgs(
-        profileJobId: details.profileJob,
-        initialYear: currentYearQuarter.year,
-        initialQuarter: currentYearQuarter.quarter,
-      ),
-    );
-  }
-
   Widget _buildGraphIcon(String iconName) {
     return Container(
       padding: const EdgeInsets.all(5),
@@ -583,6 +587,8 @@ class _AuditDetailsScreenView extends StatelessWidget {
         quarterlyAuditId: details.uuid,
         date: date,
         lastAuditDate: details.lastAuditDate,
+        year: year,
+        quarter: quarter,
       ),
     );
 
@@ -733,6 +739,8 @@ class _AuditDetailsScreenView extends StatelessWidget {
   ) async {
     await controller.initializeDetails(
       profileJobId,
+      year: year,
+      quarter: quarter,
       clearEvaluationCharts: !controller.showGraph,
     );
 

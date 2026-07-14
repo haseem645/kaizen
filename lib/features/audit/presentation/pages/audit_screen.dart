@@ -27,12 +27,16 @@ class AuditScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
+        Provider<AuditRemoteDataSource>(
+          create: (_) => createAuditRemoteDataSource(),
+        ),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) =>
+              createGetAuditOverviewUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
           create: (context) => AuditController(
@@ -80,7 +84,8 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
   }
 
   void _handleScroll() {
-    if (!_scrollController.hasClients || _scrollController.position.extentAfter > 360) {
+    if (!_scrollController.hasClients ||
+        _scrollController.position.extentAfter > 360) {
       return;
     }
 
@@ -111,7 +116,9 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
       child: SafeArea(
         top: false,
         bottom: false,
-        child: state.isLoading ? FastCircularProgressIndicator() : _buildContent(controller, state),
+        child: state.isLoading
+            ? FastCircularProgressIndicator()
+            : _buildContent(controller, state),
       ),
     );
   }
@@ -147,7 +154,8 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
           onChanged: controller.updateSearchQuery,
           onFilterTap: () => _openFilterSheet(context, controller, state),
         ),
-        if (state.selectedYearQuarter != null || state.selectedSeatProfile != null) ...[
+        if (state.selectedYearQuarter != null ||
+            state.selectedSeatProfile != null) ...[
           const SizedBox(height: 14),
           _buildAppliedFilterTags(controller, state),
         ],
@@ -164,7 +172,11 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
                   context,
                   AppRouter.auditDetails,
                   arguments: AuditDetailsRouteArgs(
-                    profileJobId: member is AuditProfile ? member.profileJob : '',
+                    profileJobId: member is AuditProfile
+                        ? member.profileJob
+                        : '',
+                    year: controller.selectedAuditYear,
+                    quarter: controller.selectedAuditQuarter,
                   ),
                 );
               },
@@ -190,11 +202,13 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: AuditFilterSheet(
           yearQuarterOptions: controller.yearQuarterOptions,
           seatProfileOptions: controller.seatProfileOptions,
-          initialYearQuarter: state.selectedYearQuarter,
+          initialYearQuarter: controller.selectedAuditYearQuarterLabel,
           initialSeatProfile: state.selectedSeatProfile,
         ),
       ),
@@ -204,7 +218,10 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
       return;
     }
 
-    controller.applyFilters(yearQuarter: result.yearQuarter, seatProfile: result.seatProfile);
+    await controller.applyFilters(
+      yearQuarter: result.yearQuarter,
+      seatProfile: result.seatProfile,
+    );
   }
 
   Widget _buildAppliedFilterTags(AuditController controller, AuditState state) {
@@ -215,7 +232,9 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
         if (state.selectedYearQuarter != null)
           _buildFilterTag(
             label: state.selectedYearQuarter!,
-            onRemove: controller.clearYearQuarterFilter,
+            onRemove: () {
+              controller.clearYearQuarterFilter();
+            },
           ),
         if (state.selectedSeatProfile != null)
           _buildFilterTag(
@@ -226,7 +245,10 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
     );
   }
 
-  Widget _buildFilterTag({required String label, required VoidCallback onRemove}) {
+  Widget _buildFilterTag({
+    required String label,
+    required VoidCallback onRemove,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -239,7 +261,11 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
           InkWell(
             onTap: onRemove,
             borderRadius: BorderRadius.circular(999),
-            child: Icon(Icons.close_outlined, size: 14, color: AppColors.purple2),
+            child: Icon(
+              Icons.close_outlined,
+              size: 14,
+              color: AppColors.purple2,
+            ),
           ),
           const SizedBox(width: 8),
           AppTextView.body3(
@@ -254,9 +280,13 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
   }
 
   Widget _buildEmptyAuditState(AuditMemberStatus status) {
-    final statusLabel = switch ((context.read<AuditController>().state.isOwner, status)) {
+    final statusLabel = switch ((
+      context.read<AuditController>().state.isOwner,
+      status,
+    )) {
       (true, AuditMemberStatus.active) => AppStrings.auditActive.toLowerCase(),
-      (true, AuditMemberStatus.deactivated) => AppStrings.auditDeactivated.toLowerCase(),
+      (true, AuditMemberStatus.deactivated) =>
+        AppStrings.auditDeactivated.toLowerCase(),
       (false, AuditMemberStatus.active) => 'team members',
       (false, AuditMemberStatus.deactivated) => 'my check-ins',
     };

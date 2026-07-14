@@ -80,17 +80,17 @@ class _AuditFilterSheetState extends State<AuditFilterSheet> {
                 ),
                 const SizedBox(height: 22),
                 const AppDotDivider(),
-                const SizedBox(height: 22),
-                _FilterSelectionTile(
-                  title: AppStrings.auditSelectYearQuarter,
-                  value: selection.yearQuarter,
-                  onTap: () => _openYearQuarterSheet(context),
-                ),
                 const SizedBox(height: 28),
                 _FilterSelectionTile(
                   title: AppStrings.auditSeatProfile,
                   value: selection.seatProfile,
                   onTap: () => _openSeatProfileSheet(context),
+                ),
+                const SizedBox(height: 28),
+                _FilterSelectionTile(
+                  title: AppStrings.auditSelectYearQuarter,
+                  value: selection.yearQuarter,
+                  onTap: () => _openYearQuarterSheet(context),
                 ),
                 const SizedBox(height: 26),
                 const AppDotDivider(),
@@ -106,27 +106,6 @@ class _AuditFilterSheetState extends State<AuditFilterSheet> {
           },
         ),
       ),
-    );
-  }
-
-  Future<void> _openYearQuarterSheet(BuildContext context) async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => AuditYearQuarterFilterSheet(
-        options: widget.yearQuarterOptions,
-        initialValue: _selection.value.yearQuarter,
-      ),
-    );
-
-    if (result == null || !mounted) {
-      return;
-    }
-
-    _selection.value = AuditFilterResult(
-      yearQuarter: result,
-      seatProfile: _selection.value.seatProfile,
     );
   }
 
@@ -148,6 +127,27 @@ class _AuditFilterSheetState extends State<AuditFilterSheet> {
     _selection.value = AuditFilterResult(
       yearQuarter: _selection.value.yearQuarter,
       seatProfile: result,
+    );
+  }
+
+  Future<void> _openYearQuarterSheet(BuildContext context) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => AuditYearQuarterFilterSheet(
+        options: widget.yearQuarterOptions,
+        initialValue: _selection.value.yearQuarter,
+      ),
+    );
+
+    if (result == null || !mounted) {
+      return;
+    }
+
+    _selection.value = AuditFilterResult(
+      yearQuarter: result,
+      seatProfile: _selection.value.seatProfile,
     );
   }
 }

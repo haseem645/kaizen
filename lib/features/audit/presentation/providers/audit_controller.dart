@@ -61,6 +61,23 @@ class AuditController extends ChangeNotifier {
 
   AuditState get state => _state;
 
+  int get selectedAuditYear =>
+      _state.selectedAuditYear ?? CustomFunctions.currentYearQuarter().year;
+
+  int get selectedAuditQuarter =>
+      _state.selectedAuditQuarter ??
+      CustomFunctions.currentYearQuarter().quarter;
+
+  String get selectedAuditYearQuarterLabel =>
+      '$selectedAuditYear - Q$selectedAuditQuarter';
+
+  List<int> get auditYearOptions {
+    final currentYear = CustomFunctions.currentYearQuarter().year;
+    return <int>[currentYear - 1, currentYear, currentYear + 1];
+  }
+
+  List<int> get auditQuarterOptions => const <int>[1, 2, 3, 4];
+
   bool isFavoriteUpdating(String profileJobId) {
     return _state.favoriteUpdatingProfileJobs.contains(profileJobId);
   }
@@ -80,28 +97,26 @@ class AuditController extends ChangeNotifier {
               query.isEmpty ||
               member.name.toLowerCase().contains(query) ||
               member.roleTitle.toLowerCase().contains(query);
-          final matchesYearQuarter =
-              _state.selectedYearQuarter == null ||
-              member.yearQuarter == _state.selectedYearQuarter;
           final matchesSeatProfile =
               _state.selectedSeatProfile == null ||
               member.seatProfile == _state.selectedSeatProfile;
-          return matchesStatus &&
-              matchesQuery &&
-              matchesYearQuarter &&
-              matchesSeatProfile;
+          return matchesStatus && matchesQuery && matchesSeatProfile;
         })
         .toList(growable: false);
   }
 
   List<String> get yearQuarterOptions {
-    final members = _state.mainList?.results ?? const <AuditProfile>[];
-    final uniqueOptions = members
-        .map((member) => member.yearQuarter)
-        .toSet()
+    final years = [...auditYearOptions]
+      ..sort((left, right) => right.compareTo(left));
+    return years
+        .expand(
+          (year) => List<String>.generate(
+            4,
+            (index) => '$year - Q${4 - index}',
+            growable: false,
+          ),
+        )
         .toList(growable: false);
-    uniqueOptions.sort();
-    return uniqueOptions.reversed.toList(growable: false);
   }
 
   List<String> get seatProfileOptions {
@@ -129,6 +144,7 @@ class AuditController extends ChangeNotifier {
     final selectedStatus = isOwner
         ? AuditMemberStatus.active
         : AuditMemberStatus.deactivated;
+    final currentYearQuarter = CustomFunctions.currentYearQuarter();
 
     _activeMainListCache = null;
     _myCheckInMainListCache = null;
@@ -137,8 +153,11 @@ class AuditController extends ChangeNotifier {
       isLoading: true,
       isOwner: isOwner,
       selectedStatus: selectedStatus,
+      selectedAuditYear: currentYearQuarter.year,
+      selectedAuditQuarter: currentYearQuarter.quarter,
       isLoadingMore: false,
       clearMainList: true,
+      clearSelectedYearQuarter: true,
     );
     notifyListeners();
 
@@ -182,14 +201,28 @@ class AuditController extends ChangeNotifier {
 
   Future<void> initializeDetails(
     String profileJobId, {
+    int? year,
+    int? quarter,
     bool clearEvaluationCharts = true,
   }) async {
     final user = await AppPreference.getUser();
     final isOwner = _hasTeamMemberTabsAccess(user);
+    final currentYearQuarter = CustomFunctions.currentYearQuarter();
+    final resolvedYear = year ?? currentYearQuarter.year;
+    final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
+    final selectedYearQuarterLabel =
+        resolvedYear == currentYearQuarter.year &&
+            resolvedQuarter == currentYearQuarter.quarter
+        ? null
+        : '$resolvedYear - Q$resolvedQuarter';
 
     _state = _state.copyWith(
       isLoading: true,
       isOwner: isOwner,
+      selectedAuditYear: resolvedYear,
+      selectedAuditQuarter: resolvedQuarter,
+      selectedYearQuarter: selectedYearQuarterLabel,
+      clearSelectedYearQuarter: selectedYearQuarterLabel == null,
       clearDetails: true,
       clearEvaluationCharts: clearEvaluationCharts,
     );
@@ -202,11 +235,10 @@ class AuditController extends ChangeNotifier {
       return;
     }
 
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
     final details = await getAuditDetailsUseCase(
       profileJobId: profileJobId,
-      year: currentYearQuarter.year,
-      quarter: currentYearQuarter.quarter,
+      year: resolvedYear,
+      quarter: resolvedQuarter,
     );
     _state = _state.copyWith(isLoading: false, details: details);
     notifyListeners();
@@ -290,13 +322,27 @@ class AuditController extends ChangeNotifier {
   Future<void> initializeSingleAuditDetails({
     required String quarterlyAuditId,
     required String date,
+    int? year,
+    int? quarter,
   }) async {
     final user = await AppPreference.getUser();
     final isOwner = _hasTeamMemberTabsAccess(user);
+    final currentYearQuarter = CustomFunctions.currentYearQuarter();
+    final resolvedYear = year ?? currentYearQuarter.year;
+    final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
+    final selectedYearQuarterLabel =
+        resolvedYear == currentYearQuarter.year &&
+            resolvedQuarter == currentYearQuarter.quarter
+        ? null
+        : '$resolvedYear - Q$resolvedQuarter';
 
     _state = _state.copyWith(
       isLoading: true,
       isOwner: isOwner,
+      selectedAuditYear: resolvedYear,
+      selectedAuditQuarter: resolvedQuarter,
+      selectedYearQuarter: selectedYearQuarterLabel,
+      clearSelectedYearQuarter: selectedYearQuarterLabel == null,
       clearMainList: true,
       clearQuarterlyAudit: true,
     );
@@ -314,6 +360,8 @@ class AuditController extends ChangeNotifier {
     final teamMembersFuture = _getAuditTeamMembersUseCase?.call(
       page: 1,
       pageSize: 10,
+      year: resolvedYear,
+      quarter: resolvedQuarter,
     );
     final quarterlyAudit = await getQuarterlyAuditUseCase(
       quarterlyAuditId: quarterlyAuditId,
@@ -599,6 +647,8 @@ class AuditController extends ChangeNotifier {
       final refreshedMembers = await getAuditTeamMembersUseCase(
         page: 1,
         pageSize: _resolvedTeamMembersPageSize(),
+        year: selectedAuditYear,
+        quarter: selectedAuditQuarter,
       );
       final sortedMembers =
           _sortedMainList(refreshedMembers) ?? refreshedMembers;
@@ -669,32 +719,97 @@ class AuditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void applyFilters({String? yearQuarter, String? seatProfile}) {
-    final shouldClearYearQuarter = yearQuarter == null || yearQuarter.isEmpty;
-    final shouldClearSeatProfile = seatProfile == null || seatProfile.isEmpty;
-    final resolvedYearQuarter = shouldClearYearQuarter ? null : yearQuarter;
-    final resolvedSeatProfile = shouldClearSeatProfile ? null : seatProfile;
+  Future<void> selectAuditYear(int year) async {
+    await _reloadAuditPeriod(year: year);
+  }
 
-    if (_state.selectedYearQuarter == resolvedYearQuarter &&
-        _state.selectedSeatProfile == resolvedSeatProfile) {
+  Future<void> selectAuditQuarter(int quarter) async {
+    await _reloadAuditPeriod(quarter: quarter);
+  }
+
+  Future<void> applyFilters({String? yearQuarter, String? seatProfile}) async {
+    final shouldClearSeatProfile = seatProfile == null || seatProfile.isEmpty;
+    final resolvedSeatProfile = shouldClearSeatProfile ? null : seatProfile;
+    final resolvedYearQuarter = (yearQuarter == null || yearQuarter.isEmpty)
+        ? selectedAuditYearQuarterLabel
+        : yearQuarter;
+    final parsedYearQuarter = _parseYearQuarterLabel(resolvedYearQuarter);
+    final currentYearQuarter = CustomFunctions.currentYearQuarter();
+    final shouldClearYearQuarterChip =
+        parsedYearQuarter == null ||
+        (parsedYearQuarter.year == currentYearQuarter.year &&
+            parsedYearQuarter.quarter == currentYearQuarter.quarter);
+    final resolvedYearQuarterChip = shouldClearYearQuarterChip
+        ? null
+        : resolvedYearQuarter;
+    final isPeriodChanged =
+        parsedYearQuarter != null &&
+        (parsedYearQuarter.year != selectedAuditYear ||
+            parsedYearQuarter.quarter != selectedAuditQuarter);
+
+    if (_state.selectedSeatProfile == resolvedSeatProfile &&
+        _state.selectedYearQuarter == resolvedYearQuarterChip &&
+        !isPeriodChanged) {
+      return;
+    }
+
+    if (isPeriodChanged) {
+      _activeMainListCache = null;
+      _myCheckInMainListCache = null;
+
+      _state = _state.copyWith(
+        selectedSeatProfile: resolvedSeatProfile,
+        clearSelectedSeatProfile: shouldClearSeatProfile,
+        selectedYearQuarter: resolvedYearQuarterChip,
+        clearSelectedYearQuarter: shouldClearYearQuarterChip,
+        selectedAuditYear: parsedYearQuarter.year,
+        selectedAuditQuarter: parsedYearQuarter.quarter,
+        isLoading: true,
+        isLoadingMore: false,
+        clearMainList: true,
+      );
+      notifyListeners();
+
+      final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
+      _cacheList(_state.selectedStatus, mainList);
+      _state = _state.copyWith(isLoading: false, mainList: mainList);
+      notifyListeners();
       return;
     }
 
     _state = _state.copyWith(
-      selectedYearQuarter: resolvedYearQuarter,
       selectedSeatProfile: resolvedSeatProfile,
-      clearSelectedYearQuarter: shouldClearYearQuarter,
       clearSelectedSeatProfile: shouldClearSeatProfile,
+      selectedYearQuarter: resolvedYearQuarterChip,
+      clearSelectedYearQuarter: shouldClearYearQuarterChip,
     );
     notifyListeners();
   }
 
-  void clearYearQuarterFilter() {
-    if (_state.selectedYearQuarter == null) {
+  Future<void> clearYearQuarterFilter() async {
+    final currentYearQuarter = CustomFunctions.currentYearQuarter();
+    if (_state.selectedYearQuarter == null &&
+        selectedAuditYear == currentYearQuarter.year &&
+        selectedAuditQuarter == currentYearQuarter.quarter) {
       return;
     }
 
-    _state = _state.copyWith(clearSelectedYearQuarter: true);
+    _activeMainListCache = null;
+    _myCheckInMainListCache = null;
+
+    _state = _state.copyWith(
+      selectedAuditYear: currentYearQuarter.year,
+      selectedAuditQuarter: currentYearQuarter.quarter,
+      isLoading: true,
+      isLoadingMore: false,
+      clearMainList: true,
+      clearSelectedYearQuarter: true,
+    );
+    notifyListeners();
+
+    final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
+    _cacheList(_state.selectedStatus, mainList);
+    _state = _state.copyWith(isLoading: false, mainList: mainList);
     notifyListeners();
   }
 
@@ -1587,12 +1702,11 @@ class AuditController extends ChangeNotifier {
     required int page,
     required int pageSize,
   }) {
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
     return _getAuditOverviewUseCase(
       page: page,
       pageSize: pageSize,
-      year: currentYearQuarter.year,
-      quarter: currentYearQuarter.quarter,
+      year: selectedAuditYear,
+      quarter: selectedAuditQuarter,
     );
   }
 
@@ -1605,7 +1719,39 @@ class AuditController extends ChangeNotifier {
       return _loadTeamMembers(page: page, pageSize: pageSize);
     }
 
-    return auditRepository.getMyAudits(page: page, pageSize: pageSize);
+    return auditRepository.getMyAudits(
+      page: page,
+      pageSize: pageSize,
+      year: selectedAuditYear,
+      quarter: selectedAuditQuarter,
+    );
+  }
+
+  Future<void> _reloadAuditPeriod({int? year, int? quarter}) async {
+    final resolvedYear = year ?? selectedAuditYear;
+    final resolvedQuarter = quarter ?? selectedAuditQuarter;
+    if (resolvedYear == selectedAuditYear &&
+        resolvedQuarter == selectedAuditQuarter) {
+      return;
+    }
+
+    _activeMainListCache = null;
+    _myCheckInMainListCache = null;
+
+    _state = _state.copyWith(
+      selectedAuditYear: resolvedYear,
+      selectedAuditQuarter: resolvedQuarter,
+      isLoading: true,
+      isLoadingMore: false,
+      clearMainList: true,
+      clearSelectedYearQuarter: true,
+    );
+    notifyListeners();
+
+    final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
+    _cacheList(_state.selectedStatus, mainList);
+    _state = _state.copyWith(isLoading: false, mainList: mainList);
+    notifyListeners();
   }
 
   AuditMainList? _cachedListFor(AuditMemberStatus status) {
@@ -1621,6 +1767,23 @@ class AuditController extends ChangeNotifier {
     }
 
     _activeMainListCache = list;
+  }
+
+  _ParsedYearQuarter? _parseYearQuarterLabel(String value) {
+    final parts = value.split('-');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    final year = int.tryParse(parts.first.trim());
+    final quarter = int.tryParse(
+      parts.last.trim().toUpperCase().replaceFirst('Q', ''),
+    );
+    if (year == null || quarter == null) {
+      return null;
+    }
+
+    return _ParsedYearQuarter(year: year, quarter: quarter);
   }
 
   AuditMainList? _sortedMainList(AuditMainList? mainList) {
@@ -1710,4 +1873,11 @@ class _CachedCertifiedReportPdfUrl {
   final DateTime expiresAt;
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
+}
+
+class _ParsedYearQuarter {
+  const _ParsedYearQuarter({required this.year, required this.quarter});
+
+  final int year;
+  final int quarter;
 }

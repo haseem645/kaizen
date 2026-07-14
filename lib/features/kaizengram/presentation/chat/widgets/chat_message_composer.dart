@@ -18,8 +18,8 @@ import 'chat_user_initial_avatar.dart';
 import 'chat_video_preview.dart';
 
 const double _chatComposerCornerRadius = 12;
-const double _chatComposerControlHeight = 44;
-const double _chatComposerActionWidth = 56;
+const double _chatComposerControlHeight = 48;
+const double _chatComposerActionWidth = 48;
 const Color _chatComposerSurfaceColor = Color(0xFF24283D);
 
 //////
@@ -239,7 +239,7 @@ class _KaizengramChatMessageComposerState
               const SizedBox(height: 10),
             ],
             Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 _ComposerIconButton(
                   onTap: isPickingDraftMedia ? null : _handlePickMedia,
@@ -280,15 +280,17 @@ class _KaizengramChatMessageComposerState
                       onChanged: controller.updateDraftMessage,
                       maxLines: 4,
                       minLines: 1,
+                      textAlignVertical: TextAlignVertical.center,
                       cursorHeight: 16,
                       cursorColor: AppColors.textPrimary,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(
+                        isDense: true,
                         hintText: KaizengramChatStrings.messageHint,
                         hintStyle: TextStyle(color: AppColors.textSecondary),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 11,
+                          horizontal: 14,
+                          vertical: 12,
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,

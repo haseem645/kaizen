@@ -32,8 +32,8 @@ import '../widgets/kaizengram_link_utils.dart';
 import 'notifications/kaizengram_notifications_screen.dart';
 
 const double _commentComposerCornerRadius = 12;
-const double _commentComposerControlHeight = 44;
-const double _commentComposerActionWidth = 54;
+const double _commentComposerControlHeight = 48;
+const double _commentComposerActionWidth = 48;
 
 class KaizenGramScreen extends StatelessWidget {
   const KaizenGramScreen({super.key});
@@ -1944,6 +1944,7 @@ class _InlineSocialCommentComposerState
                   minLines: 1,
                   maxLines: 4,
                   textInputAction: TextInputAction.send,
+                  textAlignVertical: TextAlignVertical.center,
                   cursorHeight: 15,
                   cursorColor: AppColors.textPrimary,
                   style: const TextStyle(
@@ -1951,12 +1952,13 @@ class _InlineSocialCommentComposerState
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
+                    isDense: true,
                     hintText: AppStrings.commentAsUser(widget.loggedInUserName),
                     hintStyle: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     border: InputBorder.none,
                   ),
                   onChanged: (_) => setState(() {}),
@@ -2779,10 +2781,14 @@ class _PostMediaSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (post.resolvedPostCategory == KaizengramPostCategory.audit &&
-        post.auditMediaItems.isNotEmpty) {
+    if (post.resolvedPostCategory == KaizengramPostCategory.audit) {
+      final mediaItems = _buildAuditThreadItems(post);
+      if (mediaItems.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
       return _AuditPostMediaPager(
-        mediaItems: post.auditMediaItems,
+        mediaItems: mediaItems,
         onMediaTap: onAuditMediaTap,
       );
     }
@@ -5241,16 +5247,18 @@ class _CommentComposer extends StatelessWidget {
                           minLines: 1,
                           maxLines: 4,
                           textInputAction: TextInputAction.send,
+                          textAlignVertical: TextAlignVertical.center,
                           cursorHeight: 17,
                           cursorColor: AppColors.textPrimary,
                           style: const TextStyle(color: AppColors.textPrimary),
                           decoration: InputDecoration(
+                            isDense: true,
                             hintText: hintText,
                             hintStyle: const TextStyle(
                               color: AppColors.textSecondary,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              vertical: 11,
+                              vertical: 12,
                             ),
                             border: InputBorder.none,
                           ),

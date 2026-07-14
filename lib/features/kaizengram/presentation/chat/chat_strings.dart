@@ -19,32 +19,24 @@ class KaizengramChatStrings {
   static const String channelsTitle = 'Channels';
   static const String directMessagesTitle = 'One to One Chat';
   static const String sharePostTitle = 'Send Post';
-  static const String sharePostSubtitle =
-      'Choose a channel or one-to-one chat for this post.';
+  static const String sharePostSubtitle = 'Choose a channel or one-to-one chat for this post.';
   static const String sharePostOriginLabel = 'Shared from Kaizengram';
   static const String sharePostLinkLabel = 'Link';
-  static const String sharePostEmptyState =
-      'Create a channel or one-to-one chat first.';
+  static const String sharePostEmptyState = 'Create a channel or one-to-one chat first.';
 
   static const String createChannelTitle = 'Create Channel';
-  static const String createChannelSubtitle =
-      'Set a name for the new Kaizengram channel.';
+  static const String createChannelSubtitle = 'Set a name for the new Kaizengram channel.';
   static const String createChannelImageLabel = 'Channel Image';
-  static const String createChannelImageHint =
-      'Upload an image for this channel story.';
-  static const String createChannelImageSelectedHint =
-      'Tap to change the current channel image.';
+  static const String createChannelImageHint = 'Upload image for channel';
+  static const String createChannelImageSelectedHint = 'Tap to change the current channel image';
   static const String startDirectMessageTitle = 'Users';
-  static const String startDirectMessageSubtitle =
-      'Choose a user to begin a one-to-one chat.';
+  static const String startDirectMessageSubtitle = 'Choose a user to begin a one-to-one chat.';
   static const String channelNameLabel = 'Channel Name';
   static const String channelNameHint = 'Enter channel name';
   static const String usersTitle = 'Users';
   static const String deleteChannelTitle = 'Delete Channel';
-  static const String emptyMessages =
-      'No messages yet. Start the conversation.';
-  static const String noConversationSelected =
-      'Choose a channel or direct message from the list.';
+  static const String emptyMessages = 'No messages yet. Start the conversation.';
+  static const String noConversationSelected = 'Choose a channel or direct message from the list.';
   static const String noDirectMessages = 'Start a one-to-one chat.';
 
   static const String actionCreate = 'Create';
@@ -73,31 +65,24 @@ class KaizengramChatStrings {
   static const String mediaMessageLabel = 'Attachments';
   static const String attachmentPickerTitle = 'Choose Attachment';
   static const String attachmentPickerMediaTitle = 'Photos & Videos';
-  static const String attachmentPickerMediaSubtitle =
-      'Pick images or videos from your device.';
+  static const String attachmentPickerMediaSubtitle = 'Pick images or videos from your device.';
   static const String attachmentPickerPdfTitle = 'PDF Document';
-  static const String attachmentPickerPdfSubtitle =
-      'Pick a PDF file from your documents.';
+  static const String attachmentPickerPdfSubtitle = 'Pick a PDF file from your documents.';
 
   static const String emptyChannelNameError = 'Please enter a channel name.';
-  static const String duplicateChannelNameError =
-      'A channel with this name already exists.';
+  static const String duplicateChannelNameError = 'A channel with this name already exists.';
   static const String lastChannelError = 'At least one channel must remain.';
   static const String invalidEmailError = 'Please enter a valid email address.';
   static const String pickImageError = 'Unable to pick image right now.';
-  static const String pickChannelImageError =
-      'Unable to pick channel image right now.';
+  static const String pickChannelImageError = 'Unable to pick channel image right now.';
   static const String pickVideoError = 'Unable to pick video right now.';
-  static const String pickMediaError =
-      'Unable to open the attachment picker right now.';
+  static const String pickMediaError = 'Unable to open the attachment picker right now.';
   static const String mediaLimitError =
       'You can attach up to 3 images, videos, or PDF files in one message.';
   static const String duplicateUserError = 'This user is already in the list.';
-  static const String duplicateChannelUserError =
-      'This user is already in this channel.';
+  static const String duplicateChannelUserError = 'This user is already in this channel.';
   static const String noActiveChannelError = 'Choose a channel first.';
-  static const String cannotRemoveCurrentUserError =
-      'You cannot remove yourself.';
+  static const String cannotRemoveCurrentUserError = 'You cannot remove yourself.';
   static const String replyingToLabel = 'Replying to';
 
   static const String userOliviaName = 'Olivia Stone';

@@ -1,7 +1,7 @@
 class ApiEndPoints {
   ApiEndPoints._();
   // static const String baseUrl = 'http://127.0.0.1:8000';
-  //
+
   static const String baseUrl = 'https://dev-api.kaizenteams.ai';
   // static const String baseUrl = 'https://api.kaizenteams.ai';
   static const String version = '/api/v1/';
@@ -100,6 +100,18 @@ class ApiEndPoints {
     required String descriptionId,
   }) {
     return 'audit_report/profile_job/$flowFirstId/description/$descriptionId/profiles/';
+  }
+
+  static String seatDescriptionTrainingModules(String descriptionId) {
+    return 'job_category_description/$descriptionId/training_modules/';
+  }
+
+  static String trainingModuleDetail(String moduleId) {
+    return 'training_modules/$moduleId/';
+  }
+
+  static String trainingModuleDocument(String moduleId) {
+    return 'training_modules/$moduleId/document/';
   }
 
   static String seatProfileDetail(String seatId) {

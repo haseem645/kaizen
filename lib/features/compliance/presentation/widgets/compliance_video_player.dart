@@ -40,7 +40,6 @@ class ComplianceVideoPlayer extends StatefulWidget {
 
 class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   static const _cacheMaxAge = Duration(days: 30);
-  static const _deferredPreparationDelay = Duration(milliseconds: 140);
   static const _playbackStartWaitTimeout = Duration(milliseconds: 900);
 
   VideoPlayerController? _controller;
@@ -48,7 +47,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   Object? _initializationError;
   int _initializationGeneration = 0;
   late bool _showThumbnailPreview;
-  Timer? _deferredPreparationTimer;
   bool _isPreparingPlayback = false;
   bool _isScrubbing = false;
   double? _scrubPositionMillis;
@@ -58,7 +56,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     super.initState();
     _showThumbnailPreview = _hasThumbnail;
     _warmUpVideoCache();
-    _prepareControllerForCurrentState();
+    _setupController();
   }
 
   @override
@@ -74,13 +72,12 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     if (oldWidget.videoUrl != widget.videoUrl) {
       _disposeController();
       _warmUpVideoCache();
-      _prepareControllerForCurrentState();
+      _setupController();
     }
   }
 
   @override
   void dispose() {
-    _deferredPreparationTimer?.cancel();
     _disposeController();
     super.dispose();
   }
@@ -92,27 +89,10 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   }
 
   void _setupController() {
-    _deferredPreparationTimer?.cancel();
     _initializationError = null;
     _controller = null;
     final generation = ++_initializationGeneration;
     _initializeFuture = _initializeController(generation);
-  }
-
-  void _prepareControllerForCurrentState() {
-    _deferredPreparationTimer?.cancel();
-    if (_hasThumbnail) {
-      _deferredPreparationTimer = Timer(_deferredPreparationDelay, () {
-        if (!mounted || _initializeFuture != null) {
-          return;
-        }
-        _setupController();
-        setState(() {});
-      });
-      return;
-    }
-
-    _setupController();
   }
 
   Future<void> _initializeController(int generation) async {
@@ -161,8 +141,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
 
   void _disposeController() {
     _initializationGeneration++;
-    _deferredPreparationTimer?.cancel();
-    _deferredPreparationTimer = null;
 
     final controller = _controller;
     _controller = null;

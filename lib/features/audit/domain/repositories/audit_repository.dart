@@ -8,6 +8,7 @@ import '../entities/performance_report.dart';
 import '../entities/quarterly_audit.dart';
 import '../entities/seat_description_audit_report_comments.dart';
 import '../entities/seat_description_final_audit_report.dart';
+import '../entities/seat_description_training.dart';
 import '../entities/single_audit_report_category_details.dart';
 
 abstract class AuditRepository {
@@ -21,9 +22,16 @@ abstract class AuditRepository {
   Future<AuditMainList> getAuditTeamMembers({
     required int page,
     required int pageSize,
+    int? year,
+    int? quarter,
   });
 
-  Future<AuditMainList> getMyAudits({required int page, required int pageSize});
+  Future<AuditMainList> getMyAudits({
+    required int page,
+    required int pageSize,
+    int? year,
+    int? quarter,
+  });
 
   Future<dynamic> getMyPerformanceSnapshot({
     required int page,
@@ -123,6 +131,15 @@ abstract class AuditRepository {
     int? year,
     String? timeRange,
   });
+
+  Future<List<SeatDescriptionTrainingModule>>
+  getSeatDescriptionTrainingModules({required String descriptionId});
+
+  Future<SeatDescriptionTrainingModuleDetail>
+  getSeatDescriptionTrainingModuleDetail({required String moduleId});
+
+  Future<SeatDescriptionTrainingDocument>
+  getSeatDescriptionTrainingModuleDocument({required String moduleId});
 
   Future<QuarterlyAudit> getQuarterlyAudit({
     required String quarterlyAuditId,

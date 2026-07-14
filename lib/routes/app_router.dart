@@ -211,6 +211,8 @@ class AppRouter {
             profileJobId: args is AuditDetailsRouteArgs
                 ? args.profileJobId
                 : '',
+            year: args is AuditDetailsRouteArgs ? args.year : null,
+            quarter: args is AuditDetailsRouteArgs ? args.quarter : null,
           ),
         );
       case singleAuditDetails:
@@ -225,6 +227,8 @@ class AppRouter {
             lastAuditDate: args is SingleAuditDetailsRouteArgs
                 ? args.lastAuditDate
                 : '',
+            year: args is SingleAuditDetailsRouteArgs ? args.year : null,
+            quarter: args is SingleAuditDetailsRouteArgs ? args.quarter : null,
           ),
         );
       case auditReport:
@@ -325,9 +329,15 @@ class ComplianceTracksRouteArgs {
 }
 
 class AuditDetailsRouteArgs {
-  const AuditDetailsRouteArgs({required this.profileJobId});
+  const AuditDetailsRouteArgs({
+    required this.profileJobId,
+    this.year,
+    this.quarter,
+  });
 
   final String profileJobId;
+  final int? year;
+  final int? quarter;
 }
 
 class SeatProfileDetailRouteArgs {
@@ -353,11 +363,15 @@ class SingleAuditDetailsRouteArgs {
     required this.quarterlyAuditId,
     required this.date,
     required this.lastAuditDate,
+    this.year,
+    this.quarter,
   });
 
   final String quarterlyAuditId;
   final String date;
   final String lastAuditDate;
+  final int? year;
+  final int? quarter;
 }
 
 class AuditReportRouteArgs {
