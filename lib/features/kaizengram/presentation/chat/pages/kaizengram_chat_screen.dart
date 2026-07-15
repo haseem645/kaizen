@@ -688,34 +688,58 @@ class _ChatMessageMediaStrip extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 8.0;
-        const maxSquareSide = 96.0;
         final availableWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width * 0.68;
-        final rawSquareSide =
-            (availableWidth - (spacing * (attachments.length - 1))) /
-            attachments.length;
-        final squareSide = rawSquareSide > maxSquareSide
-            ? maxSquareSide
-            : rawSquareSide;
 
-        return SizedBox(
-          height: squareSide,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List<Widget>.generate(attachments.length * 2 - 1, (
-              index,
-            ) {
-              if (index.isOdd) {
-                return const SizedBox(width: spacing);
-              }
+        if (attachments.length <= kaizengramMessageAttachmentLimit) {
+          const maxSquareSide = 96.0;
+          var squareSide =
+              (availableWidth - (spacing * (attachments.length - 1))) /
+              attachments.length;
+          if (squareSide > maxSquareSide) {
+            squareSide = maxSquareSide;
+          }
 
-              final attachmentIndex = index ~/ 2;
+          return SizedBox(
+            height: squareSide,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List<Widget>.generate(attachments.length * 2 - 1, (
+                index,
+              ) {
+                if (index.isOdd) {
+                  return const SizedBox(width: spacing);
+                }
+
+                final attachmentIndex = index ~/ 2;
+                return _ChatMessageMediaCard(
+                  attachment: attachments[attachmentIndex],
+                  height: squareSide,
+                  width: squareSide,
+                  onOpen: () => onOpenAttachment(attachmentIndex),
+                );
+              }),
+            ),
+          );
+        }
+
+        var squareSide = (availableWidth - spacing) / 2;
+        if (squareSide > 120) {
+          squareSide = 120;
+        }
+
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: List<Widget>.generate(attachments.length, (index) {
               return _ChatMessageMediaCard(
-                attachment: attachments[attachmentIndex],
+                attachment: attachments[index],
                 height: squareSide,
                 width: squareSide,
-                onOpen: () => onOpenAttachment(attachmentIndex),
+                onOpen: () => onOpenAttachment(index),
               );
             }),
           ),
@@ -741,7 +765,12 @@ class _ChatMessageMediaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mediaChild = attachment.isPdf
-        ? _ChatMessagePdfCard(attachment: attachment, onOpen: onOpen)
+        ? _ChatMessagePdfCard(
+            attachment: attachment,
+            width: width,
+            height: height,
+            onOpen: onOpen,
+          )
         : attachment.isVideo
         ? ChatVideoPreview(
             videoPath: attachment.path,
@@ -789,51 +818,69 @@ class _ChatMessageMediaCard extends StatelessWidget {
 }
 
 class _ChatMessagePdfCard extends StatelessWidget {
-  const _ChatMessagePdfCard({required this.attachment, required this.onOpen});
+  const _ChatMessagePdfCard({
+    required this.attachment,
+    required this.height,
+    this.width,
+    required this.onOpen,
+  });
 
   final KaizengramMessageAttachment attachment;
+  final double height;
+  final double? width;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedWidth = width ?? height;
+    final showLabel = resolvedWidth >= 72 && height >= 72;
+    final compactLayout = resolvedWidth < 96 || height < 96;
+    final iconContainerSize = compactLayout ? 30.0 : 42.0;
+    final iconSize = compactLayout ? 18.0 : 24.0;
+    final edgePadding = compactLayout ? 8.0 : 14.0;
+    final gap = compactLayout ? 6.0 : 10.0;
+    final fileName = CustomFunctions.fileNameFromPath(
+      attachment.path,
+      fallback: KaizengramChatStrings.documentMessageLabel,
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onOpen,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(edgePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Container(
-                width: 42,
-                height: 42,
+                width: iconContainerSize,
+                height: iconContainerSize,
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.picture_as_pdf_rounded,
                   color: AppColors.secondaryColor,
-                  size: 24,
+                  size: iconSize,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                CustomFunctions.fileNameFromPath(
-                  attachment.path,
-                  fallback: KaizengramChatStrings.documentMessageLabel,
+              if (showLabel) ...<Widget>[
+                SizedBox(height: gap),
+                Text(
+                  fileName,
+                  maxLines: compactLayout ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: compactLayout ? 11 : 12,
+                    fontWeight: FontWeight.w700,
+                    height: compactLayout ? 1.2 : 1.35,
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  height: 1.35,
-                ),
-              ),
+              ],
             ],
           ),
         ),
