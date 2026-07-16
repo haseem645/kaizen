@@ -184,7 +184,7 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
 
         let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
         picker.preferredExtension = broadcastExtensionBundleIdentifier()
-        picker.showsMicrophoneButton = true
+        picker.showsMicrophoneButton = false
         picker.alpha = 0.01
         picker.isUserInteractionEnabled = true
         hostView.addSubview(picker)

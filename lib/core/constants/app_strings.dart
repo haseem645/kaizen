@@ -5,12 +5,14 @@ class AppStrings {
 
   static const String apiInvalidUrl = 'Invalid URL';
   static const String apiInvalidResponse = 'Invalid response';
-  static const String apiRequestFailedPrefix = 'Request failed with status code:';
+  static const String apiRequestFailedPrefix =
+      'Request failed with status code:';
   static const String apiErrorPrefix = 'ApiError:';
 
   static const String loginTitle = 'Sign In';
   static const String loginToYourAccount = 'Login to your account';
-  static const String enterProvidedCredentialsToContinue = 'Enter provided credentials to continue';
+  static const String enterProvidedCredentialsToContinue =
+      'Enter provided credentials to continue';
   static const String loginTo = 'Sign In';
   static const String kaizen = 'Kaizen';
   static const String teams = 'Teams';
@@ -22,15 +24,21 @@ class AppStrings {
   static const String loginPasswordLabel = 'Enter your password';
   static const String loginButton = 'Login';
   static const String loginEnterEmail = 'Please enter your email.';
-  static const String loginEnterValidEmail = 'Please enter a valid email address.';
+  static const String loginEnterValidEmail =
+      'Please enter a valid email address.';
   static const String loginEnterPassword = 'Please enter your password.';
-  static const String loginPasswordLength = 'Password must be at least 6 characters.';
+  static const String loginPasswordLength =
+      'Password must be at least 6 characters.';
   static const String loginNoAccount = 'No account found for this email.';
   static const String loginIncorrectPassword = 'Incorrect password.';
-  static const String loginUnableToConnect = 'Unable to connect to the user database.';
-  static const String loginServiceUnavailable = 'Login service is unavailable right now.';
-  static const String loginInvalidUserData = 'Invalid user data received from database.';
-  static const String loginSomethingWentWrong = 'Something went wrong. Please try again.';
+  static const String loginUnableToConnect =
+      'Unable to connect to the user database.';
+  static const String loginServiceUnavailable =
+      'Login service is unavailable right now.';
+  static const String loginInvalidUserData =
+      'Invalid user data received from database.';
+  static const String loginSomethingWentWrong =
+      'Something went wrong. Please try again.';
   static const String userRecordIncomplete = 'User record is incomplete.';
   static const String onboardingTitle = 'Finish your setup';
   static const String onboardingSubtitle =
@@ -42,7 +50,8 @@ class AppStrings {
       'Press next to take a look at your envelope and\nfill in all the required details';
   static const String homePlaceholder = 'Home screen is not available yet.';
   static const String homeTitle = 'Home';
-  static const String homeSubtitle = 'Use the drawer to navigate through compliance and audits.';
+  static const String homeSubtitle =
+      'Use the drawer to navigate through compliance and audits.';
   static const String homeKaizengram = 'Kaizengram';
   static const String homeAi = 'AI';
   static const String homeLearningTracks = 'Learning Tracks';
@@ -58,15 +67,18 @@ class AppStrings {
   static const String paygradesDetailsTitle = 'Paygrade Details';
   static const String paygradesSearchHint = 'Search Paygrades';
   static const String paygradesNoItemsFound = 'No paygrades found.';
-  static const String paygradesNoDetailItemsFound = 'No paygrades found for this tab.';
+  static const String paygradesNoDetailItemsFound =
+      'No paygrades found for this tab.';
   static const String paygradesDepartment = 'Department';
   static const String paygradesUnit = 'Unit';
   static const String paygradesRate = 'Pay Rate (HR)';
   static const String paygradesLevel = 'Level';
   static const String paygradesDescription = 'Paygrade Specifics';
   static const String paygradesPromotionRequirement = 'Requirements';
-  static const String paygradesEmptyDescription = 'No paygrade specifics available.';
-  static const String paygradesEmptyPromotionRequirement = 'No requirements available.';
+  static const String paygradesEmptyDescription =
+      'No paygrade specifics available.';
+  static const String paygradesEmptyPromotionRequirement =
+      'No requirements available.';
   static const String paygradesPrimaryTab = 'Primary';
   static const String paygradesAncillaryTab = 'Ancillary';
   static const String paygradesPrimaryPaygrade = 'Primary Paygrade';
@@ -78,7 +90,8 @@ class AppStrings {
       'Someone on the system has changed active environment to Sandbox, please set active organisation from the given list';
   static const String organizationsBannerText =
       'Click Here to set active organisation on the system';
-  static const String billingBannerText = 'Payment is required to keep using paid features';
+  static const String billingBannerText =
+      'Payment is required to keep using paid features';
   static const String paidFeaturesUnavailable = 'Paid Features Unavailable';
   static const String yourSubscriptionEnded =
       'Your organization\'s trial or subscription has ended. Upgrade your plan to create, edit, or delete content.';
@@ -106,12 +119,12 @@ class AppStrings {
   static const String kaizenGptGreeting =
       'Your AI teammate for faster coaching and clearer answers.';
   static const String kaizenGptPromptHint = 'Ask KaizenGPT';
-  static const String kaizenGptReady = 'READY';
+  static const String kaizenGptReady = 'AVAILABLE SOON';
   static const String howMayIHelpToday = 'How may I help you today?';
-  static const String kaizenGptListening = 'Listening...';
-  static const String kaizenGptSpeechPermissionTitle = 'Microphone Access';
-  static const String kaizenGptSpeechPermissionMessage =
-      'Please allow microphone and speech recognition access to use voice input.';
+  static const String kaizenGptListening =
+      'Assistant is currently unavailable.';
+  static const String kaizenGptUnavailableMessage =
+      'KaizenGPT is not active in this build right now.';
   static const String auditActive = 'Active';
   static const String auditDeactivated = 'Deactivated';
   static const String auditSearchHint = 'Search Team Member';
@@ -124,7 +137,8 @@ class AppStrings {
   static const String certify = 'Certify';
   static const String performanceSnapshotNoReports = 'No reports available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
-  static const String performanceSnapshotDataUnavailable = 'Data not available.';
+  static const String performanceSnapshotDataUnavailable =
+      'Data not available.';
   static const String performanceSnapshotFilterLoading = 'Loading jobs...';
   static const String performanceSnapshotAction = 'Report';
   static const String performanceSnapshotJob = 'Job';
@@ -136,7 +150,11 @@ class AppStrings {
   static const String auditSeatProfile = 'Seat Profile';
   static const String auditApplyFilters = 'Apply Filters';
   static const String auditSearchSeatProfile = 'Search Seat Profile';
-  static const List<String> auditMilestoneOptions = <String>['30 Days', '60 Days', '90 Days'];
+  static const List<String> auditMilestoneOptions = <String>[
+    '30 Days',
+    '60 Days',
+    '90 Days',
+  ];
   static const List<String> auditTimingOptions = <String>[
     'Available',
     'Wait',
@@ -156,7 +174,8 @@ class AppStrings {
   static const String complianceTrainingTitle = 'Training';
   static const String complianceSeatProfileTitle = 'Seat Profile';
   static const String done = 'Done';
-  static const String complianceMasteredBasics = "--- You've Mastered The Basics ---";
+  static const String complianceMasteredBasics =
+      "--- You've Mastered The Basics ---";
   static const String complianceNoTracksFound = 'No Learning Tracks Found';
   static const String complianceNoDocumentsFound = 'No Documents Found';
   static const String trainingVideoTab = 'Video';
@@ -178,7 +197,8 @@ class AppStrings {
   static const String uploadDoc = 'Upload Document';
   static const String uploadDocumentTitle = 'Upload Document';
   static const String rejectionReasonTitle = 'Rejection Reason';
-  static const String rejectionReasonBody = 'Lorem Ipsum Lorem ipsum Lorem Ipsum Lorem ipsum';
+  static const String rejectionReasonBody =
+      'Lorem Ipsum Lorem ipsum Lorem Ipsum Lorem ipsum';
   static const String clickToUploadDocument = 'Click to upload\nDocument';
   static const String uploadFileFormat = 'File Format: JPEG, PNG, JPG, PDF';
   static const String uploadMaxFileSize = 'Max file size is 20 MB';
@@ -191,11 +211,13 @@ class AppStrings {
   static const String trainingBackToTrackModules = 'Back to Track Modules';
   static const String trainingBackToLearningTrack = 'Back to Learning Track';
 
-  static String welcomeBackUser(String displayName) => 'Welcome back, $displayName!';
+  static String welcomeBackUser(String displayName) =>
+      'Welcome back, $displayName!';
 
   static String welcomeUser(String displayName) => 'Welcome, $displayName!';
 
-  static String apiRequestFailed(int statusCode) => '$apiRequestFailedPrefix $statusCode';
+  static String apiRequestFailed(int statusCode) =>
+      '$apiRequestFailedPrefix $statusCode';
 
   static const String cosmeticDentist = "Cosmetic Dentist";
   static const String claraBell = "Clara Bell";
@@ -210,7 +232,8 @@ class AppStrings {
   static const String noComment = "No Comment";
 
   // Statistics Section
-  static const String runningOverallPerformance = "Running Overall Performance Score";
+  static const String runningOverallPerformance =
+      "Running Overall Performance Score";
   static const String confidenceLevel = "Confidence Level";
 
   // Audit List Section
@@ -232,7 +255,8 @@ class AppStrings {
   static const String auditNoDescriptionAvailable = 'No description available.';
   static const String auditSeatDescription = 'Seat Description';
   static const String auditSeatSpecifics = 'Seat Specifics';
-  static const String auditNoSeatSpecificsAvailable = 'No seat specifics available.';
+  static const String auditNoSeatSpecificsAvailable =
+      'No seat specifics available.';
   static const String auditSelectPassNoPass = 'Select Pass/No Pass';
   static const String auditPass = 'Pass';
   static const String auditNoPass = 'No Pass';
@@ -249,10 +273,12 @@ class AppStrings {
   static const String auditScreenRecording = 'Screen Recording';
 
   static const String auditTakePhoto = 'Take a photo';
-  static const String auditCapturePhotoComment = 'Capture a photo for this audit comment';
+  static const String auditCapturePhotoComment =
+      'Capture a photo for this audit comment';
   static const String auditOpenCamera = 'Open Camera';
   static const String auditRecordVideo = 'Record a video';
-  static const String auditCaptureVideoComment = 'Capture a video using your camera';
+  static const String auditCaptureVideoComment =
+      'Capture a video using your camera';
   static const String auditOpenVideoCamera = 'Open Video Camera';
   static const String auditUploadMedia = 'Upload media';
   static const String auditUploadMediaChoice =
@@ -262,30 +288,38 @@ class AppStrings {
   static const String auditScreenRecordingPreview = 'Screen recording preview';
   static const String auditScreenRecordingPreviewHint =
       'Record a screen first, then it will appear here for playback before saving.';
-  static const String auditCameraPermissionPhoto = 'Camera permission is required to take a photo.';
+  static const String auditCameraPermissionPhoto =
+      'Camera permission is required to take a photo.';
   static const String auditPhotoLibraryPermissionImage =
       'Photo library permission is required to upload an image.';
   static const String auditCameraOpenError =
       'Unable to open the camera right now. Please try again.';
-  static const String auditPickImageError = 'Unable to pick an image right now. Please try again.';
+  static const String auditPickImageError =
+      'Unable to pick an image right now. Please try again.';
   static const String auditCameraPermissionVideo =
       'Camera permission is required to record a video.';
   static const String auditPhotoLibraryPermissionVideo =
       'Photo library permission is required to upload a video.';
   static const String auditRecordVideoError =
       'Unable to record a video right now. Please try again.';
-  static const String auditPickVideoError = 'Unable to pick a video right now. Please try again.';
+  static const String auditPickVideoError =
+      'Unable to pick a video right now. Please try again.';
 
   static const String auditDelete = 'Delete';
   static const String auditSave = 'Save';
   static const String auditStartRecording = 'Start Recording';
   static const String auditStopRecording = 'Stop Recording';
   static const String auditRecordingNotificationTitle = 'Screen recording';
-  static const String auditRecordingNotificationMessage = 'Recording in progress';
-  static const String auditStartRecordingError = 'Unable to start screen recording right now.';
-  static const String auditNoRecordingReturned = 'Recording finished but no video was returned.';
-  static const String auditRecordedVideoMissing = 'Recorded video could not be found.';
-  static const String auditStopRecordingError = 'Unable to stop screen recording right now.';
+  static const String auditRecordingNotificationMessage =
+      'Recording in progress';
+  static const String auditStartRecordingError =
+      'Unable to start screen recording right now.';
+  static const String auditNoRecordingReturned =
+      'Recording finished but no video was returned.';
+  static const String auditRecordedVideoMissing =
+      'Recorded video could not be found.';
+  static const String auditStopRecordingError =
+      'Unable to stop screen recording right now.';
   static const String auditStartScreenRecordingTitle = 'Start screen recording';
   static const String auditRecordingInProgress = 'Recording in progress';
   static const String auditRecordingPrompt =

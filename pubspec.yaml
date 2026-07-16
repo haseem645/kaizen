@@ -56,11 +56,7 @@ dependencies:
     path: third_party/ffmpeg_kit_flutter_new_gpl
   flutter_screen_recording:
     path: third_party/flutter_screen_recording
-  sound_stream:
-    path: third_party/sound_stream
-  speech_to_text: ^7.4.0
   socket_io_client: ^3.1.4
-  vad: ^0.0.8
   signature: ^6.3.0
   app_links: ^6.4.1
   firebase_core: ^4.11.0
