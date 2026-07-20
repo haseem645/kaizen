@@ -228,32 +228,49 @@ class GroupThumbnailImage extends StatelessWidget {
     required this.imageUrl,
     required this.borderRadius,
     required this.size,
+    this.imagePath,
   });
 
   final String imageUrl;
   final double borderRadius;
   final double size;
+  final String? imagePath;
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = _resolvedGroupsAvatarImageProvider(
+      imagePath: imagePath,
+      imageUrl: imageUrl,
+    );
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: Image.network(
-        imageUrl,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(
-          width: size,
-          height: size,
-          color: const Color(0xFF232834),
-          alignment: Alignment.center,
-          child: const Icon(
-            Icons.groups_2_rounded,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ),
+      child: imageProvider == null
+          ? _GroupThumbnailFallback(size: size)
+          : Image(
+              image: imageProvider,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _GroupThumbnailFallback(size: size),
+            ),
+    );
+  }
+}
+
+class _GroupThumbnailFallback extends StatelessWidget {
+  const _GroupThumbnailFallback({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      color: const Color(0xFF232834),
+      alignment: Alignment.center,
+      child: const Icon(Icons.groups_2_rounded, color: AppColors.textSecondary),
     );
   }
 }
@@ -262,6 +279,7 @@ class GroupHeaderAvatar extends StatelessWidget {
   const GroupHeaderAvatar({
     super.key,
     required this.groupImageUrl,
+    this.groupImagePath,
     this.authorAvatarImagePath,
     required this.authorAvatarUrl,
     required this.onGroupTap,
@@ -269,6 +287,7 @@ class GroupHeaderAvatar extends StatelessWidget {
   });
 
   final String groupImageUrl;
+  final String? groupImagePath;
   final String? authorAvatarImagePath;
   final String authorAvatarUrl;
   final VoidCallback onGroupTap;
@@ -292,6 +311,7 @@ class GroupHeaderAvatar extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             child: GroupThumbnailImage(
               imageUrl: groupImageUrl,
+              imagePath: groupImagePath,
               borderRadius: 14,
               size: 44,
             ),

@@ -377,6 +377,25 @@ class _ShareGroupAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imagePath = group.imagePath?.trim();
+    if (imagePath != null && imagePath.isNotEmpty) {
+      final ImageProvider<Object> imageProvider;
+      if (CustomFunctions.isAssetImagePath(imagePath)) {
+        imageProvider = AssetImage(imagePath);
+      } else {
+        final networkUrl = CustomFunctions.resolveNetworkUrl(imagePath);
+        imageProvider = networkUrl != null
+            ? NetworkImage(networkUrl)
+            : FileImage(File(imagePath));
+      }
+
+      return CircleAvatar(
+        radius: 18,
+        backgroundColor: const Color(0xFF24283D),
+        backgroundImage: imageProvider,
+      );
+    }
+
     return CircleAvatar(
       radius: 18,
       backgroundColor: const Color(0xFF24283D),

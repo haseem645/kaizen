@@ -25,6 +25,7 @@ class KaizengramGroupShareDestination {
     required this.id,
     required this.name,
     required this.imageUrl,
+    this.imagePath,
     required this.category,
     required this.privacyLabel,
     required this.memberCount,
@@ -33,6 +34,7 @@ class KaizengramGroupShareDestination {
   final String id;
   final String name;
   final String imageUrl;
+  final String? imagePath;
   final String category;
   final String privacyLabel;
   final int memberCount;
@@ -74,6 +76,7 @@ class _KaizengramGroupsSharedStore {
           id: group.id,
           name: group.name,
           imageUrl: group.imageUrl,
+          imagePath: group.imagePath,
           category: group.category,
           privacyLabel: group.privacyLabel,
           memberCount: group.memberCount,
@@ -624,6 +627,7 @@ class _KaizengramGroupsScreenState extends State<KaizengramGroupsScreen>
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           scrolledUnderElevation: 0,
+          centerTitle: true,
           titleSpacing: 18,
           title: const AppTextView.title1(
             AppStrings.screenTitle,
@@ -631,6 +635,10 @@ class _KaizengramGroupsScreenState extends State<KaizengramGroupsScreen>
             fontSize: 22,
             fontWeight: FontWeight.w700,
           ),
+          actions: <Widget>[
+            _CreateGroupAppBarAction(onTap: _openCreateGroupSheet),
+            const SizedBox(width: 12),
+          ],
         ),
         body: SafeArea(
           top: false,
@@ -915,6 +923,8 @@ class _KaizengramGroupsScreenState extends State<KaizengramGroupsScreen>
       hasInvite: false,
       icon: _iconForTopic(draft.topic),
       accentColor: _accentForTopic(draft.topic),
+      imagePath: draft.imagePath,
+      coverImagePath: draft.coverImagePath,
       imageUrl: _imageForTopic(draft.topic),
       coverImageUrl: _coverImageForTopic(draft.topic),
     );
@@ -1474,6 +1484,9 @@ String _genderForSeed(String seed) {
       : AppStrings.profileGenderMale;
 }
 
+const Object _noGroupImagePathOverride = Object();
+const Object _noGroupCoverImagePathOverride = Object();
+
 class _KaizengramGroupCommunity {
   const _KaizengramGroupCommunity({
     required this.id,
@@ -1488,6 +1501,8 @@ class _KaizengramGroupCommunity {
     required this.accentColor,
     required this.imageUrl,
     required this.coverImageUrl,
+    this.imagePath,
+    this.coverImagePath,
     this.isJoined = false,
     this.isManaged = false,
     this.isPinned = false,
@@ -1508,6 +1523,8 @@ class _KaizengramGroupCommunity {
   final bool hasInvite;
   final IconData icon;
   final Color accentColor;
+  final String? imagePath;
+  final String? coverImagePath;
   final String imageUrl;
   final String coverImageUrl;
 
@@ -1540,6 +1557,8 @@ class _KaizengramGroupCommunity {
     bool? hasInvite,
     IconData? icon,
     Color? accentColor,
+    Object? imagePath = _noGroupImagePathOverride,
+    Object? coverImagePath = _noGroupCoverImagePathOverride,
     String? imageUrl,
     String? coverImageUrl,
   }) {
@@ -1558,6 +1577,12 @@ class _KaizengramGroupCommunity {
       hasInvite: hasInvite ?? this.hasInvite,
       icon: icon ?? this.icon,
       accentColor: accentColor ?? this.accentColor,
+      imagePath: identical(imagePath, _noGroupImagePathOverride)
+          ? this.imagePath
+          : imagePath as String?,
+      coverImagePath: identical(coverImagePath, _noGroupCoverImagePathOverride)
+          ? this.coverImagePath
+          : coverImagePath as String?,
       imageUrl: imageUrl ?? this.imageUrl,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
     );
@@ -1843,6 +1868,42 @@ class _CreateGroupListTile extends StatelessWidget {
   }
 }
 
+class _CreateGroupAppBarAction extends StatelessWidget {
+  const _CreateGroupAppBarAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Ink(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B1E27),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.16),
+              ),
+            ),
+            child: const Icon(
+              Icons.add,
+              color: AppColors.textPrimary,
+              size: 18,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MyGroupSlimTile extends StatelessWidget {
   const _MyGroupSlimTile({required this.group, required this.onTap});
 
@@ -1869,6 +1930,7 @@ class _MyGroupSlimTile extends StatelessWidget {
             children: <Widget>[
               GroupThumbnailImage(
                 imageUrl: group.imageUrl,
+                imagePath: group.imagePath,
                 borderRadius: 14,
                 size: 44,
               ),
@@ -1954,6 +2016,7 @@ class _JoinedGroupPostCard extends StatelessWidget {
               children: <Widget>[
                 GroupHeaderAvatar(
                   groupImageUrl: group.imageUrl,
+                  groupImagePath: group.imagePath,
                   authorAvatarImagePath: post.authorAvatarImagePath,
                   authorAvatarUrl: post.authorAvatarUrl,
                   onGroupTap: onGroupTap,
@@ -2157,16 +2220,11 @@ class _GroupPostListCard extends StatelessWidget {
             else
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  group.coverImageUrl,
-                  width: double.infinity,
+                child: _GroupCoverImage(
+                  imageUrl: group.coverImageUrl,
+                  imagePath: group.coverImagePath,
                   height: 170,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    width: double.infinity,
-                    height: 170,
-                    color: const Color(0xFF232834),
-                  ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
           ],
@@ -2340,6 +2398,7 @@ class _GroupFeatureCard extends StatelessWidget {
                             ),
                             child: GroupThumbnailImage(
                               imageUrl: group.imageUrl,
+                              imagePath: group.imagePath,
                               borderRadius: 12,
                               size: 48,
                             ),
@@ -2710,6 +2769,8 @@ class _KaizengramGroupDetailScreenState
           about: _group.description,
           topic: _group.category,
           isPrivate: _group.isPrivate,
+          imagePath: _group.imagePath,
+          coverImagePath: _group.coverImagePath,
         ),
       ),
     );
@@ -2725,6 +2786,8 @@ class _KaizengramGroupDetailScreenState
       isPrivate: draft.isPrivate,
       icon: _iconForTopic(draft.topic),
       accentColor: _accentForTopic(draft.topic),
+      imagePath: draft.imagePath,
+      coverImagePath: draft.coverImagePath,
       imageUrl: _imageForTopic(draft.topic),
       coverImageUrl: _coverImageForTopic(draft.topic),
     );
@@ -3016,15 +3079,12 @@ class _GroupDetailHero extends StatelessWidget {
         children: <Widget>[
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-            child: Image.network(
-              group.coverImageUrl,
-              width: double.infinity,
+            child: _GroupCoverImage(
+              imageUrl: group.coverImageUrl,
+              imagePath: group.coverImagePath,
               height: 170,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: double.infinity,
-                height: 170,
-                color: const Color(0xFF232834),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(22),
               ),
             ),
           ),
@@ -3043,6 +3103,7 @@ class _GroupDetailHero extends StatelessWidget {
                   ),
                   child: GroupThumbnailImage(
                     imageUrl: group.imageUrl,
+                    imagePath: group.imagePath,
                     borderRadius: 16,
                     size: 56,
                   ),
@@ -3104,6 +3165,57 @@ class _GroupDetailHero extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GroupCoverImage extends StatelessWidget {
+  const _GroupCoverImage({
+    required this.imageUrl,
+    required this.height,
+    this.imagePath,
+    this.borderRadius = BorderRadius.zero,
+  });
+
+  final String imageUrl;
+  final String? imagePath;
+  final double height;
+  final BorderRadius borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageProvider = _resolvedGroupAvatarImageProvider(
+      imagePath: imagePath,
+      imageUrl: imageUrl,
+    );
+
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: imageProvider == null
+          ? _GroupCoverImageFallback(height: height)
+          : Image(
+              image: imageProvider,
+              width: double.infinity,
+              height: height,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) =>
+                  _GroupCoverImageFallback(height: height),
+            ),
+    );
+  }
+}
+
+class _GroupCoverImageFallback extends StatelessWidget {
+  const _GroupCoverImageFallback({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: height,
+      color: const Color(0xFF232834),
     );
   }
 }
@@ -4984,6 +5096,10 @@ class _GroupDraftBottomSheetState extends State<_GroupDraftBottomSheet>
   late final TextEditingController _aboutController;
   late bool _isPrivate;
   late String _selectedTopic;
+  String? _selectedImagePath;
+  String? _selectedCoverImagePath;
+  bool _isPickingImage = false;
+  bool _isPickingCoverImage = false;
 
   @override
   void initState() {
@@ -4992,6 +5108,19 @@ class _GroupDraftBottomSheetState extends State<_GroupDraftBottomSheet>
     _aboutController = TextEditingController(text: widget.initialDraft?.about);
     _isPrivate = widget.initialDraft?.isPrivate ?? true;
     _selectedTopic = widget.initialDraft?.topic ?? AppStrings.categoryClinicOps;
+    final normalizedSelectedImagePath = widget.initialDraft?.imagePath?.trim();
+    _selectedImagePath =
+        normalizedSelectedImagePath == null ||
+            normalizedSelectedImagePath.isEmpty
+        ? null
+        : normalizedSelectedImagePath;
+    final normalizedSelectedCoverImagePath = widget.initialDraft?.coverImagePath
+        ?.trim();
+    _selectedCoverImagePath =
+        normalizedSelectedCoverImagePath == null ||
+            normalizedSelectedCoverImagePath.isEmpty
+        ? null
+        : normalizedSelectedCoverImagePath;
     _nameController.addListener(notifyView);
   }
 
@@ -5017,121 +5146,229 @@ class _GroupDraftBottomSheetState extends State<_GroupDraftBottomSheet>
             color: Color(0xFF111317),
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.textPrimary.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textPrimary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              AppTextView.body1(
-                widget.title,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-              const SizedBox(height: 6),
-              AppTextView.body2(
-                widget.subtitle,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-              const SizedBox(height: 18),
-              _LabeledTextField(
-                label: AppStrings.nameLabel,
-                hint: AppStrings.nameHint,
-                controller: _nameController,
-              ),
-              const SizedBox(height: 14),
-              _LabeledTextField(
-                label: AppStrings.aboutLabel,
-                hint: AppStrings.aboutHint,
-                controller: _aboutController,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 14),
-              AppTextView.body3(
-                AppStrings.privacyLabel,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _SelectableOptionTile(
-                      label: AppStrings.privacyPrivate,
-                      isSelected: _isPrivate,
-                      onTap: () => updateView(() => _isPrivate = true),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _SelectableOptionTile(
-                      label: AppStrings.privacyPublic,
-                      isSelected: !_isPrivate,
-                      onTap: () => updateView(() => _isPrivate = false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              AppTextView.body3(
-                AppStrings.topicLabel,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: AppStrings.browseTopics
-                    .where((topic) => topic != AppStrings.categoryAll)
-                    .map(
-                      (topic) => _SelectableChip(
-                        label: topic,
-                        isSelected: _selectedTopic == topic,
-                        onTap: () => updateView(() => _selectedTopic = topic),
+                const SizedBox(height: 18),
+                AppTextView.body1(
+                  widget.title,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+                const SizedBox(height: 6),
+                AppTextView.body2(
+                  widget.subtitle,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                const SizedBox(height: 18),
+                _GroupImagePickerTile(
+                  label: AppStrings.groupImageLabel,
+                  emptyTitle: AppStrings.groupImageHint,
+                  selectedSubtitle: AppStrings.groupImageSelectedHint,
+                  placeholderIcon: Icons.groups_2_rounded,
+                  selectedImagePath: _selectedImagePath,
+                  isPickingImage: _isPickingImage,
+                  onTap: _pickImage,
+                  onRemoveTap: _selectedImagePath == null ? null : _removeImage,
+                ),
+                const SizedBox(height: 14),
+                _GroupImagePickerTile(
+                  label: AppStrings.groupBackgroundImageLabel,
+                  emptyTitle: AppStrings.groupBackgroundImageHint,
+                  selectedSubtitle: AppStrings.groupBackgroundImageSelectedHint,
+                  placeholderIcon: Icons.wallpaper_rounded,
+                  selectedImagePath: _selectedCoverImagePath,
+                  isPickingImage: _isPickingCoverImage,
+                  onTap: _pickCoverImage,
+                  onRemoveTap: _selectedCoverImagePath == null
+                      ? null
+                      : _removeCoverImage,
+                ),
+                const SizedBox(height: 14),
+                _LabeledTextField(
+                  label: AppStrings.nameLabel,
+                  hint: AppStrings.nameHint,
+                  controller: _nameController,
+                ),
+                const SizedBox(height: 14),
+                _LabeledTextField(
+                  label: AppStrings.aboutLabel,
+                  hint: AppStrings.aboutHint,
+                  controller: _aboutController,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 14),
+                AppTextView.body3(
+                  AppStrings.privacyLabel,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _SelectableOptionTile(
+                        label: AppStrings.privacyPrivate,
+                        isSelected: _isPrivate,
+                        onTap: () => updateView(() => _isPrivate = true),
                       ),
-                    )
-                    .toList(growable: false),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: SecondaryGroupsButton(
-                      label: AppStrings.createCancel,
-                      onTap: () => Navigator.of(context).pop(),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: IgnorePointer(
-                      ignoring: !canSubmit,
-                      child: Opacity(
-                        opacity: canSubmit ? 1 : 0.45,
-                        child: PrimaryGroupsButton(
-                          label: widget.submitLabel,
-                          onTap: _submit,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _SelectableOptionTile(
+                        label: AppStrings.privacyPublic,
+                        isSelected: !_isPrivate,
+                        onTap: () => updateView(() => _isPrivate = false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                AppTextView.body3(
+                  AppStrings.topicLabel,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppStrings.browseTopics
+                      .where((topic) => topic != AppStrings.categoryAll)
+                      .map(
+                        (topic) => _SelectableChip(
+                          label: topic,
+                          isSelected: _selectedTopic == topic,
+                          onTap: () => updateView(() => _selectedTopic = topic),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: SecondaryGroupsButton(
+                        label: AppStrings.createCancel,
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: IgnorePointer(
+                        ignoring: !canSubmit,
+                        child: Opacity(
+                          opacity: canSubmit ? 1 : 0.45,
+                          child: PrimaryGroupsButton(
+                            label: widget.submitLabel,
+                            onTap: _submit,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       );
+    });
+  }
+
+  Future<void> _pickImage() async {
+    await _pickDraftImage(forCover: false);
+  }
+
+  Future<void> _pickCoverImage() async {
+    await _pickDraftImage(forCover: true);
+  }
+
+  Future<void> _pickDraftImage({required bool forCover}) async {
+    final isPicking = forCover ? _isPickingCoverImage : _isPickingImage;
+    if (isPicking) {
+      return;
+    }
+
+    updateView(() {
+      if (forCover) {
+        _isPickingCoverImage = true;
+      } else {
+        _isPickingImage = true;
+      }
+    });
+
+    try {
+      final currentPath = forCover
+          ? _selectedCoverImagePath
+          : _selectedImagePath;
+      final pickedImages = await KaizengramMessageAttachmentPicker.pickImages(
+        availableSlots: 1,
+        existingPaths: currentPath == null
+            ? const <String>[]
+            : <String>[currentPath],
+      );
+      if (!mounted || pickedImages.isEmpty) {
+        return;
+      }
+
+      updateView(() {
+        if (forCover) {
+          _selectedCoverImagePath = pickedImages.first.path;
+        } else {
+          _selectedImagePath = pickedImages.first.path;
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text(AppStrings.pickImageError)),
+        );
+    } finally {
+      if (mounted) {
+        updateView(() {
+          if (forCover) {
+            _isPickingCoverImage = false;
+          } else {
+            _isPickingImage = false;
+          }
+        });
+      } else if (forCover) {
+        _isPickingCoverImage = false;
+      } else {
+        _isPickingImage = false;
+      }
+    }
+  }
+
+  void _removeCoverImage() {
+    updateView(() {
+      _selectedCoverImagePath = null;
+    });
+  }
+
+  void _removeImage() {
+    updateView(() {
+      _selectedImagePath = null;
     });
   }
 
@@ -5147,6 +5384,8 @@ class _GroupDraftBottomSheetState extends State<_GroupDraftBottomSheet>
             : _aboutController.text.trim(),
         topic: _selectedTopic,
         isPrivate: _isPrivate,
+        imagePath: _selectedImagePath,
+        coverImagePath: _selectedCoverImagePath,
       ),
     );
   }
@@ -5158,12 +5397,156 @@ class _CreateGroupDraft {
     required this.about,
     required this.topic,
     required this.isPrivate,
+    this.imagePath,
+    this.coverImagePath,
   });
 
   final String name;
   final String about;
   final String topic;
   final bool isPrivate;
+  final String? imagePath;
+  final String? coverImagePath;
+}
+
+class _GroupImagePickerTile extends StatelessWidget {
+  const _GroupImagePickerTile({
+    required this.label,
+    required this.emptyTitle,
+    required this.selectedSubtitle,
+    required this.placeholderIcon,
+    required this.selectedImagePath,
+    required this.isPickingImage,
+    required this.onTap,
+    this.onRemoveTap,
+  });
+
+  final String label;
+  final String emptyTitle;
+  final String selectedSubtitle;
+  final IconData placeholderIcon;
+  final String? selectedImagePath;
+  final bool isPickingImage;
+  final VoidCallback onTap;
+  final VoidCallback? onRemoveTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelectedImage =
+        selectedImagePath != null && selectedImagePath!.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        AppTextView.body3(
+          label,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+        const SizedBox(height: 8),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isPickingImage ? null : onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B1E27),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.textPrimary.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(
+                      width: 58,
+                      height: 58,
+                      child: hasSelectedImage
+                          ? Image.file(
+                              File(selectedImagePath!),
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              color: const Color(0xFF232834),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                placeholderIcon,
+                                color: AppColors.secondaryColor,
+                                size: 24,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        AppTextView.body2(
+                          hasSelectedImage
+                              ? AppStrings.actionChangeImage
+                              : emptyTitle,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        const SizedBox(height: 4),
+                        AppTextView.body4(
+                          hasSelectedImage
+                              ? selectedSubtitle
+                              : AppStrings.actionAddImage,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  isPickingImage
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.textPrimary,
+                          ),
+                        )
+                      : Icon(
+                          hasSelectedImage
+                              ? Icons.edit_outlined
+                              : Icons.add_photo_alternate_outlined,
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (hasSelectedImage && onRemoveTap != null) ...<Widget>[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              onTap: onRemoveTap,
+              borderRadius: BorderRadius.circular(999),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: AppTextView.body4(
+                  AppStrings.actionRemoveImage,
+                  color: AppColors.red,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _LabeledTextField extends StatelessWidget {
