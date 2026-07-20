@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
@@ -31,13 +33,30 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    signingConfigs {
+        create("release") {
+            // Native Gradle helper to check if the file exists
+            val secretFile = rootProject.file("key.properties")
+            if (secretFile.exists()) {
+                val keystoreProperties = Properties().apply {
+                    secretFile.inputStream().use { load(it) }
+                }
+
+                val storeFilePath = keystoreProperties["storeFile"] as? String
+                storeFile = if (!storeFilePath.isNullOrEmpty()) file(storeFilePath) else null
+                storePassword = keystoreProperties["storePassword"] as? String
+                keyAlias = keystoreProperties["keyAlias"] as? String
+                keyPassword = keystoreProperties["keyPassword"] as? String
+            }
         }
     }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
 }
 
 flutter {
