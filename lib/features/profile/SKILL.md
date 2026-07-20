@@ -1,19 +1,9 @@
 # Profile Skill
 
-This file is a lightweight routing index for `lib/features/profile`.
+This file is a compatibility shim.
 
-Path style in this file:
+Canonical Profile routing guidance now lives here:
 
-- Use shortened repo-root paths starting with `.../`
-- Treat `.../` as "this repository root"
+- `.../.codex/skills/repo-navigation/references/features/profile.md`
 
-## Profile UI And State
-
-Use for profile screen UI, profile actions, and profile-specific controller behavior.
-
-- First file: `.../lib/features/profile/presentation/pages/profile_screen.dart`
-- Next if state changes: `.../lib/features/profile/presentation/providers/profile_controller.dart`
-
-## Default Profile Rule
-
-If the task is ambiguous, start with `.../lib/features/profile/presentation/pages/profile_screen.dart`.
+Use the canonical `.codex` reference instead of maintaining a second copy here.

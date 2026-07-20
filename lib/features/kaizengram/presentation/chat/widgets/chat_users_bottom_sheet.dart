@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_text_view.dart';
-import '../chat_strings.dart';
 import '../providers/kaizengram_chat_controller.dart';
 import 'add_people_dialog.dart';
+import 'chat_module_ui.dart';
 import 'chat_user_initial_avatar.dart';
 import 'remove_user_confirmation_dialog.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
 class KaizengramChatUsersBottomSheet extends StatelessWidget {
   const KaizengramChatUsersBottomSheet({super.key, required this.controller});
@@ -26,31 +26,29 @@ class KaizengramChatUsersBottomSheet extends StatelessWidget {
           bottom: false,
           child: Container(
             height: MediaQuery.sizeOf(context).height * 0.58,
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             decoration: const BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+              color: kaizengramChatScreenSurfaceColor,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  width: 46,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                const KaizengramChatSheetHandle(),
+                const SizedBox(height: 18),
+                const AppTextView.body1(
+                  AppStrings.usersTitle,
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(height: 16),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: AppTextView.body1(
-                    KaizengramChatStrings.usersTitle,
-                    color: AppColors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(height: 6),
+                AppTextView.body4(
+                  AppStrings.usersSheetSubtitle(
+                    controller.activeChannelName ?? '',
                   ),
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
                 ),
                 const SizedBox(height: 14),
                 Expanded(
@@ -68,7 +66,7 @@ class KaizengramChatUsersBottomSheet extends StatelessWidget {
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF24283D),
+                          color: kaizengramChatCardSurfaceColor,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: AppColors.textPrimary.withValues(
@@ -133,11 +131,12 @@ class KaizengramChatUsersBottomSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                AppButton(
-                  text: KaizengramChatStrings.actionClose,
-                  onPressed: () => Navigator.of(context).pop(),
-                  borderRadius: 14,
-                  minimumHeight: 48,
+                SizedBox(
+                  width: double.infinity,
+                  child: KaizengramChatSecondaryButton(
+                    label: AppStrings.actionClose,
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
                 ),
               ],
             ),
@@ -167,8 +166,8 @@ class KaizengramChatUsersBottomSheet extends StatelessWidget {
         SnackBar(
           content: Text(
             didRemove
-                ? KaizengramChatStrings.userRemovedSnackBar(user.email)
-                : KaizengramChatStrings.cannotRemoveCurrentUserError,
+                ? AppStrings.userRemovedSnackBar(user.email)
+                : AppStrings.cannotRemoveCurrentUserError,
           ),
         ),
       );
@@ -190,7 +189,7 @@ class _AddPeopleRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF24283D),
+            color: kaizengramChatCardSurfaceColor,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.blue.withValues(alpha: 0.18)),
           ),
@@ -212,7 +211,7 @@ class _AddPeopleRow extends StatelessWidget {
               const SizedBox(width: 12),
               const Expanded(
                 child: AppTextView.body2(
-                  KaizengramChatStrings.addPeopleLabel,
+                  AppStrings.addPeopleLabel,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
@@ -225,24 +224,28 @@ class _AddPeopleRow extends StatelessWidget {
   }
 
   Future<void> _showAddPeopleDialog(BuildContext context) async {
-    final email = await showDialog<String>(
+    final emails = await showModalBottomSheet<List<String>>(
       context: context,
-      builder: (_) => AddPeopleDialog(controller: controller),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddPeopleBottomSheet(controller: controller),
     );
-    if (email == null || !context.mounted) {
+    if (emails == null || emails.isEmpty || !context.mounted) {
       return;
     }
 
     final messenger = ScaffoldMessenger.of(context);
-    final addedEmail = controller.addUserToCurrentChannel(email);
+    final addedEmails = controller.addUsersToCurrentChannel(emails);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(
-            addedEmail.isEmpty
-                ? KaizengramChatStrings.duplicateChannelUserError
-                : KaizengramChatStrings.userAddedSnackBar(addedEmail),
+            addedEmails.isEmpty
+                ? AppStrings.duplicateChannelUserError
+                : addedEmails.length == 1
+                ? AppStrings.userAddedSnackBar(addedEmails.first)
+                : AppStrings.usersAddedSnackBar(addedEmails.length),
           ),
         ),
       );

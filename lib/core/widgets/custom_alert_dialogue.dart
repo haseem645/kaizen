@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 
 import '../constants/app_colors.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
 class CustomAlertDialog extends StatelessWidget {
   const CustomAlertDialog(this.title, this.description, {super.key});

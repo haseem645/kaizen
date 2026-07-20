@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/widgets/app_confirmation_dialog.dart';
-import '../chat_strings.dart';
 import '../providers/kaizengram_chat_controller.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
 class RemoveUserConfirmationDialog extends StatelessWidget {
   const RemoveUserConfirmationDialog({super.key, required this.user});
@@ -12,10 +12,10 @@ class RemoveUserConfirmationDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppConfirmationDialog(
-      title: KaizengramChatStrings.removeUserTitle(user.name),
-      description: KaizengramChatStrings.removeUserDescription(user.email),
-      confirmText: KaizengramChatStrings.actionRemove,
-      cancelText: KaizengramChatStrings.actionCancel,
+      title: AppStrings.removeUserTitle(user.name),
+      description: AppStrings.removeUserDescription(user.email),
+      confirmText: AppStrings.actionRemove,
+      cancelText: AppStrings.actionCancel,
       onConfirmCallback: () async {
         Navigator.of(context).pop(true);
       },

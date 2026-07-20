@@ -1,28 +1,9 @@
 # Login Skill
 
-This file is a lightweight routing index for `lib/features/login`.
+This file is a compatibility shim.
 
-Path style in this file:
+Canonical Login routing guidance now lives here:
 
-- Use shortened repo-root paths starting with `.../`
-- Treat `.../` as "this repository root"
+- `.../.codex/skills/repo-navigation/references/features/login.md`
 
-## Login UI And Submission Flow
-
-Use for login screen UI, field validation, loading/error state, and login submission behavior.
-
-- First file: `.../lib/features/login/presentation/pages/login_screen.dart`
-- Next if state changes: `.../lib/features/login/presentation/providers/login_controller.dart`
-- Next if auth call behavior changes: `.../lib/features/login/data/datasources/auth_remote_data_source.dart`
-
-## Login Data And Auth Mapping
-
-Use for auth repository changes, login response mapping, stored login records, and domain entity adjustments.
-
-- First file: `.../lib/features/login/data/repositories/auth_repository_impl.dart`
-- Next for remote auth behavior: `.../lib/features/login/data/datasources/auth_remote_data_source.dart`
-- Next for entities: `.../lib/features/login/domain/entities/app_user.dart`
-
-## Default Login Rule
-
-If the task is ambiguous, start with `.../lib/features/login/presentation/pages/login_screen.dart`.
+Use the canonical `.codex` reference instead of maintaining a second copy here.

@@ -109,6 +109,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 - Prefer local feature data shaping inside providers/controllers instead of scattering UI-specific transforms across widgets.
 - Keep business logic, status mapping, and display label mapping out of widget trees when the logic is reused or non-trivial.
 - For Kaizengram Learning tab posts, `description` will not be present. UI, models, and mappers must not expect description content, must not reserve empty layout space for it, and must keep those posts visually correct without a description field.
+- For Kaizengram Groups home feed, do not show a suggested groups section below the main joined-groups list.
 - When adding media selection or upload flows, use existing dependencies already present in the repo such as `image_picker` or `file_picker`.
 - If a feature already distinguishes image/video/document states, preserve that distinction through the UI and comments/detail sheets.
 - When a detail sheet opens from a tapped media item, keep the selected item in sync so the sheet shows the same image or video the user opened.
@@ -151,7 +152,8 @@ A change is complete only when all of the following are true:
 ## Good Defaults For Codex
 
 - Read the relevant feature folder before editing.
-- Consult `lib/features/SKILLS.md` first, then open only the relevant module `lib/features/<feature>/SKILL.md` file before reading wider feature context.
+- Prefer the canonical `.codex` routing skill at `.codex/skills/repo-navigation/SKILL.md`, then open only the relevant feature reference under `.codex/skills/repo-navigation/references/features/`.
+- If a workflow or older instruction points to `lib/features/SKILLS.md` or `lib/features/<feature>/SKILL.md`, treat those files as compatibility shims that redirect to the canonical `.codex` references.
 - Prefer the smallest change that satisfies the request.
 - Verify UI changes with analyzer-friendly, overflow-safe widget code.
 - When a bug repeats, update this file with a concrete rule rather than adding vague guidance.

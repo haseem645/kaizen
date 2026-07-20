@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../chat/widgets/chat_video_preview.dart';
 import '../kaizengram_message_attachment.dart';
+import 'kaizengram_notifier_state.dart';
 
 class KaizengramFullScreenAttachmentView extends StatefulWidget {
   const KaizengramFullScreenAttachmentView({
@@ -26,7 +27,8 @@ class KaizengramFullScreenAttachmentView extends StatefulWidget {
 }
 
 class _KaizengramFullScreenAttachmentViewState
-    extends State<KaizengramFullScreenAttachmentView> {
+    extends State<KaizengramFullScreenAttachmentView>
+    with KaizengramNotifierState<KaizengramFullScreenAttachmentView> {
   late final PageController _pageController;
   late int _currentIndex;
 
@@ -45,82 +47,85 @@ class _KaizengramFullScreenAttachmentViewState
 
   @override
   Widget build(BuildContext context) {
-    final mediaSize = MediaQuery.sizeOf(context);
+    return buildWithNotifier((context) {
+      final mediaSize = MediaQuery.sizeOf(context);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: <Widget>[
-            PageView.builder(
-              controller: _pageController,
-              physics: widget.attachments.length > 1
-                  ? const BouncingScrollPhysics()
-                  : const NeverScrollableScrollPhysics(),
-              itemCount: widget.attachments.length,
-              onPageChanged: (index) => setState(() => _currentIndex = index),
-              itemBuilder: (context, index) {
-                final attachment = widget.attachments[index];
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 56, 12, 24),
-                  child: Center(
-                    child: attachment.isVideo
-                        ? ChatVideoPreview(
-                            videoPath: attachment.path,
-                            maxHeight: mediaSize.height * 0.8,
-                            fit: BoxFit.contain,
-                            autoPlay:
-                                widget.autoPlayInitialVideo &&
-                                index == widget.initialIndex,
-                          )
-                        : attachment.isPdf
-                        ? _FullScreenPdfPreview(attachment: attachment)
-                        : _FullScreenChatImage(attachment: attachment),
-                  ),
-                );
-              },
-            ),
-            Positioned(
-              top: 4,
-              left: 4,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white,
-                ),
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Stack(
+            children: <Widget>[
+              PageView.builder(
+                controller: _pageController,
+                physics: widget.attachments.length > 1
+                    ? const BouncingScrollPhysics()
+                    : const NeverScrollableScrollPhysics(),
+                itemCount: widget.attachments.length,
+                onPageChanged: (index) =>
+                    updateView(() => _currentIndex = index),
+                itemBuilder: (context, index) {
+                  final attachment = widget.attachments[index];
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 56, 12, 24),
+                    child: Center(
+                      child: attachment.isVideo
+                          ? ChatVideoPreview(
+                              videoPath: attachment.path,
+                              maxHeight: mediaSize.height * 0.8,
+                              fit: BoxFit.contain,
+                              autoPlay:
+                                  widget.autoPlayInitialVideo &&
+                                  index == widget.initialIndex,
+                            )
+                          : attachment.isPdf
+                          ? _FullScreenPdfPreview(attachment: attachment)
+                          : _FullScreenChatImage(attachment: attachment),
+                    ),
+                  );
+                },
               ),
-            ),
-            if (widget.attachments.length > 1)
               Positioned(
-                top: 12,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.42),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppColors.textPrimary.withValues(alpha: 0.12),
-                    ),
-                  ),
-                  child: Text(
-                    '${_currentIndex + 1}/${widget.attachments.length}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                top: 4,
+                left: 4,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
                   ),
                 ),
               ),
-          ],
+              if (widget.attachments.length > 1)
+                Positioned(
+                  top: 12,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.42),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: AppColors.textPrimary.withValues(alpha: 0.12),
+                      ),
+                    ),
+                    child: Text(
+                      '${_currentIndex + 1}/${widget.attachments.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 

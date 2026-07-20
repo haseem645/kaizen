@@ -8,7 +8,8 @@ import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_text_view.dart';
 import '../../kaizengram_message_attachment.dart';
 import '../../widgets/kaizengram_full_screen_attachment_view.dart';
-import '../chat_strings.dart';
+import '../../widgets/kaizengram_link_preview_card.dart';
+import '../../widgets/kaizengram_notifier_state.dart';
 import '../providers/kaizengram_chat_controller.dart';
 import '../widgets/chat_mention_text.dart';
 import '../widgets/chat_message_composer.dart';
@@ -16,9 +17,8 @@ import '../widgets/chat_user_initial_avatar.dart';
 import '../widgets/chat_users_bottom_sheet.dart';
 import '../widgets/chat_video_preview.dart';
 import '../widgets/delete_channel_confirmation_dialog.dart';
-import '../../widgets/kaizengram_link_preview_card.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
-////
 class KaizengramChatScreen extends StatelessWidget {
   const KaizengramChatScreen({super.key, this.controller});
 
@@ -47,7 +47,8 @@ class _KaizengramChatView extends StatefulWidget {
   State<_KaizengramChatView> createState() => _KaizengramChatViewState();
 }
 
-class _KaizengramChatViewState extends State<_KaizengramChatView> {
+class _KaizengramChatViewState extends State<_KaizengramChatView>
+    with KaizengramNotifierState<_KaizengramChatView> {
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _messageKeys = <String, GlobalKey>{};
   String? _lastAutoScrollKey;
@@ -64,48 +65,57 @@ class _KaizengramChatViewState extends State<_KaizengramChatView> {
 
   @override
   Widget build(BuildContext context) {
-    final hasSelectedConversation = context
-        .select<KaizengramChatController, bool>(
-          (controller) => controller.hasSelectedConversation,
-        );
-    final conversationTitle = context.select<KaizengramChatController, String>(
-      (controller) => controller.currentConversationTitle,
-    );
-    final isCurrentConversationChannel = context
-        .select<KaizengramChatController, bool>(
-          (controller) => controller.isCurrentConversationChannel,
-        );
-    final messageVersion = context.select<KaizengramChatController, int>(
-      (controller) => controller.messageVersion,
-    );
-    final controller = context.read<KaizengramChatController>();
-    final messages = controller.messages;
-    final autoScrollKey =
-        '$conversationTitle-$messageVersion-${messages.length}';
+    return buildWithNotifier((context) {
+      final hasSelectedConversation = context
+          .select<KaizengramChatController, bool>(
+            (controller) => controller.hasSelectedConversation,
+          );
+      final conversationTitle = context
+          .select<KaizengramChatController, String>(
+            (controller) => controller.currentConversationTitle,
+          );
+      final conversationLabel = context
+          .select<KaizengramChatController, String>(
+            (controller) => controller.currentConversationLabel,
+          );
+      final isCurrentConversationChannel = context
+          .select<KaizengramChatController, bool>(
+            (controller) => controller.isCurrentConversationChannel,
+          );
+      final messageVersion = context.select<KaizengramChatController, int>(
+        (controller) => controller.messageVersion,
+      );
+      final controller = context.read<KaizengramChatController>();
+      final messages = controller.messages;
+      final autoScrollKey =
+          '$conversationTitle-$messageVersion-${messages.length}';
 
-    if (messages.isNotEmpty && _lastAutoScrollKey != autoScrollKey) {
-      _lastAutoScrollKey = autoScrollKey;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _jumpToLatestMessage();
-      });
-    }
+      if (messages.isNotEmpty && _lastAutoScrollKey != autoScrollKey) {
+        _lastAutoScrollKey = autoScrollKey;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _jumpToLatestMessage();
+        });
+      }
 
-    return Scaffold(
-      backgroundColor: _screenBackground,
-      appBar: _buildAppBar(
-        context,
-        conversationTitle: conversationTitle,
-        isCurrentConversationChannel: isCurrentConversationChannel,
-      ),
-      body: hasSelectedConversation
-          ? _buildBody(conversationTitle, messages)
-          : const _NoConversationSelectedView(),
-    );
+      return Scaffold(
+        backgroundColor: _screenBackground,
+        appBar: _buildAppBar(
+          context,
+          conversationTitle: conversationTitle,
+          conversationLabel: conversationLabel,
+          isCurrentConversationChannel: isCurrentConversationChannel,
+        ),
+        body: hasSelectedConversation
+            ? _buildBody(conversationTitle, messages)
+            : const _NoConversationSelectedView(),
+      );
+    });
   }
 
   PreferredSizeWidget _buildAppBar(
     BuildContext context, {
     required String conversationTitle,
+    required String conversationLabel,
     required bool isCurrentConversationChannel,
   }) {
     return AppBar(
@@ -113,9 +123,10 @@ class _KaizengramChatViewState extends State<_KaizengramChatView> {
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       scrolledUnderElevation: 0,
-      titleSpacing: 0,
+      titleSpacing: 18,
       title: _ChatAppBarTitle(
         title: conversationTitle,
+        subtitle: conversationLabel,
         isChannel: isCurrentConversationChannel,
       ),
       actions: _buildAppBarActions(
@@ -141,13 +152,11 @@ class _KaizengramChatViewState extends State<_KaizengramChatView> {
         itemBuilder: (_) => const <PopupMenuEntry<_ChatMenuAction>>[
           PopupMenuItem<_ChatMenuAction>(
             value: _ChatMenuAction.users,
-            child: _PopupMenuLabel(title: KaizengramChatStrings.menuUsers),
+            child: _PopupMenuLabel(title: AppStrings.menuUsers),
           ),
           PopupMenuItem<_ChatMenuAction>(
             value: _ChatMenuAction.deleteChannel,
-            child: _PopupMenuLabel(
-              title: KaizengramChatStrings.menuDeleteChannel,
-            ),
+            child: _PopupMenuLabel(title: AppStrings.menuDeleteChannel),
           ),
         ],
       ),
@@ -247,8 +256,8 @@ class _KaizengramChatViewState extends State<_KaizengramChatView> {
 
     final wasDeleted = controller.deleteCurrentChannel();
     final message = wasDeleted
-        ? KaizengramChatStrings.channelDeletedSnackBar(deletedChannel)
-        : KaizengramChatStrings.lastChannelError;
+        ? AppStrings.channelDeletedSnackBar(deletedChannel)
+        : AppStrings.lastChannelError;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
@@ -315,14 +324,14 @@ class _KaizengramChatViewState extends State<_KaizengramChatView> {
   void _highlightMessage(String messageId) {
     final sequence = ++_highlightSequence;
     if (mounted) {
-      setState(() => _highlightedMessageId = messageId);
+      updateView(() => _highlightedMessageId = messageId);
     }
 
     Future<void>.delayed(const Duration(milliseconds: 1100), () {
       if (!mounted || sequence != _highlightSequence) {
         return;
       }
-      setState(() => _highlightedMessageId = null);
+      updateView(() => _highlightedMessageId = null);
     });
   }
 }
@@ -338,7 +347,7 @@ class _EmptyMessagesView extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24),
         child: AppTextView.body(
-          KaizengramChatStrings.emptyMessages,
+          AppStrings.emptyMessages,
           color: AppColors.textSecondary,
           textAlign: TextAlign.center,
         ),
@@ -356,7 +365,7 @@ class _NoConversationSelectedView extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24),
         child: AppTextView.body(
-          KaizengramChatStrings.noConversationSelected,
+          AppStrings.noConversationSelected,
           color: AppColors.textSecondary,
           textAlign: TextAlign.center,
         ),
@@ -366,18 +375,35 @@ class _NoConversationSelectedView extends StatelessWidget {
 }
 
 class _ChatAppBarTitle extends StatelessWidget {
-  const _ChatAppBarTitle({required this.title, required this.isChannel});
+  const _ChatAppBarTitle({
+    required this.title,
+    required this.subtitle,
+    required this.isChannel,
+  });
 
   final String title;
+  final String subtitle;
   final bool isChannel;
 
   @override
   Widget build(BuildContext context) {
-    return AppTextView.body1(
-      isChannel ? '#$title' : title,
-      color: AppColors.textPrimary,
-      fontSize: 20,
-      fontWeight: FontWeight.w700,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        AppTextView.body1(
+          isChannel ? '#$title' : title,
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+        const SizedBox(height: 2),
+        AppTextView.body4(
+          subtitle,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ],
     );
   }
 }
@@ -563,7 +589,7 @@ class _ChatMessageTile extends StatelessWidget {
       items: const <PopupMenuEntry<_MessageAction>>[
         PopupMenuItem<_MessageAction>(
           value: _MessageAction.reply,
-          child: _PopupMenuLabel(title: KaizengramChatStrings.actionReply),
+          child: _PopupMenuLabel(title: AppStrings.actionReply),
         ),
       ],
     );
@@ -841,7 +867,7 @@ class _ChatMessagePdfCard extends StatelessWidget {
     final gap = compactLayout ? 6.0 : 10.0;
     final fileName = CustomFunctions.fileNameFromPath(
       attachment.path,
-      fallback: KaizengramChatStrings.documentMessageLabel,
+      fallback: AppStrings.documentMessageLabel,
     );
 
     return Material(

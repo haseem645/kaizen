@@ -2,201 +2,235 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../kaizengram_message_attachment.dart';
-import '../chat_strings.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
 class KaizengramChatController extends ChangeNotifier {
   KaizengramChatController() {
     _currentUser = const KaizengramChatUser(
-      name: KaizengramChatStrings.userYouName,
-      email: KaizengramChatStrings.userYouEmail,
+      name: AppStrings.userYouName,
+      email: AppStrings.userYouEmail,
     );
     _users = <KaizengramChatUser>[
       _currentUser,
       const KaizengramChatUser(
-        name: KaizengramChatStrings.userOliviaName,
-        email: KaizengramChatStrings.userOliviaEmail,
+        name: AppStrings.userOliviaName,
+        email: AppStrings.userOliviaEmail,
       ),
       const KaizengramChatUser(
-        name: KaizengramChatStrings.userMarcusName,
-        email: KaizengramChatStrings.userMarcusEmail,
+        name: AppStrings.userMarcusName,
+        email: AppStrings.userMarcusEmail,
       ),
       const KaizengramChatUser(
-        name: KaizengramChatStrings.userNinaName,
-        email: KaizengramChatStrings.userNinaEmail,
+        name: AppStrings.userNinaName,
+        email: AppStrings.userNinaEmail,
       ),
       const KaizengramChatUser(
-        name: KaizengramChatStrings.userChrisName,
-        email: KaizengramChatStrings.userChrisEmail,
+        name: AppStrings.userChrisName,
+        email: AppStrings.userChrisEmail,
       ),
       const KaizengramChatUser(
-        name: KaizengramChatStrings.userBotName,
-        email: KaizengramChatStrings.userBotEmail,
+        name: AppStrings.userAishaName,
+        email: AppStrings.userAishaEmail,
+      ),
+      const KaizengramChatUser(
+        name: AppStrings.userDanielName,
+        email: AppStrings.userDanielEmail,
+      ),
+      const KaizengramChatUser(
+        name: AppStrings.userFatimaName,
+        email: AppStrings.userFatimaEmail,
+      ),
+      const KaizengramChatUser(
+        name: AppStrings.userLiamName,
+        email: AppStrings.userLiamEmail,
+      ),
+      const KaizengramChatUser(
+        name: AppStrings.userEmmaName,
+        email: AppStrings.userEmmaEmail,
+      ),
+      const KaizengramChatUser(
+        name: AppStrings.userBotName,
+        email: AppStrings.userBotEmail,
       ),
     ];
     _channels = <KaizengramChatChannel>[
       const KaizengramChatChannel(
-        name: KaizengramChatStrings.channelGeneral,
+        name: AppStrings.channelGeneral,
         imagePath:
             'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
       ),
       const KaizengramChatChannel(
-        name: KaizengramChatStrings.channelAnnouncements,
+        name: AppStrings.channelAnnouncements,
         imagePath:
             'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=400&q=80',
       ),
       const KaizengramChatChannel(
-        name: KaizengramChatStrings.channelWins,
+        name: AppStrings.channelWins,
         imagePath:
             'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=400&q=80',
       ),
       const KaizengramChatChannel(
-        name: KaizengramChatStrings.channelCoaching,
+        name: AppStrings.channelCoaching,
         imagePath:
             'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80',
       ),
       const KaizengramChatChannel(
-        name: KaizengramChatStrings.channelTrainingHub,
+        name: AppStrings.channelTrainingHub,
         imagePath:
             'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80',
       ),
       const KaizengramChatChannel(
-        name: KaizengramChatStrings.channelQaReview,
+        name: AppStrings.channelQaReview,
         imagePath:
             'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=400&q=80',
       ),
     ];
     _channelMemberEmailsByChannel = <String, List<String>>{
-      KaizengramChatStrings.channelGeneral: <String>[
-        KaizengramChatStrings.userYouEmail,
-        KaizengramChatStrings.userOliviaEmail,
-        KaizengramChatStrings.userMarcusEmail,
-        KaizengramChatStrings.userNinaEmail,
-        KaizengramChatStrings.userChrisEmail,
+      AppStrings.channelGeneral: <String>[
+        AppStrings.userYouEmail,
+        AppStrings.userOliviaEmail,
+        AppStrings.userMarcusEmail,
+        AppStrings.userNinaEmail,
+        AppStrings.userChrisEmail,
       ],
-      KaizengramChatStrings.channelAnnouncements: <String>[
-        KaizengramChatStrings.userYouEmail,
-        KaizengramChatStrings.userOliviaEmail,
-        KaizengramChatStrings.userBotEmail,
+      AppStrings.channelAnnouncements: <String>[
+        AppStrings.userYouEmail,
+        AppStrings.userOliviaEmail,
+        AppStrings.userBotEmail,
       ],
-      KaizengramChatStrings.channelWins: <String>[
-        KaizengramChatStrings.userYouEmail,
-        KaizengramChatStrings.userNinaEmail,
-        KaizengramChatStrings.userChrisEmail,
+      AppStrings.channelWins: <String>[
+        AppStrings.userYouEmail,
+        AppStrings.userNinaEmail,
+        AppStrings.userChrisEmail,
       ],
-      KaizengramChatStrings.channelCoaching: <String>[
-        KaizengramChatStrings.userYouEmail,
-        KaizengramChatStrings.userOliviaEmail,
-        KaizengramChatStrings.userNinaEmail,
+      AppStrings.channelCoaching: <String>[
+        AppStrings.userYouEmail,
+        AppStrings.userOliviaEmail,
+        AppStrings.userNinaEmail,
       ],
-      KaizengramChatStrings.channelTrainingHub: <String>[
-        KaizengramChatStrings.userYouEmail,
-        KaizengramChatStrings.userMarcusEmail,
-        KaizengramChatStrings.userChrisEmail,
+      AppStrings.channelTrainingHub: <String>[
+        AppStrings.userYouEmail,
+        AppStrings.userMarcusEmail,
+        AppStrings.userChrisEmail,
       ],
-      KaizengramChatStrings.channelQaReview: <String>[
-        KaizengramChatStrings.userYouEmail,
-        KaizengramChatStrings.userOliviaEmail,
-        KaizengramChatStrings.userBotEmail,
+      AppStrings.channelQaReview: <String>[
+        AppStrings.userYouEmail,
+        AppStrings.userOliviaEmail,
+        AppStrings.userBotEmail,
       ],
     };
-    _directMessageEmails = <String>[KaizengramChatStrings.userOliviaEmail];
+    _directMessageEmails = <String>[AppStrings.userOliviaEmail];
     _messagesByConversation = <String, List<KaizengramChatMessage>>{
-      _channelConversationKey(KaizengramChatStrings.channelGeneral): <KaizengramChatMessage>[
+      _channelConversationKey(
+        AppStrings.channelGeneral,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'general-1',
-          sender: _userByEmail(KaizengramChatStrings.userOliviaEmail),
-          message: KaizengramChatStrings.generalMessageOne,
+          sender: _userByEmail(AppStrings.userOliviaEmail),
+          message: AppStrings.generalMessageOne,
         ),
         KaizengramChatMessage(
           id: 'general-2',
-          sender: _userByEmail(KaizengramChatStrings.userMarcusEmail),
-          message: KaizengramChatStrings.generalMessageTwo,
+          sender: _userByEmail(AppStrings.userMarcusEmail),
+          message: AppStrings.generalMessageTwo,
         ),
         KaizengramChatMessage(
           id: 'general-3',
-          sender: _userByEmail(KaizengramChatStrings.userNinaEmail),
-          message: KaizengramChatStrings.generalMessageThree,
+          sender: _userByEmail(AppStrings.userNinaEmail),
+          message: AppStrings.generalMessageThree,
         ),
         KaizengramChatMessage(
           id: 'general-4',
-          sender: _userByEmail(KaizengramChatStrings.userChrisEmail),
-          message: KaizengramChatStrings.generalMessageFour,
+          sender: _userByEmail(AppStrings.userChrisEmail),
+          message: AppStrings.generalMessageFour,
         ),
         KaizengramChatMessage(
           id: 'general-5',
-          sender: _userByEmail(KaizengramChatStrings.userYouEmail),
-          message: KaizengramChatStrings.generalMessageFive,
+          sender: _userByEmail(AppStrings.userYouEmail),
+          message: AppStrings.generalMessageFive,
         ),
         KaizengramChatMessage(
           id: 'general-6',
-          sender: _userByEmail(KaizengramChatStrings.userOliviaEmail),
-          message: KaizengramChatStrings.generalMessageSix,
+          sender: _userByEmail(AppStrings.userOliviaEmail),
+          message: AppStrings.generalMessageSix,
         ),
         KaizengramChatMessage(
           id: 'general-7',
-          sender: _userByEmail(KaizengramChatStrings.userMarcusEmail),
-          message: KaizengramChatStrings.generalMessageSeven,
+          sender: _userByEmail(AppStrings.userMarcusEmail),
+          message: AppStrings.generalMessageSeven,
         ),
         KaizengramChatMessage(
           id: 'general-8',
-          sender: _userByEmail(KaizengramChatStrings.userYouEmail),
-          message: KaizengramChatStrings.generalMessageEight,
+          sender: _userByEmail(AppStrings.userYouEmail),
+          message: AppStrings.generalMessageEight,
         ),
       ],
-      _channelConversationKey(KaizengramChatStrings.channelAnnouncements): <KaizengramChatMessage>[
+      _channelConversationKey(
+        AppStrings.channelAnnouncements,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'announcements-1',
-          sender: _userByEmail(KaizengramChatStrings.userBotEmail),
-          message: KaizengramChatStrings.announcementsMessage,
+          sender: _userByEmail(AppStrings.userBotEmail),
+          message: AppStrings.announcementsMessage,
         ),
       ],
-      _channelConversationKey(KaizengramChatStrings.channelWins): <KaizengramChatMessage>[
+      _channelConversationKey(AppStrings.channelWins): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'wins-1',
-          sender: _userByEmail(KaizengramChatStrings.userNinaEmail),
-          message: KaizengramChatStrings.winsMessage,
+          sender: _userByEmail(AppStrings.userNinaEmail),
+          message: AppStrings.winsMessage,
         ),
       ],
-      _channelConversationKey(KaizengramChatStrings.channelCoaching): <KaizengramChatMessage>[
+      _channelConversationKey(
+        AppStrings.channelCoaching,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'coaching-1',
-          sender: _userByEmail(KaizengramChatStrings.userOliviaEmail),
-          message: KaizengramChatStrings.coachingMessage,
+          sender: _userByEmail(AppStrings.userOliviaEmail),
+          message: AppStrings.coachingMessage,
         ),
       ],
-      _channelConversationKey(KaizengramChatStrings.channelTrainingHub): <KaizengramChatMessage>[
+      _channelConversationKey(
+        AppStrings.channelTrainingHub,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'training-hub-1',
-          sender: _userByEmail(KaizengramChatStrings.userMarcusEmail),
-          message: KaizengramChatStrings.trainingHubMessage,
+          sender: _userByEmail(AppStrings.userMarcusEmail),
+          message: AppStrings.trainingHubMessage,
         ),
       ],
-      _channelConversationKey(KaizengramChatStrings.channelQaReview): <KaizengramChatMessage>[
+      _channelConversationKey(
+        AppStrings.channelQaReview,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'qa-review-1',
-          sender: _userByEmail(KaizengramChatStrings.userBotEmail),
-          message: KaizengramChatStrings.qaReviewMessage,
+          sender: _userByEmail(AppStrings.userBotEmail),
+          message: AppStrings.qaReviewMessage,
         ),
       ],
-      _directConversationKey(KaizengramChatStrings.userOliviaEmail): <KaizengramChatMessage>[
+      _directConversationKey(
+        AppStrings.userOliviaEmail,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'dm-olivia-1',
-          sender: _userByEmail(KaizengramChatStrings.userOliviaEmail),
-          message: KaizengramChatStrings.directMessageOlivia,
+          sender: _userByEmail(AppStrings.userOliviaEmail),
+          message: AppStrings.directMessageOlivia,
         ),
       ],
-      _directConversationKey(KaizengramChatStrings.userMarcusEmail): <KaizengramChatMessage>[
+      _directConversationKey(
+        AppStrings.userMarcusEmail,
+      ): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'dm-marcus-1',
-          sender: _userByEmail(KaizengramChatStrings.userMarcusEmail),
-          message: KaizengramChatStrings.directMessageMarcus,
+          sender: _userByEmail(AppStrings.userMarcusEmail),
+          message: AppStrings.directMessageMarcus,
         ),
       ],
-      _directConversationKey(KaizengramChatStrings.userNinaEmail): <KaizengramChatMessage>[
+      _directConversationKey(AppStrings.userNinaEmail): <KaizengramChatMessage>[
         KaizengramChatMessage(
           id: 'dm-nina-1',
-          sender: _userByEmail(KaizengramChatStrings.userNinaEmail),
-          message: KaizengramChatStrings.directMessageNina,
+          sender: _userByEmail(AppStrings.userNinaEmail),
+          message: AppStrings.directMessageNina,
         ),
       ],
     };
@@ -213,34 +247,51 @@ class KaizengramChatController extends ChangeNotifier {
   late final Map<String, List<KaizengramChatMessage>> _messagesByConversation;
   KaizengramChatConversationTarget? _selectedConversation;
   String _draftMessage = '';
-  List<KaizengramMessageAttachment> _draftAttachments = <KaizengramMessageAttachment>[];
+  List<KaizengramMessageAttachment> _draftAttachments =
+      <KaizengramMessageAttachment>[];
   bool _isPickingDraftMedia = false;
   int _messageVersion = 0;
   KaizengramChatMessage? _replyingTo;
 
-  List<KaizengramChatUser> get users => List<KaizengramChatUser>.unmodifiable(_users);
-  List<KaizengramChatChannel> get channels => List<KaizengramChatChannel>.unmodifiable(_channels);
+  List<KaizengramChatUser> get users =>
+      List<KaizengramChatUser>.unmodifiable(_users);
+  List<KaizengramChatChannel> get channels =>
+      List<KaizengramChatChannel>.unmodifiable(_channels);
   List<KaizengramChatUser> get currentChannelUsers {
     final channelName = activeChannelName;
     if (channelName == null) {
       return const <KaizengramChatUser>[];
     }
 
-    final channelMemberEmails = _channelMemberEmailsByChannel[channelName] ?? const <String>[];
+    final channelMemberEmails =
+        _channelMemberEmailsByChannel[channelName] ?? const <String>[];
     return List<KaizengramChatUser>.unmodifiable(
       channelMemberEmails.map(_userByEmail).toList(growable: false),
     );
   }
 
-  List<KaizengramChatUser> get directMessageUsers => List<KaizengramChatUser>.unmodifiable(
-    _directMessageEmails.map(_userByEmail).toList(growable: false),
-  );
-  List<KaizengramChatUser> get directMessageCandidates => List<KaizengramChatUser>.unmodifiable(
-    _users
-        .where(_canStartDirectMessageWith)
-        .where((user) => !_directMessageEmails.contains(user.email))
-        .toList(growable: false),
-  );
+  List<KaizengramChatUser> get directMessageUsers =>
+      List<KaizengramChatUser>.unmodifiable(
+        _directMessageEmails.map(_userByEmail).toList(growable: false),
+      );
+  List<KaizengramChatUser> get directMessageCandidates =>
+      List<KaizengramChatUser>.unmodifiable(
+        _users
+            .where(_canStartDirectMessageWith)
+            .where((user) => !_directMessageEmails.contains(user.email))
+            .toList(growable: false),
+      );
+  Set<String> get currentChannelMemberEmails {
+    final channelName = activeChannelName;
+    if (channelName == null) {
+      return const <String>{};
+    }
+
+    final channelMemberEmails =
+        _channelMemberEmailsByChannel[channelName] ?? const <String>[];
+    return Set<String>.unmodifiable(channelMemberEmails.map(_normalizeEmail));
+  }
+
   List<KaizengramChatUser> get shareDirectMessageTargets {
     final seenEmails = <String>{};
     final orderedUsers = <KaizengramChatUser>[];
@@ -266,21 +317,25 @@ class KaizengramChatController extends ChangeNotifier {
   bool get isPickingDraftMedia => _isPickingDraftMedia;
   int get messageVersion => _messageVersion;
   bool get hasDraftMedia => _draftAttachments.isNotEmpty;
-  bool get canAddMoreDraftMedia => _draftAttachments.length < maxMessageMediaCount;
+  bool get canAddMoreDraftMedia =>
+      _draftAttachments.length < maxMessageMediaCount;
   bool get canSendMessage => _draftMessage.trim().isNotEmpty || hasDraftMedia;
   KaizengramChatUser get currentUser => _currentUser;
   KaizengramChatMessage? get replyingTo => _replyingTo;
   bool get hasSelectedConversation => _selectedConversation != null;
-  KaizengramChatConversationType? get currentConversationType => _selectedConversation?.type;
+  KaizengramChatConversationType? get currentConversationType =>
+      _selectedConversation?.type;
   bool get isCurrentConversationChannel =>
       currentConversationType == KaizengramChatConversationType.channel;
-  bool get canDeleteCurrentChannel => isCurrentConversationChannel && _channels.length > 1;
+  bool get canDeleteCurrentChannel =>
+      isCurrentConversationChannel && _channels.length > 1;
   String? get activeChannelName =>
       _selectedConversation?.type == KaizengramChatConversationType.channel
       ? _selectedConversation!.id
       : null;
   KaizengramChatUser? get activeDirectMessageUser =>
-      _selectedConversation?.type == KaizengramChatConversationType.directMessage
+      _selectedConversation?.type ==
+          KaizengramChatConversationType.directMessage
       ? _userByEmail(_selectedConversation!.id)
       : null;
   String get currentConversationTitle {
@@ -295,17 +350,19 @@ class KaizengramChatController extends ChangeNotifier {
   String get currentConversationLabel {
     switch (currentConversationType) {
       case KaizengramChatConversationType.channel:
-        return KaizengramChatStrings.channelLabel;
+        return AppStrings.channelLabel;
       case KaizengramChatConversationType.directMessage:
-        return KaizengramChatStrings.directMessageLabel;
+        return AppStrings.directMessageLabel;
       case null:
-        return KaizengramChatStrings.conversationLabel;
+        return AppStrings.conversationLabel;
     }
   }
 
-  List<KaizengramChatMessage> get messages => List<KaizengramChatMessage>.unmodifiable(
-    _messagesByConversation[_selectedConversation?.key] ?? const <KaizengramChatMessage>[],
-  );
+  List<KaizengramChatMessage> get messages =>
+      List<KaizengramChatMessage>.unmodifiable(
+        _messagesByConversation[_selectedConversation?.key] ??
+            const <KaizengramChatMessage>[],
+      );
 
   bool isOwnMessage(KaizengramChatMessage message) {
     return message.sender.email == _currentUser.email;
@@ -313,13 +370,15 @@ class KaizengramChatController extends ChangeNotifier {
 
   bool isChannelSelected(String channelName) {
     final selectedConversation = _selectedConversation;
-    return selectedConversation?.type == KaizengramChatConversationType.channel &&
+    return selectedConversation?.type ==
+            KaizengramChatConversationType.channel &&
         selectedConversation?.id == channelName;
   }
 
   bool isDirectMessageSelected(String email) {
     final selectedConversation = _selectedConversation;
-    return selectedConversation?.type == KaizengramChatConversationType.directMessage &&
+    return selectedConversation?.type ==
+            KaizengramChatConversationType.directMessage &&
         selectedConversation?.id == email;
   }
 
@@ -333,8 +392,93 @@ class KaizengramChatController extends ChangeNotifier {
       _users.where((user) {
         final lowerName = user.name.toLowerCase();
         final lowerEmail = user.email.toLowerCase();
-        return lowerName.contains(normalizedQuery) || lowerEmail.contains(normalizedQuery);
+        return lowerName.contains(normalizedQuery) ||
+            lowerEmail.contains(normalizedQuery);
       }),
+    );
+  }
+
+  int channelMemberCount(String channelName) {
+    final memberEmails =
+        _channelMemberEmailsByChannel[channelName] ?? const <String>[];
+    return memberEmails.length;
+  }
+
+  List<KaizengramChatUser> directMessageCandidatesForQuery(String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+    final candidates = directMessageCandidates
+        .where((user) => user.matchesQuery(normalizedQuery))
+        .toList(growable: false);
+
+    return List<KaizengramChatUser>.unmodifiable(
+      _sortedUsersForQuery(candidates, normalizedQuery),
+    );
+  }
+
+  List<KaizengramChatUser> currentChannelInviteSuggestions(
+    String query, {
+    Iterable<String> excludedEmails = const <String>[],
+  }) {
+    final normalizedQuery = query.trim().toLowerCase();
+    final blockedEmails = <String>{
+      ...currentChannelMemberEmails,
+      ...excludedEmails.map(_normalizeEmail),
+      _currentUser.normalizedEmail,
+      AppStrings.userBotEmail,
+    };
+    final candidates = _users
+        .where(
+          (user) =>
+              !blockedEmails.contains(user.normalizedEmail) &&
+              user.matchesQuery(normalizedQuery),
+        )
+        .toList(growable: false);
+
+    final sortedUsers = _sortedUsersForQuery(candidates, normalizedQuery);
+    if (normalizedQuery.isEmpty && sortedUsers.length > 8) {
+      return List<KaizengramChatUser>.unmodifiable(
+        sortedUsers.take(8).toList(growable: false),
+      );
+    }
+
+    return List<KaizengramChatUser>.unmodifiable(sortedUsers);
+  }
+
+  KaizengramChatUser? currentChannelInviteCandidate(
+    String query, {
+    Iterable<String> excludedEmails = const <String>[],
+  }) {
+    final normalizedEmail = _normalizeEmail(query);
+    if (normalizedEmail.isEmpty) {
+      return null;
+    }
+
+    final blockedEmails = <String>{
+      ...currentChannelMemberEmails,
+      ...excludedEmails.map(_normalizeEmail),
+      _currentUser.normalizedEmail,
+      AppStrings.userBotEmail,
+    };
+    if (blockedEmails.contains(normalizedEmail)) {
+      return null;
+    }
+
+    final matchingUser = _users.cast<KaizengramChatUser?>().firstWhere(
+      (user) => user?.normalizedEmail == normalizedEmail,
+      orElse: () => null,
+    );
+    if (matchingUser != null) {
+      return matchingUser;
+    }
+
+    if (!_isValidEmail(normalizedEmail)) {
+      return null;
+    }
+
+    return KaizengramChatUser(
+      name: _displayNameFromEmail(normalizedEmail.split('@').first),
+      email: normalizedEmail,
+      isExternal: true,
     );
   }
 
@@ -348,7 +492,9 @@ class KaizengramChatController extends ChangeNotifier {
   }
 
   Future<KaizengramChatDraftMediaPickResult> pickDraftMedia() async {
-    return pickDraftMediaForSource(source: KaizengramMessageAttachmentPickSource.media);
+    return pickDraftMediaForSource(
+      source: KaizengramMessageAttachmentPickSource.media,
+    );
   }
 
   Future<KaizengramChatDraftMediaPickResult> pickDraftMediaForSource({
@@ -376,7 +522,10 @@ class KaizengramChatController extends ChangeNotifier {
         return KaizengramChatDraftMediaPickResult.cancelled;
       }
 
-      _draftAttachments = <KaizengramMessageAttachment>[..._draftAttachments, ...nextAttachments];
+      _draftAttachments = <KaizengramMessageAttachment>[
+        ..._draftAttachments,
+        ...nextAttachments,
+      ];
       notifyListeners();
       return KaizengramChatDraftMediaPickResult.selected;
     } catch (_) {
@@ -405,7 +554,10 @@ class KaizengramChatController extends ChangeNotifier {
   }
 
   Future<String?> pickChannelImage() async {
-    final pickedImage = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final pickedImage = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
     return pickedImage?.path;
   }
 
@@ -431,49 +583,50 @@ class KaizengramChatController extends ChangeNotifier {
       );
     }
 
-    _selectConversation(KaizengramChatConversationTarget.directMessage(normalizedEmail));
+    _selectConversation(
+      KaizengramChatConversationTarget.directMessage(normalizedEmail),
+    );
   }
 
   String? validateChannelName(String rawName) {
     final channelName = _normalizedChannelName(rawName);
     if (channelName.isEmpty) {
-      return KaizengramChatStrings.emptyChannelNameError;
+      return AppStrings.emptyChannelNameError;
     }
     if (_hasChannelNamed(channelName)) {
-      return KaizengramChatStrings.duplicateChannelNameError;
+      return AppStrings.duplicateChannelNameError;
     }
 
     return null;
   }
 
   String? validateUserEmail(String rawEmail) {
-    final email = rawEmail.trim().toLowerCase();
-    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailRegex.hasMatch(email)) {
-      return KaizengramChatStrings.invalidEmailError;
+    final email = _normalizeEmail(rawEmail);
+    if (!_isValidEmail(email)) {
+      return AppStrings.invalidEmailError;
     }
-    if (_users.any((user) => user.email.toLowerCase() == email)) {
-      return KaizengramChatStrings.duplicateUserError;
+    if (_users.any((user) => user.normalizedEmail == email)) {
+      return AppStrings.duplicateUserError;
     }
 
     return null;
   }
 
   String? validateUserEmailForCurrentChannel(String rawEmail) {
-    final email = rawEmail.trim().toLowerCase();
-    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailRegex.hasMatch(email)) {
-      return KaizengramChatStrings.invalidEmailError;
+    final email = _normalizeEmail(rawEmail);
+    if (!_isValidEmail(email)) {
+      return AppStrings.invalidEmailError;
     }
 
     final channelName = activeChannelName;
     if (channelName == null) {
-      return KaizengramChatStrings.noActiveChannelError;
+      return AppStrings.noActiveChannelError;
     }
 
-    final channelMemberEmails = _channelMemberEmailsByChannel[channelName] ?? const <String>[];
+    final channelMemberEmails =
+        _channelMemberEmailsByChannel[channelName] ?? const <String>[];
     if (channelMemberEmails.contains(email)) {
-      return KaizengramChatStrings.duplicateChannelUserError;
+      return AppStrings.duplicateChannelUserError;
     }
 
     return null;
@@ -496,11 +649,13 @@ class KaizengramChatController extends ChangeNotifier {
       ),
     );
     _channelMemberEmailsByChannel[channelName] = <String>[_currentUser.email];
-    _messagesByConversation[_channelConversationKey(channelName)] = <KaizengramChatMessage>[
+    _messagesByConversation[_channelConversationKey(
+      channelName,
+    )] = <KaizengramChatMessage>[
       KaizengramChatMessage(
         id: '$channelName-1',
-        sender: _userByEmail(KaizengramChatStrings.userBotEmail),
-        message: KaizengramChatStrings.createdChannelMessage(channelName),
+        sender: _userByEmail(AppStrings.userBotEmail),
+        message: AppStrings.createdChannelMessage(channelName),
       ),
     ];
     notifyListeners();
@@ -517,7 +672,9 @@ class KaizengramChatController extends ChangeNotifier {
   }
 
   bool deleteChannel(String channelName) {
-    final deletedIndex = _channels.indexWhere((channel) => channel.name == channelName);
+    final deletedIndex = _channels.indexWhere(
+      (channel) => channel.name == channelName,
+    );
     if (_channels.length <= 1 || deletedIndex == -1) {
       return false;
     }
@@ -554,8 +711,11 @@ class KaizengramChatController extends ChangeNotifier {
   bool sendMessage() {
     final conversationKey = _selectedConversation?.key;
     final trimmedMessage = _draftMessage.trim();
-    final attachments = List<KaizengramMessageAttachment>.unmodifiable(_draftAttachments);
-    if (conversationKey == null || (trimmedMessage.isEmpty && attachments.isEmpty)) {
+    final attachments = List<KaizengramMessageAttachment>.unmodifiable(
+      _draftAttachments,
+    );
+    if (conversationKey == null ||
+        (trimmedMessage.isEmpty && attachments.isEmpty)) {
       return false;
     }
 
@@ -587,7 +747,8 @@ class KaizengramChatController extends ChangeNotifier {
   bool sendPresetMessage({
     required KaizengramChatConversationTarget conversation,
     required String message,
-    List<KaizengramMessageAttachment> attachments = const <KaizengramMessageAttachment>[],
+    List<KaizengramMessageAttachment> attachments =
+        const <KaizengramMessageAttachment>[],
   }) {
     final trimmedMessage = message.trim();
     final normalizedAttachments = attachments
@@ -596,7 +757,8 @@ class KaizengramChatController extends ChangeNotifier {
         .toList(growable: false);
     final resolvedConversation = _ensureConversationExists(conversation);
 
-    if (resolvedConversation == null || (trimmedMessage.isEmpty && normalizedAttachments.isEmpty)) {
+    if (resolvedConversation == null ||
+        (trimmedMessage.isEmpty && normalizedAttachments.isEmpty)) {
       return false;
     }
 
@@ -631,10 +793,13 @@ class KaizengramChatController extends ChangeNotifier {
       return '';
     }
 
-    final email = rawEmail.trim().toLowerCase();
-    if (!_users.any((user) => user.email == email)) {
-      final localPart = email.split('@').first;
-      final user = KaizengramChatUser(name: _displayNameFromEmail(localPart), email: email);
+    final email = _normalizeEmail(rawEmail);
+    if (!_users.any((user) => user.normalizedEmail == email)) {
+      final user = KaizengramChatUser(
+        name: _displayNameFromEmail(email.split('@').first),
+        email: email,
+        isExternal: true,
+      );
       _users.add(user);
     }
 
@@ -645,6 +810,19 @@ class KaizengramChatController extends ChangeNotifier {
     channelMemberEmails.insert(0, email);
     notifyListeners();
     return email;
+  }
+
+  List<String> addUsersToCurrentChannel(Iterable<String> rawEmails) {
+    final addedEmails = <String>[];
+
+    for (final rawEmail in rawEmails) {
+      final addedEmail = addUserToCurrentChannel(rawEmail);
+      if (addedEmail.isNotEmpty && !addedEmails.contains(addedEmail)) {
+        addedEmails.add(addedEmail);
+      }
+    }
+
+    return List<String>.unmodifiable(addedEmails);
   }
 
   bool removeUserFromCurrentChannel(KaizengramChatUser user) {
@@ -666,7 +844,8 @@ class KaizengramChatController extends ChangeNotifier {
   }
 
   KaizengramChatUser _userByEmail(String email) {
-    return _users.firstWhere((user) => user.email == email);
+    final normalizedEmail = _normalizeEmail(email);
+    return _users.firstWhere((user) => user.normalizedEmail == normalizedEmail);
   }
 
   bool _canStartDirectMessageWith(KaizengramChatUser user) {
@@ -675,7 +854,7 @@ class KaizengramChatController extends ChangeNotifier {
 
   bool _canStartDirectMessageWithEmail(String email) {
     return email != _currentUser.email &&
-        email != KaizengramChatStrings.userBotEmail &&
+        email != AppStrings.userBotEmail &&
         _users.any((user) => user.email == email);
   }
 
@@ -712,8 +891,39 @@ class KaizengramChatController extends ChangeNotifier {
     return localPart
         .split(RegExp(r'[._-]+'))
         .where((part) => part.isNotEmpty)
-        .map((part) => '${part.substring(0, 1).toUpperCase()}${part.substring(1)}')
+        .map(
+          (part) => '${part.substring(0, 1).toUpperCase()}${part.substring(1)}',
+        )
         .join(' ');
+  }
+
+  String _normalizeEmail(String rawEmail) {
+    return rawEmail.trim().toLowerCase();
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+  }
+
+  List<KaizengramChatUser> _sortedUsersForQuery(
+    List<KaizengramChatUser> users,
+    String normalizedQuery,
+  ) {
+    final sortedUsers = List<KaizengramChatUser>.from(users);
+    sortedUsers.sort((left, right) {
+      final leftStarts =
+          left.name.toLowerCase().startsWith(normalizedQuery) ||
+          left.normalizedEmail.startsWith(normalizedQuery);
+      final rightStarts =
+          right.name.toLowerCase().startsWith(normalizedQuery) ||
+          right.normalizedEmail.startsWith(normalizedQuery);
+      if (leftStarts != rightStarts) {
+        return leftStarts ? -1 : 1;
+      }
+
+      return left.name.compareTo(right.name);
+    });
+    return sortedUsers;
   }
 
   String _channelConversationKey(String channelName) {
@@ -761,7 +971,10 @@ class KaizengramChatController extends ChangeNotifier {
 enum KaizengramChatConversationType { channel, directMessage }
 
 class KaizengramChatConversationTarget {
-  const KaizengramChatConversationTarget._({required this.type, required this.id});
+  const KaizengramChatConversationTarget._({
+    required this.type,
+    required this.id,
+  });
 
   const KaizengramChatConversationTarget.channel(String channelName)
     : this._(type: KaizengramChatConversationType.channel, id: channelName);
@@ -787,7 +1000,9 @@ class KaizengramChatConversationTarget {
       return true;
     }
 
-    return other is KaizengramChatConversationTarget && other.type == type && other.id == id;
+    return other is KaizengramChatConversationTarget &&
+        other.type == type &&
+        other.id == id;
   }
 
   @override
@@ -795,10 +1010,27 @@ class KaizengramChatConversationTarget {
 }
 
 class KaizengramChatUser {
-  const KaizengramChatUser({required this.name, required this.email});
+  const KaizengramChatUser({
+    required this.name,
+    required this.email,
+    this.isExternal = false,
+  });
 
   final String name;
   final String email;
+  final bool isExternal;
+
+  String get normalizedEmail => email.trim().toLowerCase();
+
+  bool matchesQuery(String query) {
+    if (query.isEmpty) {
+      return true;
+    }
+
+    final normalizedQuery = query.toLowerCase();
+    return name.toLowerCase().contains(normalizedQuery) ||
+        normalizedEmail.contains(normalizedQuery);
+  }
 }
 
 class KaizengramChatChannel {
@@ -831,12 +1063,12 @@ class KaizengramChatMessage {
   String get previewText => hasText
       ? message
       : attachments.length > 1
-      ? KaizengramChatStrings.mediaMessageLabel
+      ? AppStrings.mediaMessageLabel
       : hasPdf
-      ? KaizengramChatStrings.documentMessageLabel
+      ? AppStrings.documentMessageLabel
       : hasVideo
-      ? KaizengramChatStrings.videoMessageLabel
-      : KaizengramChatStrings.photoMessageLabel;
+      ? AppStrings.videoMessageLabel
+      : AppStrings.photoMessageLabel;
 }
 
 class KaizengramChatReplyPreview {
@@ -851,4 +1083,9 @@ class KaizengramChatReplyPreview {
   final String message;
 }
 
-enum KaizengramChatDraftMediaPickResult { selected, cancelled, failed, limitReached }
+enum KaizengramChatDraftMediaPickResult {
+  selected,
+  cancelled,
+  failed,
+  limitReached,
+}

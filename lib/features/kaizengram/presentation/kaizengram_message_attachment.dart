@@ -3,8 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_text_view.dart';
-import 'chat/chat_strings.dart';
 
 const int kaizengramMessageAttachmentLimit = 3;
 
@@ -185,7 +185,7 @@ class _KaizengramAttachmentSourceSheet extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           AppTextView.body1(
-            KaizengramChatStrings.attachmentPickerTitle,
+            AppStrings.attachmentPickerTitle,
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
             fontSize: 16,
@@ -193,8 +193,8 @@ class _KaizengramAttachmentSourceSheet extends StatelessWidget {
           const SizedBox(height: 14),
           _KaizengramAttachmentSourceTile(
             icon: Icons.photo_library_outlined,
-            title: KaizengramChatStrings.attachmentPickerMediaTitle,
-            subtitle: KaizengramChatStrings.attachmentPickerMediaSubtitle,
+            title: AppStrings.attachmentPickerMediaTitle,
+            subtitle: AppStrings.attachmentPickerMediaSubtitle,
             onTap: () {
               Navigator.of(
                 context,
@@ -204,8 +204,8 @@ class _KaizengramAttachmentSourceSheet extends StatelessWidget {
           const SizedBox(height: 12),
           _KaizengramAttachmentSourceTile(
             icon: Icons.picture_as_pdf_outlined,
-            title: KaizengramChatStrings.attachmentPickerPdfTitle,
-            subtitle: KaizengramChatStrings.attachmentPickerPdfSubtitle,
+            title: AppStrings.attachmentPickerPdfTitle,
+            subtitle: AppStrings.attachmentPickerPdfSubtitle,
             onTap: () {
               Navigator.of(
                 context,
