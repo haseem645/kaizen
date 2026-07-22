@@ -170,6 +170,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     final controller = context.watch<AuditController>();
     final state = controller.state;
     final audit = state.quarterlyAudit;
+    final members = state.mainList?.results ?? const <AuditProfile>[];
     final profileDescription = audit?.descriptions.isEmpty ?? true
         ? null
         : audit!.descriptions.first;
@@ -203,12 +204,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                   child: Column(
                     children: [
                       _buildAuditProfileCard(audit, profileDescription),
-                      const SizedBox(height: 18),
-                      _buildSwitchTeamMembersSection(
-                        context,
-                        audit,
-                        state.mainList?.results ?? const <AuditProfile>[],
-                      ),
+                      if (members.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        _buildSwitchTeamMembersSection(context, audit, members),
+                      ],
                       const SizedBox(height: 18),
                       ValueListenableBuilder<_SingleAuditFiltersState>(
                         valueListenable: _filtersNotifier,
@@ -376,6 +375,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     QuarterlyAudit audit,
     List<AuditProfile> members,
   ) {
+    if (members.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final previewMembers = members.take(4).toList(growable: false);
 
     return Column(
