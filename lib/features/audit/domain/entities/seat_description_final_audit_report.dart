@@ -1,3 +1,5 @@
+import 'seat_description_training_route.dart';
+
 class SeatDescriptionFinalAuditReport {
   const SeatDescriptionFinalAuditReport({
     required this.uuid,
@@ -20,18 +22,6 @@ class SeatDescriptionFinalAuditReport {
   final bool isOpenSeat;
   final SeatDescriptionFinalAuditSummary summaryData;
   final List<String> checkInComments;
-}
-
-class SeatDescriptionTrainingRoute {
-  const SeatDescriptionTrainingRoute({
-    required this.job,
-    required this.category,
-    required this.description,
-  });
-
-  final String job;
-  final String category;
-  final String description;
 }
 
 class SeatDescriptionFinalAuditJob {

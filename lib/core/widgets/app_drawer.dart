@@ -146,10 +146,7 @@ class AppDrawer extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
-      ),
+      leading: Icon(icon, color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary),
       title: AppTextView.body2(
         title,
         color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
@@ -183,16 +180,10 @@ class _ProfileAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.surfaceDark3,
         border: Border.all(color: AppColors.secondaryColor, width: 2),
-        image: provider == null
-            ? null
-            : DecorationImage(image: provider, fit: BoxFit.cover),
+        image: provider == null ? null : DecorationImage(image: provider, fit: BoxFit.cover),
       ),
       child: provider == null
-          ? const Icon(
-              Icons.person_outline_rounded,
-              color: AppColors.textPrimary,
-              size: 48,
-            )
+          ? const Icon(Icons.person_outline_rounded, color: AppColors.textPrimary, size: 48)
           : null,
     );
   }

@@ -27,53 +27,73 @@ class SingleAuditDetailsScreen extends StatelessWidget {
     required this.quarterlyAuditId,
     required this.date,
     required this.lastAuditDate,
+    this.year,
+    this.quarter,
   });
 
   final String quarterlyAuditId;
   final String date;
   final String lastAuditDate;
+  final int? year;
+  final int? quarter;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
+        Provider<AuditRemoteDataSource>(
+          create: (_) => createAuditRemoteDataSource(),
+        ),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) =>
+              createGetAuditOverviewUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetQuarterlyAuditUseCase>(
-          update: (_, repository, __) => createGetQuarterlyAuditUseCase(repository),
+          update: (_, repository, __) =>
+              createGetQuarterlyAuditUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditTeamMembersUseCase>(
-          update: (_, repository, __) => createGetAuditTeamMembersUseCase(repository),
+          update: (_, repository, __) =>
+              createGetAuditTeamMembersUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, MarkFavoriteSubordinateUseCase>(
-          update: (_, repository, __) => createMarkFavoriteSubordinateUseCase(repository),
+          update: (_, repository, __) =>
+              createMarkFavoriteSubordinateUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, MarkUnfavoriteSubordinateUseCase>(
-          update: (_, repository, __) => createMarkUnfavoriteSubordinateUseCase(repository),
+          update: (_, repository, __) =>
+              createMarkUnfavoriteSubordinateUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
-          create: (context) => AuditController(
-            context.read<GetAuditOverviewUseCase>(),
-            null,
-            null,
-            context.read<GetQuarterlyAuditUseCase>(),
-            context.read<GetAuditTeamMembersUseCase>(),
-            context.read<MarkFavoriteSubordinateUseCase>(),
-            context.read<MarkUnfavoriteSubordinateUseCase>(),
-            context.read<AuditRepositoryImpl>(),
-          )..initializeSingleAuditDetails(quarterlyAuditId: quarterlyAuditId, date: date),
+          create: (context) =>
+              AuditController(
+                context.read<GetAuditOverviewUseCase>(),
+                null,
+                null,
+                context.read<GetQuarterlyAuditUseCase>(),
+                context.read<GetAuditTeamMembersUseCase>(),
+                context.read<MarkFavoriteSubordinateUseCase>(),
+                context.read<MarkUnfavoriteSubordinateUseCase>(),
+                context.read<AuditRepositoryImpl>(),
+              )..initializeSingleAuditDetails(
+                quarterlyAuditId: quarterlyAuditId,
+                date: date,
+                year: year,
+                quarter: quarter,
+              ),
         ),
       ],
       child: _SingleAuditDetailsView(
-        key: ValueKey('$quarterlyAuditId|$date|$lastAuditDate'),
+        key: ValueKey('$quarterlyAuditId|$date|$lastAuditDate|$year|$quarter'),
         quarterlyAuditId: quarterlyAuditId,
         date: date,
         lastAuditDate: lastAuditDate,
+        year: year,
+        quarter: quarter,
       ),
     );
   }
@@ -85,14 +105,19 @@ class _SingleAuditDetailsView extends StatefulWidget {
     required this.date,
     required this.lastAuditDate,
     required this.quarterlyAuditId,
+    this.year,
+    this.quarter,
   });
 
   final String date;
   final String lastAuditDate;
   final String quarterlyAuditId;
+  final int? year;
+  final int? quarter;
 
   @override
-  State<_SingleAuditDetailsView> createState() => _SingleAuditDetailsViewState();
+  State<_SingleAuditDetailsView> createState() =>
+      _SingleAuditDetailsViewState();
 }
 
 class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
@@ -101,7 +126,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
   @override
   void initState() {
     super.initState();
-    _filtersNotifier = ValueNotifier<_SingleAuditFiltersState>(const _SingleAuditFiltersState());
+    _filtersNotifier = ValueNotifier<_SingleAuditFiltersState>(
+      const _SingleAuditFiltersState(),
+    );
   }
 
   @override
@@ -110,7 +137,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     final didIdentityChange =
         oldWidget.lastAuditDate != widget.lastAuditDate ||
         oldWidget.date != widget.date ||
-        oldWidget.quarterlyAuditId != widget.quarterlyAuditId;
+        oldWidget.quarterlyAuditId != widget.quarterlyAuditId ||
+        oldWidget.year != widget.year ||
+        oldWidget.quarter != widget.quarter;
     if (!didIdentityChange) {
       return;
     }
@@ -124,6 +153,8 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
       context.read<AuditController>().initializeSingleAuditDetails(
         quarterlyAuditId: widget.quarterlyAuditId,
         date: widget.date,
+        year: widget.year,
+        quarter: widget.quarter,
       );
     });
   }
@@ -149,7 +180,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         bottom: false,
         child: Column(
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: _buildHeader(context),
+            ),
             const SizedBox(height: 18),
             if (state.isLoading)
               Expanded(child: Center(child: FastCircularProgressIndicator()))
@@ -179,7 +213,11 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                       ValueListenableBuilder<_SingleAuditFiltersState>(
                         valueListenable: _filtersNotifier,
                         builder: (context, filtersState, _) {
-                          return _buildDescriptionsSection(context, audit, filtersState);
+                          return _buildDescriptionsSection(
+                            context,
+                            audit,
+                            filtersState,
+                          );
                         },
                       ),
                       const SizedBox(height: 24),
@@ -247,7 +285,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -263,7 +304,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildAuditProfileCard(QuarterlyAudit audit, QuarterlyAuditDescription? description) {
+  Widget _buildAuditProfileCard(
+    QuarterlyAudit audit,
+    QuarterlyAuditDescription? description,
+  ) {
     final lastAuditDate = widget.date;
 
     return Container(
@@ -299,7 +343,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                       TextSpan(
                         text: '${AppStrings.lastAudit}: ',
                         style: TextStyle(
-                          color: AppColors.textSecondary.withValues(alpha: 0.78),
+                          color: AppColors.textSecondary.withValues(
+                            alpha: 0.78,
+                          ),
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                         ),
@@ -345,8 +391,13 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
               ),
             ),
             TextButton(
-              onPressed: members.isEmpty ? null : () => _openViewAllTeamMembers(context, members),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
+              onPressed: members.isEmpty
+                  ? null
+                  : () => _openViewAllTeamMembers(context, members),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+              ),
               child: const AppTextView.body2(
                 'View All',
                 color: AppColors.secondaryColor,
@@ -366,7 +417,8 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             itemBuilder: (context, index) {
               final member = previewMembers[index];
               final isSelected =
-                  member.profileUuid == audit.profileUuid || member.profileJob == audit.profileJob;
+                  member.profileUuid == audit.profileUuid ||
+                  member.profileJob == audit.profileJob;
               return _buildTeamMemberCard(context, member, isSelected);
             },
           ),
@@ -375,7 +427,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Future<void> _openViewAllTeamMembers(BuildContext context, List<AuditProfile> members) {
+  Future<void> _openViewAllTeamMembers(
+    BuildContext context,
+    List<AuditProfile> members,
+  ) {
     final auditController = context.read<AuditController>();
     return showDialog<void>(
       context: context,
@@ -396,7 +451,11 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildTeamMemberCard(BuildContext context, AuditProfile member, bool isSelected) {
+  Widget _buildTeamMemberCard(
+    BuildContext context,
+    AuditProfile member,
+    bool isSelected,
+  ) {
     return InkWell(
       borderRadius: BorderRadius.circular(5),
       onTap: isSelected ? null : () => _openSelectedTeamMember(context, member),
@@ -405,7 +464,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: isSelected ? AppColors.secondaryColor : Colors.transparent),
+          border: Border.all(
+            color: isSelected ? AppColors.secondaryColor : Colors.transparent,
+          ),
         ),
         child: Stack(
           children: [
@@ -414,7 +475,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
               right: -10,
               child: _FavoriteButton(
                 isFavorite: member.isFavorite,
-                isLoading: context.watch<AuditController>().isFavoriteUpdating(member.profileJob),
+                isLoading: context.watch<AuditController>().isFavoriteUpdating(
+                  member.profileJob,
+                ),
                 onPressed: () => _handleFavoriteTap(context, member),
               ),
             ),
@@ -456,15 +519,25 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Future<void> _openSelectedTeamMember(BuildContext context, AuditProfile member) {
+  Future<void> _openSelectedTeamMember(
+    BuildContext context,
+    AuditProfile member,
+  ) {
     return AppRouter.pushReplacementNamed<void, void>(
       context,
       AppRouter.auditDetails,
-      arguments: AuditDetailsRouteArgs(profileJobId: member.profileJob),
+      arguments: AuditDetailsRouteArgs(
+        profileJobId: member.profileJob,
+        year: widget.year,
+        quarter: widget.quarter,
+      ),
     );
   }
 
-  Future<void> _handleFavoriteTap(BuildContext context, AuditProfile member) async {
+  Future<void> _handleFavoriteTap(
+    BuildContext context,
+    AuditProfile member,
+  ) async {
     try {
       await _markFavorite(context, member);
     } catch (_) {
@@ -474,11 +547,16 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Unable to update favorite right now.')));
+        ..showSnackBar(
+          const SnackBar(content: Text('Unable to update favorite right now.')),
+        );
     }
   }
 
-  Future<List<AuditProfile>> _markFavorite(BuildContext context, AuditProfile member) {
+  Future<List<AuditProfile>> _markFavorite(
+    BuildContext context,
+    AuditProfile member,
+  ) {
     return context.read<AuditController>().toggleFavoriteSubordinate(
       profileJobId: member.profileJob,
       isFavorite: member.isFavorite,
@@ -503,7 +581,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
           children: [
             Expanded(
               child: AppTextView.body1(
-                filtersState.isFilterOptionsVisible ? 'Filter Options' : 'Descriptions',
+                filtersState.isFilterOptionsVisible
+                    ? 'Filter Options'
+                    : 'Descriptions',
                 color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -511,14 +591,20 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             ),
             const SizedBox(width: 12),
             InkWell(
-              borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
+              borderRadius: BorderRadius.circular(
+                filtersState.isFilterOptionsVisible ? 8 : 8,
+              ),
               onTap: _toggleFilterOptions,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.all(filtersState.isFilterOptionsVisible ? 8 : 8),
+                padding: EdgeInsets.all(
+                  filtersState.isFilterOptionsVisible ? 8 : 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor,
-                  borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
+                  borderRadius: BorderRadius.circular(
+                    filtersState.isFilterOptionsVisible ? 8 : 8,
+                  ),
                 ),
                 child: Icon(
                   filtersState.isFilterOptionsVisible
@@ -551,7 +637,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                 child: SizeTransition(
                   sizeFactor: animation,
                   axisAlignment: -1,
-                  child: SlideTransition(position: slideAnimation, child: child),
+                  child: SlideTransition(
+                    position: slideAnimation,
+                    child: child,
+                  ),
                 ),
               );
             },
@@ -589,7 +678,12 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final description = filteredDescriptions[index];
-                      return _buildDescriptionCard(context, audit, description, index);
+                      return _buildDescriptionCard(
+                        context,
+                        audit,
+                        description,
+                        index,
+                      );
                     },
                   ),
           ),
@@ -598,7 +692,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildFilterOptionsView(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  Widget _buildFilterOptionsView(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final categories = _categoryOptions(audit, filtersState);
     final milestoneOptions = _milestoneOptions(audit, filtersState);
     final auditTimingOptions = _auditTimingOptions(audit, filtersState);
@@ -725,7 +822,11 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body2(label, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        AppTextView.body2(
+          label,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
         const SizedBox(height: 10),
         SizedBox(
           height: 32,
@@ -741,12 +842,17 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                 onTap: () => onTap(option),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.orange2 : Colors.transparent,
                     borderRadius: BorderRadius.circular(50),
                     border: Border.all(
-                      color: isSelected ? AppColors.orange2 : AppColors.textPrimary,
+                      color: isSelected
+                          ? AppColors.orange2
+                          : AppColors.textPrimary,
                     ),
                   ),
                   child: Center(
@@ -779,9 +885,13 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             audit: audit,
             description: description,
           );
-          final milestone = CustomFunctions.normalizeAuditMilestone(description.milestoneDay);
+          final milestone = CustomFunctions.normalizeAuditMilestone(
+            description.milestoneDay,
+          );
           final auditTiming = CustomFunctions.resolveAuditTiming(description);
-          final auditType = CustomFunctions.normalizeAuditType(description.auditFactorType);
+          final auditType = CustomFunctions.normalizeAuditType(
+            description.auditFactorType,
+          );
 
           final matchesCategory =
               filtersState.selectedCategories.isEmpty ||
@@ -796,7 +906,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
               filtersState.selectedAuditTypes.isEmpty ||
               filtersState.selectedAuditTypes.contains(auditType);
 
-          return matchesCategory && matchesMilestone && matchesAuditTiming && matchesAuditType;
+          return matchesCategory &&
+              matchesMilestone &&
+              matchesAuditTiming &&
+              matchesAuditType;
         })
         .toList(growable: false);
   }
@@ -826,7 +939,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     _SingleAuditFiltersState filtersState,
   ) {
     final isAudited = _isDescriptionAudited(description);
-    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(widget.date);
+    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(
+      widget.date,
+    );
 
     if (isSelectedAuditDateBeforeToday && !isAudited) {
       return false;
@@ -835,11 +950,17 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return true;
   }
 
-  List<String> _categoryOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _categoryOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(description, filtersState),
+              (description) => _isDescriptionEligibleForFilterOptions(
+                description,
+                filtersState,
+              ),
             )
             .map(
               (description) => CustomFunctions.resolveAuditCategoryOption(
@@ -854,13 +975,23 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return options;
   }
 
-  List<String> _milestoneOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _milestoneOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(description, filtersState),
+              (description) => _isDescriptionEligibleForFilterOptions(
+                description,
+                filtersState,
+              ),
             )
-            .map((description) => CustomFunctions.normalizeAuditMilestone(description.milestoneDay))
+            .map(
+              (description) => CustomFunctions.normalizeAuditMilestone(
+                description.milestoneDay,
+              ),
+            )
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
@@ -868,26 +999,45 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return options;
   }
 
-  List<String> _auditTimingOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _auditTimingOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final preferredOrder = AppStrings.auditTimingOptions;
     final availableOptions = audit.descriptions
-        .where((description) => _isDescriptionEligibleForFilterOptions(description, filtersState))
+        .where(
+          (description) =>
+              _isDescriptionEligibleForFilterOptions(description, filtersState),
+        )
         .map(CustomFunctions.resolveAuditTiming)
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder.where(availableOptions.contains).toList(growable: false);
+    return preferredOrder
+        .where(availableOptions.contains)
+        .toList(growable: false);
   }
 
-  List<String> _auditTypeOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _auditTypeOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final preferredOrder = AppStrings.auditTypeOptions;
     final availableOptions = audit.descriptions
-        .where((description) => _isDescriptionEligibleForFilterOptions(description, filtersState))
-        .map((description) => CustomFunctions.normalizeAuditType(description.auditFactorType))
+        .where(
+          (description) =>
+              _isDescriptionEligibleForFilterOptions(description, filtersState),
+        )
+        .map(
+          (description) =>
+              CustomFunctions.normalizeAuditType(description.auditFactorType),
+        )
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder.where(availableOptions.contains).toList(growable: false);
+    return preferredOrder
+        .where(availableOptions.contains)
+        .toList(growable: false);
   }
 
   bool _hasActiveFilters(_SingleAuditFiltersState filtersState) =>
@@ -910,7 +1060,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
 
   void _toggleShowAuditedOnly() {
     final currentState = _filtersNotifier.value;
-    _filtersNotifier.value = currentState.copyWith(showAuditedOnly: !currentState.showAuditedOnly);
+    _filtersNotifier.value = currentState.copyWith(
+      showAuditedOnly: !currentState.showAuditedOnly,
+    );
   }
 
   void _toggleMilestone(String value) {
@@ -943,8 +1095,12 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
       audit: audit,
       description: description,
     );
-    final title = categoryTitle.isEmpty ? 'Description ${index + 1}' : categoryTitle;
-    final auditFactorType = CustomFunctions.capitalizeFirstLetter(description.auditFactorType);
+    final title = categoryTitle.isEmpty
+        ? 'Description ${index + 1}'
+        : categoryTitle;
+    final auditFactorType = CustomFunctions.capitalizeFirstLetter(
+      description.auditFactorType,
+    );
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -1047,26 +1203,44 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildDescriptionRatingBadge({required int value, required Color color}) {
+  Widget _buildDescriptionRatingBadge({
+    required int value,
+    required Color color,
+  }) {
     return Container(
       alignment: Alignment.center,
       width: 28,
       height: 28,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-      child: AppTextView.body4('$value', color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: AppTextView.body4(
+        '$value',
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 
   String _formatConfidence(double value) {
-    final rounded = value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
+    final rounded = value % 1 == 0
+        ? value.toInt().toString()
+        : value.toStringAsFixed(1);
     return rounded;
   }
 
   Widget _buildPillLabel(String text, {bool isCompact = false}) {
     return Container(
       constraints: isCompact ? const BoxConstraints(maxWidth: 88) : null,
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 9 : 18, vertical: isCompact ? 5 : 7),
-      decoration: BoxDecoration(color: AppColors.orange1, borderRadius: BorderRadius.circular(50)),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 9 : 18,
+        vertical: isCompact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.orange1,
+        borderRadius: BorderRadius.circular(50),
+      ),
       child: AppTextView.body2(
         text,
         color: AppColors.textPrimary,
@@ -1123,7 +1297,8 @@ class _SingleAuditFiltersState {
     Set<String>? selectedAuditTypes,
   }) {
     return _SingleAuditFiltersState(
-      isFilterOptionsVisible: isFilterOptionsVisible ?? this.isFilterOptionsVisible,
+      isFilterOptionsVisible:
+          isFilterOptionsVisible ?? this.isFilterOptionsVisible,
       showAuditedOnly: showAuditedOnly ?? this.showAuditedOnly,
       selectedCategories: selectedCategories ?? this.selectedCategories,
       selectedMilestones: selectedMilestones ?? this.selectedMilestones,
@@ -1133,19 +1308,27 @@ class _SingleAuditFiltersState {
   }
 
   _SingleAuditFiltersState toggleCategory(String value) {
-    return copyWith(selectedCategories: _toggleSetValue(selectedCategories, value));
+    return copyWith(
+      selectedCategories: _toggleSetValue(selectedCategories, value),
+    );
   }
 
   _SingleAuditFiltersState toggleMilestone(String value) {
-    return copyWith(selectedMilestones: _toggleSetValue(selectedMilestones, value));
+    return copyWith(
+      selectedMilestones: _toggleSetValue(selectedMilestones, value),
+    );
   }
 
   _SingleAuditFiltersState toggleAuditTiming(String value) {
-    return copyWith(selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value));
+    return copyWith(
+      selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value),
+    );
   }
 
   _SingleAuditFiltersState toggleAuditType(String value) {
-    return copyWith(selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value));
+    return copyWith(
+      selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value),
+    );
   }
 
   static Set<String> _toggleSetValue(Set<String> values, String value) {
@@ -1179,7 +1362,10 @@ class _FavoriteButton extends StatelessWidget {
           ? const SizedBox(
               width: 12,
               height: 12,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textPrimary),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.textPrimary,
+              ),
             )
           : Icon(
               Icons.star_rounded,

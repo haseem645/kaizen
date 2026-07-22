@@ -8,6 +8,7 @@ import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/quarterly_audit.dart';
 import '../../domain/entities/seat_description_audit_report_comments.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
+import '../../domain/entities/seat_description_training.dart';
 import '../../domain/entities/single_audit_report_category_details.dart';
 import '../../domain/repositories/audit_repository.dart';
 import '../datasources/audit_remote_data_source.dart';
@@ -36,10 +37,14 @@ class AuditRepositoryImpl implements AuditRepository {
   Future<AuditMainList> getAuditTeamMembers({
     required int page,
     required int pageSize,
+    int? year,
+    int? quarter,
   }) {
     return _remoteDataSource.getAuditTeamMembers(
       page: page,
       pageSize: pageSize,
+      year: year,
+      quarter: quarter,
     );
   }
 
@@ -47,8 +52,15 @@ class AuditRepositoryImpl implements AuditRepository {
   Future<AuditMainList> getMyAudits({
     required int page,
     required int pageSize,
+    int? year,
+    int? quarter,
   }) {
-    return _remoteDataSource.getMyAudits(page: page, pageSize: pageSize);
+    return _remoteDataSource.getMyAudits(
+      page: page,
+      pageSize: pageSize,
+      year: year,
+      quarter: quarter,
+    );
   }
 
   @override
@@ -263,6 +275,30 @@ class AuditRepositoryImpl implements AuditRepository {
       quarter: quarter,
       year: year,
       timeRange: timeRange,
+    );
+  }
+
+  @override
+  Future<List<SeatDescriptionTrainingModule>>
+  getSeatDescriptionTrainingModules({required String descriptionId}) {
+    return _remoteDataSource.getSeatDescriptionTrainingModules(
+      descriptionId: descriptionId,
+    );
+  }
+
+  @override
+  Future<SeatDescriptionTrainingModuleDetail>
+  getSeatDescriptionTrainingModuleDetail({required String moduleId}) {
+    return _remoteDataSource.getSeatDescriptionTrainingModuleDetail(
+      moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<SeatDescriptionTrainingDocument>
+  getSeatDescriptionTrainingModuleDocument({required String moduleId}) {
+    return _remoteDataSource.getSeatDescriptionTrainingModuleDocument(
+      moduleId: moduleId,
     );
   }
 

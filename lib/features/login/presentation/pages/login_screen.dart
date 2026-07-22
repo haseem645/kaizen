@@ -166,24 +166,38 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
   }
 
   Widget _buildBody(BuildContext context, LoginController controller) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom;
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final isTabletLayout = mediaQuery.size.shortestSide >= 600;
+          final contentPadding = EdgeInsets.fromLTRB(
+            isTabletLayout ? 40 : 30,
+            isTabletLayout ? 40 : 80,
+            isTabletLayout ? 40 : 30,
+            bottomInset + 24,
+          );
+          final minHeight = (constraints.maxHeight - contentPadding.vertical)
+              .clamp(0.0, double.infinity)
+              .toDouble();
+
           return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(30, 80, 30, bottomInset + 24),
+            padding: contentPadding,
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              constraints: BoxConstraints(minHeight: minHeight),
               child: Align(
-                alignment: Alignment.topCenter,
+                alignment: isTabletLayout
+                    ? Alignment.center
+                    : Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 400),
                   child: Column(
                     children: [
-                      const SizedBox(height: 40),
+                      SizedBox(height: isTabletLayout ? 0 : 40),
                       _buildTitle(context),
-                      const SizedBox(height: 90),
+                      SizedBox(height: isTabletLayout ? 64 : 90),
                       Form(
                         key: controller.formKey,
                         child: Column(
@@ -191,7 +205,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
                             _buildSignInTitle(context),
                             const SizedBox(height: 10),
                             _buildSubtitle(context),
-                            const SizedBox(height: 60),
+                            SizedBox(height: isTabletLayout ? 48 : 60),
                             _buildEmailField(),
                             const SizedBox(height: 2),
                             _buildPasswordField(),

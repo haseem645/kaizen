@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
+import 'package:sparrowkaizen/core/services/video_playback_service.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:video_player/video_player.dart';
 
@@ -12,7 +13,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/custom_functions.dart';
-import '../../../../core/utils/webm_playback_helper.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../compliance/presentation/pages/document/full_screen_doc.dart';
@@ -969,28 +969,19 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
 
     _initializationError = null;
     final headers = _buildVideoHeaders(resolvedVideoUrl);
-    final source = await WebmPlaybackHelper.resolvePlayableSource(
+    final controller = await VideoPlaybackService.createInitializedController(
       widget.mediaUrl,
       headers: headers,
     );
-    if (!mounted || source == null) {
+    if (!mounted || controller == null) {
       _initializationError = ArgumentError('Unable to resolve video source');
       throw _initializationError!;
     }
 
-    final controller = source.isFile
-        ? VideoPlayerController.file(File(source.path))
-        : VideoPlayerController.networkUrl(
-            Uri.parse(source.path),
-            httpHeaders: headers,
-          );
-    _controller = controller;
-
     try {
-      await controller.initialize();
       await controller.setLooping(false);
       await controller.setVolume(1);
-      controller.addListener(_handleVideoChanged);
+      _controller = controller;
       if (mounted) {
         setState(() {});
       }
@@ -1023,19 +1014,11 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
 
   void _disposeController() {
     final controller = _controller;
-    if (controller != null) {
-      controller.removeListener(_handleVideoChanged);
-      _controller = null;
-    }
-
+    _controller = null;
     _initializeFuture = null;
     _initializationError = null;
-    unawaited(controller?.dispose());
-  }
-
-  void _handleVideoChanged() {
-    if (mounted) {
-      setState(() {});
+    if (controller != null) {
+      unawaited(controller.dispose());
     }
   }
 
@@ -1107,162 +1090,195 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
       future: _initializeFuture,
       builder: (context, snapshot) {
         final controller = _controller;
-        final initializationError = _initializationError ?? snapshot.error;
-        final isReady =
-            snapshot.connectionState == ConnectionState.done &&
-            controller != null &&
-            controller.value.isInitialized &&
-            initializationError == null;
+        if (controller == null) {
+          return _buildPlayerContent(
+            snapshot: snapshot,
+            controller: null,
+            controllerValue: null,
+          );
+        }
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            width: widget.width,
-            height: widget.height,
-            color: Colors.black,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (isReady)
-                  FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller.value.size.width,
-                      height: controller.value.size.height,
-                      child: VideoPlayer(controller),
+        return ValueListenableBuilder<VideoPlayerValue>(
+          valueListenable: controller,
+          builder: (context, controllerValue, child) {
+            return _buildPlayerContent(
+              snapshot: snapshot,
+              controller: controller,
+              controllerValue: controllerValue,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPlayerContent({
+    required AsyncSnapshot<void> snapshot,
+    required VideoPlayerController? controller,
+    required VideoPlayerValue? controllerValue,
+  }) {
+    final initializationError = _initializationError ?? snapshot.error;
+    final isReady =
+        controller != null &&
+        controllerValue?.isInitialized == true &&
+        initializationError == null;
+    final isBuffering = isReady && (controllerValue?.isBuffering ?? false);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (isReady)
+              FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: controllerValue!.size.width,
+                  height: controllerValue.size.height,
+                  child: VideoPlayer(controller),
+                ),
+              )
+            else
+              const SizedBox(),
+
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.08),
+                    Colors.black.withValues(alpha: 0.32),
+                  ],
+                ),
+              ),
+            ),
+            if (isReady)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: InkWell(
+                  onTap: _openFullScreenVideo,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.58),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
                     ),
-                  )
-                else
-                  const SizedBox(),
-
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.08),
-                        Colors.black.withValues(alpha: 0.32),
-                      ],
+                    child: const Icon(
+                      Icons.open_in_full_rounded,
+                      color: Colors.white,
+                      size: 18,
                     ),
                   ),
                 ),
-                if (isReady)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: InkWell(
-                      onTap: _openFullScreenVideo,
-                      borderRadius: BorderRadius.circular(18),
+              ),
+            if (isReady && isBuffering)
+              Center(
+                child: SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: FastCircularProgressIndicator(),
+                ),
+              ),
+            if (initializationError != null)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: AppTextView.body(
+                    'Video could not be loaded.',
+                    color: AppColors.textPrimary,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            else if (isReady)
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: _togglePlayback,
+                      borderRadius: BorderRadius.circular(22),
                       child: Container(
-                        width: 36,
-                        height: 36,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.58),
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(22),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.2),
                           ),
                         ),
-                        child: const Icon(
-                          Icons.open_in_full_rounded,
-                          color: Colors.white,
-                          size: 18,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              controllerValue!.isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 6),
+                            AppTextView.body2(
+                              controllerValue.isPlaying ? 'Pause' : 'Play',
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                if (initializationError != null)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: AppTextView.body(
-                        'Video could not be loaded.',
-                        color: AppColors.textPrimary,
-                        textAlign: TextAlign.center,
-                      ),
+                  ],
+                ),
+              )
+            else
+              Center(
+                child: InkWell(
+                  onTap: isReady ? _togglePlayback : null,
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.42),
+                      shape: BoxShape.circle,
                     ),
-                  )
-                else if (isReady)
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 12,
-                    child: Row(
-                      children: [
-                        InkWell(
-                          onTap: _togglePlayback,
-                          borderRadius: BorderRadius.circular(22),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.58),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  controller.value.isPlaying
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 6),
-                                AppTextView.body2(
-                                  controller.value.isPlaying ? 'Pause' : 'Play',
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ],
-                            ),
+                    alignment: Alignment.center,
+                    child: snapshot.connectionState != ConnectionState.done
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: FastCircularProgressIndicator(),
+                          )
+                        : Icon(
+                            controllerValue?.isPlaying ?? false
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 32,
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Center(
-                    child: InkWell(
-                      onTap: isReady ? _togglePlayback : null,
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.42),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: snapshot.connectionState != ConnectionState.done
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: FastCircularProgressIndicator(),
-                              )
-                            : Icon(
-                                controller?.value.isPlaying ?? false
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 32,
-                              ),
-                      ),
-                    ),
                   ),
-              ],
-            ),
-          ),
-        );
-      },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

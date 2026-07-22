@@ -22,6 +22,8 @@ class AuditState {
     this.searchQuery = '',
     this.selectedYearQuarter,
     this.selectedSeatProfile,
+    this.selectedAuditYear,
+    this.selectedAuditQuarter,
     this.performanceReport,
     this.isPerformanceReportLoading = false,
     this.isGeneratingPerformanceReportRemarks = false,
@@ -54,6 +56,8 @@ class AuditState {
   final String searchQuery;
   final String? selectedYearQuarter;
   final String? selectedSeatProfile;
+  final int? selectedAuditYear;
+  final int? selectedAuditQuarter;
   final PerformanceReport? performanceReport;
   final bool isPerformanceReportLoading;
   final bool isGeneratingPerformanceReportRemarks;
@@ -86,6 +90,8 @@ class AuditState {
     String? searchQuery,
     String? selectedYearQuarter,
     String? selectedSeatProfile,
+    int? selectedAuditYear,
+    int? selectedAuditQuarter,
     PerformanceReport? performanceReport,
     bool? isPerformanceReportLoading,
     bool? isGeneratingPerformanceReportRemarks,
@@ -143,6 +149,8 @@ class AuditState {
       selectedSeatProfile: clearSelectedSeatProfile
           ? null
           : selectedSeatProfile ?? this.selectedSeatProfile,
+      selectedAuditYear: selectedAuditYear ?? this.selectedAuditYear,
+      selectedAuditQuarter: selectedAuditQuarter ?? this.selectedAuditQuarter,
       performanceReport: clearPerformanceReport
           ? null
           : performanceReport ?? this.performanceReport,

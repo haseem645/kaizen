@@ -12,6 +12,7 @@ import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/audit_profile.dart';
 import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
+import '../../domain/entities/seat_description_training.dart';
 import '../models/audit_description_audit_model.dart';
 import '../models/audit_details_model.dart';
 import '../models/audit_evaluation_chart_model.dart';
@@ -22,6 +23,7 @@ import '../models/performance_report_model.dart';
 import '../models/quarterly_audit_model.dart';
 import '../models/seat_description_audit_report_comments_model.dart';
 import '../models/seat_description_final_audit_report_model.dart';
+import '../models/seat_description_training_model.dart';
 import '../models/single_audit_report_category_details_model.dart';
 
 class AuditRemoteDataSource {
@@ -44,50 +46,90 @@ class AuditRemoteDataSource {
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.quarterlyAudit,
       authToken: AppPreference.getAuthToken(),
-      parameters: {'page': page, 'page_size': pageSize, 'year': year, 'quarter': quarter},
+      parameters: {
+        'page': page,
+        'page_size': pageSize,
+        'year': year,
+        'quarter': quarter,
+      },
       decoder: (json) {
         if (json is! Map<String, dynamic>) {
           throw const ApiError.invalidResponse();
         }
 
-        return AuditMainListModel.fromApiJson(json: json, year: year, quarter: quarter);
+        return AuditMainListModel.fromApiJson(
+          json: json,
+          year: year,
+          quarter: quarter,
+        );
       },
     );
   }
 
-  Future<AuditMainListModel> getAuditTeamMembers({required int page, required int pageSize}) {
+  Future<AuditMainListModel> getAuditTeamMembers({
+    required int page,
+    required int pageSize,
+    int? year,
+    int? quarter,
+  }) {
     return _apiCallExecutor.processApi<AuditMainListModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.quarterlyAudit,
       authToken: AppPreference.getAuthToken(),
-      parameters: {'page': page, 'page_size': pageSize},
+      parameters: {
+        'page': page,
+        'page_size': pageSize,
+        if (year != null) 'year': year,
+        if (quarter != null) 'quarter': quarter,
+      },
       decoder: (json) {
         if (json is! Map<String, dynamic>) {
           throw const ApiError.invalidResponse();
         }
 
-        return AuditMainListModel.fromApiJson(json: json, year: 0, quarter: 0);
+        return AuditMainListModel.fromApiJson(
+          json: json,
+          year: year ?? 0,
+          quarter: quarter ?? 0,
+        );
       },
     );
   }
 
-  Future<AuditMainListModel> getMyAudits({required int page, required int pageSize}) {
+  Future<AuditMainListModel> getMyAudits({
+    required int page,
+    required int pageSize,
+    int? year,
+    int? quarter,
+  }) {
     return _apiCallExecutor.processApi<AuditMainListModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.quarterlyAuditMyAudits,
       authToken: AppPreference.getAuthToken(),
-      parameters: {'page': page, 'page_size': pageSize},
+      parameters: {
+        'page': page,
+        'page_size': pageSize,
+        if (year != null) 'year': year,
+        if (quarter != null) 'quarter': quarter,
+      },
       decoder: (json) {
         if (json is! Map<String, dynamic>) {
           throw const ApiError.invalidResponse();
         }
 
-        return AuditMainListModel.fromApiJson(json: json, year: 0, quarter: 0);
+        return AuditMainListModel.fromApiJson(
+          json: json,
+          year: year ?? 0,
+          quarter: quarter ?? 0,
+        );
       },
     );
   }
 
-  Future<dynamic> getMyPerformanceSnapshot({required int page, required int pageSize}) {
+  Future<dynamic> getMyPerformanceSnapshot({
+    required int page,
+    required int pageSize,
+  }) {
     var result = _apiCallExecutor.processApi<dynamic>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.quarterlyAuditMyPerformanceSnapshot,
@@ -98,7 +140,10 @@ class AuditRemoteDataSource {
     return result;
   }
 
-  Future<dynamic> getPerformanceSnapshot({required int page, required int pageSize}) {
+  Future<dynamic> getPerformanceSnapshot({
+    required int page,
+    required int pageSize,
+  }) {
     var result = _apiCallExecutor.processApi<dynamic>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.quarterlyAuditPerformanceSnapshot,
@@ -163,7 +208,10 @@ class AuditRemoteDataSource {
           throw const ApiError.invalidResponse();
         }
 
-        return PerformanceReportModel.fromApiJson(json, fallbackProfile: profile);
+        return PerformanceReportModel.fromApiJson(
+          json,
+          fallbackProfile: profile,
+        );
       },
     );
   }
@@ -190,7 +238,8 @@ class AuditRemoteDataSource {
 
     return _apiCallExecutor.processApi<Map<String, String>>(
       apiCallType: ApiCallType.post,
-      endpoint: '${ApiEndPoints.auditReportRemarks(profile.profileJob)}$profileQuery',
+      endpoint:
+          '${ApiEndPoints.auditReportRemarks(profile.profileJob)}$profileQuery',
       authToken: AppPreference.getAuthToken(),
       parameters: parameters,
       decoder: (json) {
@@ -203,7 +252,9 @@ class AuditRemoteDataSource {
           throw const ApiError.invalidResponse();
         }
 
-        return descriptions.map((key, value) => MapEntry(key.toString(), value?.toString() ?? ''));
+        return descriptions.map(
+          (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+        );
       },
     );
   }
@@ -259,7 +310,9 @@ class AuditRemoteDataSource {
   }) {
     return _apiCallExecutor.processApi<CertifiedReportDetail>(
       apiCallType: ApiCallType.get,
-      endpoint: ApiEndPoints.auditReportCertifiedReportDetail(certifiedReportUuid),
+      endpoint: ApiEndPoints.auditReportCertifiedReportDetail(
+        certifiedReportUuid,
+      ),
       authToken: AppPreference.getAuthToken(),
       decoder: (json) {
         if (json is! Map<String, dynamic>) {
@@ -290,10 +343,14 @@ class AuditRemoteDataSource {
             isCertified: json['is_certified'] == true,
             certifiedAt: json['certified_at']?.toString().trim(),
             employeeSignatureName: baseReport.profile.name,
-            selectedProfileSignatureUuid: baseReport.selectedProfileSignatureUuid,
+            selectedProfileSignatureUuid:
+                baseReport.selectedProfileSignatureUuid,
             selectedProfileSignatureUrl: baseReport.selectedProfileSignatureUrl,
-            facilitatorSignatureUrl: json['facilitator_signature']?.toString().trim(),
-            facilitatorName: json['facilatator_name']?.toString().trim().isNotEmpty == true
+            facilitatorSignatureUrl: json['facilitator_signature']
+                ?.toString()
+                .trim(),
+            facilitatorName:
+                json['facilatator_name']?.toString().trim().isNotEmpty == true
                 ? json['facilatator_name']?.toString().trim()
                 : json['facilitator_name']?.toString().trim(),
             reportSnapshot: baseReport.reportSnapshot,
@@ -312,16 +369,21 @@ class AuditRemoteDataSource {
             paygradeUnit: baseReport.paygradeUnit,
             remarkVersion: baseReport.remarkVersion,
           ),
-          commitmentComment: json['commitment_comment']?.toString().trim() ?? '',
+          commitmentComment:
+              json['commitment_comment']?.toString().trim() ?? '',
         );
       },
     );
   }
 
-  Future<String> getCertifiedReportPdfUrl({required String certifiedReportUuid}) {
+  Future<String> getCertifiedReportPdfUrl({
+    required String certifiedReportUuid,
+  }) {
     return _apiCallExecutor.processApi<String>(
       apiCallType: ApiCallType.get,
-      endpoint: ApiEndPoints.auditReportCertifiedReportDownloadPdf(certifiedReportUuid),
+      endpoint: ApiEndPoints.auditReportCertifiedReportDownloadPdf(
+        certifiedReportUuid,
+      ),
       authToken: AppPreference.getAuthToken(),
       decoder: (json) {
         if (json is! Map<String, dynamic>) {
@@ -393,7 +455,9 @@ class AuditRemoteDataSource {
     );
   }
 
-  Future<List<AuditEvaluationChartModel>> getAuditEvaluationChart({required String profileJobId}) {
+  Future<List<AuditEvaluationChartModel>> getAuditEvaluationChart({
+    required String profileJobId,
+  }) {
     return _apiCallExecutor.processApi<List<AuditEvaluationChartModel>>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.quarterlyAuditEvaluationChart(profileJobId),
@@ -435,30 +499,33 @@ class AuditRemoteDataSource {
     );
   }
 
-  Future<List<SingleAuditReportCategoryDetailsModel>> getAuditReportCategoryDetails({
+  Future<List<SingleAuditReportCategoryDetailsModel>>
+  getAuditReportCategoryDetails({
     required String categoryId,
     required int quarter,
     required int year,
   }) {
-    return _apiCallExecutor.processApi<List<SingleAuditReportCategoryDetailsModel>>(
-      apiCallType: ApiCallType.get,
-      endpoint: ApiEndPoints.auditReportJobCategory(categoryId),
-      authToken: AppPreference.getAuthToken(),
-      parameters: {'quarter': quarter, 'year': year},
-      decoder: (json) {
-        if (json is! List) {
-          throw const ApiError.invalidResponse();
-        }
+    return _apiCallExecutor
+        .processApi<List<SingleAuditReportCategoryDetailsModel>>(
+          apiCallType: ApiCallType.get,
+          endpoint: ApiEndPoints.auditReportJobCategory(categoryId),
+          authToken: AppPreference.getAuthToken(),
+          parameters: {'quarter': quarter, 'year': year},
+          decoder: (json) {
+            if (json is! List) {
+              throw const ApiError.invalidResponse();
+            }
 
-        return json
-            .whereType<Map<String, dynamic>>()
-            .map(SingleAuditReportCategoryDetailsModel.fromApiJson)
-            .toList(growable: false);
-      },
-    );
+            return json
+                .whereType<Map<String, dynamic>>()
+                .map(SingleAuditReportCategoryDetailsModel.fromApiJson)
+                .toList(growable: false);
+          },
+        );
   }
 
-  Future<SeatDescriptionFinalAuditReportModel> getSeatDescriptionFinalAuditReport({
+  Future<SeatDescriptionFinalAuditReportModel>
+  getSeatDescriptionFinalAuditReport({
     required String flowFirstId,
     String? profileUuid,
     required String descriptionId,
@@ -493,7 +560,8 @@ class AuditRemoteDataSource {
     );
   }
 
-  Future<SeatDescriptionAuditReportCommentsModel> getSeatDescriptionAuditReportComments({
+  Future<SeatDescriptionAuditReportCommentsModel>
+  getSeatDescriptionAuditReportComments({
     required String flowFirstId,
     String? profileUuid,
     required String descriptionId,
@@ -522,7 +590,8 @@ class AuditRemoteDataSource {
     );
   }
 
-  Future<List<SeatDescriptionFinalAuditProfile>> getSeatDescriptionAuditReportProfiles({
+  Future<List<SeatDescriptionFinalAuditProfile>>
+  getSeatDescriptionAuditReportProfiles({
     required String flowFirstId,
     String? profileUuid,
     required String descriptionId,
@@ -560,6 +629,61 @@ class AuditRemoteDataSource {
               ),
             )
             .toList(growable: false);
+      },
+    );
+  }
+
+  Future<List<SeatDescriptionTrainingModule>>
+  getSeatDescriptionTrainingModules({required String descriptionId}) {
+    return _apiCallExecutor.processApi<List<SeatDescriptionTrainingModule>>(
+      apiCallType: ApiCallType.get,
+      endpoint: ApiEndPoints.seatDescriptionTrainingModules(descriptionId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (json) {
+        if (json is! List) {
+          throw const ApiError.invalidResponse();
+        }
+
+        return json
+            .whereType<Map>()
+            .map(
+              (item) => SeatDescriptionTrainingModuleModel.fromApiJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .toList(growable: false);
+      },
+    );
+  }
+
+  Future<SeatDescriptionTrainingModuleDetail>
+  getSeatDescriptionTrainingModuleDetail({required String moduleId}) {
+    return _apiCallExecutor.processApi<SeatDescriptionTrainingModuleDetail>(
+      apiCallType: ApiCallType.get,
+      endpoint: ApiEndPoints.trainingModuleDetail(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (json) {
+        if (json is! Map<String, dynamic>) {
+          throw const ApiError.invalidResponse();
+        }
+
+        return SeatDescriptionTrainingModuleDetailModel.fromApiJson(json);
+      },
+    );
+  }
+
+  Future<SeatDescriptionTrainingDocument>
+  getSeatDescriptionTrainingModuleDocument({required String moduleId}) {
+    return _apiCallExecutor.processApi<SeatDescriptionTrainingDocument>(
+      apiCallType: ApiCallType.get,
+      endpoint: ApiEndPoints.trainingModuleDocument(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (json) {
+        if (json is! Map<String, dynamic>) {
+          throw const ApiError.invalidResponse();
+        }
+
+        return SeatDescriptionTrainingDocumentModel.fromApiJson(json);
       },
     );
   }
@@ -645,7 +769,9 @@ class AuditRemoteDataSource {
     );
   }
 
-  Future<String> generateAuditDescriptionMediaUploadUrl({required String fileName}) {
+  Future<String> generateAuditDescriptionMediaUploadUrl({
+    required String fileName,
+  }) {
     return _apiCallExecutor.processApi<String>(
       apiCallType: ApiCallType.post,
       endpoint: ApiEndPoints.generatePreSignedUrl,
@@ -740,11 +866,15 @@ class AuditRemoteDataSource {
     required List<int> fileBytes,
     required String contentType,
   }) async {
-    final uri = Uri.parse('${ApiEndPoints.baseUrl}${ApiEndPoints.version}${ApiEndPoints.images}');
+    final uri = Uri.parse(
+      '${ApiEndPoints.baseUrl}${ApiEndPoints.version}${ApiEndPoints.images}',
+    );
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer ${AppPreference.getAuthToken()}'
-      ..files.add(http.MultipartFile.fromBytes('image', fileBytes, filename: fileName));
+      ..files.add(
+        http.MultipartFile.fromBytes('image', fileBytes, filename: fileName),
+      );
 
     final client = http.Client();
     late final http.Response response;
@@ -772,7 +902,9 @@ class AuditRemoteDataSource {
     return signatureImageId;
   }
 
-  Future<DescriptionCommentsResponseModel> getDescriptionComments({required String auditMediaId}) {
+  Future<DescriptionCommentsResponseModel> getDescriptionComments({
+    required String auditMediaId,
+  }) {
     return _apiCallExecutor.processApi<DescriptionCommentsResponseModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.auditMedia(auditMediaId),
@@ -850,16 +982,26 @@ class AuditRemoteDataSource {
     return null;
   }
 
-  Map<String, dynamic> _buildTimeRangeParameters({int? quarter, int? year, String? timeRange}) {
+  Map<String, dynamic> _buildTimeRangeParameters({
+    int? quarter,
+    int? year,
+    String? timeRange,
+  }) {
     final resolvedTimeRange = timeRange?.trim();
     if (resolvedTimeRange != null && resolvedTimeRange.isNotEmpty) {
       return {'time_range': resolvedTimeRange};
     }
 
-    return {if (quarter != null) 'quarter': quarter, if (year != null) 'year': year};
+    return {
+      if (quarter != null) 'quarter': quarter,
+      if (year != null) 'year': year,
+    };
   }
 
-  void _appendValidProfileUuid(Map<String, dynamic> parameters, String? profileUuid) {
+  void _appendValidProfileUuid(
+    Map<String, dynamic> parameters,
+    String? profileUuid,
+  ) {
     final normalizedProfileUuid = _normalizedProfileUuid(profileUuid);
     if (normalizedProfileUuid == null) {
       return;
@@ -870,7 +1012,9 @@ class AuditRemoteDataSource {
 
   String? _normalizedProfileUuid(String? profileUuid) {
     final trimmedValue = profileUuid?.trim();
-    if (trimmedValue == null || trimmedValue.isEmpty || trimmedValue.toLowerCase() == 'null') {
+    if (trimmedValue == null ||
+        trimmedValue.isEmpty ||
+        trimmedValue.toLowerCase() == 'null') {
       return null;
     }
 
