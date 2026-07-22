@@ -718,6 +718,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? () => _decrementRating(_PassBlockState.great)
                               : null,
                           canEditBlocks: canEditBlocks,
+                          showArrow: widget.isOwner,
                         ),
                         SizedBox(width: 25),
                         _SelectionCounter(
@@ -736,6 +737,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                                 )
                               : null,
                           canEditBlocks: canEditBlocks,
+                          showArrow: widget.isOwner,
                         ),
                         SizedBox(width: 25),
                         _SelectionCounter(
@@ -754,6 +756,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                                 )
                               : null,
                           canEditBlocks: canEditBlocks,
+                          showArrow: widget.isOwner,
                         ),
                       ],
                     ),
@@ -1566,6 +1569,7 @@ class _SelectionCounter extends StatelessWidget {
     this.onTapCount,
     this.onTapArrow,
     required this.canEditBlocks,
+    required this.showArrow,
   });
 
   final Color color;
@@ -1573,6 +1577,7 @@ class _SelectionCounter extends StatelessWidget {
   final VoidCallback? onTapCount;
   final VoidCallback? onTapArrow;
   final bool canEditBlocks;
+  final bool showArrow;
 
   @override
   Widget build(BuildContext context) {
@@ -1598,26 +1603,28 @@ class _SelectionCounter extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTapArrow,
-          child: Container(
-            width: 48,
-            height: 28,
-            decoration: BoxDecoration(
-              color: canEditBlocks
-                  ? AppColors.grey1
-                  : AppColors.grey1.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Colors.white,
-              size: 28,
+        if (showArrow) ...[
+          const SizedBox(height: 8),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTapArrow,
+            child: Container(
+              width: 48,
+              height: 28,
+              decoration: BoxDecoration(
+                color: canEditBlocks
+                    ? AppColors.grey1
+                    : AppColors.grey1.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
