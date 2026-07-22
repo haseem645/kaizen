@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
+import '../../../../core/preference/app_preference.dart';
 import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/audit_main_list.dart';
 import '../../domain/entities/audit_member.dart';
@@ -21,15 +22,18 @@ class PerformanceSnapshotController extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   final ScrollController scrollController = ScrollController();
 
-  PerformanceSnapshotTab _selectedTab = PerformanceSnapshotTab.reports;
+  PerformanceSnapshotTab _selectedTab = PerformanceSnapshotTab.myReports;
   PagedAuditData _reportsData = const PagedAuditData();
   PagedAuditData _myReportsData = const PagedAuditData();
+  bool _canAccessTeamReports = false;
+  bool _isInitializing = true;
   bool _isFilterLoading = false;
   List<String> _jobOptions = const <String>[];
   String _searchQuery = '';
   String? _selectedJobTitle;
   String? _myReportsErrorMessage;
 
+  bool get canAccessTeamReports => _canAccessTeamReports;
   PerformanceSnapshotTab get selectedTab => _selectedTab;
   bool get isFilterLoading => _isFilterLoading;
   List<String> get jobOptions => _jobOptions;
@@ -58,7 +62,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
   }
 
   bool get isInitialLoading =>
-      currentData.isLoading && currentData.items.isEmpty;
+      _isInitializing || (currentData.isLoading && currentData.items.isEmpty);
 
   String get emptyStateMessage {
     final hasFilters =
@@ -75,10 +79,30 @@ class PerformanceSnapshotController extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    await loadReports();
+    try {
+      final user = await AppPreference.getUser();
+      _canAccessTeamReports = user?.canAccessAuditTeamMembers ?? false;
+      _selectedTab = _canAccessTeamReports
+          ? PerformanceSnapshotTab.reports
+          : PerformanceSnapshotTab.myReports;
+      notifyListeners();
+
+      if (_canAccessTeamReports) {
+        await loadReports();
+      } else {
+        await loadMyReports();
+      }
+    } finally {
+      _isInitializing = false;
+      notifyListeners();
+    }
   }
 
   void selectTab(AuditMemberStatus status) {
+    if (!_canAccessTeamReports) {
+      return;
+    }
+
     final nextTab = status == AuditMemberStatus.active
         ? PerformanceSnapshotTab.reports
         : PerformanceSnapshotTab.myReports;

@@ -74,6 +74,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
   late final TextEditingController _commentsController;
   late final ValueNotifier<_PerformanceReportLocalState> _localStateNotifier;
   String _lastSyncedCommitment = '';
+  bool _canGenerateRemarks = false;
 
   static const List<String> _timeRanges = <String>[
     'This Quarter',
@@ -85,6 +86,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     super.initState();
     _commentsController = TextEditingController();
     _localStateNotifier = ValueNotifier(const _PerformanceReportLocalState());
+    _loadGenerateRemarksAccess();
   }
 
   @override
@@ -92,6 +94,17 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     _commentsController.dispose();
     _localStateNotifier.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadGenerateRemarksAccess() async {
+    final user = await AppPreference.getUser();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _canGenerateRemarks = user?.canAccessAuditTeamMembers ?? false;
+    });
   }
 
   @override
@@ -229,6 +242,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                             _PersonaCard(
                               report: report,
                               showPersonaHeader: state.isOwner,
+                              showGenerateRemarksAction: _canGenerateRemarks,
                               isGeneratingRemarks:
                                   state.isGeneratingPerformanceReportRemarks,
                               onGenerateRemarks: () async {
@@ -1121,6 +1135,7 @@ class _PersonaCard extends StatelessWidget {
   const _PersonaCard({
     required this.report,
     required this.showPersonaHeader,
+    required this.showGenerateRemarksAction,
     required this.isGeneratingRemarks,
     required this.onGenerateRemarks,
     required this.onDescriptionGo,
@@ -1130,6 +1145,7 @@ class _PersonaCard extends StatelessWidget {
 
   final PerformanceReport report;
   final bool showPersonaHeader;
+  final bool showGenerateRemarksAction;
   final bool isGeneratingRemarks;
   final Future<void> Function() onGenerateRemarks;
   final ValueChanged<PerformanceReportRatingRow> onDescriptionGo;
@@ -1199,53 +1215,55 @@ class _PersonaCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                height: 32,
-                child: OutlinedButton(
-                  onPressed: isGeneratingRemarks ? null : onGenerateRemarks,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.secondaryColor,
-                    side: const BorderSide(color: AppColors.secondaryColor),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        isGeneratingRemarks
-                            ? 'Generating...'
-                            : 'Generate Remarks',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.secondaryColor,
-                        ),
+            if (showGenerateRemarksAction) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  height: 32,
+                  child: OutlinedButton(
+                    onPressed: isGeneratingRemarks ? null : onGenerateRemarks,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.secondaryColor,
+                      side: const BorderSide(color: AppColors.secondaryColor),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      if (isGeneratingRemarks) ...[
-                        const SizedBox(width: 8),
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.secondaryColor,
-                            ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isGeneratingRemarks
+                              ? 'Generating...'
+                              : 'Generate Remarks',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.secondaryColor,
                           ),
                         ),
+                        if (isGeneratingRemarks) ...[
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.secondaryColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 16),
           ],
           _RatingsTable(
