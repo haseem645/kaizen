@@ -267,6 +267,7 @@ class DeepLinkService {
     await AppPreference.clearTokens();
     await AppPreference.clearActiveCompany();
     await AppPreference.clearUser();
+    await AppPreference.clearSelectedOrganizationId();
     AppManager.instance.updateCurrentUser(null);
     await AppPreference.setOnboardingToken(rawToken);
     if (tokenType != null && tokenType.isNotEmpty) {
@@ -357,7 +358,7 @@ class DeepLinkService {
       final companyDetails = await _appManagerRemoteDataSource
           .fetchCompanyDetails(accessToken: authToken);
       await AppPreference.saveActiveCompany(companyDetails);
-      AppManager.instance.saveBillingDetails(companyDetails.billing);
+      AppManager.instance.saveActiveCompany(companyDetails);
     } catch (_) {
       // Keep deep link processing resilient if company details cannot refresh.
     }
@@ -382,10 +383,7 @@ class DeepLinkService {
     }
 
     final didSwitchOrganization = await AppManager.instance
-        .setActiveOrganization(
-          organizationId,
-          resetNavigationStack: false,
-        );
+        .setActiveOrganization(organizationId, resetNavigationStack: false);
     if (!didSwitchOrganization) {
       return null;
     }

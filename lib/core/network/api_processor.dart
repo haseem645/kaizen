@@ -17,6 +17,15 @@ class ApiCallExecutor {
   static final Map<String, _CachedHttpResponse> _getCache =
       <String, _CachedHttpResponse>{};
 
+  static void clearGetCache() {
+    if (_getCache.isEmpty) {
+      return;
+    }
+
+    _getCache.clear();
+    debugPrint('GET cache INVALIDATED');
+  }
+
   Future<Response> processApi<Response>({
     required ApiCallType apiCallType,
     required String endpoint,
@@ -27,12 +36,13 @@ class ApiCallExecutor {
     bool allowAutoRefresh = true,
     bool invalidateCacheBeforeRequest = false,
   }) async {
+    final resolvedEndpoint = ApiEndPoints.resolveEndpoint(endpoint);
     final resolvedAuthToken =
         authToken ??
         (endpoint == ApiEndPoints.login ? null : AppPreference.getAuthToken());
     final cacheKey = _buildCacheKey(
       apiCallType: apiCallType,
-      endpoint: endpoint,
+      endpoint: resolvedEndpoint,
       parameters: parameters,
       authToken: resolvedAuthToken,
     );
@@ -50,7 +60,7 @@ class ApiCallExecutor {
 
     response ??= await _sendRequest(
       apiCallType: apiCallType,
-      endpoint: endpoint,
+      endpoint: resolvedEndpoint,
       parameters: parameters,
       headers: headers,
       authToken: resolvedAuthToken,
@@ -58,7 +68,7 @@ class ApiCallExecutor {
 
     final statusCode = response.statusCode;
     final fullEndpoint =
-        '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$endpoint';
+        '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$resolvedEndpoint';
     debugPrint('Call $fullEndpoint $statusCode');
 
     if (statusCode == 401 &&
@@ -219,12 +229,7 @@ class ApiCallExecutor {
   }
 
   void _invalidateGetCache() {
-    if (_getCache.isEmpty) {
-      return;
-    }
-
-    _getCache.clear();
-    debugPrint('GET cache INVALIDATED');
+    clearGetCache();
   }
 
   void _invalidateGetCacheEntry(String cacheKey) {

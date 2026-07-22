@@ -255,6 +255,7 @@ class OnboardingController extends ChangeNotifier {
           apiCallType: ApiCallType.get,
           endpoint: ApiEndPoints.userDetail,
           authToken: authToken,
+          invalidateCacheBeforeRequest: true,
           decoder: (json) {
             debugPrint(
               '[OnboardingController] userDetail response: ${jsonEncode(json)}',

@@ -51,6 +51,7 @@ class LoginUseCase {
       await AppPreference.setRefreshToken(loginResponse.refresh);
       await AppPreference.clearOnboardingSession();
       await AppPreference.clearUser();
+      await AppPreference.clearSelectedOrganizationId();
       AppManager.instance.updateCurrentUser(null);
 
       final userProfile = await _authRepository.fetchUserDetail(
@@ -150,7 +151,7 @@ class LoginUseCase {
       final companyDetails = await AppManagerRemoteDataSource()
           .fetchCompanyDetails(accessToken: accessToken);
       await AppPreference.saveActiveCompany(companyDetails);
-      AppManager.instance.saveBillingDetails(companyDetails.billing);
+      AppManager.instance.saveActiveCompany(companyDetails);
     } catch (_) {
       // Keep login resilient if company details cannot be fetched right now.
     }

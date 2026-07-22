@@ -1,3 +1,5 @@
+import '../preference/app_preference.dart';
+
 class ApiEndPoints {
   ApiEndPoints._();
   // static const String baseUrl = 'http://127.0.0.1:8000';
@@ -5,6 +7,7 @@ class ApiEndPoints {
   static const String baseUrl = 'https://dev-api.kaizenteams.ai';
   // static const String baseUrl = 'https://api.kaizenteams.ai';
   static const String version = '/api/v1/';
+  static const String parentPrefix = 'parent_';
   static const String login = 'accounts/login/';
   static const String setActiveOrganization = 'accounts/set_active_organization/';
   static const String refreshToken = 'accounts/token/refresh/';
@@ -19,6 +22,7 @@ class ApiEndPoints {
   static const String organizations = 'organizations/';
   static const String images = 'image/';
   static const String allDepartments = 'department/all_departments/';
+  static const String parentDepartments = '${parentPrefix}department/';
   static const String generatePreSignedUrl = 'generate_pre_signed_url/';
   static const String quarterlyAudit = 'quarterly_audit/';
   static const String quarterlyAuditMyAudits = 'quarterly_audit/my_audits/';
@@ -199,5 +203,44 @@ class ApiEndPoints {
   }) {
     return 'learning_compliance/track_assignments/$trackAssignmentUuid/'
         'quiz_attempts/$quizAttemptUuid/submit/';
+  }
+
+  static String departments() {
+    if (AppPreference.getUseParentApiEndpoints()) {
+      return parentDepartments;
+    }
+
+    return allDepartments;
+  }
+
+  static Uri resolveUri(String endpoint, {bool allowParentPrefix = true}) {
+    return Uri.parse(
+      '$baseUrl$version${resolveEndpoint(endpoint, allowParentPrefix: allowParentPrefix)}',
+    );
+  }
+
+  static String resolveEndpoint(String endpoint, {bool allowParentPrefix = true}) {
+    final normalizedEndpoint = endpoint.trim();
+    if (normalizedEndpoint.isEmpty || !allowParentPrefix) {
+      return normalizedEndpoint;
+    }
+
+    if (!AppPreference.getUseParentApiEndpoints() ||
+        _shouldBypassParentPrefix(normalizedEndpoint) ||
+        normalizedEndpoint.startsWith(parentPrefix)) {
+      return normalizedEndpoint;
+    }
+
+    return '$parentPrefix$normalizedEndpoint';
+  }
+
+  static bool _shouldBypassParentPrefix(String endpoint) {
+    return endpoint == login ||
+        endpoint == setActiveOrganization ||
+        endpoint == refreshToken ||
+        endpoint == userDetail ||
+        endpoint == companyDetail ||
+        endpoint == organizations ||
+        endpoint.startsWith('accounts/verify_token/');
   }
 }

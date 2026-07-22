@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
@@ -56,7 +58,40 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  bool _wasBackgrounded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_wasBackgrounded) {
+        return;
+      }
+
+      _wasBackgrounded = false;
+      unawaited(AppManager.instance.refreshSessionContext());
+      return;
+    }
+
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _wasBackgrounded = true;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final baseTheme = ThemeData(
@@ -73,19 +108,24 @@ class _MyAppState extends State<MyApp> {
             title: AppStrings.appTitle,
             theme: baseTheme.copyWith(
               textTheme: baseTheme.textTheme.apply(fontFamily: AppFonts.inter),
-              primaryTextTheme: baseTheme.primaryTextTheme.apply(fontFamily: AppFonts.inter),
+              primaryTextTheme: baseTheme.primaryTextTheme.apply(
+                fontFamily: AppFonts.inter,
+              ),
             ),
             builder: (context, child) {
               return Stack(
                 children: [
                   child ?? const SizedBox.shrink(),
                   if (appManager.showBillingBanner) const BillingBanner(),
-                  if (appManager.showOrganizationBanner) const OrganizationConflictDialog(),
+                  if (appManager.showOrganizationBanner)
+                    const OrganizationConflictDialog(),
                 ],
               );
             },
             debugShowCheckedModeBanner: false,
-            navigatorObservers: <NavigatorObserver>[_AppRouteObserver(appManager)],
+            navigatorObservers: <NavigatorObserver>[
+              _AppRouteObserver(appManager),
+            ],
             initialRoute: AppRouter.splash,
             onGenerateRoute: AppRouter.onGenerateRoute,
           );

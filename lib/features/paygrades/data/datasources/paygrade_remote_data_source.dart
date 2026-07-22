@@ -40,25 +40,13 @@ class PaygradeRemoteDataSource {
     return getDepartmentsByAccess(isOwner: true);
   }
 
-  Future<List<DepartmentModel>> getDepartmentsByAccess({required bool isOwner}) {
+  Future<List<DepartmentModel>> getDepartmentsByAccess({
+    required bool isOwner,
+  }) {
     return _apiCallExecutor.processApi<List<DepartmentModel>>(
       apiCallType: ApiCallType.get,
-      endpoint: ApiEndPoints.allDepartments,
-      decoder: (json) {
-        if (json is! Map<String, dynamic>) {
-          throw const ApiError.invalidResponse();
-        }
-
-        final items = isOwner ? json['all'] : json['subordinate_departments'];
-        if (items is! List) {
-          throw const ApiError.invalidResponse();
-        }
-
-        return items
-            .whereType<Map<String, dynamic>>()
-            .map(DepartmentModel.fromApiJson)
-            .toList(growable: false);
-      },
+      endpoint: ApiEndPoints.departments(),
+      decoder: (json) => _decodeDepartments(json, isOwner: isOwner),
     );
   }
 
@@ -79,6 +67,32 @@ class PaygradeRemoteDataSource {
       },
     );
   }
+}
+
+List<DepartmentModel> _decodeDepartments(
+  dynamic json, {
+  required bool isOwner,
+}) {
+  if (json is List) {
+    return json
+        .whereType<Map<String, dynamic>>()
+        .map(DepartmentModel.fromApiJson)
+        .toList(growable: false);
+  }
+
+  if (json is! Map<String, dynamic>) {
+    throw const ApiError.invalidResponse();
+  }
+
+  final items = isOwner ? json['all'] : json['subordinate_departments'];
+  if (items is! List) {
+    throw const ApiError.invalidResponse();
+  }
+
+  return items
+      .whereType<Map<String, dynamic>>()
+      .map(DepartmentModel.fromApiJson)
+      .toList(growable: false);
 }
 
 PaygradeRemoteDataSource createPaygradeRemoteDataSource() {

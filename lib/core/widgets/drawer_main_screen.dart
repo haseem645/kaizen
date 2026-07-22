@@ -58,6 +58,7 @@ class DrawerMainScreen extends StatelessWidget {
 
         return AppDrawer(
           name: CustomFunctions.resolveName(user),
+          currentOrganizationName: appManager.currentOrganizationName,
           selectedMenu: selectedMenu,
           onHomeTap: () => _openHome(context),
           onProfileTap: () => _openProfile(context),
@@ -70,6 +71,7 @@ class DrawerMainScreen extends StatelessWidget {
           onKaizenGptTap: () => _openKaizenGpt(context),
           onSettingTap: () => _openSetting(context),
           onDrawerHeaderTap: () => _openProfile(context),
+          onOrganizationTap: () => appManager.openOrganizationsScreen(),
           image: image ?? user?.image,
           imageUrl: imageUrl ?? user?.imageUrl,
         );

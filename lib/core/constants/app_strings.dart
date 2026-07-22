@@ -84,6 +84,10 @@ class AppStrings {
   static const String seeAll = 'See All';
   static const String organizationsTitle = 'Organisations';
   static const String organizationsNoItemsFound = 'No organizations found.';
+  static const String organizationsCurrentLabel = 'Current Organisation';
+  static const String organizationsChangeAction = 'Change';
+  static const String organizationsNoActiveOrganization =
+      'No active organisation';
   static const String organizationsSandboxNote =
       'Someone on the system has changed active environment to Sandbox, please set active organisation from the given list';
   static const String organizationsBannerText =

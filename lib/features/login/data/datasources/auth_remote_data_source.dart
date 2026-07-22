@@ -59,6 +59,7 @@ class AuthRemoteDataSource {
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.userDetail,
       authToken: accessToken,
+      invalidateCacheBeforeRequest: true,
       decoder: (json) {
         if (json is! Map<String, dynamic>) {
           throw const ApiError.invalidResponse();

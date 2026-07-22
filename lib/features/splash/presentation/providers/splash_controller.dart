@@ -34,25 +34,13 @@ class SplashController extends ChangeNotifier {
       return;
     }
 
+    final authToken = AppPreference.getAuthToken().trim();
+
     final pendingDeepLinkTarget = await DeepLinkService.instance
         .consumeStartupTarget();
     if (!context.mounted) {
       return;
     }
-
-    if (pendingDeepLinkTarget != null) {
-      _isLoading = false;
-      notifyListeners();
-
-      AppRouter.pushReplacementNamed<void, void>(
-        context,
-        pendingDeepLinkTarget.routeName,
-        arguments: pendingDeepLinkTarget.arguments,
-      );
-      return;
-    }
-
-    final authToken = AppPreference.getAuthToken().trim();
 
     if (authToken.isNotEmpty) {
       try {
@@ -65,7 +53,23 @@ class SplashController extends ChangeNotifier {
         await _primeOrganizationConflictCheck();
       } catch (_) {}
 
-      await AppManager.instance.initialize();
+      await AppManager.instance.initialize(forceRefresh: true);
+
+      if (pendingDeepLinkTarget != null) {
+        if (!context.mounted) {
+          return;
+        }
+
+        _isLoading = false;
+        notifyListeners();
+
+        AppRouter.pushReplacementNamed<void, void>(
+          context,
+          pendingDeepLinkTarget.routeName,
+          arguments: pendingDeepLinkTarget.arguments,
+        );
+        return;
+      }
 
       if (!context.mounted) {
         return;
@@ -85,6 +89,18 @@ class SplashController extends ChangeNotifier {
 
       AppRouter.pushReplacementNamed<void, void>(context, AppRouter.kaizengram);
     } else {
+      if (pendingDeepLinkTarget != null) {
+        _isLoading = false;
+        notifyListeners();
+
+        AppRouter.pushReplacementNamed<void, void>(
+          context,
+          pendingDeepLinkTarget.routeName,
+          arguments: pendingDeepLinkTarget.arguments,
+        );
+        return;
+      }
+
       _isLoading = false;
       notifyListeners();
 
@@ -108,7 +124,7 @@ class SplashController extends ChangeNotifier {
       final companyDetails = await _appManagerRemoteDataSource
           .fetchCompanyDetails(accessToken: authToken);
       await AppPreference.saveActiveCompany(companyDetails);
-      AppManager.instance.saveBillingDetails(companyDetails.billing);
+      AppManager.instance.saveActiveCompany(companyDetails);
     } catch (_) {
       // Keep startup resilient if company details cannot be fetched.
     }

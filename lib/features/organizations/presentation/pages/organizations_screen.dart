@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
+import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../domain/entities/organization.dart';
 
 class OrganizationsScreen extends StatelessWidget {
   const OrganizationsScreen({super.key});
@@ -14,6 +16,17 @@ class OrganizationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appManager = context.watch<AppManager>();
     final organizations = appManager.visibleOrganizations;
+    final sandboxOrganizations = organizations
+        .where(_isSandboxOrganization)
+        .toList(growable: false);
+    final otherOrganizations = organizations
+        .where((organization) => !_isSandboxOrganization(organization))
+        .toList(growable: false);
+    final orderedOrganizations = <Organization>[
+      ...sandboxOrganizations,
+      ...otherOrganizations,
+    ];
+    final selectedOrganizationId = appManager.currentOrganizationId;
 
     return Scaffold(
       backgroundColor: AppColors.mainBg,
@@ -42,7 +55,8 @@ class OrganizationsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: appManager.isLoadingOrganizations && organizations.isEmpty
+                child:
+                    appManager.isLoadingOrganizations && organizations.isEmpty
                     ? Center(child: FastCircularProgressIndicator())
                     : organizations.isEmpty
                     ? Center(
@@ -52,43 +66,87 @@ class OrganizationsScreen extends StatelessWidget {
                           textAlign: TextAlign.center,
                         ),
                       )
-                    : ListView.separated(
-                        itemCount: organizations.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    : ListView.builder(
+                        itemCount: orderedOrganizations.length,
                         itemBuilder: (context, index) {
-                          final organization = organizations[index];
-                          final isLoading = appManager.activatingOrganizationId == organization.id;
+                          final organization = orderedOrganizations[index];
+                          final isLoading =
+                              appManager.activatingOrganizationId ==
+                              organization.id;
+                          final isSelected =
+                              organization.id == selectedOrganizationId;
+                          final isLastItem =
+                              index == orderedOrganizations.length - 1;
+                          final showSandboxDivider =
+                              sandboxOrganizations.isNotEmpty &&
+                              otherOrganizations.isNotEmpty &&
+                              index == sandboxOrganizations.length - 1;
 
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: appManager.isSettingActiveOrganization
-                                ? null
-                                : () =>
-                                      _handleOrganizationTap(context, appManager, organization.id),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceDark,
+                          return Column(
+                            children: [
+                              InkWell(
                                 borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: AppTextView.body2(
-                                      organization.name,
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w700,
+                                onTap: appManager.isSettingActiveOrganization
+                                    ? null
+                                    : () => _handleOrganizationTap(
+                                        context,
+                                        appManager,
+                                        organization.id,
+                                      ),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.secondaryColor.withValues(
+                                            alpha: 0.20,
+                                          )
+                                        : AppColors.surfaceDark,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.lightPurple3.withValues(
+                                              alpha: 0.85,
+                                            )
+                                          : Colors.transparent,
                                     ),
                                   ),
-                                  if (isLoading)
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: FastCircularProgressIndicator(),
-                                    ),
-                                ],
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: AppTextView.body2(
+                                          organization.name,
+                                          color: isSelected
+                                              ? AppColors.textPrimary
+                                              : AppColors.textPrimary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      if (isLoading)
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child:
+                                              FastCircularProgressIndicator(),
+                                        )
+                                      else if (isSelected)
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: AppColors.textPrimary,
+                                          size: 20,
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (!isLastItem) ...[
+                                if (showSandboxDivider) ...[
+                                  const SizedBox(height: 12),
+                                  const AppDotDivider(),
+                                ],
+                                const SizedBox(height: 16),
+                              ],
+                            ],
                           );
                         },
                       ),
@@ -98,6 +156,10 @@ class OrganizationsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isSandboxOrganization(Organization organization) {
+    return organization.name.trim().toLowerCase().contains('sandbox');
   }
 
   Future<void> _handleOrganizationTap(
@@ -112,6 +174,10 @@ class OrganizationsScreen extends StatelessWidget {
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: AppTextView.body2(AppStrings.loginSomethingWentWrong)));
+      ..showSnackBar(
+        SnackBar(
+          content: AppTextView.body2(AppStrings.loginSomethingWentWrong),
+        ),
+      );
   }
 }

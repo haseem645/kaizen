@@ -38,22 +38,8 @@ class SeatProfileRemoteDataSource {
   Future<List<DepartmentModel>> getDepartments() {
     return _apiCallExecutor.processApi<List<DepartmentModel>>(
       apiCallType: ApiCallType.get,
-      endpoint: ApiEndPoints.allDepartments,
-      decoder: (json) {
-        if (json is! Map<String, dynamic>) {
-          throw const ApiError.invalidResponse();
-        }
-
-        final items = json['all'];
-        if (items is! List) {
-          throw const ApiError.invalidResponse();
-        }
-
-        return items
-            .whereType<Map<String, dynamic>>()
-            .map(DepartmentModel.fromApiJson)
-            .toList(growable: false);
-      },
+      endpoint: ApiEndPoints.departments(),
+      decoder: _decodeDepartments,
     );
   }
 
@@ -70,6 +56,29 @@ class SeatProfileRemoteDataSource {
       },
     );
   }
+}
+
+List<DepartmentModel> _decodeDepartments(dynamic json) {
+  if (json is List) {
+    return json
+        .whereType<Map<String, dynamic>>()
+        .map(DepartmentModel.fromApiJson)
+        .toList(growable: false);
+  }
+
+  if (json is! Map<String, dynamic>) {
+    throw const ApiError.invalidResponse();
+  }
+
+  final items = json['all'];
+  if (items is! List) {
+    throw const ApiError.invalidResponse();
+  }
+
+  return items
+      .whereType<Map<String, dynamic>>()
+      .map(DepartmentModel.fromApiJson)
+      .toList(growable: false);
 }
 
 SeatProfileRemoteDataSource createSeatProfileRemoteDataSource() {
