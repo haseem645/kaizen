@@ -143,6 +143,7 @@ class AppStrings {
   static const String performanceSnapshotAllJobs = 'All Jobs';
   static const String performanceSnapshotSearchJob = 'Search Job';
   static const String auditNoMembersFound = 'No audit team members available.';
+  static String auditNoStatusAvailable(String label) => 'No $label available.';
   static const String auditFiltersTitle = 'Filters';
   static const String auditSelectYearQuarter = 'Select Year & Quarter';
   static const String auditYear = 'Year';
