@@ -29,6 +29,7 @@ class AuditMediaCommentsBottomSheet extends StatefulWidget {
     required this.mediaList,
     required this.onMediaChanged,
     this.isReadOnly = false,
+    this.canReply = false,
   });
 
   final String descriptionId;
@@ -36,14 +37,13 @@ class AuditMediaCommentsBottomSheet extends StatefulWidget {
   final List<AuditDescriptionMedia> mediaList;
   final Future<void> Function() onMediaChanged;
   final bool isReadOnly;
+  final bool canReply;
 
   @override
-  State<AuditMediaCommentsBottomSheet> createState() =>
-      _AuditMediaCommentsBottomSheetState();
+  State<AuditMediaCommentsBottomSheet> createState() => _AuditMediaCommentsBottomSheetState();
 }
 
-class _AuditMediaCommentsBottomSheetState
-    extends State<AuditMediaCommentsBottomSheet> {
+class _AuditMediaCommentsBottomSheetState extends State<AuditMediaCommentsBottomSheet> {
   static const int _maxUploadBytes = 80 * 1024 * 1024;
   static const Set<String> _allowedImageExtensions = {'jpg', 'jpeg', 'png'};
   static const Set<String> _allowedVideoExtensions = {'mp4', 'mov', 'h264'};
@@ -114,10 +114,7 @@ class _AuditMediaCommentsBottomSheetState
       }
 
       _updateViewState(
-        _viewState.value.copyWith(
-          comments: response.comments,
-          clearCommentsError: true,
-        ),
+        _viewState.value.copyWith(comments: response.comments, clearCommentsError: true),
       );
       _updateMediaState(response.media, response.type);
     } catch (_) {
@@ -125,9 +122,7 @@ class _AuditMediaCommentsBottomSheetState
         return;
       }
 
-      _updateViewState(
-        _viewState.value.copyWith(commentsError: 'Unable to load comments.'),
-      );
+      _updateViewState(_viewState.value.copyWith(commentsError: 'Unable to load comments.'));
     }
   }
 
@@ -220,10 +215,7 @@ class _AuditMediaCommentsBottomSheetState
                         ),
                         IconButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: AppColors.textPrimary,
-                          ),
+                          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
                         ),
                       ],
                     ),
@@ -240,15 +232,10 @@ class _AuditMediaCommentsBottomSheetState
                                   mediaType: _currentMediaType,
                                 )
                               : widget.isReadOnly
-                              ? const _SheetMediaPlaceholder(
-                                  width: 220,
-                                  height: 220,
-                                )
+                              ? const _SheetMediaPlaceholder(width: 220, height: 220)
                               : _EmptyMediaUploadCard(
                                   isUploading: state.isUploadingMedia,
-                                  onTap: state.isUploadingMedia
-                                      ? null
-                                      : _selectAndUploadMedia,
+                                  onTap: state.isUploadingMedia ? null : _selectAndUploadMedia,
                                 ),
                         ),
                         const SizedBox(height: 18),
@@ -256,14 +243,9 @@ class _AuditMediaCommentsBottomSheetState
                           isLoading: state.isLoadingComments,
                           errorMessage: state.commentsError,
                           comments: state.comments,
-                          canReply: !widget.isReadOnly,
+                          canReply: widget.canReply,
                           onReply: (comment) {
-                            _updateViewState(
-                              state.copyWith(
-                                isReplying: true,
-                                replyingTo: comment,
-                              ),
-                            );
+                            _updateViewState(state.copyWith(isReplying: true, replyingTo: comment));
                           },
                         ),
                       ],
@@ -280,6 +262,8 @@ class _AuditMediaCommentsBottomSheetState
                         textColor: Colors.white,
                       ),
                     ),
+                  ],
+                  if (!widget.isReadOnly || (widget.canReply && state.isReplying))
                     _SendMessageBar(
                       controller: _messageController,
                       isReplying: state.isReplying,
@@ -287,15 +271,9 @@ class _AuditMediaCommentsBottomSheetState
                       isSending: state.isSendingComment,
                       onSend: _sendComment,
                       onCancelReply: () {
-                        _updateViewState(
-                          state.copyWith(
-                            isReplying: false,
-                            clearReplyingTo: true,
-                          ),
-                        );
+                        _updateViewState(state.copyWith(isReplying: false, clearReplyingTo: true));
                       },
                     ),
-                  ],
                 ],
               );
             },
@@ -305,10 +283,7 @@ class _AuditMediaCommentsBottomSheetState
     );
   }
 
-  bool _hasSelectedMedia({
-    required String mediaUrl,
-    required String mediaType,
-  }) {
+  bool _hasSelectedMedia({required String mediaUrl, required String mediaType}) {
     final normalizedType = mediaType.trim().toLowerCase();
     if (normalizedType != 'image' &&
         normalizedType != 'video' &&
@@ -331,9 +306,7 @@ class _AuditMediaCommentsBottomSheetState
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.grey2.withValues(alpha: 0.55),
-              ),
+              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -391,9 +364,7 @@ class _AuditMediaCommentsBottomSheetState
 
     _updateViewState(_viewState.value.copyWith(isDeleting: true));
     try {
-      await _remoteDataSource.deleteAuditMedia(
-        auditMediaId: widget.selectedMedia.uuid,
-      );
+      await _remoteDataSource.deleteAuditMedia(auditMediaId: widget.selectedMedia.uuid);
       await widget.onMediaChanged();
       if (mounted) {
         Navigator.of(context).pop();
@@ -428,10 +399,7 @@ class _AuditMediaCommentsBottomSheetState
 
     try {
       final pickedFile = shouldPickImage
-          ? await _imagePicker.pickImage(
-              source: ImageSource.gallery,
-              imageQuality: 90,
-            )
+          ? await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 90)
           : await _imagePicker.pickVideo(source: ImageSource.gallery);
       if (!mounted || pickedFile == null) {
         return null;
@@ -455,16 +423,11 @@ class _AuditMediaCommentsBottomSheetState
         return null;
       }
 
-      return _SelectedUploadMedia(
-        file: mediaFile,
-        mediaType: isImage ? 'image' : 'video',
-      );
+      return _SelectedUploadMedia(file: mediaFile, mediaType: isImage ? 'image' : 'video');
     } catch (error) {
       debugPrint('Unable to pick audit media file: $error');
       if (mounted) {
-        _showSnackBar(
-          'Unable to pick a media file right now. Please try again.',
-        );
+        _showSnackBar('Unable to pick a media file right now. Please try again.');
       }
       return null;
     }
@@ -520,8 +483,9 @@ class _AuditMediaCommentsBottomSheetState
     try {
       final mediaFile = selectedMedia.file;
       final fileName = CustomFunctions.fileNameFromPath(mediaFile.path);
-      final uploadUrl = await _remoteDataSource
-          .generateAuditDescriptionMediaUploadUrl(fileName: fileName);
+      final uploadUrl = await _remoteDataSource.generateAuditDescriptionMediaUploadUrl(
+        fileName: fileName,
+      );
 
       await _remoteDataSource.uploadAuditDescriptionMediaFile(
         uploadUrl: uploadUrl,
@@ -560,9 +524,7 @@ class _AuditMediaCommentsBottomSheetState
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _updateViewState(_AuditMediaCommentsViewState nextState) {
@@ -640,9 +602,7 @@ class _AuditMediaCommentsViewState {
       isUploadingMedia: isUploadingMedia ?? this.isUploadingMedia,
       isDeleting: isDeleting ?? this.isDeleting,
       isReplying: isReplying ?? this.isReplying,
-      commentsError: clearCommentsError
-          ? null
-          : commentsError ?? this.commentsError,
+      commentsError: clearCommentsError ? null : commentsError ?? this.commentsError,
       replyingTo: clearReplyingTo ? null : replyingTo ?? this.replyingTo,
     );
   }
@@ -706,10 +666,7 @@ class _MediaSelectionOption extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
             ],
           ),
         ),
@@ -738,10 +695,7 @@ class _EmptyMediaUploadCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: CustomPaint(
-            painter: const _DashedBorderPainter(
-              color: Color(0xFF9B9EAD),
-              radius: 18,
-            ),
+            painter: const _DashedBorderPainter(color: Color(0xFF9B9EAD), radius: 18),
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF2A2D3D),
@@ -764,11 +718,7 @@ class _EmptyMediaUploadCard extends StatelessWidget {
                               padding: EdgeInsets.all(22),
                               child: FastCircularProgressIndicator(),
                             )
-                          : const Icon(
-                              Icons.file_upload_outlined,
-                              color: Colors.white,
-                              size: 34,
-                            ),
+                          : const Icon(Icons.file_upload_outlined, color: Colors.white, size: 34),
                     ),
                     const SizedBox(height: 20),
                     AppTextView.body1(
@@ -859,27 +809,16 @@ class _SheetMedia extends StatelessWidget {
     final normalizedType = mediaType?.trim().toLowerCase();
 
     return switch (normalizedType) {
-      'video' || 'screen_recording' => _SheetVideoPlayer(
-        mediaUrl: mediaUrl,
-        width: previewWidth,
-        height: 220,
-      ),
-      'image' => _SheetCachedImage(
-        mediaUrl: mediaUrl,
-        width: previewWidth,
-        height: 220,
-      ),
+      'video' ||
+      'screen_recording' => _SheetVideoPlayer(mediaUrl: mediaUrl, width: previewWidth, height: 220),
+      'image' => _SheetCachedImage(mediaUrl: mediaUrl, width: previewWidth, height: 220),
       _ => _SheetMediaPlaceholder(width: previewWidth, height: 220),
     };
   }
 }
 
 class _SheetCachedImage extends StatelessWidget {
-  const _SheetCachedImage({
-    required this.mediaUrl,
-    required this.width,
-    required this.height,
-  });
+  const _SheetCachedImage({required this.mediaUrl, required this.width, required this.height});
 
   final String mediaUrl;
   final double width;
@@ -899,8 +838,7 @@ class _SheetCachedImage extends StatelessWidget {
             : InkWell(
                 onTap: () => Navigator.of(context).push<void>(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        ViewFullScreenDoc(title: 'Image', imageUrl: imageUrl),
+                    builder: (_) => ViewFullScreenDoc(title: 'Image', imageUrl: imageUrl),
                   ),
                 ),
                 child: CachedNetworkImage(
@@ -916,11 +854,7 @@ class _SheetCachedImage extends StatelessWidget {
 }
 
 class _SheetVideoPlayer extends StatefulWidget {
-  const _SheetVideoPlayer({
-    required this.mediaUrl,
-    required this.width,
-    required this.height,
-  });
+  const _SheetVideoPlayer({required this.mediaUrl, required this.width, required this.height});
 
   final String mediaUrl;
   final double width;
@@ -986,9 +920,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
         setState(() {});
       }
     } catch (error) {
-      debugPrint(
-        'Audit video initialization failed for $resolvedVideoUrl: $error',
-      );
+      debugPrint('Audit video initialization failed for $resolvedVideoUrl: $error');
       _initializationError = error;
       if (mounted) {
         setState(() {});
@@ -1091,11 +1023,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
       builder: (context, snapshot) {
         final controller = _controller;
         if (controller == null) {
-          return _buildPlayerContent(
-            snapshot: snapshot,
-            controller: null,
-            controllerValue: null,
-          );
+          return _buildPlayerContent(snapshot: snapshot, controller: null, controllerValue: null);
         }
 
         return ValueListenableBuilder<VideoPlayerValue>(
@@ -1119,9 +1047,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
   }) {
     final initializationError = _initializationError ?? snapshot.error;
     final isReady =
-        controller != null &&
-        controllerValue?.isInitialized == true &&
-        initializationError == null;
+        controller != null && controllerValue?.isInitialized == true && initializationError == null;
     final isBuffering = isReady && (controllerValue?.isBuffering ?? false);
 
     return ClipRRect(
@@ -1170,25 +1096,15 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.58),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
-                      ),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                     ),
-                    child: const Icon(
-                      Icons.open_in_full_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+                    child: const Icon(Icons.open_in_full_rounded, color: Colors.white, size: 18),
                   ),
                 ),
               ),
             if (isReady && isBuffering)
               Center(
-                child: SizedBox(
-                  width: 26,
-                  height: 26,
-                  child: FastCircularProgressIndicator(),
-                ),
+                child: SizedBox(width: 26, height: 26, child: FastCircularProgressIndicator()),
               ),
             if (initializationError != null)
               const Center(
@@ -1212,16 +1128,11 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
                       onTap: _togglePlayback,
                       borderRadius: BorderRadius.circular(22),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.58),
                           borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1261,11 +1172,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
                     ),
                     alignment: Alignment.center,
                     child: snapshot.connectionState != ConnectionState.done
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: FastCircularProgressIndicator(),
-                          )
+                        ? SizedBox(width: 24, height: 24, child: FastCircularProgressIndicator())
                         : Icon(
                             controllerValue?.isPlaying ?? false
                                 ? Icons.pause_rounded
@@ -1294,10 +1201,7 @@ class _SheetMediaPlaceholder extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: Image.asset(
-        '${AppStrings.imagePath}no_image.png',
-        fit: BoxFit.cover,
-      ),
+      child: Image.asset('${AppStrings.imagePath}no_image.png', fit: BoxFit.cover),
     );
   }
 }
@@ -1323,11 +1227,7 @@ class _CommentsList extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 18),
         child: Center(
-          child: SizedBox(
-            width: 26,
-            height: 26,
-            child: FastCircularProgressIndicator(),
-          ),
+          child: SizedBox(width: 26, height: 26, child: FastCircularProgressIndicator()),
         ),
       );
     }
@@ -1366,11 +1266,7 @@ class _CommentsList extends StatelessWidget {
 }
 
 class _CommentCard extends StatefulWidget {
-  const _CommentCard({
-    required this.comment,
-    required this.canReply,
-    required this.onReply,
-  });
+  const _CommentCard({required this.comment, required this.canReply, required this.onReply});
 
   final DescriptionComment comment;
   final bool canReply;
@@ -1422,9 +1318,7 @@ class _CommentCardState extends State<_CommentCard> {
                     ),
                     const SizedBox(width: 8),
                     AppTextView.body4(
-                      CustomFunctions.formatCommentTimeAgo(
-                        widget.comment.createdAt,
-                      ),
+                      CustomFunctions.formatCommentTimeAgo(widget.comment.createdAt),
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1475,12 +1369,7 @@ class _RepliesList extends StatelessWidget {
         children: [
           Container(
             width: 2,
-            margin: const EdgeInsets.only(
-              left: 6,
-              right: 12,
-              top: 4,
-              bottom: 4,
-            ),
+            margin: const EdgeInsets.only(left: 6, right: 12, top: 4, bottom: 4),
             decoration: BoxDecoration(
               color: AppColors.grey2.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(2),
@@ -1503,11 +1392,7 @@ class _RepliesList extends StatelessWidget {
 }
 
 class _RepliesToggle extends StatelessWidget {
-  const _RepliesToggle({
-    required this.repliesCount,
-    required this.isExpanded,
-    required this.onTap,
-  });
+  const _RepliesToggle({required this.repliesCount, required this.isExpanded, required this.onTap});
 
   final int repliesCount;
   final bool isExpanded;
@@ -1605,10 +1490,7 @@ class _ProfileAvatar extends StatelessWidget {
                 resolvedImageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) {
-                  return Image.asset(
-                    'lib/assets/images/dumy_pic.png',
-                    fit: BoxFit.cover,
-                  );
+                  return Image.asset('lib/assets/images/dumy_pic.png', fit: BoxFit.cover);
                 },
               ),
       ),
@@ -1631,11 +1513,7 @@ class _ReplyAction extends StatelessWidget {
         children: const [
           Icon(Icons.reply, color: AppColors.secondaryColor, size: 16),
           SizedBox(width: 4),
-          AppTextView.body4(
-            'Reply',
-            color: AppColors.secondaryColor,
-            fontWeight: FontWeight.w600,
-          ),
+          AppTextView.body4('Reply', color: AppColors.secondaryColor, fontWeight: FontWeight.w600),
         ],
       ),
     );
@@ -1667,9 +1545,7 @@ class _SendMessageBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          border: Border(
-            top: BorderSide(color: AppColors.grey2.withValues(alpha: 0.45)),
-          ),
+          border: Border(top: BorderSide(color: AppColors.grey2.withValues(alpha: 0.45))),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1709,18 +1585,13 @@ class _SendMessageBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.mainBg,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: AppColors.fieldBorder.withValues(alpha: 0.75),
-                      ),
+                      border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.75)),
                     ),
                     child: TextField(
                       controller: controller,
                       cursorColor: AppColors.textPrimary,
                       cursorHeight: 16,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: isReplying ? 'Reply' : 'Send message',
                         hintStyle: const TextStyle(
@@ -1748,11 +1619,7 @@ class _SendMessageBar extends StatelessWidget {
                               padding: EdgeInsets.all(10),
                               child: FastCircularProgressIndicator(),
                             )
-                          : Icon(
-                              Icons.send_rounded,
-                              color: AppColors.textPrimary,
-                              size: 20,
-                            ),
+                          : Icon(Icons.send_rounded, color: AppColors.textPrimary, size: 20),
                     ),
                   ),
                 ),
