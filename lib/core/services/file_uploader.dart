@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -68,6 +68,9 @@ class FileUploader {
     }
 
     if (response.statusCode < 200 || response.statusCode > 299) {
+      debugPrint(
+        'Presigned upload failed (${response.statusCode}): ${response.body}',
+      );
       throw ApiError.requestFailed(response.statusCode);
     }
   }
@@ -214,48 +217,35 @@ class _ProgressByteRequest extends http.BaseRequest {
     required List<int> fileBytes,
     required this.contentType,
     this.onProgress,
-  }) : _fileBytes = fileBytes;
+  }) : _fileBytes = fileBytes {
+    headers['Content-Type'] = contentType;
+  }
 
   final List<int> _fileBytes;
   final String contentType;
   final ValueChanged<double>? onProgress;
 
   @override
-  int get contentLength => _fileBytes.length;
-
-  @override
   http.ByteStream finalize() {
-    headers['Content-Type'] = contentType;
-    headers['Content-Length'] = contentLength.toString();
+    final totalBytes = _fileBytes.length;
+    var sentBytes = 0;
+    contentLength = totalBytes;
     super.finalize();
 
-    final streamController = StreamController<List<int>>(sync: true);
-    Future<void>(() async {
-      const chunkSize = 64 * 1024;
-      var bytesSent = 0;
+    final stream = Stream<List<int>>.fromIterable([_fileBytes]).transform(
+      StreamTransformer<List<int>, List<int>>.fromHandlers(
+        handleData: (chunk, sink) {
+          sentBytes += chunk.length;
+          if (totalBytes > 0) {
+            onProgress?.call((sentBytes / totalBytes).clamp(0, 1).toDouble());
+          } else {
+            onProgress?.call(1);
+          }
+          sink.add(chunk);
+        },
+      ),
+    );
 
-      try {
-        while (bytesSent < _fileBytes.length) {
-          final nextBytesSent = (bytesSent + chunkSize).clamp(
-            0,
-            _fileBytes.length,
-          );
-          final chunk = _fileBytes.sublist(bytesSent, nextBytesSent);
-          streamController.add(chunk);
-          bytesSent = nextBytesSent;
-          onProgress?.call(
-            _fileBytes.isEmpty ? 1 : bytesSent / _fileBytes.length,
-          );
-          await Future<void>.delayed(Duration.zero);
-        }
-
-        await streamController.close();
-      } catch (error, stackTrace) {
-        streamController.addError(error, stackTrace);
-        await streamController.close();
-      }
-    });
-
-    return http.ByteStream(streamController.stream);
+    return http.ByteStream(stream);
   }
 }

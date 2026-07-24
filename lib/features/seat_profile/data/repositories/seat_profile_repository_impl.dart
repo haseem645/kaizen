@@ -31,4 +31,9 @@ class SeatProfileRepositoryImpl implements SeatProfileRepository {
   Future<List<Department>> getDepartments() {
     return _remoteDataSource.getDepartments();
   }
+
+  @override
+  Future<List<SeatProfileDetail>> seatProfileCategoryTrainings() {
+    return _remoteDataSource.getSeatProfileCategoryTrainings();
+  }
 }

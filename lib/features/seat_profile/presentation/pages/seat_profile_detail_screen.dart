@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../../../routes/app_router.dart';
 import '../../data/datasources/seat_profile_remote_data_source.dart';
 import '../../data/repositories/seat_profile_repository_impl.dart';
 import '../../domain/entities/seat_profile_detail.dart';
@@ -22,17 +23,21 @@ class SeatProfileDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<SeatProfileRemoteDataSource>(create: (_) => createSeatProfileRemoteDataSource()),
+        Provider<SeatProfileRemoteDataSource>(
+          create: (_) => createSeatProfileRemoteDataSource(),
+        ),
         ProxyProvider<SeatProfileRemoteDataSource, SeatProfileRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createSeatProfileDetailRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createSeatProfileDetailRepository(remoteDataSource),
         ),
         ProxyProvider<SeatProfileRepositoryImpl, GetSeatProfilesUseCase>(
-          update: (_, repository, __) => createGetSeatProfileDetailUseCase(repository),
+          update: (_, repository, __) =>
+              createGetSeatProfileDetailUseCase(repository),
         ),
         ChangeNotifierProvider<SeatProfileDetailController>(
-          create: (context) =>
-              SeatProfileDetailController(context.read<GetSeatProfilesUseCase>())
-                ..initialize(seatId),
+          create: (context) => SeatProfileDetailController(
+            context.read<GetSeatProfilesUseCase>(),
+          )..initialize(seatId),
         ),
       ],
       child: const _SeatProfileDetailScreenView(),
@@ -63,7 +68,9 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
               else if (controller.errorMessage != null)
                 Expanded(child: _buildMessage(controller.errorMessage!))
               else if (detail == null)
-                Expanded(child: _buildMessage(AppStrings.loginSomethingWentWrong))
+                Expanded(
+                  child: _buildMessage(AppStrings.loginSomethingWentWrong),
+                )
               else
                 Expanded(
                   child: ListView(
@@ -76,7 +83,10 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
                         ...detail.categories.map(
                           (category) => Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: _CategoryCard(category: category),
+                            child: _CategoryCard(
+                              seatProfileId: detail.id,
+                              category: category,
+                            ),
                           ),
                         ),
                     ],
@@ -101,7 +111,10 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
               '${AppStrings.imagePath}back.svg',
               width: 24,
               height: 24,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
@@ -145,14 +158,19 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
 
   Widget _buildMessage(String message) {
     return Center(
-      child: AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
+      child: AppTextView.body(
+        message,
+        color: AppColors.textSecondary,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }
 
 class _CategoryCard extends StatefulWidget {
-  const _CategoryCard({required this.category});
+  const _CategoryCard({required this.seatProfileId, required this.category});
 
+  final String seatProfileId;
   final SeatProfileCategory category;
 
   @override
@@ -166,68 +184,80 @@ class _CategoryCardState extends State<_CategoryCard> {
   Widget build(BuildContext context) {
     final category = widget.category;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () => setState(() => _isExpanded = !_isExpanded),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOut,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppTextView.body1(
-                          category.title,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        const SizedBox(height: 10),
-                        AppTextView.body2(
-                          AppStrings.seatProfilePercentageHold,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 4),
-                        AppTextView.body2(
-                          _formatWeight(category.weightPercent),
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppTextView.body1(
+                            category.title,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          const SizedBox(height: 10),
+                          AppTextView.body2(
+                            AppStrings.seatProfilePercentageHold,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(height: 4),
+                          AppTextView.body2(
+                            _formatWeight(category.weightPercent),
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  _ForwardArrowBadge(isExpanded: _isExpanded),
-                ],
-              ),
-              if (_isExpanded) ...[
-                const SizedBox(height: 16),
-                if (category.descriptions.isEmpty)
-                  AppTextView.body2(
-                    AppStrings.seatProfileNoDescriptionsFound,
-                    color: AppColors.textSecondary,
-                  )
-                else
-                  ...category.descriptions.map(
-                    (description) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _InlineDescriptionCard(description: description),
+                ),
+                const SizedBox(width: 12),
+                _ForwardArrowBadge(
+                  onTap: () => AppRouter.pushNamed(
+                    context,
+                    AppRouter.seatProfileTrainingSetup,
+                    arguments: SeatProfileTrainingSetupRouteArgs(
+                      initialSeatProfileId: widget.seatProfileId,
+                      initialCategoryId: category.id,
                     ),
                   ),
+                ),
               ],
+            ),
+            if (_isExpanded) ...[
+              const SizedBox(height: 16),
+              if (category.descriptions.isEmpty)
+                AppTextView.body2(
+                  AppStrings.seatProfileNoDescriptionsFound,
+                  color: AppColors.textSecondary,
+                )
+              else
+                ...category.descriptions.map(
+                  (description) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _InlineDescriptionCard(description: description),
+                  ),
+                ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -253,7 +283,9 @@ class _InlineDescriptionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.28),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,7 +311,10 @@ class _InlineDescriptionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          AppTextView.body3(AppStrings.seatProfileAuditSpecifics, color: AppColors.textSecondary),
+          AppTextView.body3(
+            AppStrings.seatProfileAuditSpecifics,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 6),
           _ExpandableDescriptionText(
             title: description.name,
@@ -292,22 +327,24 @@ class _InlineDescriptionCard extends StatelessWidget {
 }
 
 class _ForwardArrowBadge extends StatelessWidget {
-  const _ForwardArrowBadge({required this.isExpanded});
+  const _ForwardArrowBadge({required this.onTap});
 
-  final bool isExpanded;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedRotation(
-      turns: isExpanded ? 0.25 : 0,
-      duration: const Duration(milliseconds: 220),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
       child: Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
           color: AppColors.mainBg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
+          border: Border.all(
+            color: AppColors.fieldBorder.withValues(alpha: 0.28),
+          ),
         ),
         child: const Icon(
           Icons.arrow_forward_ios_rounded,
@@ -320,7 +357,10 @@ class _ForwardArrowBadge extends StatelessWidget {
 }
 
 class _ExpandableDescriptionText extends StatelessWidget {
-  const _ExpandableDescriptionText({required this.title, required this.description});
+  const _ExpandableDescriptionText({
+    required this.title,
+    required this.description,
+  });
 
   final String title;
   final String description;
@@ -347,14 +387,21 @@ class _ExpandableDescriptionText extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(description, style: textStyle, maxLines: 7, overflow: TextOverflow.ellipsis),
+            Text(
+              description,
+              style: textStyle,
+              maxLines: 7,
+              overflow: TextOverflow.ellipsis,
+            ),
             if (hasOverflow) ...[
               const SizedBox(height: 8),
               InkWell(
                 onTap: () => showDialog<void>(
                   context: context,
-                  builder: (_) =>
-                      SeatProfileDescriptionDialog(title: title, description: description),
+                  builder: (_) => SeatProfileDescriptionDialog(
+                    title: title,
+                    description: description,
+                  ),
                 ),
                 child: const Text(
                   'See All',

@@ -117,6 +117,12 @@ class AppStrings {
   static const String seatProfileMilestoneDays = 'Milestone Days';
   static const String seatProfileAuditSpecifics = 'Audit Specifics';
   static const String seatProfileViewTraining = 'View Training';
+  static const String seatProfileSetupTrainingTitle = 'Setup Training';
+  static const String seatProfileSelectSeatProfile = 'Select Seat Profile';
+  static const String seatProfileSelectCategory = 'Select Category';
+  static const String seatProfileSelectDescription = 'Select Description';
+  static const String seatProfileTrainingNoOptionsAvailable =
+      'No training setup options available.';
   static const String kaizenGptTitle = 'KaizenGPT';
   static const String kaizenGptGreeting =
       'Your AI teammate for faster coaching and clearer answers.';
@@ -189,6 +195,56 @@ class AppStrings {
   static const String trainingDocumentTab = 'Document';
   static const String trainingSopTab = 'SOP';
   static const String trainingQuizTab = 'Quiz';
+  static const String trainingGenerateQuiz = 'Generate Quiz';
+  static const String trainingGenerateQuizDialogTitle = 'AI Quiz Generator';
+  static const String trainingGenerateQuizDialogDescription =
+      'Create quiz questions for the selected training module.';
+  static const String trainingQuizNumberOfQuestions = 'No. of Questions';
+  static const String trainingQuizOptionsPerQuestion = 'Options per Question';
+  static const String trainingQuizDifficultyLevel = 'Difficulty Level';
+  static const String trainingQuizReplaceExistingQuestions =
+      'Replace Existing Questions';
+  static const String trainingQuizDifficultyEasy = 'Easy';
+  static const String trainingQuizDifficultyMedium = 'Medium';
+  static const String trainingQuizDifficultyHard = 'Hard';
+  static const String trainingQuizEnabled = 'On';
+  static const String trainingQuizDisabled = 'Off';
+  static const String trainingQuizGeneratedSuccess =
+      'Quiz generated successfully.';
+  static const String trainingSopGeneratedSuccess =
+      'SOP generated successfully.';
+  static const String trainingCancel = 'Cancel';
+  static const String trainingGenerateSop = 'Generate SOP';
+  static const String trainingGenerateSopsWithAi = 'Generate SOPs with AI';
+  static const String trainingGenerateSopSubtitle =
+      'AI will generate SOP content for this training module.';
+  static const String trainingGenerateSopAlertTitle = 'Alert';
+  static const String trainingGenerateSopAlertDescription =
+      'This action will replace the existing document with the AI generated content.';
+  static const String trainingGenerateSopAlertInstruction =
+      'Type REGENERATE to confirm and enable Re-Generate.';
+  static const String trainingGenerateSopConfirmation = 'REGENERATE';
+  static const String trainingRegenerate = 'Re-Generate';
+  static const String trainingDeleteOption = 'Delete option';
+  static const String trainingAddNewLesson = 'Add New Lesson';
+  static const String trainingNewLesson = 'New Lesson';
+  static const String trainingAddLessonPrompt =
+      'Tap Add New Lesson to create a training module.';
+  static const String trainingDeleteModuleTitle = 'Delete Module';
+  static const String trainingDeleteModuleAction = 'Delete';
+  static const String trainingModuleDeletedSuccess =
+      'Module deleted successfully.';
+  static const String trainingLessonTitle = 'Title';
+  static const String trainingLessonTitleHint = 'Enter lesson title';
+  static const String trainingLessonCreatedSuccess =
+      'Lesson created successfully.';
+  static const String trainingUploadVideo = 'Upload Video';
+  static const String trainingUploadVideoHint =
+      'Choose a video to attach to this lesson.';
+  static const String trainingVideoUploadedSuccess =
+      'Video uploaded successfully.';
+  static const String trainingVideoUploadFailed =
+      'Unable to upload video right now.';
   static const String trainingProgressLabel = 'Progress';
   static const String trainingTrackModules = 'Track Modules';
   static const String trainingTakeQuiz = 'Take Quiz';
@@ -196,9 +252,14 @@ class AppStrings {
   static const String trainingNoModulesAvailable =
       'No training modules available.';
   static const String trainingNoVideoAvailable = 'No video available.';
+  static const String trainingNoDocumentAvailable = 'No document available.';
   static const String trainingNoSopAvailable = 'No SOP available.';
+  static const String trainingNoQuizQuestionsAvailable =
+      'No quiz questions available.';
   static const String trainingNoTranscriptAvailable =
       'No transcript available.';
+  static String trainingDeleteModuleDescription(String moduleTitle) =>
+      'Delete "$moduleTitle"? This action cannot be undone.';
   static const String trainingWelcomeQuizTitle = 'Welcome To Quiz';
   static const String trainingPassingScore = 'Passing: above: ';
   static const String start = 'Start';

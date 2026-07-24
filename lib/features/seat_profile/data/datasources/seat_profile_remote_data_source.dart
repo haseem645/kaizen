@@ -56,6 +56,23 @@ class SeatProfileRemoteDataSource {
       },
     );
   }
+
+  Future<List<SeatProfileDetailModel>> getSeatProfileCategoryTrainings() {
+    return _apiCallExecutor.processApi<List<SeatProfileDetailModel>>(
+      apiCallType: ApiCallType.get,
+      endpoint: ApiEndPoints.seatProfileCategoryTrainings,
+      decoder: (json) {
+        if (json is! List) {
+          throw const ApiError.invalidResponse();
+        }
+
+        return json
+            .whereType<Map<String, dynamic>>()
+            .map(SeatProfileDetailModel.fromApiJson)
+            .toList(growable: false);
+      },
+    );
+  }
 }
 
 List<DepartmentModel> _decodeDepartments(dynamic json) {

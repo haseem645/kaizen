@@ -135,11 +135,65 @@ abstract class AuditRepository {
   Future<List<SeatDescriptionTrainingModule>>
   getSeatDescriptionTrainingModules({required String descriptionId});
 
+  Future<SeatDescriptionTrainingModule> createSeatDescriptionTrainingModule({
+    required String jobId,
+    required String descriptionId,
+    required String title,
+  });
+
   Future<SeatDescriptionTrainingModuleDetail>
   getSeatDescriptionTrainingModuleDetail({required String moduleId});
 
   Future<SeatDescriptionTrainingDocument>
   getSeatDescriptionTrainingModuleDocument({required String moduleId});
+
+  Future<List<SeatDescriptionTrainingQuestion>>
+  getSeatDescriptionTrainingModuleQuestions({required String moduleId});
+
+  Future<void> generateSeatDescriptionTrainingModuleQuiz({
+    required String moduleId,
+    required int numQuestions,
+    required int optionsPerQuestion,
+    required String difficultyLevel,
+    required bool replaceExistingQuestions,
+  });
+
+  Future<void> generateSeatDescriptionTrainingModuleSop({
+    required String moduleId,
+  });
+
+  Future<String?> generateSeatDescriptionTrainingModuleSummary({
+    required String moduleId,
+  });
+
+  Future<String> generateSeatDescriptionTrainingModuleVideoUploadUrl({
+    required String fileName,
+  });
+
+  Future<void> uploadSeatDescriptionTrainingModuleVideoFile({
+    required String uploadUrl,
+    required String fileName,
+    required List<int> fileBytes,
+    required String contentType,
+  });
+
+  Future<SeatDescriptionTrainingVideo> addSeatDescriptionTrainingModuleVideo({
+    required String moduleId,
+    required String videoUuid,
+    required String title,
+    required String videoUrl,
+    required int duration,
+  });
+
+  Future<void> deleteSeatDescriptionTrainingModule({required String moduleId});
+
+  Future<SeatDescriptionTrainingQuestion>
+  updateSeatDescriptionTrainingQuestion({
+    required String questionId,
+    required String questionText,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    String? correctOptionUuid,
+  });
 
   Future<QuarterlyAudit> getQuarterlyAudit({
     required String quarterlyAuditId,

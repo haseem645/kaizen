@@ -1,5 +1,6 @@
 import '../preference/app_preference.dart';
 
+//
 class ApiEndPoints {
   ApiEndPoints._();
   // static const String baseUrl = 'http://127.0.0.1:8000';
@@ -110,12 +111,39 @@ class ApiEndPoints {
     return 'job_category_description/$descriptionId/training_modules/';
   }
 
+  static const String seatProfileCategoryTrainings = 'job/jobs_categories_descriptions/';
+  static const String parentTrainingModules = '${parentPrefix}training_modules/';
+
   static String trainingModuleDetail(String moduleId) {
     return 'training_modules/$moduleId/';
   }
 
   static String trainingModuleDocument(String moduleId) {
     return 'training_modules/$moduleId/document/';
+  }
+
+  static String trainingModuleQuestions(String moduleId) {
+    return 'training_modules/$moduleId/questions/';
+  }
+
+  static String addTrainingModuleVideo(String moduleId) {
+    return 'training_modules/$moduleId/add_video/';
+  }
+
+  static String generateTrainingModuleQuiz(String moduleId) {
+    return 'parent_training_modules/$moduleId/generate_quiz/';
+  }
+
+  static String generateTrainingModuleSop(String moduleId) {
+    return 'parent_training_modules/$moduleId/generate_sop/';
+  }
+
+  static String generateTrainingModuleSummary(String moduleId) {
+    return 'parent_training_modules/$moduleId/generate_summary/';
+  }
+
+  static String updateParentQuestion(String questionId) {
+    return 'parent_question/$questionId/';
   }
 
   static String seatProfileDetail(String seatId) {
@@ -240,6 +268,7 @@ class ApiEndPoints {
         endpoint == refreshToken ||
         endpoint == userDetail ||
         endpoint == companyDetail ||
+        endpoint == generatePreSignedUrl ||
         endpoint == organizations ||
         endpoint.startsWith('accounts/verify_token/');
   }

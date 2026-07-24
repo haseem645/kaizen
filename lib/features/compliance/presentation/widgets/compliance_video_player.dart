@@ -46,6 +46,8 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   Future<void>? _initializeFuture;
   Object? _initializationError;
   int _initializationGeneration = 0;
+  VideoViewType _currentViewType = VideoViewType.textureView;
+  bool _didRetryWithPlatformView = false;
   late bool _showThumbnailPreview;
   bool _isPreparingPlayback = false;
   bool _isScrubbing = false;
@@ -70,6 +72,8 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     }
 
     if (oldWidget.videoUrl != widget.videoUrl) {
+      _currentViewType = VideoViewType.textureView;
+      _didRetryWithPlatformView = false;
       _disposeController();
       _warmUpVideoCache();
       _setupController();
@@ -92,16 +96,23 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     _initializationError = null;
     _controller = null;
     final generation = ++_initializationGeneration;
-    _initializeFuture = _initializeController(generation);
+    _initializeFuture = _initializeController(
+      generation,
+      viewType: _currentViewType,
+    );
   }
 
-  Future<void> _initializeController(int generation) async {
+  Future<void> _initializeController(
+    int generation, {
+    required VideoViewType viewType,
+  }) async {
     VideoPlayerController? controller;
 
     try {
       controller = await VideoPlaybackService.createInitializedController(
         widget.videoUrl,
         cacheMaxAge: _cacheMaxAge,
+        viewType: viewType,
       );
       if (controller == null) {
         throw ArgumentError('Invalid video URL');
@@ -126,6 +137,15 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       if (controller != null) {
         await controller.dispose();
       }
+      if (_shouldRetryWithPlatformView(viewType, generation)) {
+        _currentViewType = VideoViewType.platformView;
+        _didRetryWithPlatformView = true;
+        _setupController();
+        if (mounted) {
+          setState(() {});
+        }
+        return;
+      }
       if (mounted && _isActiveGeneration(generation)) {
         setState(() {
           _initializationError = error;
@@ -133,6 +153,22 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       }
       rethrow;
     }
+  }
+
+  bool _shouldRetryWithPlatformView(
+    VideoViewType attemptedViewType,
+    int generation,
+  ) {
+    if (!mounted || !_isActiveGeneration(generation)) {
+      return false;
+    }
+
+    if (CustomFunctions.isApplePlatform()) {
+      return false;
+    }
+
+    return attemptedViewType == VideoViewType.textureView &&
+        !_didRetryWithPlatformView;
   }
 
   bool _isActiveGeneration(int generation) {

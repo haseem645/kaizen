@@ -10,4 +10,5 @@ abstract class SeatProfileRepository {
   });
   Future<SeatProfileDetail> getSeatProfileDetail(String seatId);
   Future<List<Department>> getDepartments();
+  Future<List<SeatProfileDetail>> seatProfileCategoryTrainings();
 }

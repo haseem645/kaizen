@@ -27,4 +27,8 @@ class GetSeatProfilesUseCase {
   Future<SeatProfileDetail> getSeatProfileDetail(String seatId) {
     return _repository.getSeatProfileDetail(seatId);
   }
+
+  Future<List<SeatProfileDetail>> seatProfileCategoryTrainings() {
+    return _repository.seatProfileCategoryTrainings();
+  }
 }

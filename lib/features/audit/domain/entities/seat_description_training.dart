@@ -16,6 +16,7 @@ class SeatDescriptionTrainingModuleDetail {
     required this.title,
     required this.thumbnails,
     required this.description,
+    required this.questions,
     required this.thumbnailLink,
     required this.trainingVideo,
     required this.isPubliclyAvailable,
@@ -26,6 +27,7 @@ class SeatDescriptionTrainingModuleDetail {
   final String title;
   final List<String> thumbnails;
   final String? description;
+  final List<SeatDescriptionTrainingQuestion> questions;
   final String? thumbnailLink;
   final SeatDescriptionTrainingVideo? trainingVideo;
   final bool isPubliclyAvailable;
@@ -40,6 +42,32 @@ class SeatDescriptionTrainingModuleDetail {
     }
     return thumbnails.first;
   }
+}
+
+class SeatDescriptionTrainingQuestion {
+  const SeatDescriptionTrainingQuestion({
+    required this.uuid,
+    required this.question,
+    required this.options,
+    required this.selectedOptionUuid,
+    required this.imageUrl,
+  });
+
+  final String uuid;
+  final String question;
+  final List<SeatDescriptionTrainingQuestionOption> options;
+  final String? selectedOptionUuid;
+  final String? imageUrl;
+}
+
+class SeatDescriptionTrainingQuestionOption {
+  const SeatDescriptionTrainingQuestionOption({
+    required this.uuid,
+    required this.text,
+  });
+
+  final String uuid;
+  final String text;
 }
 
 class SeatDescriptionTrainingVideo {

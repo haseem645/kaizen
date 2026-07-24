@@ -27,6 +27,7 @@ import '../features/seat_profile/domain/entities/seat_profile_detail.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_descriptions_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
+import '../features/seat_profile/presentation/pages/setup_training_screen.dart';
 import '../features/splash/presentation/pages/splash_screen.dart';
 
 class AppRouter {
@@ -50,6 +51,8 @@ class AppRouter {
   static const String organizations = '/organizations';
   static const String seatProfileDetail = '/seat-profiles/detail';
   static const String seatProfileDescriptions = '/seat-profiles/descriptions';
+  static const String seatProfileTrainingSetup =
+      '/seat-profiles/training-setup';
   static const String kaizenGpt = '/kaizen-gpt';
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
@@ -189,6 +192,22 @@ class AppRouter {
                     weightPercent: 0,
                     descriptions: <SeatProfileDescription>[],
                   ),
+          ),
+        );
+      case seatProfileTrainingSetup:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => SetupTrainingScreen(
+            initialSeatProfileId: args is SeatProfileTrainingSetupRouteArgs
+                ? args.initialSeatProfileId
+                : null,
+            initialCategoryId: args is SeatProfileTrainingSetupRouteArgs
+                ? args.initialCategoryId
+                : null,
+            initialDescriptionId: args is SeatProfileTrainingSetupRouteArgs
+                ? args.initialDescriptionId
+                : null,
           ),
         );
       case kaizenGpt:
@@ -353,6 +372,18 @@ class SeatProfileDescriptionsRouteArgs {
   const SeatProfileDescriptionsRouteArgs({required this.category});
 
   final SeatProfileCategory category;
+}
+
+class SeatProfileTrainingSetupRouteArgs {
+  const SeatProfileTrainingSetupRouteArgs({
+    this.initialSeatProfileId,
+    this.initialCategoryId,
+    this.initialDescriptionId,
+  });
+
+  final String? initialSeatProfileId;
+  final String? initialCategoryId;
+  final String? initialDescriptionId;
 }
 
 class PaygradeDetailRouteArgs {
