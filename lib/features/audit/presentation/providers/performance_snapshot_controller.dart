@@ -137,17 +137,25 @@ class PerformanceSnapshotController extends ChangeNotifier {
     notifyListeners();
 
     final nextPage = loadMore ? currentData.currentPage + 1 : 1;
-    final result = await _repository.getPerformanceSnapshot(
-      page: nextPage,
-      pageSize: 12,
-    );
-    final parsed = _parsePerformanceSnapshotResponse(result);
-    final parsedItems = parsed.items;
+    try {
+      final result = await _repository.getPerformanceSnapshot(
+        page: nextPage,
+        pageSize: 12,
+      );
+      final parsed = _parsePerformanceSnapshotResponse(result);
+      final parsedItems = parsed.items;
 
-    _reportsData = PagedAuditData.fromMainList(
-      parsed.mainList,
-      items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
-    );
+      _reportsData = PagedAuditData.fromMainList(
+        parsed.mainList,
+        items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
+      );
+    } catch (error) {
+      _reportsData = currentData.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+      );
+      debugPrint('PerformanceSnapshotController.loadReports failed: $error');
+    }
     notifyListeners();
   }
 
@@ -188,8 +196,22 @@ class PerformanceSnapshotController extends ChangeNotifier {
         );
         _myReportsErrorMessage = 'Profile doesnt exist';
       } else {
-        rethrow;
+        _myReportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        _myReportsErrorMessage = error.message;
+        debugPrint(
+          'PerformanceSnapshotController.loadMyReports failed: $error',
+        );
       }
+    } catch (error) {
+      _myReportsData = currentData.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+      );
+      _myReportsErrorMessage = error.toString();
+      debugPrint('PerformanceSnapshotController.loadMyReports failed: $error');
     }
     notifyListeners();
   }
@@ -218,6 +240,10 @@ class PerformanceSnapshotController extends ChangeNotifier {
 
     try {
       _jobOptions = await _repository.getSubordinateJobTitles();
+    } catch (error) {
+      debugPrint(
+        'PerformanceSnapshotController.ensureJobOptionsLoaded failed: $error',
+      );
     } finally {
       _isFilterLoading = false;
       notifyListeners();

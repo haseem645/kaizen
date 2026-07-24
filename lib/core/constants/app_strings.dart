@@ -6,6 +6,9 @@ class AppStrings {
   static const String apiRequestFailedPrefix =
       'Request failed with status code:';
   static const String apiErrorPrefix = 'ApiError:';
+  static const String apiUnableToConnectServer = 'Unable to connect to server.';
+  static const String apiRequestTimedOut =
+      'Server is taking too long to respond. Please try again.';
 
   static const String loginTitle = 'Sign In';
   static const String loginToYourAccount = 'Login to your account';
@@ -145,6 +148,8 @@ class AppStrings {
   static const String reportsScreenTitle = 'Reports';
   static const String myReportsTitle = 'My Reports';
   static const String certify = 'Certify';
+  static const String performanceReportUnavailable =
+      'Performance report is not available right now.';
   static const String performanceSnapshotNoReports = 'No reports available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
   static const String performanceSnapshotDataUnavailable =
@@ -196,6 +201,10 @@ class AppStrings {
   static const String trainingSopTab = 'SOP';
   static const String trainingQuizTab = 'Quiz';
   static const String trainingGenerateQuiz = 'Generate Quiz';
+  static const String trainingAddQuestion = 'Add Question';
+  static const String trainingAddQuestionDialogTitle = 'Add Quiz Question';
+  static const String trainingAddQuestionDialogDescription =
+      'Create a custom quiz question, add answer options, and choose the correct answer.';
   static const String trainingGenerateQuizDialogTitle = 'AI Quiz Generator';
   static const String trainingGenerateQuizDialogDescription =
       'Create quiz questions for the selected training module.';
@@ -226,6 +235,7 @@ class AppStrings {
   static const String trainingGenerateSopConfirmation = 'REGENERATE';
   static const String trainingRegenerate = 'Re-Generate';
   static const String trainingDeleteOption = 'Delete option';
+  static const String trainingRemoveOption = 'Remove option';
   static const String trainingAddNewLesson = 'Add New Lesson';
   static const String trainingNewLesson = 'New Lesson';
   static const String trainingAddLessonPrompt =
@@ -239,12 +249,25 @@ class AppStrings {
   static const String trainingLessonCreatedSuccess =
       'Lesson created successfully.';
   static const String trainingUploadVideo = 'Upload Video';
+  static const String trainingUploadingVideo = 'Uploading';
   static const String trainingUploadVideoHint =
       'Choose a video to attach to this lesson.';
+  static const String trainingDeleteVideoTitle = 'Delete Video';
+  static const String trainingDeleteVideoAction = 'Delete';
+  static const String trainingVideoMoreActions = 'Video actions';
+  static const String trainingThumbnailAction = 'Thumbnail';
   static const String trainingVideoUploadedSuccess =
       'Video uploaded successfully.';
+  static const String trainingVideoDeletedSuccess =
+      'Video deleted successfully.';
+  static const String trainingThumbnailUpdatedSuccess =
+      'Thumbnail updated successfully.';
   static const String trainingVideoUploadFailed =
       'Unable to upload video right now.';
+  static const String trainingVideoDeleteFailed =
+      'Unable to delete video right now.';
+  static const String trainingThumbnailUploadFailed =
+      'Unable to update thumbnail right now.';
   static const String trainingProgressLabel = 'Progress';
   static const String trainingTrackModules = 'Track Modules';
   static const String trainingTakeQuiz = 'Take Quiz';
@@ -256,10 +279,35 @@ class AppStrings {
   static const String trainingNoSopAvailable = 'No SOP available.';
   static const String trainingNoQuizQuestionsAvailable =
       'No quiz questions available.';
+  static const String trainingQuestionLabel = 'Question';
+  static const String trainingQuestionHint = 'Enter the quiz question';
+  static const String trainingQuestionOptionsLabel = 'Options';
+  static const String trainingQuestionCorrectAnswerLabel = 'Correct Answer';
+  static const String trainingQuestionSelectCorrectAnswerHint =
+      'Tap the radio circle beside an option to mark it as correct.';
+  static const String trainingQuestionAddedSuccess =
+      'Question added successfully.';
+  static const String trainingQuestionSaveAction = 'Save Question';
+  static const String trainingQuestionAddOption = 'Add Option';
+  static const String trainingQuestionRequired =
+      'Please enter a question before saving.';
+  static const String trainingQuestionMinOptionsRequired =
+      'Add at least 2 options.';
+  static const String trainingQuestionOptionsRequired =
+      'Please fill in every option before saving.';
+  static const String trainingQuestionCorrectOptionRequired =
+      'Please select the correct option.';
   static const String trainingNoTranscriptAvailable =
       'No transcript available.';
+  static const String trainingNoSummaryAvailable = 'No summary available.';
+  static const String trainingSummaryLabel = 'Summary';
+  static String trainingQuestionOptionLabel(int number) => 'Option $number';
+  static String trainingQuestionOptionHint(int number) =>
+      'Enter option $number';
   static String trainingDeleteModuleDescription(String moduleTitle) =>
       'Delete "$moduleTitle"? This action cannot be undone.';
+  static String trainingDeleteVideoDescription(String moduleTitle) =>
+      'Delete the video from "$moduleTitle"?';
   static const String trainingWelcomeQuizTitle = 'Welcome To Quiz';
   static const String trainingPassingScore = 'Passing: above: ';
   static const String start = 'Start';

@@ -324,6 +324,21 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
+  Future<SeatDescriptionTrainingQuestion> addSeatDescriptionTrainingQuestion({
+    required String moduleId,
+    required String questionText,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    required String correctOptionUuid,
+  }) {
+    return _remoteDataSource.addSeatDescriptionTrainingQuestion(
+      moduleId: moduleId,
+      questionText: questionText,
+      options: options,
+      correctOptionUuid: correctOptionUuid,
+    );
+  }
+
+  @override
   Future<void> generateSeatDescriptionTrainingModuleQuiz({
     required String moduleId,
     required int numQuestions,
@@ -397,6 +412,26 @@ class AuditRepositoryImpl implements AuditRepository {
       title: title,
       videoUrl: videoUrl,
       duration: duration,
+    );
+  }
+
+  @override
+  Future<void> deleteSeatDescriptionTrainingModuleVideo({
+    required String videoId,
+  }) {
+    return _remoteDataSource.deleteSeatDescriptionTrainingModuleVideo(
+      videoId: videoId,
+    );
+  }
+
+  @override
+  Future<void> updateSeatDescriptionTrainingModuleThumbnail({
+    required String moduleId,
+    required String thumbnailUrl,
+  }) {
+    return _remoteDataSource.updateSeatDescriptionTrainingModuleThumbnail(
+      moduleId: moduleId,
+      thumbnailUrl: thumbnailUrl,
     );
   }
 

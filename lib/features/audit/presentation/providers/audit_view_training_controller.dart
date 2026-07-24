@@ -24,10 +24,8 @@ enum QuizGenerationDifficulty {
 }
 
 class AuditViewTrainingController extends ChangeNotifier {
-  AuditViewTrainingController(
-    this._auditRepository, {
-    FileUploader? fileUploader,
-  }) : _fileUploader = fileUploader ?? const FileUploader() {
+  AuditViewTrainingController(this._auditRepository, {FileUploader? fileUploader})
+    : _fileUploader = fileUploader ?? const FileUploader() {
     newLessonTitleController.addListener(_handleNewLessonTitleChanged);
   }
 
@@ -40,8 +38,7 @@ class AuditViewTrainingController extends ChangeNotifier {
 
   final AuditRepository _auditRepository;
   final FileUploader _fileUploader;
-  final TextEditingController newLessonTitleController =
-      TextEditingController();
+  final TextEditingController newLessonTitleController = TextEditingController();
 
   bool _isLoading = false;
   bool _isDocumentLoading = false;
@@ -49,11 +46,12 @@ class AuditViewTrainingController extends ChangeNotifier {
   bool _isCreatingNewLessonDraft = false;
   bool _isCreatingModule = false;
   bool _isUploadingVideo = false;
+  bool _isDeletingVideo = false;
+  bool _isUploadingThumbnail = false;
   String? _errorMessage;
   String? _documentErrorMessage;
   String? _questionsErrorMessage;
-  List<SeatDescriptionTrainingModule> _modules =
-      const <SeatDescriptionTrainingModule>[];
+  List<SeatDescriptionTrainingModule> _modules = const <SeatDescriptionTrainingModule>[];
   SeatDescriptionTrainingModuleDetail? _selectedModuleDetail;
   SeatDescriptionTrainingDocument? _selectedModuleDocument;
   List<SeatDescriptionTrainingQuestion> _selectedModuleQuestions =
@@ -62,11 +60,11 @@ class AuditViewTrainingController extends ChangeNotifier {
   bool _hasResolvedQuestions = false;
   int _quizGenerationQuestionCount = 3;
   int _quizGenerationOptionsPerQuestion = 4;
-  QuizGenerationDifficulty _quizGenerationDifficulty =
-      QuizGenerationDifficulty.medium;
+  QuizGenerationDifficulty _quizGenerationDifficulty = QuizGenerationDifficulty.medium;
   bool _replaceExistingQuestions = true;
   bool _isGeneratingQuiz = false;
   bool _isGeneratingSop = false;
+  bool _isAddingQuestion = false;
   String? _deletingQuestionOptionKey;
   String? _deletingModuleId;
   String _jobId = '';
@@ -78,43 +76,43 @@ class AuditViewTrainingController extends ChangeNotifier {
   bool get isCreatingNewLessonDraft => _isCreatingNewLessonDraft;
   bool get isCreatingModule => _isCreatingModule;
   bool get isUploadingVideo => _isUploadingVideo;
+  bool get isDeletingVideo => _isDeletingVideo;
+  bool get isUploadingThumbnail => _isUploadingThumbnail;
+  bool get isUpdatingVideoActions => _isDeletingVideo || _isUploadingThumbnail;
   String? get errorMessage => _errorMessage;
   String? get documentErrorMessage => _documentErrorMessage;
   String? get questionsErrorMessage => _questionsErrorMessage;
   List<SeatDescriptionTrainingModule> get modules => _modules;
   String get selectedModuleId => _selectedModuleId;
   bool get hasSelectedModule => _selectedModuleId.trim().isNotEmpty;
-  SeatDescriptionTrainingModuleDetail? get selectedModuleDetail =>
-      _selectedModuleDetail;
-  SeatDescriptionTrainingDocument? get selectedModuleDocument =>
-      _selectedModuleDocument;
-  List<SeatDescriptionTrainingQuestion> get selectedModuleQuestions =>
-      _selectedModuleQuestions;
+  SeatDescriptionTrainingModuleDetail? get selectedModuleDetail => _selectedModuleDetail;
+  SeatDescriptionTrainingDocument? get selectedModuleDocument => _selectedModuleDocument;
+  List<SeatDescriptionTrainingQuestion> get selectedModuleQuestions => _selectedModuleQuestions;
   int get quizGenerationQuestionCount => _quizGenerationQuestionCount;
   int get quizGenerationOptionsPerQuestion => _quizGenerationOptionsPerQuestion;
-  QuizGenerationDifficulty get quizGenerationDifficulty =>
-      _quizGenerationDifficulty;
+  QuizGenerationDifficulty get quizGenerationDifficulty => _quizGenerationDifficulty;
   bool get replaceExistingQuestions => _replaceExistingQuestions;
   bool get isGeneratingQuiz => _isGeneratingQuiz;
   bool get isGeneratingSop => _isGeneratingSop;
+  bool get isAddingQuestion => _isAddingQuestion;
   String? get deletingQuestionOptionKey => _deletingQuestionOptionKey;
   String? get deletingModuleId => _deletingModuleId;
   bool get canSubmitNewLessonTitle =>
       !_isCreatingModule && newLessonTitleController.text.trim().isNotEmpty;
-  bool get canAccessSelectedModuleExtras =>
-      !_isCreatingNewLessonDraft && hasSelectedModule;
+  bool get canAccessSelectedModuleExtras => !_isCreatingNewLessonDraft && hasSelectedModule;
   bool get canUploadSelectedModuleVideo =>
       !_isCreatingNewLessonDraft &&
       hasSelectedModule &&
       !_isUploadingVideo &&
+      !_isDeletingVideo &&
+      !_isUploadingThumbnail &&
       !_isLoading;
   bool get hasSelectedModuleDocumentText {
     final text = _selectedModuleDocument?.text?.trim();
     return text != null && text.isNotEmpty;
   }
 
-  bool isDeletingModule(String moduleId) =>
-      _deletingModuleId == moduleId.trim();
+  bool isDeletingModule(String moduleId) => _deletingModuleId == moduleId.trim();
 
   String get selectedModuleTitle {
     if (_isCreatingNewLessonDraft) {
@@ -135,10 +133,7 @@ class AuditViewTrainingController extends ChangeNotifier {
     return '';
   }
 
-  Future<void> initialize({
-    required String jobId,
-    required String descriptionId,
-  }) async {
+  Future<void> initialize({required String jobId, required String descriptionId}) async {
     final resolvedJobId = jobId.trim();
     final resolvedDescriptionId = descriptionId.trim();
     if (resolvedDescriptionId.isEmpty) {
@@ -230,10 +225,7 @@ class AuditViewTrainingController extends ChangeNotifier {
 
   Future<bool> createModuleFromDraft() async {
     final resolvedTitle = newLessonTitleController.text.trim();
-    if (_isCreatingModule ||
-        resolvedTitle.isEmpty ||
-        _jobId.isEmpty ||
-        _descriptionId.isEmpty) {
+    if (_isCreatingModule || resolvedTitle.isEmpty || _jobId.isEmpty || _descriptionId.isEmpty) {
       return false;
     }
 
@@ -242,20 +234,23 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final createdModule = await _auditRepository
-          .createSeatDescriptionTrainingModule(
-            jobId: _jobId,
-            descriptionId: _descriptionId,
-            title: resolvedTitle,
-          );
+      final createdModule = await _auditRepository.createSeatDescriptionTrainingModule(
+        jobId: _jobId,
+        descriptionId: _descriptionId,
+        title: resolvedTitle,
+      );
+      final refreshedModules = await _auditRepository.getSeatDescriptionTrainingModules(
+        descriptionId: _descriptionId,
+      );
+      final resolvedModules = refreshedModules.isNotEmpty
+          ? refreshedModules
+          : <SeatDescriptionTrainingModule>[createdModule];
+      final selectedModule = resolvedModules.last;
 
-      _modules = List<SeatDescriptionTrainingModule>.from(
-        _modules,
-        growable: true,
-      )..add(createdModule);
+      _modules = List<SeatDescriptionTrainingModule>.from(resolvedModules, growable: false);
       _isCreatingNewLessonDraft = false;
-      _selectedModuleId = createdModule.uuid;
-      _selectedModuleDetail = _buildModuleDetailFromModule(createdModule);
+      _selectedModuleId = selectedModule.uuid;
+      _selectedModuleDetail = _buildModuleDetailFromModule(selectedModule);
       _selectedModuleDocument = null;
       _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
       _documentErrorMessage = null;
@@ -296,12 +291,10 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _selectedModuleDocument = await _auditRepository
-          .getSeatDescriptionTrainingModuleDocument(
-            moduleId: _selectedModuleId,
-          );
+      _selectedModuleDocument = await _auditRepository.getSeatDescriptionTrainingModuleDocument(
+        moduleId: _selectedModuleId,
+      );
     } catch (error) {
-      _selectedModuleDocument = null;
       _documentErrorMessage = error.toString();
       rethrow;
     } finally {
@@ -311,9 +304,7 @@ class AuditViewTrainingController extends ChangeNotifier {
   }
 
   Future<void> loadQuestionsForSelectedModule() async {
-    if (_selectedModuleId.isEmpty ||
-        _isQuestionsLoading ||
-        _hasResolvedQuestions) {
+    if (_selectedModuleId.isEmpty || _isQuestionsLoading || _hasResolvedQuestions) {
       return;
     }
 
@@ -334,18 +325,65 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final questions = await _auditRepository
-          .getSeatDescriptionTrainingModuleQuestions(
-            moduleId: _selectedModuleId,
-          );
+      final questions = await _auditRepository.getSeatDescriptionTrainingModuleQuestions(
+        moduleId: _selectedModuleId,
+      );
       _updateSelectedModuleQuestions(questions);
     } catch (error) {
-      _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
       _questionsErrorMessage = error.toString();
-      _hasResolvedQuestions = false;
       rethrow;
     } finally {
       _isQuestionsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> addQuestionToSelectedModule({
+    required String questionText,
+    required List<String> optionTexts,
+    required int correctOptionIndex,
+  }) async {
+    if (_selectedModuleId.isEmpty || _isAddingQuestion) {
+      return false;
+    }
+
+    final resolvedQuestion = questionText.trim();
+    final resolvedOptionTexts = optionTexts
+        .map((text) => text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList(growable: false);
+    if (resolvedQuestion.isEmpty ||
+        resolvedOptionTexts.length < 2 ||
+        correctOptionIndex < 0 ||
+        correctOptionIndex >= resolvedOptionTexts.length) {
+      return false;
+    }
+
+    final options = resolvedOptionTexts
+        .map(
+          (text) => SeatDescriptionTrainingQuestionOption(uuid: _generateClientUuid(), text: text),
+        )
+        .toList(growable: false);
+    final correctOptionUuid = options[correctOptionIndex].uuid;
+
+    _isAddingQuestion = true;
+    _questionsErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final createdQuestion = await _auditRepository.addSeatDescriptionTrainingQuestion(
+        moduleId: _selectedModuleId,
+        questionText: resolvedQuestion,
+        options: options,
+        correctOptionUuid: correctOptionUuid,
+      );
+      _appendSelectedQuestion(createdQuestion);
+      return true;
+    } catch (error) {
+      _questionsErrorMessage = error.toString();
+      return false;
+    } finally {
+      _isAddingQuestion = false;
       notifyListeners();
     }
   }
@@ -451,9 +489,7 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _auditRepository.generateSeatDescriptionTrainingModuleSop(
-        moduleId: _selectedModuleId,
-      );
+      await _auditRepository.generateSeatDescriptionTrainingModuleSop(moduleId: _selectedModuleId);
       await refreshDocumentForSelectedModule();
       return true;
     } catch (error) {
@@ -493,24 +529,19 @@ class AuditViewTrainingController extends ChangeNotifier {
           presignedUpload.fileUrl?.trim() ??
           _fileUploader.publicUrlFromUploadUrl(normalizedUploadUrl);
 
-      final videoDurationInSeconds = await _resolveVideoDurationInSeconds(
-        videoFile,
-      );
+      final videoDurationInSeconds = await _resolveVideoDurationInSeconds(videoFile);
       final videoTitle = _buildTrainingVideoTitle(fileName);
-      final uploadedVideo = await _auditRepository
-          .addSeatDescriptionTrainingModuleVideo(
-            moduleId: resolvedModuleId,
-            videoUuid: _generateClientUuid(),
-            title: videoTitle,
-            videoUrl: videoUrl,
-            duration: videoDurationInSeconds,
-          );
+      final uploadedVideo = await _auditRepository.addSeatDescriptionTrainingModuleVideo(
+        moduleId: resolvedModuleId,
+        videoUuid: _generateClientUuid(),
+        title: videoTitle,
+        videoUrl: videoUrl,
+        duration: videoDurationInSeconds,
+      );
       _applySelectedModuleVideo(uploadedVideo);
       try {
         final generatedDescription = await _auditRepository
-            .generateSeatDescriptionTrainingModuleSummary(
-              moduleId: resolvedModuleId,
-            );
+            .generateSeatDescriptionTrainingModuleSummary(moduleId: resolvedModuleId);
         _applySelectedModuleDescription(generatedDescription);
       } catch (error) {
         debugPrint('Unable to generate training summary: $error');
@@ -521,6 +552,74 @@ class AuditViewTrainingController extends ChangeNotifier {
       return false;
     } finally {
       _isUploadingVideo = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteVideoForSelectedModule() async {
+    final resolvedModuleId = _selectedModuleId.trim();
+    final resolvedVideoId = _selectedModuleDetail?.trainingVideo?.uuid.trim() ?? '';
+    if (resolvedModuleId.isEmpty ||
+        resolvedVideoId.isEmpty ||
+        _isDeletingVideo ||
+        _isUploadingVideo ||
+        _isUploadingThumbnail) {
+      return false;
+    }
+
+    _isDeletingVideo = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _auditRepository.deleteSeatDescriptionTrainingModuleVideo(videoId: resolvedVideoId);
+      _removeSelectedModuleVideo();
+      await _loadSelectedModuleDetail();
+      return true;
+    } catch (error) {
+      _errorMessage = error is ApiError ? error.message : AppStrings.trainingVideoDeleteFailed;
+      return false;
+    } finally {
+      _isDeletingVideo = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> uploadThumbnailForSelectedModule(File imageFile) async {
+    final resolvedModuleId = _selectedModuleId.trim();
+    if (resolvedModuleId.isEmpty ||
+        _isUploadingThumbnail ||
+        _isUploadingVideo ||
+        _isDeletingVideo) {
+      return false;
+    }
+
+    _isUploadingThumbnail = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final fileName = CustomFunctions.fileNameFromPath(imageFile.path);
+      final contentType = CustomFunctions.contentTypeFromPath(
+        imageFile.path,
+        fallback: 'image/jpeg',
+      );
+      final uploadedImage = await _fileUploader.uploadOnboardingImage(
+        fileName: fileName,
+        fileBytes: await imageFile.readAsBytes(),
+        contentType: contentType,
+      );
+      await _auditRepository.updateSeatDescriptionTrainingModuleThumbnail(
+        moduleId: resolvedModuleId,
+        thumbnailUrl: uploadedImage.image,
+      );
+      _applySelectedModuleThumbnail(uploadedImage.image);
+      return true;
+    } catch (error) {
+      _errorMessage = error is ApiError ? error.message : AppStrings.trainingThumbnailUploadFailed;
+      return false;
+    } finally {
+      _isUploadingThumbnail = false;
       notifyListeners();
     }
   }
@@ -541,12 +640,11 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _auditRepository.deleteSeatDescriptionTrainingModule(
-        moduleId: resolvedModuleId,
-      );
+      await _auditRepository.deleteSeatDescriptionTrainingModule(moduleId: resolvedModuleId);
 
-      final refreshedModules = await _auditRepository
-          .getSeatDescriptionTrainingModules(descriptionId: _descriptionId);
+      final refreshedModules = await _auditRepository.getSeatDescriptionTrainingModules(
+        descriptionId: _descriptionId,
+      );
       _modules = refreshedModules;
 
       if (refreshedModules.isEmpty) {
@@ -564,9 +662,7 @@ class AuditViewTrainingController extends ChangeNotifier {
       final canKeepCurrentSelection =
           currentSelectedModuleId.isNotEmpty &&
           currentSelectedModuleId != resolvedModuleId &&
-          refreshedModules.any(
-            (module) => module.uuid == currentSelectedModuleId,
-          );
+          refreshedModules.any((module) => module.uuid == currentSelectedModuleId);
 
       if (canKeepCurrentSelection) {
         _selectedModuleId = currentSelectedModuleId;
@@ -593,10 +689,7 @@ class AuditViewTrainingController extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteQuestionOption({
-    required String questionId,
-    required String optionId,
-  }) async {
+  Future<bool> deleteQuestionOption({required String questionId, required String optionId}) async {
     final resolvedQuestionId = questionId.trim();
     final resolvedOptionId = optionId.trim();
     if (resolvedQuestionId.isEmpty || resolvedOptionId.isEmpty) {
@@ -620,22 +713,19 @@ class AuditViewTrainingController extends ChangeNotifier {
     final hasCurrentCorrectOption = remainingOptions.any(
       (option) => option.uuid == currentCorrectOptionUuid,
     );
-    final resolvedCorrectOptionUuid = hasCurrentCorrectOption
-        ? currentCorrectOptionUuid
-        : null;
+    final resolvedCorrectOptionUuid = hasCurrentCorrectOption ? currentCorrectOptionUuid : null;
 
     _deletingQuestionOptionKey = deleteKey;
     _questionsErrorMessage = null;
     notifyListeners();
 
     try {
-      final updatedQuestion = await _auditRepository
-          .updateSeatDescriptionTrainingQuestion(
-            questionId: resolvedQuestionId,
-            questionText: targetQuestion.question,
-            options: remainingOptions,
-            correctOptionUuid: resolvedCorrectOptionUuid,
-          );
+      final updatedQuestion = await _auditRepository.updateSeatDescriptionTrainingQuestion(
+        questionId: resolvedQuestionId,
+        questionText: targetQuestion.question,
+        options: remainingOptions,
+        correctOptionUuid: resolvedCorrectOptionUuid,
+      );
       _replaceSelectedQuestion(updatedQuestion);
       return true;
     } catch (error) {
@@ -659,11 +749,11 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _selectedModuleDetail = await _auditRepository
-          .getSeatDescriptionTrainingModuleDetail(moduleId: _selectedModuleId);
+      _selectedModuleDetail = await _auditRepository.getSeatDescriptionTrainingModuleDetail(
+        moduleId: _selectedModuleId,
+      );
       _updateSelectedModuleQuestions(
-        _selectedModuleDetail?.questions ??
-            const <SeatDescriptionTrainingQuestion>[],
+        _selectedModuleDetail?.questions ?? const <SeatDescriptionTrainingQuestion>[],
       );
       _syncSelectedModuleSummaryFromDetail();
     } catch (error) {
@@ -674,9 +764,7 @@ class AuditViewTrainingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateSelectedModuleQuestions(
-    List<SeatDescriptionTrainingQuestion> questions,
-  ) {
+  void _updateSelectedModuleQuestions(List<SeatDescriptionTrainingQuestion> questions) {
     _selectedModuleQuestions = List<SeatDescriptionTrainingQuestion>.from(
       questions,
       growable: false,
@@ -701,16 +789,18 @@ class AuditViewTrainingController extends ChangeNotifier {
     );
   }
 
-  void _replaceSelectedQuestion(
-    SeatDescriptionTrainingQuestion updatedQuestion,
-  ) {
+  void _replaceSelectedQuestion(SeatDescriptionTrainingQuestion updatedQuestion) {
     final updatedQuestions = _selectedModuleQuestions
-        .map(
-          (question) => question.uuid == updatedQuestion.uuid
-              ? updatedQuestion
-              : question,
-        )
+        .map((question) => question.uuid == updatedQuestion.uuid ? updatedQuestion : question)
         .toList(growable: false);
+    _updateSelectedModuleQuestions(updatedQuestions);
+  }
+
+  void _appendSelectedQuestion(SeatDescriptionTrainingQuestion question) {
+    final updatedQuestions = List<SeatDescriptionTrainingQuestion>.from(
+      _selectedModuleQuestions,
+      growable: true,
+    )..add(question);
     _updateSelectedModuleQuestions(updatedQuestions);
   }
 
@@ -752,10 +842,7 @@ class AuditViewTrainingController extends ChangeNotifier {
       thumbnailLink: detail.previewThumbnailLink,
     );
     _modules = _modules
-        .map(
-          (module) =>
-              module.uuid == updatedModule.uuid ? updatedModule : module,
-        )
+        .map((module) => module.uuid == updatedModule.uuid ? updatedModule : module)
         .toList(growable: false);
   }
 
@@ -770,10 +857,7 @@ class AuditViewTrainingController extends ChangeNotifier {
       title: detail.title,
       thumbnails: List<String>.from(detail.thumbnails, growable: false),
       description: description?.trim(),
-      questions: List<SeatDescriptionTrainingQuestion>.from(
-        detail.questions,
-        growable: false,
-      ),
+      questions: List<SeatDescriptionTrainingQuestion>.from(detail.questions, growable: false),
       thumbnailLink: detail.thumbnailLink,
       trainingVideo: detail.trainingVideo,
       isPubliclyAvailable: detail.isPubliclyAvailable,
@@ -793,15 +877,54 @@ class AuditViewTrainingController extends ChangeNotifier {
       title: detail.title,
       thumbnails: List<String>.from(detail.thumbnails, growable: false),
       description: detail.description,
-      questions: List<SeatDescriptionTrainingQuestion>.from(
-        detail.questions,
-        growable: false,
-      ),
+      questions: List<SeatDescriptionTrainingQuestion>.from(detail.questions, growable: false),
       thumbnailLink: detail.thumbnailLink,
       trainingVideo: video,
       isPubliclyAvailable: detail.isPubliclyAvailable,
       learningTrackCount: detail.learningTrackCount,
     );
+    notifyListeners();
+  }
+
+  void _removeSelectedModuleVideo() {
+    final detail = _selectedModuleDetail;
+    if (detail == null) {
+      return;
+    }
+
+    _selectedModuleDetail = SeatDescriptionTrainingModuleDetail(
+      uuid: detail.uuid,
+      title: detail.title,
+      thumbnails: List<String>.from(detail.thumbnails, growable: false),
+      description: detail.description,
+      questions: List<SeatDescriptionTrainingQuestion>.from(detail.questions, growable: false),
+      thumbnailLink: detail.thumbnailLink,
+      trainingVideo: null,
+      isPubliclyAvailable: detail.isPubliclyAvailable,
+      learningTrackCount: detail.learningTrackCount,
+    );
+    notifyListeners();
+  }
+
+  void _applySelectedModuleThumbnail(String thumbnailUrl) {
+    final detail = _selectedModuleDetail;
+    final resolvedThumbnailUrl = thumbnailUrl.trim();
+    if (detail == null || resolvedThumbnailUrl.isEmpty) {
+      return;
+    }
+
+    _selectedModuleDetail = SeatDescriptionTrainingModuleDetail(
+      uuid: detail.uuid,
+      title: detail.title,
+      thumbnails: <String>[resolvedThumbnailUrl],
+      description: detail.description,
+      questions: List<SeatDescriptionTrainingQuestion>.from(detail.questions, growable: false),
+      thumbnailLink: resolvedThumbnailUrl,
+      trainingVideo: detail.trainingVideo,
+      isPubliclyAvailable: detail.isPubliclyAvailable,
+      learningTrackCount: detail.learningTrackCount,
+    );
+    _syncSelectedModuleSummaryFromDetail();
     notifyListeners();
   }
 
@@ -847,9 +970,7 @@ class AuditViewTrainingController extends ChangeNotifier {
       return error.toString();
     }
 
-    if (error is SocketException ||
-        error is HttpException ||
-        error is http.ClientException) {
+    if (error is SocketException || error is HttpException || error is http.ClientException) {
       return AppStrings.trainingVideoUploadFailed;
     }
 
@@ -857,16 +978,10 @@ class AuditViewTrainingController extends ChangeNotifier {
   }
 
   String _generateClientUuid() {
-    final bytes = List<int>.generate(
-      16,
-      (_) => _uuidRandom.nextInt(256),
-      growable: false,
-    );
+    final bytes = List<int>.generate(16, (_) => _uuidRandom.nextInt(256), growable: false);
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex = bytes
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join();
+    final hex = bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
     return '${hex.substring(0, 8)}-'
         '${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-'

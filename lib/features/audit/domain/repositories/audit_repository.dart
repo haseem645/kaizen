@@ -150,6 +150,13 @@ abstract class AuditRepository {
   Future<List<SeatDescriptionTrainingQuestion>>
   getSeatDescriptionTrainingModuleQuestions({required String moduleId});
 
+  Future<SeatDescriptionTrainingQuestion> addSeatDescriptionTrainingQuestion({
+    required String moduleId,
+    required String questionText,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    required String correctOptionUuid,
+  });
+
   Future<void> generateSeatDescriptionTrainingModuleQuiz({
     required String moduleId,
     required int numQuestions,
@@ -183,6 +190,15 @@ abstract class AuditRepository {
     required String title,
     required String videoUrl,
     required int duration,
+  });
+
+  Future<void> deleteSeatDescriptionTrainingModuleVideo({
+    required String videoId,
+  });
+
+  Future<void> updateSeatDescriptionTrainingModuleThumbnail({
+    required String moduleId,
+    required String thumbnailUrl,
   });
 
   Future<void> deleteSeatDescriptionTrainingModule({required String moduleId});

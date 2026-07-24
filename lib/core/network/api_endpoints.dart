@@ -10,11 +10,13 @@ class ApiEndPoints {
   static const String version = '/api/v1/';
   static const String parentPrefix = 'parent_';
   static const String login = 'accounts/login/';
-  static const String setActiveOrganization = 'accounts/set_active_organization/';
+  static const String setActiveOrganization =
+      'accounts/set_active_organization/';
   static const String refreshToken = 'accounts/token/refresh/';
   static const String userDetail = 'accounts/user_detail/';
   static const String companyDetail = 'company_detail/';
-  static const String myLearningTracks = 'learning_compliance/track_assignments/my_tracks/';
+  static const String myLearningTracks =
+      'learning_compliance/track_assignments/my_tracks/';
   static const String complianceDocumentTypes = 'compliance/document_type/';
   static const String myDocumentCompliances =
       'compliance/document_compliance_assignments/my_document_compliances/';
@@ -27,12 +29,14 @@ class ApiEndPoints {
   static const String generatePreSignedUrl = 'generate_pre_signed_url/';
   static const String quarterlyAudit = 'quarterly_audit/';
   static const String quarterlyAuditMyAudits = 'quarterly_audit/my_audits/';
-  static const String quarterlyAuditPerformanceSnapshot = 'quarterly_audit/performance_snapshot/';
+  static const String quarterlyAuditPerformanceSnapshot =
+      'quarterly_audit/performance_snapshot/';
   static const String quarterlyAuditMyPerformanceSnapshot =
       'quarterly_audit/my_performance_snapshot/';
   static const String subordinateJobs = 'job/subordinate_jobs/';
   static const String favoriteSubordinate = 'profiles/favorite_subordinate/';
-  static const String unfavoriteSubordinate = 'profiles/unfavorite_subordinate/';
+  static const String unfavoriteSubordinate =
+      'profiles/unfavorite_subordinate/';
 
   static String quarterlyAuditDetails(String profileJobId) {
     return 'quarterly_audit/profile_job/$profileJobId/audits/';
@@ -74,7 +78,9 @@ class ApiEndPoints {
     return 'audit_report/certified_report/$certifiedReportUuid/';
   }
 
-  static String auditReportCertifiedReportDownloadPdf(String certifiedReportUuid) {
+  static String auditReportCertifiedReportDownloadPdf(
+    String certifiedReportUuid,
+  ) {
     return 'audit_report/certified_report/$certifiedReportUuid/download_pdf/';
   }
 
@@ -111,8 +117,9 @@ class ApiEndPoints {
     return 'job_category_description/$descriptionId/training_modules/';
   }
 
-  static const String seatProfileCategoryTrainings = 'job/jobs_categories_descriptions/';
-  static const String parentTrainingModules = '${parentPrefix}training_modules/';
+  static const String seatProfileCategoryTrainings =
+      'job/jobs_categories_descriptions/';
+  static const String trainingModules = 'training_modules/';
 
   static String trainingModuleDetail(String moduleId) {
     return 'training_modules/$moduleId/';
@@ -126,24 +133,32 @@ class ApiEndPoints {
     return 'training_modules/$moduleId/questions/';
   }
 
+  static String addTrainingModuleQuestion(String moduleId) {
+    return 'training_modules/$moduleId/add_question/';
+  }
+
   static String addTrainingModuleVideo(String moduleId) {
     return 'training_modules/$moduleId/add_video/';
   }
 
+  static String trainingVideoDetail(String videoId) {
+    return 'training_video/$videoId/';
+  }
+
   static String generateTrainingModuleQuiz(String moduleId) {
-    return 'parent_training_modules/$moduleId/generate_quiz/';
+    return 'training_modules/$moduleId/generate_quiz/';
   }
 
   static String generateTrainingModuleSop(String moduleId) {
-    return 'parent_training_modules/$moduleId/generate_sop/';
+    return 'training_modules/$moduleId/generate_sop/';
   }
 
   static String generateTrainingModuleSummary(String moduleId) {
-    return 'parent_training_modules/$moduleId/generate_summary/';
+    return 'training_modules/$moduleId/generate_summary/';
   }
 
-  static String updateParentQuestion(String questionId) {
-    return 'parent_question/$questionId/';
+  static String updateQuestion(String questionId) {
+    return 'question/$questionId/';
   }
 
   static String seatProfileDetail(String seatId) {
@@ -247,7 +262,10 @@ class ApiEndPoints {
     );
   }
 
-  static String resolveEndpoint(String endpoint, {bool allowParentPrefix = true}) {
+  static String resolveEndpoint(
+    String endpoint, {
+    bool allowParentPrefix = true,
+  }) {
     final normalizedEndpoint = endpoint.trim();
     if (normalizedEndpoint.isEmpty || !allowParentPrefix) {
       return normalizedEndpoint;

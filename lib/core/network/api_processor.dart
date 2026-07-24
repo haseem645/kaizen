@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,8 +15,11 @@ class ApiCallExecutor {
   const ApiCallExecutor();
 
   static const Duration _getCacheTtl = Duration(seconds: 30);
+  static const Duration _requestTimeout = Duration(seconds: 30);
+  static const int _maxGetRequestRetries = 2;
   static final Map<String, _CachedHttpResponse> _getCache =
       <String, _CachedHttpResponse>{};
+  static final http.Client _httpClient = http.Client();
 
   static void clearGetCache() {
     if (_getCache.isEmpty) {
@@ -122,6 +126,7 @@ class ApiCallExecutor {
     Map<String, dynamic>? parameters,
     Map<String, String>? headers,
     String? authToken,
+    int attempt = 0,
   }) async {
     final fullEndpoint =
         '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$endpoint';
@@ -151,21 +156,93 @@ class ApiCallExecutor {
       resolvedHeaders.addAll(headers);
     }
 
-    final request = http.Request(apiCallType.value, uri);
-    request.headers.addAll(resolvedHeaders);
-
-    if (apiCallType != ApiCallType.get && parameters != null) {
-      request.body = jsonEncode(parameters);
-    }
-
     try {
-      final streamedResponse = await request.send();
-      return await http.Response.fromStream(streamedResponse);
-    } on SocketException {
-      throw ApiError.requestFailed(0, message: 'Unable to connect to server.');
-    } on HttpException {
-      throw ApiError.requestFailed(0, message: 'Unable to connect to server.');
+      final request = http.Request(apiCallType.value, uri);
+      request.headers.addAll(resolvedHeaders);
+
+      if (apiCallType != ApiCallType.get && parameters != null) {
+        request.body = jsonEncode(parameters);
+      }
+
+      final streamedResponse = await _httpClient
+          .send(request)
+          .timeout(_requestTimeout);
+      return await http.Response.fromStream(
+        streamedResponse,
+      ).timeout(_requestTimeout);
+    } on SocketException catch (_) {
+      if (_shouldRetryRequest(apiCallType: apiCallType, attempt: attempt)) {
+        return _retryRequest(
+          apiCallType: apiCallType,
+          endpoint: endpoint,
+          parameters: parameters,
+          headers: headers,
+          authToken: authToken,
+          attempt: attempt,
+        );
+      }
+
+      throw ApiError.requestFailed(
+        0,
+        message: AppStrings.apiUnableToConnectServer,
+      );
+    } on HttpException catch (_) {
+      if (_shouldRetryRequest(apiCallType: apiCallType, attempt: attempt)) {
+        return _retryRequest(
+          apiCallType: apiCallType,
+          endpoint: endpoint,
+          parameters: parameters,
+          headers: headers,
+          authToken: authToken,
+          attempt: attempt,
+        );
+      }
+
+      throw ApiError.requestFailed(
+        0,
+        message: AppStrings.apiUnableToConnectServer,
+      );
+    } on TimeoutException catch (_) {
+      if (_shouldRetryRequest(apiCallType: apiCallType, attempt: attempt)) {
+        return _retryRequest(
+          apiCallType: apiCallType,
+          endpoint: endpoint,
+          parameters: parameters,
+          headers: headers,
+          authToken: authToken,
+          attempt: attempt,
+        );
+      }
+
+      throw ApiError.requestFailed(0, message: AppStrings.apiRequestTimedOut);
     }
+  }
+
+  bool _shouldRetryRequest({
+    required ApiCallType apiCallType,
+    required int attempt,
+  }) {
+    return apiCallType == ApiCallType.get && attempt < _maxGetRequestRetries;
+  }
+
+  Future<http.Response> _retryRequest({
+    required ApiCallType apiCallType,
+    required String endpoint,
+    Map<String, dynamic>? parameters,
+    Map<String, String>? headers,
+    String? authToken,
+    required int attempt,
+  }) async {
+    final retryDelay = Duration(milliseconds: 400 * (attempt + 1));
+    await Future<void>.delayed(retryDelay);
+    return _sendRequest(
+      apiCallType: apiCallType,
+      endpoint: endpoint,
+      parameters: parameters,
+      headers: headers,
+      authToken: authToken,
+      attempt: attempt + 1,
+    );
   }
 
   Uri buildUriWithQueryParameters({

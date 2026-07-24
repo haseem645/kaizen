@@ -663,7 +663,7 @@ class AuditRemoteDataSource {
   }) {
     return _apiCallExecutor.processApi<SeatDescriptionTrainingModule>(
       apiCallType: ApiCallType.post,
-      endpoint: ApiEndPoints.parentTrainingModules,
+      endpoint: ApiEndPoints.trainingModules,
       authToken: AppPreference.getAuthToken(),
       parameters: {
         'job': jobId,
@@ -757,6 +757,34 @@ class AuditRemoteDataSource {
               ),
             )
             .toList(growable: false);
+      },
+    );
+  }
+
+  Future<SeatDescriptionTrainingQuestion> addSeatDescriptionTrainingQuestion({
+    required String moduleId,
+    required String questionText,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    required String correctOptionUuid,
+  }) {
+    return _apiCallExecutor.processApi<SeatDescriptionTrainingQuestion>(
+      apiCallType: ApiCallType.put,
+      endpoint: ApiEndPoints.addTrainingModuleQuestion(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      parameters: {
+        'uuid': '',
+        'question': questionText,
+        'correct_option': correctOptionUuid,
+        'options': options
+            .map((option) => {'uuid': option.uuid, 'text': option.text})
+            .toList(growable: false),
+      },
+      decoder: (json) {
+        if (json is! Map<String, dynamic>) {
+          throw const ApiError.invalidResponse();
+        }
+
+        return SeatDescriptionTrainingQuestionModel.fromApiJson(json);
       },
     );
   }
@@ -900,6 +928,33 @@ class AuditRemoteDataSource {
     );
   }
 
+  Future<void> deleteSeatDescriptionTrainingModuleVideo({
+    required String videoId,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.delete,
+      endpoint: ApiEndPoints.trainingVideoDetail(videoId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (_) {},
+    );
+  }
+
+  Future<void> updateSeatDescriptionTrainingModuleThumbnail({
+    required String moduleId,
+    required String thumbnailUrl,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.patch,
+      endpoint: ApiEndPoints.trainingModuleDetail(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      parameters: {
+        'thumbnail_link': thumbnailUrl.trim(),
+        'thumbnails': <String>[thumbnailUrl.trim()],
+      },
+      decoder: (_) {},
+    );
+  }
+
   Future<void> deleteSeatDescriptionTrainingModule({required String moduleId}) {
     return _apiCallExecutor.processApi<void>(
       apiCallType: ApiCallType.delete,
@@ -918,7 +973,7 @@ class AuditRemoteDataSource {
   }) {
     return _apiCallExecutor.processApi<SeatDescriptionTrainingQuestion>(
       apiCallType: ApiCallType.patch,
-      endpoint: ApiEndPoints.updateParentQuestion(questionId),
+      endpoint: ApiEndPoints.updateQuestion(questionId),
       authToken: AppPreference.getAuthToken(),
       parameters: {
         'question': questionText,

@@ -150,8 +150,19 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
       body: SafeArea(
         top: false,
         bottom: false,
-        child: state.isPerformanceReportLoading || report == null
+        child: state.isPerformanceReportLoading
             ? FastCircularProgressIndicator()
+            : report == null
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: AppTextView.body(
+                    AppStrings.performanceReportUnavailable,
+                    color: AppColors.textSecondary,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
             : ValueListenableBuilder<_PerformanceReportLocalState>(
                 valueListenable: _localStateNotifier,
                 builder: (context, localState, _) {
