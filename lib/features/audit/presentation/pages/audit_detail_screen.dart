@@ -674,6 +674,29 @@ class _AuditDetailsScreenView extends StatelessWidget {
     controller.setAuditActionLoading(true);
 
     try {
+      if (shouldStartNewAudit) {
+        controller.setAuditActionLoading(false);
+
+        await AppRouter.pushNamed<void>(
+          context,
+          AppRouter.singleAuditDetails,
+          arguments: SingleAuditDetailsRouteArgs(
+            quarterlyAuditId: details.uuid,
+            date: todayDate,
+            lastAuditDate: details.lastAuditDate,
+            year: year,
+            quarter: quarter,
+          ),
+        );
+
+        if (!context.mounted) {
+          return;
+        }
+
+        await _refreshDetailsAfterAuditReturn(context, details.profileJob);
+        return;
+      }
+
       final quarterlyAudit = await controller.loadQuarterlyAuditForDate(
         quarterlyAuditId: details.uuid,
         date: todayDate,
