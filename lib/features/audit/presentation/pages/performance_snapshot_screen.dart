@@ -74,6 +74,7 @@ class _PerformanceSnapshotView extends StatelessWidget {
                   if (showTeamReportsControls) ...[
                     _PerformanceSnapshotTabs(
                       selectedTab: controller.selectedTab,
+                      showMyReports: false,
                       onTabSelected: (tab) {
                         controller.selectTab(
                           tab == PerformanceSnapshotTab.reports
@@ -240,10 +241,12 @@ class _PerformanceSnapshotTabs extends StatelessWidget {
   const _PerformanceSnapshotTabs({
     required this.selectedTab,
     required this.onTabSelected,
+    this.showMyReports = true,
   });
 
   final PerformanceSnapshotTab selectedTab;
   final ValueChanged<PerformanceSnapshotTab> onTabSelected;
+  final bool showMyReports;
 
   @override
   Widget build(BuildContext context) {
@@ -263,14 +266,16 @@ class _PerformanceSnapshotTabs extends StatelessWidget {
               onTap: () => onTabSelected(PerformanceSnapshotTab.reports),
             ),
           ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _PerformanceSnapshotTabButton(
-              label: AppStrings.myReportsTitle,
-              isSelected: selectedTab == PerformanceSnapshotTab.myReports,
-              onTap: () => onTabSelected(PerformanceSnapshotTab.myReports),
+          if (showMyReports) ...[
+            const SizedBox(width: 6),
+            Expanded(
+              child: _PerformanceSnapshotTabButton(
+                label: AppStrings.myReportsTitle,
+                isSelected: selectedTab == PerformanceSnapshotTab.myReports,
+                onTap: () => onTabSelected(PerformanceSnapshotTab.myReports),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

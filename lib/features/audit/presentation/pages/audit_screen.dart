@@ -148,6 +148,7 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
             onStatusSelected: controller.selectStatus,
             activeTitle: 'Team Members',
             deactivatedTitle: 'My Check-In',
+            showDeactivated: false,
           ),
         if (showSearchAndFilter) ...[
           const SizedBox(height: 22),

@@ -12,12 +12,14 @@ class AuditStatusSwitcher extends StatelessWidget {
     required this.onStatusSelected,
     this.activeTitle = AppStrings.auditActive,
     this.deactivatedTitle = AppStrings.auditDeactivated,
+    this.showDeactivated = true,
   });
 
   final AuditMemberStatus selectedStatus;
   final ValueChanged<AuditMemberStatus> onStatusSelected;
   final String activeTitle;
   final String deactivatedTitle;
+  final bool showDeactivated;
 
   @override
   Widget build(BuildContext context) {
@@ -28,19 +30,25 @@ class AuditStatusSwitcher extends StatelessWidget {
           isSelected: selectedStatus == AuditMemberStatus.active,
           onTap: () => onStatusSelected(AuditMemberStatus.active),
         ),
-        const SizedBox(width: 20),
-        _StatusChip(
-          title: deactivatedTitle,
-          isSelected: selectedStatus == AuditMemberStatus.deactivated,
-          onTap: () => onStatusSelected(AuditMemberStatus.deactivated),
-        ),
+        if (showDeactivated) ...[
+          const SizedBox(width: 20),
+          _StatusChip(
+            title: deactivatedTitle,
+            isSelected: selectedStatus == AuditMemberStatus.deactivated,
+            onTap: () => onStatusSelected(AuditMemberStatus.deactivated),
+          ),
+        ],
       ],
     );
   }
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.title, required this.isSelected, required this.onTap});
+  const _StatusChip({
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final String title;
   final bool isSelected;
@@ -55,7 +63,9 @@ class _StatusChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.secondaryColor.withValues(alpha: 0.08) : Colors.transparent,
+          color: isSelected
+              ? AppColors.secondaryColor.withValues(alpha: 0.08)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
           border: Border.all(
             color: isSelected
@@ -63,7 +73,11 @@ class _StatusChip extends StatelessWidget {
                 : AppColors.fieldBorder.withValues(alpha: 0.7),
           ),
         ),
-        child: AppTextView.body2(title, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+        child: AppTextView.body2(
+          title,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
