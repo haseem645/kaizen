@@ -686,6 +686,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
             lastAuditDate: details.lastAuditDate,
             year: year,
             quarter: quarter,
+            requireDescriptionSelection: true,
           ),
         );
 

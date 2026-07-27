@@ -129,6 +129,8 @@ class AppStrings {
   static const String auditOverallScore = 'Overall\nScore';
   static const String auditConfidenceLevel = 'Confidence\nLevel';
   static const String checkInTitle = 'Check-In';
+  static const String checkInSelectDescriptionPrompt =
+      'Select a description first to start this check-in.';
   static const String reportsTitle = 'Reports';
   static const String reportsScreenTitle = 'Reports';
   static const String myReportsTitle = 'My Reports';

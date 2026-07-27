@@ -290,6 +290,8 @@ class AuditController extends ChangeNotifier {
   Future<void> initializeQuarterlyAudit({
     required String quarterlyAuditId,
     required String date,
+    bool autoSelectFirstDescription = true,
+    String? preferredDescriptionUuid,
   }) async {
     _state = _state.copyWith(isLoading: true, clearQuarterlyAudit: true);
     notifyListeners();
@@ -307,14 +309,16 @@ class AuditController extends ChangeNotifier {
       quarterlyAuditId: quarterlyAuditId,
       date: date,
     );
+    final selectedDescriptionUuid = _resolveQuarterlyAuditDescriptionSelection(
+      quarterlyAudit,
+      preferredDescriptionUuid: preferredDescriptionUuid,
+      autoSelectFirstDescription: autoSelectFirstDescription,
+    );
     _state = _state.copyWith(
       isLoading: false,
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      selectedQuarterlyAuditDescriptionUuid: selectedDescriptionUuid,
+      clearSelectedQuarterlyAuditDescription: selectedDescriptionUuid == null,
     );
     notifyListeners();
   }
@@ -324,6 +328,8 @@ class AuditController extends ChangeNotifier {
     required String date,
     int? year,
     int? quarter,
+    bool autoSelectFirstDescription = true,
+    String? preferredDescriptionUuid,
   }) async {
     final user = await AppPreference.getUser();
     final isOwner = _hasTeamMemberTabsAccess(user);
@@ -368,16 +374,18 @@ class AuditController extends ChangeNotifier {
       date: date,
     );
     final teamMembers = await teamMembersFuture;
+    final selectedDescriptionUuid = _resolveQuarterlyAuditDescriptionSelection(
+      quarterlyAudit,
+      preferredDescriptionUuid: preferredDescriptionUuid,
+      autoSelectFirstDescription: autoSelectFirstDescription,
+    );
 
     _state = _state.copyWith(
       isLoading: false,
       mainList: _sortedMainList(teamMembers),
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      selectedQuarterlyAuditDescriptionUuid: selectedDescriptionUuid,
+      clearSelectedQuarterlyAuditDescription: selectedDescriptionUuid == null,
     );
     notifyListeners();
   }
@@ -385,6 +393,8 @@ class AuditController extends ChangeNotifier {
   Future<void> refreshSingleAuditDetails({
     required String quarterlyAuditId,
     required String date,
+    bool autoSelectFirstDescription = true,
+    String? preferredDescriptionUuid,
   }) async {
     final getQuarterlyAuditUseCase = _getQuarterlyAuditUseCase;
     if (quarterlyAuditId.trim().isEmpty ||
@@ -397,16 +407,53 @@ class AuditController extends ChangeNotifier {
       quarterlyAuditId: quarterlyAuditId,
       date: date,
     );
+    final selectedDescriptionUuid = _resolveQuarterlyAuditDescriptionSelection(
+      quarterlyAudit,
+      preferredDescriptionUuid: preferredDescriptionUuid,
+      autoSelectFirstDescription: autoSelectFirstDescription,
+    );
 
     _state = _state.copyWith(
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      selectedQuarterlyAuditDescriptionUuid: selectedDescriptionUuid,
+      clearSelectedQuarterlyAuditDescription: selectedDescriptionUuid == null,
     );
     notifyListeners();
+  }
+
+  String? _resolveQuarterlyAuditDescriptionSelection(
+    QuarterlyAudit quarterlyAudit, {
+    String? preferredDescriptionUuid,
+    bool autoSelectFirstDescription = true,
+  }) {
+    final descriptions = quarterlyAudit.descriptions;
+    if (descriptions.isEmpty) {
+      return null;
+    }
+
+    final candidates = <String?>[
+      preferredDescriptionUuid,
+      _state.selectedQuarterlyAuditDescriptionUuid,
+    ];
+
+    for (final candidate in candidates) {
+      final trimmedCandidate = candidate?.trim();
+      if (trimmedCandidate == null || trimmedCandidate.isEmpty) {
+        continue;
+      }
+
+      for (final description in descriptions) {
+        if (description.uuid == trimmedCandidate) {
+          return trimmedCandidate;
+        }
+      }
+    }
+
+    if (!autoSelectFirstDescription) {
+      return null;
+    }
+
+    return descriptions.first.uuid;
   }
 
   Future<QuarterlyAudit?> loadQuarterlyAuditForDate({

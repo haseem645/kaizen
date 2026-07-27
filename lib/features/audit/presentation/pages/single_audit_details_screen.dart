@@ -29,6 +29,7 @@ class SingleAuditDetailsScreen extends StatelessWidget {
     required this.lastAuditDate,
     this.year,
     this.quarter,
+    this.requireDescriptionSelection = false,
   });
 
   final String quarterlyAuditId;
@@ -36,6 +37,7 @@ class SingleAuditDetailsScreen extends StatelessWidget {
   final String lastAuditDate;
   final int? year;
   final int? quarter;
+  final bool requireDescriptionSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +86,7 @@ class SingleAuditDetailsScreen extends StatelessWidget {
                 date: date,
                 year: year,
                 quarter: quarter,
+                autoSelectFirstDescription: !requireDescriptionSelection,
               ),
         ),
       ],
@@ -94,6 +97,7 @@ class SingleAuditDetailsScreen extends StatelessWidget {
         lastAuditDate: lastAuditDate,
         year: year,
         quarter: quarter,
+        requireDescriptionSelection: requireDescriptionSelection,
       ),
     );
   }
@@ -107,6 +111,7 @@ class _SingleAuditDetailsView extends StatefulWidget {
     required this.quarterlyAuditId,
     this.year,
     this.quarter,
+    required this.requireDescriptionSelection,
   });
 
   final String date;
@@ -114,6 +119,7 @@ class _SingleAuditDetailsView extends StatefulWidget {
   final String quarterlyAuditId;
   final int? year;
   final int? quarter;
+  final bool requireDescriptionSelection;
 
   @override
   State<_SingleAuditDetailsView> createState() =>
@@ -139,7 +145,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         oldWidget.date != widget.date ||
         oldWidget.quarterlyAuditId != widget.quarterlyAuditId ||
         oldWidget.year != widget.year ||
-        oldWidget.quarter != widget.quarter;
+        oldWidget.quarter != widget.quarter ||
+        oldWidget.requireDescriptionSelection !=
+            widget.requireDescriptionSelection;
     if (!didIdentityChange) {
       return;
     }
@@ -155,6 +163,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         date: widget.date,
         year: widget.year,
         quarter: widget.quarter,
+        autoSelectFirstDescription: !widget.requireDescriptionSelection,
       );
     });
   }
@@ -236,6 +245,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     QuarterlyAuditDescription description,
   ) async {
     final auditController = context.read<AuditController>();
+    auditController.selectQuarterlyAuditDescription(description.uuid);
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -250,6 +260,8 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
               await auditController.refreshSingleAuditDetails(
                 quarterlyAuditId: audit.uuid,
                 date: widget.date,
+                preferredDescriptionUuid: description.uuid,
+                autoSelectFirstDescription: !widget.requireDescriptionSelection,
               );
             },
           ),
@@ -620,6 +632,25 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             ),
           ],
         ),
+        if (widget.requireDescriptionSelection) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.secondaryColor.withValues(alpha: 0.24),
+              ),
+            ),
+            child: const AppTextView.body2(
+              AppStrings.checkInSelectDescriptionPrompt,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
         const SizedBox(height: 10),
         AnimatedSize(
           duration: const Duration(milliseconds: 280),

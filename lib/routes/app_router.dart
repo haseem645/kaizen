@@ -229,6 +229,9 @@ class AppRouter {
                 : '',
             year: args is SingleAuditDetailsRouteArgs ? args.year : null,
             quarter: args is SingleAuditDetailsRouteArgs ? args.quarter : null,
+            requireDescriptionSelection: args is SingleAuditDetailsRouteArgs
+                ? args.requireDescriptionSelection
+                : false,
           ),
         );
       case auditReport:
@@ -365,6 +368,7 @@ class SingleAuditDetailsRouteArgs {
     required this.lastAuditDate,
     this.year,
     this.quarter,
+    this.requireDescriptionSelection = false,
   });
 
   final String quarterlyAuditId;
@@ -372,6 +376,7 @@ class SingleAuditDetailsRouteArgs {
   final String lastAuditDate;
   final int? year;
   final int? quarter;
+  final bool requireDescriptionSelection;
 }
 
 class AuditReportRouteArgs {
