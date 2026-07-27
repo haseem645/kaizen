@@ -26,6 +26,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
   PagedAuditData _reportsData = const PagedAuditData();
   PagedAuditData _myReportsData = const PagedAuditData();
   bool _canAccessTeamReports = false;
+  bool _isActualOwner = false;
   bool _isInitializing = true;
   bool _isFilterLoading = false;
   List<String> _jobOptions = const <String>[];
@@ -34,6 +35,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
   String? _myReportsErrorMessage;
 
   bool get canAccessTeamReports => _canAccessTeamReports;
+  bool get isActualOwner => _isActualOwner;
   PerformanceSnapshotTab get selectedTab => _selectedTab;
   bool get isFilterLoading => _isFilterLoading;
   List<String> get jobOptions => _jobOptions;
@@ -82,6 +84,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
     try {
       final user = await AppPreference.getUser();
       _canAccessTeamReports = user?.canAccessAuditTeamMembers ?? false;
+      _isActualOwner = user?.isOwner == true;
       _selectedTab = _canAccessTeamReports
           ? PerformanceSnapshotTab.reports
           : PerformanceSnapshotTab.myReports;

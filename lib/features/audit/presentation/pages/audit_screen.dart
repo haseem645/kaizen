@@ -17,6 +17,7 @@ import '../providers/audit_controller.dart';
 import '../providers/audit_state.dart';
 import '../widgets/audit_member_card.dart';
 import '../widgets/audit_search_bar.dart';
+import '../widgets/audit_status_switcher.dart';
 import 'audit_filter_sheet.dart';
 
 class AuditScreen extends StatelessWidget {
@@ -136,11 +137,21 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
   Widget _buildContent(AuditController controller, AuditState state) {
     final members = controller.visibleMembers;
     final showSearchAndFilter = state.isOwner;
+    final showStatusSwitcher = state.isOwner && !state.isActualOwner;
 
     return ListView(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
+        if (showStatusSwitcher) ...[
+          AuditStatusSwitcher(
+            selectedStatus: state.selectedStatus,
+            onStatusSelected: controller.selectStatus,
+            activeTitle: 'Team Members',
+            deactivatedTitle: 'My Check-In',
+          ),
+          const SizedBox(height: 22),
+        ],
         if (showSearchAndFilter) ...[
           AuditSearchBar(
             controller: _searchController,

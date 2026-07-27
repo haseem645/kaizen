@@ -141,6 +141,7 @@ class AuditController extends ChangeNotifier {
   Future<void> initialize() async {
     final user = await AppPreference.getUser();
     final isOwner = _hasTeamMemberTabsAccess(user);
+    final isActualOwner = user?.isOwner == true;
     final selectedStatus = isOwner
         ? AuditMemberStatus.active
         : AuditMemberStatus.deactivated;
@@ -152,6 +153,7 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(
       isLoading: true,
       isOwner: isOwner,
+      isActualOwner: isActualOwner,
       selectedStatus: selectedStatus,
       selectedAuditYear: currentYearQuarter.year,
       selectedAuditQuarter: currentYearQuarter.quarter,
@@ -207,6 +209,7 @@ class AuditController extends ChangeNotifier {
   }) async {
     final user = await AppPreference.getUser();
     final isOwner = _hasTeamMemberTabsAccess(user);
+    final isActualOwner = user?.isOwner == true;
     final currentYearQuarter = CustomFunctions.currentYearQuarter();
     final resolvedYear = year ?? currentYearQuarter.year;
     final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
@@ -219,6 +222,7 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(
       isLoading: true,
       isOwner: isOwner,
+      isActualOwner: isActualOwner,
       selectedAuditYear: resolvedYear,
       selectedAuditQuarter: resolvedQuarter,
       selectedYearQuarter: selectedYearQuarterLabel,
@@ -333,6 +337,7 @@ class AuditController extends ChangeNotifier {
   }) async {
     final user = await AppPreference.getUser();
     final isOwner = _hasTeamMemberTabsAccess(user);
+    final isActualOwner = user?.isOwner == true;
     final currentYearQuarter = CustomFunctions.currentYearQuarter();
     final resolvedYear = year ?? currentYearQuarter.year;
     final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
@@ -345,6 +350,7 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(
       isLoading: true,
       isOwner: isOwner,
+      isActualOwner: isActualOwner,
       selectedAuditYear: resolvedYear,
       selectedAuditQuarter: resolvedQuarter,
       selectedYearQuarter: selectedYearQuarterLabel,

@@ -11,6 +11,7 @@ class AuditState {
   const AuditState({
     this.isLoading = true,
     this.isOwner = true,
+    this.isActualOwner = false,
     this.mainList,
     this.isLoadingMore = false,
     this.isAuditActionLoading = false,
@@ -45,6 +46,7 @@ class AuditState {
 
   final bool isLoading;
   final bool isOwner;
+  final bool isActualOwner;
   final AuditMainList? mainList;
   final bool isLoadingMore;
   final bool isAuditActionLoading;
@@ -79,6 +81,7 @@ class AuditState {
   AuditState copyWith({
     bool? isLoading,
     bool? isOwner,
+    bool? isActualOwner,
     AuditMainList? mainList,
     bool? isLoadingMore,
     bool? isAuditActionLoading,
@@ -129,6 +132,7 @@ class AuditState {
     return AuditState(
       isLoading: isLoading ?? this.isLoading,
       isOwner: isOwner ?? this.isOwner,
+      isActualOwner: isActualOwner ?? this.isActualOwner,
       mainList: clearMainList ? null : mainList ?? this.mainList,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       isAuditActionLoading: isAuditActionLoading ?? this.isAuditActionLoading,
