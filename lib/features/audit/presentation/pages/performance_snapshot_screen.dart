@@ -10,7 +10,6 @@ import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../routes/app_router.dart';
 import '../../data/datasources/audit_remote_data_source.dart';
 import '../../data/repositories/audit_repository_impl.dart';
-import '../../domain/entities/audit_member_status.dart';
 import '../../domain/entities/audit_profile.dart';
 import '../../domain/usecases/get_audit_overview_usecase.dart';
 import '../providers/audit_controller.dart';
@@ -72,18 +71,6 @@ class _PerformanceSnapshotView extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
                   if (showTeamReportsControls) ...[
-                    _PerformanceSnapshotTabs(
-                      selectedTab: controller.selectedTab,
-                      showMyReports: false,
-                      onTabSelected: (tab) {
-                        controller.selectTab(
-                          tab == PerformanceSnapshotTab.reports
-                              ? AuditMemberStatus.active
-                              : AuditMemberStatus.deactivated,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 22),
                     AuditSearchBar(
                       controller: controller.searchController,
                       onChanged: (_) {},
@@ -233,87 +220,6 @@ class _FilterTag extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PerformanceSnapshotTabs extends StatelessWidget {
-  const _PerformanceSnapshotTabs({
-    required this.selectedTab,
-    required this.onTabSelected,
-    this.showMyReports = true,
-  });
-
-  final PerformanceSnapshotTab selectedTab;
-  final ValueChanged<PerformanceSnapshotTab> onTabSelected;
-  final bool showMyReports;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _PerformanceSnapshotTabButton(
-              label: AppStrings.reportsTitle,
-              isSelected: selectedTab == PerformanceSnapshotTab.reports,
-              onTap: () => onTabSelected(PerformanceSnapshotTab.reports),
-            ),
-          ),
-          if (showMyReports) ...[
-            const SizedBox(width: 6),
-            Expanded(
-              child: _PerformanceSnapshotTabButton(
-                label: AppStrings.myReportsTitle,
-                isSelected: selectedTab == PerformanceSnapshotTab.myReports,
-                onTap: () => onTabSelected(PerformanceSnapshotTab.myReports),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PerformanceSnapshotTabButton extends StatelessWidget {
-  const _PerformanceSnapshotTabButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.secondaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: AppTextView.body3(
-          label,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
     );
   }
 }
