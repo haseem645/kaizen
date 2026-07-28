@@ -13,6 +13,7 @@ class AppDrawer extends StatelessWidget {
     super.key,
     required this.name,
     required this.currentOrganizationName,
+    required this.isSandboxMode,
     this.image,
     this.imageUrl,
     required this.selectedMenu,
@@ -32,6 +33,7 @@ class AppDrawer extends StatelessWidget {
 
   final String name;
   final String currentOrganizationName;
+  final bool isSandboxMode;
   final String? image;
   final String? imageUrl;
   final AppMenuType? selectedMenu;
@@ -64,63 +66,7 @@ class AppDrawer extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.home_outlined,
-                      title: AppStrings.homeKaizengram,
-                      isSelected: selectedMenu == AppMenuType.home,
-                      onTap: onHomeTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.auto_awesome_outlined,
-                      title: AppStrings.homeAi,
-                      isSelected: selectedMenu == AppMenuType.kaizenGpt,
-                      onTap: onKaizenGptTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.verified_user_outlined,
-                      title: AppStrings.homeLearningTracks,
-                      isSelected: selectedMenu == AppMenuType.learningTracks,
-                      onTap: onLearningTracksTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.folder_open_outlined,
-                      title: AppStrings.homeCompliance,
-                      isSelected: selectedMenu == AppMenuType.compliance,
-                      onTap: onComplianceTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.fact_check_outlined,
-                      title: AppStrings.weeklyCheckIns,
-                      isSelected: selectedMenu == AppMenuType.audits,
-                      onTap: onAuditsTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.insights_outlined,
-                      title: AppStrings.performanceSnapshot,
-                      isSelected:
-                          selectedMenu == AppMenuType.performanceSnapshot,
-                      onTap: onPerformanceSnapshotTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.event_seat_outlined,
-                      title: AppStrings.homeSeatProfiles,
-                      isSelected: selectedMenu == AppMenuType.seatProfiles,
-                      onTap: onSeatProfilesTap,
-                    ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.payments_outlined,
-                      title: AppStrings.homePaygrades,
-                      isSelected: selectedMenu == AppMenuType.paygrades,
-                      onTap: onPaygradesTap,
-                    ),
+                    ..._buildModuleItems(context),
                     const SizedBox(height: 12),
                     _buildOrganizationRow(context),
                   ],
@@ -131,6 +77,86 @@ class AppDrawer extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildModuleItems(BuildContext context) {
+    if (isSandboxMode) {
+      return [
+        _buildDrawerItem(
+          context,
+          icon: Icons.event_seat_outlined,
+          title: AppStrings.homeSeatProfiles,
+          isSelected: selectedMenu == AppMenuType.seatProfiles,
+          onTap: onSeatProfilesTap,
+        ),
+        _buildDrawerItem(
+          context,
+          icon: Icons.payments_outlined,
+          title: AppStrings.homePaygrades,
+          isSelected: selectedMenu == AppMenuType.paygrades,
+          onTap: onPaygradesTap,
+        ),
+      ];
+    }
+
+    return [
+      _buildDrawerItem(
+        context,
+        icon: Icons.home_outlined,
+        title: AppStrings.homeKaizengram,
+        isSelected: selectedMenu == AppMenuType.home,
+        onTap: onHomeTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.auto_awesome_outlined,
+        title: AppStrings.homeAi,
+        isSelected: selectedMenu == AppMenuType.kaizenGpt,
+        onTap: onKaizenGptTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.verified_user_outlined,
+        title: AppStrings.homeLearningTracks,
+        isSelected: selectedMenu == AppMenuType.learningTracks,
+        onTap: onLearningTracksTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.folder_open_outlined,
+        title: AppStrings.homeCompliance,
+        isSelected: selectedMenu == AppMenuType.compliance,
+        onTap: onComplianceTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.fact_check_outlined,
+        title: AppStrings.weeklyCheckIns,
+        isSelected: selectedMenu == AppMenuType.audits,
+        onTap: onAuditsTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.insights_outlined,
+        title: AppStrings.performanceSnapshot,
+        isSelected: selectedMenu == AppMenuType.performanceSnapshot,
+        onTap: onPerformanceSnapshotTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.event_seat_outlined,
+        title: AppStrings.homeSeatProfiles,
+        isSelected: selectedMenu == AppMenuType.seatProfiles,
+        onTap: onSeatProfilesTap,
+      ),
+      _buildDrawerItem(
+        context,
+        icon: Icons.payments_outlined,
+        title: AppStrings.homePaygrades,
+        isSelected: selectedMenu == AppMenuType.paygrades,
+        onTap: onPaygradesTap,
+      ),
+    ];
   }
 
   Widget _buildHeader() {

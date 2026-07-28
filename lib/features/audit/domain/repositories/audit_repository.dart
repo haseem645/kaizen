@@ -133,7 +133,10 @@ abstract class AuditRepository {
   });
 
   Future<List<SeatDescriptionTrainingModule>>
-  getSeatDescriptionTrainingModules({required String descriptionId});
+  getSeatDescriptionTrainingModules({
+    required String descriptionId,
+    bool forceRefresh = false,
+  });
 
   Future<SeatDescriptionTrainingModule> createSeatDescriptionTrainingModule({
     required String jobId,

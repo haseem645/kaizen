@@ -280,9 +280,13 @@ class AuditRepositoryImpl implements AuditRepository {
 
   @override
   Future<List<SeatDescriptionTrainingModule>>
-  getSeatDescriptionTrainingModules({required String descriptionId}) {
+  getSeatDescriptionTrainingModules({
+    required String descriptionId,
+    bool forceRefresh = false,
+  }) {
     return _remoteDataSource.getSeatDescriptionTrainingModules(
       descriptionId: descriptionId,
+      forceRefresh: forceRefresh,
     );
   }
 

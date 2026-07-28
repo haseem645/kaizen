@@ -17,6 +17,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
     super.key,
     required this.videoUrl,
     required this.title,
+    this.localVideoPath,
     this.thumbnailLink,
     this.height = 220,
     this.showTitle = true,
@@ -27,6 +28,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
 
   final String videoUrl;
   final String title;
+  final String? localVideoPath;
   final String? thumbnailLink;
   final double height;
   final bool showTitle;
@@ -65,13 +67,15 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   void didUpdateWidget(covariant ComplianceVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.videoUrl != widget.videoUrl ||
+        oldWidget.localVideoPath != widget.localVideoPath ||
         oldWidget.thumbnailLink != widget.thumbnailLink) {
       _showThumbnailPreview = _hasThumbnail;
       _isScrubbing = false;
       _scrubPositionMillis = null;
     }
 
-    if (oldWidget.videoUrl != widget.videoUrl) {
+    if (oldWidget.videoUrl != widget.videoUrl ||
+        oldWidget.localVideoPath != widget.localVideoPath) {
       _currentViewType = VideoViewType.textureView;
       _didRetryWithPlatformView = false;
       _disposeController();
@@ -111,6 +115,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     try {
       controller = await VideoPlaybackService.createInitializedController(
         widget.videoUrl,
+        localFilePath: widget.localVideoPath,
         cacheMaxAge: _cacheMaxAge,
         viewType: viewType,
       );

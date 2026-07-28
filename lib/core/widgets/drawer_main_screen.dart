@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../routes/app_router.dart' show AppRouter;
 import '../constants/app_colors.dart';
+import '../constants/app_strings.dart';
 import '../managers/app_manager.dart';
 import '../navigation/app_menu_type.dart';
 import '../utils/custom_functions.dart';
@@ -58,7 +59,10 @@ class DrawerMainScreen extends StatelessWidget {
 
         return AppDrawer(
           name: CustomFunctions.resolveName(user),
-          currentOrganizationName: appManager.currentOrganizationName,
+          currentOrganizationName: appManager.isRefreshingOrganizationContext
+              ? AppStrings.organizationsFetching
+              : appManager.currentOrganizationName,
+          isSandboxMode: appManager.usesParentApiEndpoints,
           selectedMenu: selectedMenu,
           onHomeTap: () => _openHome(context),
           onProfileTap: () => _openProfile(context),

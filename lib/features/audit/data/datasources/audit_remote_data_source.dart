@@ -634,11 +634,15 @@ class AuditRemoteDataSource {
   }
 
   Future<List<SeatDescriptionTrainingModule>>
-  getSeatDescriptionTrainingModules({required String descriptionId}) {
+  getSeatDescriptionTrainingModules({
+    required String descriptionId,
+    bool forceRefresh = false,
+  }) {
     return _apiCallExecutor.processApi<List<SeatDescriptionTrainingModule>>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.seatDescriptionTrainingModules(descriptionId),
       authToken: AppPreference.getAuthToken(),
+      invalidateCacheBeforeRequest: forceRefresh,
       decoder: (json) {
         if (json is! List) {
           throw const ApiError.invalidResponse();

@@ -51,7 +51,9 @@ class OrganizationConflictDialog extends StatelessWidget {
                         text: "Ok",
                         borderRadius: 8,
                         onPressed: () {
-                          context.read<AppManager>().openOrganizationsScreen();
+                          context.read<AppManager>().openOrganizationsScreen(
+                            openedForConflict: true,
+                          );
                         },
                       ),
                     ),

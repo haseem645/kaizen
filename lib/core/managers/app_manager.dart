@@ -32,6 +32,10 @@ class AppManager extends ChangeNotifier {
   User? _currentUser;
   String? _selectedOrganizationId;
   Future<void>? _refreshSessionContextOperation;
+  bool _shouldSkipNextResumeSessionRefresh = false;
+  bool _isHandlingOrganizationConflict = false;
+  bool _didResolveOrganizationConflict = false;
+  bool _isRefreshingOrganizationContext = false;
   bool _hasPendingNotification = false;
   List<Organization> _organizations = const <Organization>[];
 
@@ -48,6 +52,9 @@ class AppManager extends ChangeNotifier {
   CompanyBillingDetails? get billingDetails => _billingDetails;
   CompanyDetails? get activeCompany => _activeCompany;
   User? get currentUser => _currentUser;
+  bool get isRefreshingOrganizationContext => _isRefreshingOrganizationContext;
+  bool get hasPendingOrganizationConflict =>
+      _isHandlingOrganizationConflict && !_didResolveOrganizationConflict;
   bool get usesParentApiEndpoints {
     final selectedOrganizationId = _selectedOrganizationId;
     if (selectedOrganizationId != null) {
@@ -168,6 +175,8 @@ class AppManager extends ChangeNotifier {
       authToken,
       forceOrganizationsRefresh: forceOrganizationsRefresh,
     );
+    _isRefreshingOrganizationContext = true;
+    _notifyListenersSafely();
     _refreshSessionContextOperation = operation;
 
     try {
@@ -176,6 +185,8 @@ class AppManager extends ChangeNotifier {
       if (identical(_refreshSessionContextOperation, operation)) {
         _refreshSessionContextOperation = null;
       }
+      _isRefreshingOrganizationContext = false;
+      _notifyListenersSafely();
     }
   }
 
@@ -187,6 +198,19 @@ class AppManager extends ChangeNotifier {
         AppPreference.getSelectedOrganizationId();
     _syncParentApiEndpointMode();
     _notifyListenersSafely();
+  }
+
+  void skipNextResumeSessionRefresh() {
+    _shouldSkipNextResumeSessionRefresh = true;
+  }
+
+  bool consumeResumeSessionRefreshSkip() {
+    if (!_shouldSkipNextResumeSessionRefresh) {
+      return false;
+    }
+
+    _shouldSkipNextResumeSessionRefresh = false;
+    return true;
   }
 
   void updateCurrentUser(User? user) {
@@ -247,6 +271,10 @@ class AppManager extends ChangeNotifier {
   }
 
   void resetSessionState() {
+    _shouldSkipNextResumeSessionRefresh = false;
+    _isHandlingOrganizationConflict = false;
+    _didResolveOrganizationConflict = false;
+    _isRefreshingOrganizationContext = false;
     _showOrganizationBanner = false;
     _isShowingOrganizationsScreen = false;
     _isSettingActiveOrganization = false;
@@ -301,22 +329,34 @@ class AppManager extends ChangeNotifier {
   }
 
   Future<void> handleConflict409() async {
+    _isHandlingOrganizationConflict = true;
+    _didResolveOrganizationConflict = false;
     _showOrganizationBanner = false;
+    await fetchOrganizations(forceRefresh: true);
 
-    final selectedOrganizationId = currentOrganizationId;
-    if (selectedOrganizationId.isNotEmpty) {
-      await setActiveOrganization(
-        selectedOrganizationId,
-        resetNavigationStack: false,
-      );
+    if (_isShowingOrganizationsScreen) {
+      _notifyListenersSafely();
       return;
     }
 
-    await fetchOrganizations(forceRefresh: true);
+    final navigator = AppRouter.navigatorKey.currentState;
+    if (navigator == null) {
+      _showOrganizationBanner = true;
+      _notifyListenersSafely();
+      return;
+    }
+
     _notifyListenersSafely();
+    await openOrganizationsScreen(openedForConflict: true);
   }
 
-  Future<void> openOrganizationsScreen() async {
+  Future<void> openOrganizationsScreen({bool openedForConflict = false}) async {
+    if (openedForConflict) {
+      _isHandlingOrganizationConflict = true;
+      _didResolveOrganizationConflict = false;
+      _showOrganizationBanner = false;
+    }
+
     if (_isShowingOrganizationsScreen) {
       return;
     }
@@ -333,6 +373,21 @@ class AppManager extends ChangeNotifier {
 
     _isShowingOrganizationsScreen = false;
     _notifyListenersSafely();
+  }
+
+  Future<void> resolveOrganizationConflictFromBack() async {
+    final shouldRefreshContext = hasPendingOrganizationConflict;
+    _showOrganizationBanner = false;
+    _isHandlingOrganizationConflict = false;
+    _didResolveOrganizationConflict = false;
+    _notifyListenersSafely();
+
+    if (!shouldRefreshContext) {
+      return;
+    }
+
+    await _refreshCurrentOrganizationContext();
+    await fetchOrganizations(forceRefresh: true);
   }
 
   Future<bool> setActiveOrganization(
@@ -370,6 +425,8 @@ class AppManager extends ChangeNotifier {
       ApiCallExecutor.clearGetCache();
       await _syncCurrentOrganization(organizationId);
       await _refreshActiveCompany();
+      _didResolveOrganizationConflict = true;
+      _isHandlingOrganizationConflict = false;
       _showOrganizationBanner = false;
       _isShowingOrganizationsScreen = false;
       final navigator = AppRouter.navigatorKey.currentState;
@@ -430,6 +487,26 @@ class AppManager extends ChangeNotifier {
     await _refreshActiveCompanyForToken();
   }
 
+  Future<void> _refreshCurrentOrganizationContext() async {
+    final authToken = AppPreference.getAuthToken().trim();
+    if (authToken.isEmpty) {
+      return;
+    }
+
+    try {
+      ApiCallExecutor.clearGetCache();
+      final remoteDataSource = AppManagerRemoteDataSource();
+      final refreshedUser = await remoteDataSource.fetchUserDetail(
+        accessToken: authToken,
+      );
+      await AppPreference.saveUser(refreshedUser);
+      updateCurrentUser(refreshedUser);
+      await _refreshActiveCompanyForToken(authToken: authToken);
+    } catch (_) {
+      // Keep organization conflict recovery resilient if the server cannot refresh context.
+    }
+  }
+
   Future<void> _refreshSessionContextInternal(
     String authToken, {
     required bool forceOrganizationsRefresh,
@@ -472,9 +549,21 @@ class AppManager extends ChangeNotifier {
     }
 
     _hasPendingNotification = true;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    void dispatchNotification() {
       _hasPendingNotification = false;
       notifyListeners();
+    }
+
+    final scheduler = SchedulerBinding.instance;
+    final phase = scheduler.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      scheduleMicrotask(dispatchNotification);
+      return;
+    }
+
+    scheduler.addPostFrameCallback((_) {
+      dispatchNotification();
     });
   }
 

@@ -125,6 +125,10 @@ class ApiEndPoints {
     return 'training_modules/$moduleId/';
   }
 
+  static String parentTrainingModuleDetail(String moduleId) {
+    return 'parent_training_modules/$moduleId/';
+  }
+
   static String trainingModuleDocument(String moduleId) {
     return 'training_modules/$moduleId/document/';
   }
@@ -286,6 +290,7 @@ class ApiEndPoints {
         endpoint == refreshToken ||
         endpoint == userDetail ||
         endpoint == companyDetail ||
+        endpoint == images ||
         endpoint == generatePreSignedUrl ||
         endpoint == organizations ||
         endpoint.startsWith('accounts/verify_token/');

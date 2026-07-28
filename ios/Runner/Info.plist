@@ -40,11 +40,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Allow KaizenTeams to use the camera so you can attach photos to audit comments.</string>
+	<string>Allow KaizenTeams to use the camera so you can record training videos and attach photos or videos in audits.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Allow KaizenTeams to access the microphone when screen recording requires audio-related system permissions.</string>
+	<string>Allow KaizenTeams to access the microphone so you can record training videos and use audio-related recording features.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow KaizenTeams to access your photo library so you can upload images to audit comments.</string>
+	<string>Allow KaizenTeams to access your photo library so you can upload training videos and attach photos or videos in audits.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Allow KaizenTeams to convert your speech into text for AI voice input.</string>
 	<key>UIBackgroundModes</key>

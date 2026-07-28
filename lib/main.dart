@@ -81,6 +81,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
 
       _wasBackgrounded = false;
+      if (AppManager.instance.consumeResumeSessionRefreshSkip()) {
+        return;
+      }
       unawaited(AppManager.instance.refreshSessionContext());
       return;
     }

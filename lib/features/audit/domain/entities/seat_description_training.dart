@@ -1,18 +1,30 @@
 class SeatDescriptionTrainingModule {
   const SeatDescriptionTrainingModule({
     required this.uuid,
+    required this.actualId,
     required this.title,
     required this.thumbnailLink,
   });
 
   final String uuid;
+  final String actualId;
   final String title;
   final String? thumbnailLink;
+
+  String get resolvedParentModuleId {
+    final resolvedActualId = actualId.trim();
+    if (resolvedActualId.isNotEmpty) {
+      return resolvedActualId;
+    }
+
+    return uuid.trim();
+  }
 }
 
 class SeatDescriptionTrainingModuleDetail {
   const SeatDescriptionTrainingModuleDetail({
     required this.uuid,
+    required this.actualId,
     required this.title,
     required this.thumbnails,
     required this.description,
@@ -24,6 +36,7 @@ class SeatDescriptionTrainingModuleDetail {
   });
 
   final String uuid;
+  final String actualId;
   final String title;
   final List<String> thumbnails;
   final String? description;
@@ -32,6 +45,15 @@ class SeatDescriptionTrainingModuleDetail {
   final SeatDescriptionTrainingVideo? trainingVideo;
   final bool isPubliclyAvailable;
   final int learningTrackCount;
+
+  String get resolvedParentModuleId {
+    final resolvedActualId = actualId.trim();
+    if (resolvedActualId.isNotEmpty) {
+      return resolvedActualId;
+    }
+
+    return uuid.trim();
+  }
 
   String? get previewThumbnailLink {
     if (thumbnailLink != null && thumbnailLink!.trim().isNotEmpty) {

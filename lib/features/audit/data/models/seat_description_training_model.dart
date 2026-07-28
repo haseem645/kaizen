@@ -3,6 +3,7 @@ import '../../domain/entities/seat_description_training.dart';
 class SeatDescriptionTrainingModuleModel extends SeatDescriptionTrainingModule {
   const SeatDescriptionTrainingModuleModel({
     required super.uuid,
+    required super.actualId,
     required super.title,
     required super.thumbnailLink,
   });
@@ -12,6 +13,7 @@ class SeatDescriptionTrainingModuleModel extends SeatDescriptionTrainingModule {
   ) {
     return SeatDescriptionTrainingModuleModel(
       uuid: _readString(json['uuid']) ?? '',
+      actualId: _readString(json['actual_id']) ?? '',
       title: _readString(json['title']) ?? '',
       thumbnailLink: _readString(json['thumbnail_link']),
     );
@@ -22,6 +24,7 @@ class SeatDescriptionTrainingModuleDetailModel
     extends SeatDescriptionTrainingModuleDetail {
   const SeatDescriptionTrainingModuleDetailModel({
     required super.uuid,
+    required super.actualId,
     required super.title,
     required super.thumbnails,
     required super.description,
@@ -39,6 +42,7 @@ class SeatDescriptionTrainingModuleDetailModel
 
     return SeatDescriptionTrainingModuleDetailModel(
       uuid: _readString(json['uuid']) ?? '',
+      actualId: _readString(json['actual_id']) ?? '',
       title: _readString(json['title']) ?? '',
       thumbnails: _readStringList(json['thumbnails']),
       description: _readString(json['description']),

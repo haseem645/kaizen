@@ -127,7 +127,10 @@ class FileUploader {
     ValueChanged<double>? onProgress,
     String? authToken,
   }) async {
-    final uri = ApiEndPoints.resolveUri(ApiEndPoints.images);
+    final uri = ApiEndPoints.resolveUri(
+      ApiEndPoints.images,
+      allowParentPrefix: false,
+    );
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer ${_resolveAuthToken(authToken)}'
