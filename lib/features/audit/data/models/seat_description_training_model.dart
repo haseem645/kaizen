@@ -1,4 +1,4 @@
-import '../../domain/entities/seat_description_training.dart';
+import '../../../training/domain/entities/seat_description_training.dart';
 
 class SeatDescriptionTrainingModuleModel extends SeatDescriptionTrainingModule {
   const SeatDescriptionTrainingModuleModel({

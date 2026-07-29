@@ -26,9 +26,11 @@ class ComplianceRemoteDataSource {
 
   Future<ComplianceOverviewModel> getComplianceOverview({
     bool forceRefresh = false,
+    bool requireSuccess = false,
   }) async {
     final learningTracks = await _getComplianceOverviewLearningTracks(
       forceRefresh: forceRefresh,
+      requireSuccess: requireSuccess,
     );
 
     return ComplianceOverviewModel(
@@ -39,6 +41,7 @@ class ComplianceRemoteDataSource {
 
   Future<List<LearningTrackModuleDetail>> _getComplianceOverviewLearningTracks({
     bool forceRefresh = false,
+    bool requireSuccess = false,
   }) async {
     try {
       return await _apiCallExecutor.processApi<List<LearningTrackModuleDetail>>(
@@ -53,6 +56,9 @@ class ComplianceRemoteDataSource {
         },
       );
     } catch (error) {
+      if (requireSuccess) {
+        rethrow;
+      }
       debugPrint('Compliance learning tracks failed: $error');
       return const <LearningTrackModuleDetail>[];
     }

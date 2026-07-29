@@ -120,6 +120,7 @@ class ApiEndPoints {
   static const String seatProfileCategoryTrainings =
       'job/jobs_categories_descriptions/';
   static const String trainingModules = 'training_modules/';
+  static const String trainingModulesAll = 'training_modules/all/';
 
   static String trainingModuleDetail(String moduleId) {
     return 'training_modules/$moduleId/';

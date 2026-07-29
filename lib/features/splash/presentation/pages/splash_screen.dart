@@ -86,7 +86,7 @@ class _SplashScreenViewState extends State<_SplashScreenView> {
               bottom: 20,
               left: 0,
               right: 0,
-              child: Column(children: [_buildLoader(controller)]),
+              child: Column(children: [_buildStatus(context, controller)]),
             ),
           ],
         ),
@@ -122,15 +122,49 @@ class _SplashScreenViewState extends State<_SplashScreenView> {
     );
   }
 
-  Widget _buildLoader(SplashController controller) {
-    if (!controller.isLoading) {
+  Widget _buildStatus(BuildContext context, SplashController controller) {
+    if (controller.isLoading) {
+      return SizedBox(
+        width: 24,
+        height: 24,
+        child: FastCircularProgressIndicator(),
+      );
+    }
+
+    final errorMessage = controller.errorMessage?.trim();
+    if (errorMessage == null || errorMessage.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
-      width: 24,
-      height: 24,
-      child: FastCircularProgressIndicator(),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.16),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppTextView.body3(
+            errorMessage,
+            color: AppColors.textPrimary,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton(
+            onPressed: () => controller.retry(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.secondaryColor,
+              side: const BorderSide(color: AppColors.secondaryColor),
+            ),
+            child: const Text(AppStrings.actionRetry),
+          ),
+        ],
+      ),
     );
   }
 }

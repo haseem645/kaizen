@@ -344,11 +344,7 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(
       isLoading: false,
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      clearSelectedQuarterlyAuditDescription: true,
     );
     notifyListeners();
   }
@@ -408,12 +404,7 @@ class AuditController extends ChangeNotifier {
         isLoading: false,
         mainList: _sortedMainList(teamMembers),
         quarterlyAudit: quarterlyAudit,
-        selectedQuarterlyAuditDescriptionUuid:
-            quarterlyAudit.descriptions.isEmpty
-            ? null
-            : quarterlyAudit.descriptions.first.uuid,
-        clearSelectedQuarterlyAuditDescription:
-            quarterlyAudit.descriptions.isEmpty,
+        clearSelectedQuarterlyAuditDescription: true,
       );
       notifyListeners();
     } catch (error) {
@@ -441,11 +432,7 @@ class AuditController extends ChangeNotifier {
 
     _state = _state.copyWith(
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      clearSelectedQuarterlyAuditDescription: true,
     );
     notifyListeners();
   }

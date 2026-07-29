@@ -8,7 +8,7 @@ import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/quarterly_audit.dart';
 import '../../domain/entities/seat_description_audit_report_comments.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
-import '../../domain/entities/seat_description_training.dart';
+import '../../../training/domain/entities/seat_description_training.dart';
 import '../../domain/entities/single_audit_report_category_details.dart';
 import '../../domain/repositories/audit_repository.dart';
 import '../datasources/audit_remote_data_source.dart';

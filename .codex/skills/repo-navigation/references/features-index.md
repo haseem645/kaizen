@@ -27,6 +27,7 @@ Path style in this file:
 - Profile: `.../.codex/skills/repo-navigation/references/features/profile.md`
 - Seat Profile: `.../.codex/skills/repo-navigation/references/features/seat-profile.md`
 - Splash: `.../.codex/skills/repo-navigation/references/features/splash.md`
+- Training: `.../.codex/skills/repo-navigation/references/features/training.md`
 
 ## Shared App Touchpoints
 
@@ -36,6 +37,10 @@ Open these only if a task clearly crosses feature boundaries:
 - Shared strings: `.../lib/core/constants/app_strings.dart`
 - Shared user/app state: `.../lib/core/managers/app_manager.dart`
 - App-level route wiring: `.../lib/routes/app_router.dart`
+
+## Source Of Truth
+
+Use the `.codex` feature references directly. Legacy `lib/features/**/SKILL.md` shims have been removed.
 
 ## Default Rule
 

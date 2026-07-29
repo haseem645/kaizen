@@ -27,7 +27,8 @@ import '../features/seat_profile/domain/entities/seat_profile_detail.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_descriptions_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
-import '../features/seat_profile/presentation/pages/setup_training_screen.dart';
+import '../features/training/presentation/pages/setup_training_screen.dart';
+import '../features/training/presentation/pages/training_library_screen.dart';
 import '../features/splash/presentation/pages/splash_screen.dart';
 
 class AppRouter {
@@ -53,6 +54,7 @@ class AppRouter {
   static const String seatProfileDescriptions = '/seat-profiles/descriptions';
   static const String seatProfileTrainingSetup =
       '/seat-profiles/training-setup';
+  static const String trainingLibrary = '/training/library';
   static const String kaizenGpt = '/kaizen-gpt';
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
@@ -209,6 +211,11 @@ class AppRouter {
                 ? args.initialDescriptionId
                 : null,
           ),
+        );
+      case trainingLibrary:
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => const TrainingLibraryScreen(),
         );
       case kaizenGpt:
         return _buildRoute(

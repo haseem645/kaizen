@@ -2,6 +2,7 @@ enum AppMenuType {
   home,
   learningTracks,
   compliance,
+  library,
   audits,
   performanceSnapshot,
   seatProfiles,

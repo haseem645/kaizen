@@ -12,7 +12,7 @@ import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/audit_profile.dart';
 import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
-import '../../domain/entities/seat_description_training.dart';
+import '../../../training/domain/entities/seat_description_training.dart';
 import '../models/audit_description_audit_model.dart';
 import '../models/audit_details_model.dart';
 import '../models/audit_evaluation_chart_model.dart';

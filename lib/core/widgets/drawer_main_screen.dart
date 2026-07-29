@@ -68,6 +68,7 @@ class DrawerMainScreen extends StatelessWidget {
           onProfileTap: () => _openProfile(context),
           onLearningTracksTap: () => _openLearningTracks(context),
           onComplianceTap: () => _openCompliance(context),
+          onLibraryTap: () => _openLibrary(context),
           onAuditsTap: () => _openAudit(context),
           onPerformanceSnapshotTap: () => _openPerformanceSnapshot(context),
           onSeatProfilesTap: () => _openSeatProfiles(context),
@@ -116,6 +117,17 @@ class DrawerMainScreen extends StatelessWidget {
     }
 
     AppRouter.pushReplacementNamed<void, void>(context, AppRouter.compliance);
+  }
+
+  void _openLibrary(BuildContext context) {
+    if (selectedMenu == AppMenuType.library) {
+      return;
+    }
+
+    AppRouter.pushReplacementNamed<void, void>(
+      context,
+      AppRouter.trainingLibrary,
+    );
   }
 
   void _openAudit(BuildContext context) {

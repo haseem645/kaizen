@@ -25,6 +25,7 @@ class User {
   final bool? isTopOperator;
   final List<String>? roles;
   final bool? isInActiveOrganization;
+  final bool? hasSandboxAccess;
   final String? sandboxUuid;
   final String? feVersion;
   final bool? isPasswordReset;
@@ -46,6 +47,10 @@ class User {
 
     return availableRoles.contains('owner') ||
         availableRoles.contains('dept_lead');
+  }
+
+  bool get canAccessSandbox {
+    return isOwner == true || hasSandboxAccess == true;
   }
 
   User({
@@ -75,6 +80,7 @@ class User {
     this.isTopOperator,
     this.roles,
     this.isInActiveOrganization,
+    this.hasSandboxAccess,
     this.sandboxUuid,
     this.feVersion,
     this.isPasswordReset,
@@ -111,6 +117,7 @@ class User {
     bool? isTopOperator,
     List<String>? roles,
     bool? isInActiveOrganization,
+    bool? hasSandboxAccess,
     String? sandboxUuid,
     String? feVersion,
     bool? isPasswordReset,
@@ -147,6 +154,7 @@ class User {
       roles: roles ?? this.roles,
       isInActiveOrganization:
           isInActiveOrganization ?? this.isInActiveOrganization,
+      hasSandboxAccess: hasSandboxAccess ?? this.hasSandboxAccess,
       sandboxUuid: sandboxUuid ?? this.sandboxUuid,
       feVersion: feVersion ?? this.feVersion,
       isPasswordReset: isPasswordReset ?? this.isPasswordReset,
@@ -194,6 +202,7 @@ class User {
       isTopOperator: json['is_top_operator'],
       roles: _parseRoles(json['roles']),
       isInActiveOrganization: json['is_in_active_organization'],
+      hasSandboxAccess: json['has_sandbox_access'] ?? json['hasSandboxAccess'],
       sandboxUuid: json['sandbox_uuid'],
       feVersion: json['fe_version'],
       isPasswordReset: json['is_password_reset'],
@@ -232,6 +241,7 @@ class User {
       'is_top_operator': isTopOperator,
       'roles': roles,
       'is_in_active_organization': isInActiveOrganization,
+      'has_sandbox_access': hasSandboxAccess,
       'sandbox_uuid': sandboxUuid,
       'fe_version': feVersion,
       'is_password_reset': isPasswordReset,

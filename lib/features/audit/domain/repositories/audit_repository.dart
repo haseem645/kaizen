@@ -8,7 +8,7 @@ import '../entities/performance_report.dart';
 import '../entities/quarterly_audit.dart';
 import '../entities/seat_description_audit_report_comments.dart';
 import '../entities/seat_description_final_audit_report.dart';
-import '../entities/seat_description_training.dart';
+import '../../../training/domain/entities/seat_description_training.dart';
 import '../entities/single_audit_report_category_details.dart';
 
 abstract class AuditRepository {

@@ -21,6 +21,7 @@ class AppDrawer extends StatelessWidget {
     this.onProfileTap,
     this.onLearningTracksTap,
     this.onComplianceTap,
+    this.onLibraryTap,
     this.onAuditsTap,
     this.onPerformanceSnapshotTap,
     this.onSeatProfilesTap,
@@ -41,6 +42,7 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback? onProfileTap;
   final VoidCallback? onLearningTracksTap;
   final VoidCallback? onComplianceTap;
+  final VoidCallback? onLibraryTap;
   final VoidCallback? onAuditsTap;
   final VoidCallback? onPerformanceSnapshotTap;
   final VoidCallback? onSeatProfilesTap;
@@ -82,6 +84,13 @@ class AppDrawer extends StatelessWidget {
   List<Widget> _buildModuleItems(BuildContext context) {
     if (isSandboxMode) {
       return [
+        // _buildDrawerItem(
+        //   context,
+        //   icon: Icons.video_library_outlined,
+        //   title: AppStrings.homeLibrary,
+        //   isSelected: selectedMenu == AppMenuType.library,
+        //   onTap: onLibraryTap,
+        // ),
         _buildDrawerItem(
           context,
           icon: Icons.event_seat_outlined,
@@ -128,6 +137,13 @@ class AppDrawer extends StatelessWidget {
         isSelected: selectedMenu == AppMenuType.compliance,
         onTap: onComplianceTap,
       ),
+      // _buildDrawerItem(
+      //   context,
+      //   icon: Icons.video_library_outlined,
+      //   title: AppStrings.homeLibrary,
+      //   isSelected: selectedMenu == AppMenuType.library,
+      //   onTap: onLibraryTap,
+      // ),
       _buildDrawerItem(
         context,
         icon: Icons.fact_check_outlined,
@@ -189,10 +205,7 @@ class AppDrawer extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
-      ),
+      leading: Icon(icon, color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary),
       title: AppTextView.body2(
         title,
         color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
@@ -218,10 +231,7 @@ class AppDrawer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Divider(
-            height: 1,
-            color: AppColors.textPrimary.withValues(alpha: 0.08),
-          ),
+          Divider(height: 1, color: AppColors.textPrimary.withValues(alpha: 0.08)),
           const SizedBox(height: 12),
           Material(
             color: AppColors.surfaceDark3.withValues(alpha: 0.92),
@@ -233,23 +243,14 @@ class AppDrawer extends StatelessWidget {
                 onOrganizationTap?.call();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 13,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.textPrimary.withValues(alpha: 0.08),
-                  ),
+                  border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.08)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.apartment_outlined,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
+                    const Icon(Icons.apartment_outlined, color: AppColors.textSecondary, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -305,16 +306,10 @@ class _ProfileAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.surfaceDark3,
         border: Border.all(color: AppColors.secondaryColor, width: 2),
-        image: provider == null
-            ? null
-            : DecorationImage(image: provider, fit: BoxFit.cover),
+        image: provider == null ? null : DecorationImage(image: provider, fit: BoxFit.cover),
       ),
       child: provider == null
-          ? const Icon(
-              Icons.person_outline_rounded,
-              color: AppColors.textPrimary,
-              size: 48,
-            )
+          ? const Icon(Icons.person_outline_rounded, color: AppColors.textPrimary, size: 48)
           : null,
     );
   }

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../features/login/domain/entities/user.dart';
 import '../../features/organizations/domain/entities/organization.dart';
 import '../../routes/app_router.dart';
+import '../network/api_error.dart';
 import '../network/api_endpoints.dart';
 import '../network/api_processor.dart';
 import '../preference/app_preference.dart';
@@ -55,11 +56,13 @@ class AppManager extends ChangeNotifier {
   bool get isRefreshingOrganizationContext => _isRefreshingOrganizationContext;
   bool get hasPendingOrganizationConflict =>
       _isHandlingOrganizationConflict && !_didResolveOrganizationConflict;
+  bool get currentUserCanAccessSandbox =>
+      _currentUser?.canAccessSandbox == true;
   bool get usesParentApiEndpoints {
     final selectedOrganizationId = _selectedOrganizationId;
     if (selectedOrganizationId != null) {
       if (selectedOrganizationId.isEmpty) {
-        return true;
+        return currentUserCanAccessSandbox;
       }
 
       final selectedOrganization = _findOrganizationById(
@@ -74,7 +77,7 @@ class AppManager extends ChangeNotifier {
 
     final userOrganizationId = _currentUser?.organizationUuid?.trim() ?? '';
     if (_currentUser != null && userOrganizationId.isEmpty) {
-      return true;
+      return currentUserCanAccessSandbox;
     }
 
     final resolvedOrganization = currentOrganization;
@@ -153,8 +156,14 @@ class AppManager extends ChangeNotifier {
     return '';
   }
 
-  Future<void> initialize({bool forceRefresh = false}) async {
-    await fetchOrganizations(forceRefresh: forceRefresh);
+  Future<void> initialize({
+    bool forceRefresh = false,
+    bool requireSuccess = false,
+  }) async {
+    await fetchOrganizations(
+      forceRefresh: forceRefresh,
+      requireSuccess: requireSuccess,
+    );
   }
 
   Future<void> refreshSessionContext({
@@ -194,7 +203,7 @@ class AppManager extends ChangeNotifier {
     _currentUser = await AppPreference.getUser();
     _activeCompany = await AppPreference.getActiveCompany();
     _selectedOrganizationId =
-        _resolveUserBackedOrganizationSelectionId() ??
+        _resolveSelectionIdForUser(_currentUser) ??
         AppPreference.getSelectedOrganizationId();
     _syncParentApiEndpointMode();
     _notifyListenersSafely();
@@ -289,7 +298,10 @@ class AppManager extends ChangeNotifier {
     _notifyListenersSafely();
   }
 
-  Future<void> fetchOrganizations({bool forceRefresh = false}) async {
+  Future<void> fetchOrganizations({
+    bool forceRefresh = false,
+    bool requireSuccess = false,
+  }) async {
     if (_isLoadingOrganizations && !forceRefresh) {
       return;
     }
@@ -309,18 +321,31 @@ class AppManager extends ChangeNotifier {
         },
       );
 
-      if (response.statusCode >= 200 && response.statusCode <= 299) {
-        final decodedJson = jsonDecode(response.body);
-        if (decodedJson is List) {
-          _organizations = decodedJson
-              .whereType<Map<String, dynamic>>()
-              .map(_organizationFromJson)
-              .toList(growable: false);
-          _reconcileSelectedOrganization();
-          _syncParentApiEndpointMode();
+      if (response.statusCode < 200 || response.statusCode > 299) {
+        if (requireSuccess) {
+          throw ApiError.requestFailed(response.statusCode);
         }
+        return;
       }
+
+      final decodedJson = jsonDecode(response.body);
+      if (decodedJson is! List) {
+        if (requireSuccess) {
+          throw const ApiError.invalidResponse();
+        }
+        return;
+      }
+
+      _organizations = decodedJson
+          .whereType<Map<String, dynamic>>()
+          .map(_organizationFromJson)
+          .toList(growable: false);
+      _reconcileSelectedOrganization();
+      _syncParentApiEndpointMode();
     } catch (_) {
+      if (requireSuccess) {
+        rethrow;
+      }
       // Keep startup resilient if organizations cannot be fetched.
     } finally {
       _isLoadingOrganizations = false;
@@ -606,6 +631,10 @@ class AppManager extends ChangeNotifier {
 
   Organization? _findOrganizationForSelection(String organizationId) {
     if (organizationId.isEmpty) {
+      if (!currentUserCanAccessSandbox) {
+        return null;
+      }
+
       return _findSandboxOrganization();
     }
 
@@ -626,12 +655,21 @@ class AppManager extends ChangeNotifier {
     return organization.name.trim().toLowerCase().contains('sandbox');
   }
 
-  String? _resolveUserBackedOrganizationSelectionId() {
-    if (_currentUser == null) {
+  String? _resolveSelectionIdForUser(User? user) {
+    if (user == null) {
       return null;
     }
 
-    return _currentUser?.organizationUuid?.trim() ?? '';
+    final organizationId = user.organizationUuid?.trim() ?? '';
+    if (organizationId.isNotEmpty) {
+      return organizationId;
+    }
+
+    return user.canAccessSandbox ? '' : null;
+  }
+
+  String? _resolveUserBackedOrganizationSelectionId() {
+    return _resolveSelectionIdForUser(_currentUser);
   }
 
   void _syncSelectedOrganizationWithUser(User? user) {
@@ -645,12 +683,17 @@ class AppManager extends ChangeNotifier {
       return;
     }
 
-    final nextSelectedOrganizationId = user.organizationUuid?.trim() ?? '';
+    final nextSelectedOrganizationId = _resolveSelectionIdForUser(user);
     if (_selectedOrganizationId == nextSelectedOrganizationId) {
       return;
     }
 
     _selectedOrganizationId = nextSelectedOrganizationId;
+    if (nextSelectedOrganizationId == null) {
+      unawaited(AppPreference.clearSelectedOrganizationId());
+      return;
+    }
+
     unawaited(
       AppPreference.setSelectedOrganizationId(nextSelectedOrganizationId),
     );
@@ -690,7 +733,7 @@ class AppManager extends ChangeNotifier {
   }
 
   bool _shouldShowOrganization(Organization organization) {
-    if (_currentUser?.isOwner == true) {
+    if (currentUserCanAccessSandbox) {
       return true;
     }
 
