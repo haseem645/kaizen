@@ -153,7 +153,7 @@ A change is complete only when all of the following are true:
 
 - Read the relevant feature folder before editing.
 - Prefer the canonical `.codex` routing skill at `.codex/skills/repo-navigation/SKILL.md`, then open only the relevant feature reference under `.codex/skills/repo-navigation/references/features/`.
-- If a workflow or older instruction points to `lib/features/SKILLS.md` or `lib/features/<feature>/SKILL.md`, treat those files as compatibility shims that redirect to the canonical `.codex` references.
+- The `.codex` routing files are the only maintained skill source of truth for feature navigation in this repo.
 - Prefer the smallest change that satisfies the request.
 - Verify UI changes with analyzer-friendly, overflow-safe widget code.
 - When a bug repeats, update this file with a concrete rule rather than adding vague guidance.

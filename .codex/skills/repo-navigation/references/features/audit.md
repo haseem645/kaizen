@@ -41,6 +41,13 @@ Use for audit reports, final audit report screens, performance reports, and snap
 - Next for performance reporting: `.../lib/features/audit/presentation/pages/performance_report_screen.dart`
 - Next if data/state changes: `.../lib/features/audit/presentation/providers/audit_controller.dart`
 
+## Audit Training
+
+Training UI and controllers now live in the top-level training feature.
+
+- Open: `.../.codex/skills/repo-navigation/references/features/training.md`
+- Stay in audit only when changing the upstream audit entry points, route payloads, or audit API behavior that feeds training.
+
 ## Audit Filters, Team, And Shared Widgets
 
 Use for audit filter sheets, team-member selection, audit cards, search, and shared audit widgets.

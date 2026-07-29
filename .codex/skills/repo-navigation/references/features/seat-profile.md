@@ -31,6 +31,13 @@ Use for seat-profile remote data, repositories, department models, and entity/pa
 - Next for repository behavior: `.../lib/features/seat_profile/data/repositories/seat_profile_repository_impl.dart`
 - Next if search/filter UI changes: `.../lib/features/seat_profile/widgets/seat_profile_search_bar.dart`
 
+## Seat Profile Training Setup
+
+Seat-profile-driven training setup now lives in the top-level training feature.
+
+- Open: `.../.codex/skills/repo-navigation/references/features/training.md`
+- Stay in seat profile only when changing the seat-profile option sources or the entry route into training setup.
+
 ## Default Seat Profile Rule
 
 If the task is ambiguous, start with `.../lib/features/seat_profile/presentation/pages/seat_profile_screen.dart`.
