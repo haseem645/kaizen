@@ -14,7 +14,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 - Favor feature ownership first. Keep feature-specific models, providers, widgets, and helpers inside the owning feature unless at least two features actively reuse them.
 - Preserve dependency direction: `presentation -> domain -> data`. UI code must not reach directly into remote/local data sources when a provider, controller, or repository already owns that interaction.
-- Treat repositories as the boundary for data access. API calls, persistence, and external SDK interactions should stay out of widgets and out of simple UI helper methods.
+- Treat repositories as the boundary for data access. API calls, persistence, and external SDK interactions should stay out of widgets and out of simple UI helpbber methods.
 - Keep domain logic framework-light when practical. Business rules, validation, filtering, mapping, and status decisions should be easy to test without depending on widget code.
 - Prefer view models or provider-owned presentation data when the UI needs formatted labels, grouped sections, or display-ready flags. Do not spread repeated mapping logic across multiple widgets.
 - Add to `lib/core/` only when behavior is truly shared, stable, and generic. Do not move code into `core` just to avoid importing from a feature.
@@ -153,7 +153,7 @@ A change is complete only when all of the following are true:
 
 - Read the relevant feature folder before editing.
 - Prefer the canonical `.codex` routing skill at `.codex/skills/repo-navigation/SKILL.md`, then open only the relevant feature reference under `.codex/skills/repo-navigation/references/features/`.
-- The `.codex` routing files are the only maintained skill source of truth for feature navigation in this repo.
+- If a workflow or older instruction points to `lib/features/SKILLS.md` or `lib/features/<feature>/SKILL.md`, treat those files as compatibility shims that redirect to the canonical `.codex` references.
 - Prefer the smallest change that satisfies the request.
 - Verify UI changes with analyzer-friendly, overflow-safe widget code.
 - When a bug repeats, update this file with a concrete rule rather than adding vague guidance.
