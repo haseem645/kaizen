@@ -75,6 +75,8 @@ class AppStrings {
   static const String seatProfileSaveAction = 'Save';
   static const String seatProfileUpdateAction = 'Update';
   static const String seatProfileCreatedAction = 'Done';
+  static const String seatProfileCreateAccessDenied =
+      'You are not allowed to create seat profiles.';
   static const String seatProfileAddDescriptionAction = 'Add Description';
   static const String seatProfileAddSeatDescriptionAction =
       'Add Seat Description';
@@ -349,6 +351,9 @@ class AppStrings {
       'Please allow microphone and speech recognition access to use voice input.';
   static const String auditActive = 'Active';
   static const String auditDeactivated = 'Deactivated';
+  static const String auditTeamMembersTab = 'Team Members';
+  static const String auditMyCheckInTitle = 'My Check-In';
+  static const String auditMyCheckInsTab = 'My Check-Ins';
   static const String auditSearchHint = 'Search Team Member';
   static const String auditOverallScore = 'Overall\nScore';
   static const String auditConfidenceLevel = 'Confidence\nLevel';
@@ -451,6 +456,8 @@ class AppStrings {
   static const String trainingNewLesson = 'New Lesson';
   static const String trainingAddLessonPrompt =
       'Tap Add New Lesson to create a training module.';
+  static const String trainingReadOnlyAccessMessage =
+      'You can view this training module, but create and edit actions are disabled for this seat profile.';
   static const String trainingDeleteModuleTitle = 'Delete Module';
   static const String trainingDeleteModuleAction = 'Delete';
   static const String trainingModuleDeletedSuccess =

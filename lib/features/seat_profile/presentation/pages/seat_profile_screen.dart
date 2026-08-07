@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
 import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -299,6 +300,10 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   }
 
   Future<void> _openCreateSeatProfile(BuildContext context) async {
+    if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+      return;
+    }
+
     final didCreate = await AppRouter.pushNamed(
       context,
       AppRouter.seatProfileCreate,
@@ -336,19 +341,28 @@ class _SeatProfileCreateAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: AppGradientActionButton(
-        label: AppStrings.seatProfileCreateAction,
-        icon: Icons.add_rounded,
-        iconSize: 14,
-        textSize: 12,
-        minHeight: 34,
-        borderRadius: 10,
-        iconSpacing: 6,
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        onTap: onTap,
-      ),
+    return ListenableBuilder(
+      listenable: AppManager.instance,
+      builder: (context, _) {
+        if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: AppGradientActionButton(
+            label: AppStrings.seatProfileCreateAction,
+            icon: Icons.add_rounded,
+            iconSize: 14,
+            textSize: 12,
+            minHeight: 34,
+            borderRadius: 10,
+            iconSpacing: 6,
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            onTap: onTap,
+          ),
+        );
+      },
     );
   }
 }

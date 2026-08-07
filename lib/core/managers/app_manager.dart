@@ -56,8 +56,26 @@ class AppManager extends ChangeNotifier {
   bool get isRefreshingOrganizationContext => _isRefreshingOrganizationContext;
   bool get hasPendingOrganizationConflict =>
       _isHandlingOrganizationConflict && !_didResolveOrganizationConflict;
+  bool get currentUserHasOwnerOverrideAccess =>
+      _currentUser?.hasOwnerOverrideAccess == true;
   bool get currentUserCanAccessSandbox =>
       _currentUser?.canAccessSandbox == true;
+  bool get currentUserCanCreateSeatProfiles =>
+      _currentUser?.canCreateSeatProfiles == true;
+  bool get currentUserCanManageAnyTrainingModules =>
+      _currentUser?.canManageAnyTrainingModules == true;
+
+  bool canCurrentUserManageTrainingForSeatProfile({
+    required String seatProfileId,
+    String? departmentId,
+  }) {
+    return _currentUser?.canManageTrainingForSeatProfile(
+          seatProfileId: seatProfileId,
+          departmentId: departmentId,
+        ) ==
+        true;
+  }
+
   bool get usesParentApiEndpoints {
     final selectedOrganizationId = _selectedOrganizationId;
     if (selectedOrganizationId != null) {

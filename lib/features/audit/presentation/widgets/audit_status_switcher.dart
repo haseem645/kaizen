@@ -23,22 +23,34 @@ class AuditStatusSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _StatusChip(
-          title: activeTitle,
-          isSelected: selectedStatus == AuditMemberStatus.active,
-          onTap: () => onStatusSelected(AuditMemberStatus.active),
-        ),
-        if (showDeactivated) ...[
-          const SizedBox(width: 20),
-          _StatusChip(
-            title: deactivatedTitle,
-            isSelected: selectedStatus == AuditMemberStatus.deactivated,
-            onTap: () => onStatusSelected(AuditMemberStatus.deactivated),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatusChip(
+              title: activeTitle,
+              isSelected: selectedStatus == AuditMemberStatus.active,
+              onTap: () => onStatusSelected(AuditMemberStatus.active),
+            ),
           ),
+          if (showDeactivated) ...[
+            const SizedBox(width: 6),
+            Expanded(
+              child: _StatusChip(
+                title: deactivatedTitle,
+                isSelected: selectedStatus == AuditMemberStatus.deactivated,
+                onTap: () => onStatusSelected(AuditMemberStatus.deactivated),
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -57,26 +69,22 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.secondaryColor.withValues(alpha: 0.08)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.secondaryColor
-                : AppColors.fieldBorder.withValues(alpha: 0.7),
-          ),
+          color: isSelected ? AppColors.secondaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: AppTextView.body2(
+        child: AppTextView.body3(
           title,
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w700,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

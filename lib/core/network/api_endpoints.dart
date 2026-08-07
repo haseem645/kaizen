@@ -25,6 +25,8 @@ class ApiEndPoints {
   static const String organizations = 'organizations/';
   static const String images = 'image/';
   static const String allDepartments = 'department/all_departments/';
+  static const String organizationHierarchy =
+      'department/organization_hierarchy/';
   static const String parentDepartments = '${parentPrefix}department/';
   static const String generatePreSignedUrl = 'generate_pre_signed_url/';
   static const String quarterlyAudit = 'quarterly_audit/';

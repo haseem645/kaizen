@@ -89,7 +89,7 @@ class AuditController extends ChangeNotifier {
     return members
         .where((member) {
           final matchesStatus =
-              _state.isOwner ||
+              _state.isActualOwner ||
                   _state.selectedStatus == AuditMemberStatus.active
               ? member.status == _state.selectedStatus
               : true;
@@ -142,6 +142,7 @@ class AuditController extends ChangeNotifier {
     try {
       final user = await AppPreference.getUser();
       final isOwner = _hasTeamMemberTabsAccess(user);
+      final isActualOwner = _isActualOwner(user);
       final selectedStatus = isOwner
           ? AuditMemberStatus.active
           : AuditMemberStatus.deactivated;
@@ -153,6 +154,7 @@ class AuditController extends ChangeNotifier {
       _state = _state.copyWith(
         isLoading: true,
         isOwner: isOwner,
+        isActualOwner: isActualOwner,
         selectedStatus: selectedStatus,
         selectedAuditYear: currentYearQuarter.year,
         selectedAuditQuarter: currentYearQuarter.quarter,
@@ -162,7 +164,7 @@ class AuditController extends ChangeNotifier {
       );
       notifyListeners();
 
-      final mainList = isOwner
+      final mainList = isOwner && isActualOwner
           ? await _loadTeamMembers(page: 1, pageSize: 12)
           : await _preloadNonOwnerLists(page: 1, pageSize: 12);
       _state = _state.copyWith(isLoading: false, mainList: mainList);
@@ -224,6 +226,7 @@ class AuditController extends ChangeNotifier {
     try {
       final user = await AppPreference.getUser();
       final isOwner = _hasTeamMemberTabsAccess(user);
+      final isActualOwner = _isActualOwner(user);
       final currentYearQuarter = CustomFunctions.currentYearQuarter();
       final resolvedYear = year ?? currentYearQuarter.year;
       final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
@@ -236,6 +239,7 @@ class AuditController extends ChangeNotifier {
       _state = _state.copyWith(
         isLoading: true,
         isOwner: isOwner,
+        isActualOwner: isActualOwner,
         selectedAuditYear: resolvedYear,
         selectedAuditQuarter: resolvedQuarter,
         selectedYearQuarter: selectedYearQuarterLabel,
@@ -358,6 +362,7 @@ class AuditController extends ChangeNotifier {
     try {
       final user = await AppPreference.getUser();
       final isOwner = _hasTeamMemberTabsAccess(user);
+      final isActualOwner = _isActualOwner(user);
       final currentYearQuarter = CustomFunctions.currentYearQuarter();
       final resolvedYear = year ?? currentYearQuarter.year;
       final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
@@ -370,6 +375,7 @@ class AuditController extends ChangeNotifier {
       _state = _state.copyWith(
         isLoading: true,
         isOwner: isOwner,
+        isActualOwner: isActualOwner,
         selectedAuditYear: resolvedYear,
         selectedAuditQuarter: resolvedQuarter,
         selectedYearQuarter: selectedYearQuarterLabel,
@@ -704,13 +710,13 @@ class AuditController extends ChangeNotifier {
 
     _state = _state.copyWith(
       selectedStatus: status,
-      isLoading: !_state.isOwner,
+      isLoading: !_state.isActualOwner,
       isLoadingMore: false,
-      clearMainList: !_state.isOwner,
+      clearMainList: !_state.isActualOwner,
     );
     notifyListeners();
 
-    if (_state.isOwner) {
+    if (_state.isActualOwner) {
       return;
     }
 
@@ -1738,7 +1744,7 @@ class AuditController extends ChangeNotifier {
     required int page,
     required int pageSize,
   }) {
-    if (!_state.isOwner &&
+    if (!_state.isActualOwner &&
         _state.selectedStatus == AuditMemberStatus.deactivated) {
       return _loadMyCheckIns(page: page, pageSize: pageSize);
     }
@@ -1879,6 +1885,11 @@ class AuditController extends ChangeNotifier {
 
   bool _hasTeamMemberTabsAccess(User? user) {
     return user?.canAccessAuditTeamMembers ?? false;
+  }
+
+  bool _isActualOwner(User? user) {
+    return user?.isOwner == true ||
+        user?.normalizedRoles.contains('owner') == true;
   }
 }
 

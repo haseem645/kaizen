@@ -17,6 +17,7 @@ import '../providers/audit_controller.dart';
 import '../providers/audit_state.dart';
 import '../widgets/audit_member_card.dart';
 import '../widgets/audit_search_bar.dart';
+import '../widgets/audit_status_switcher.dart';
 import 'audit_filter_sheet.dart';
 
 class AuditScreen extends StatelessWidget {
@@ -99,7 +100,9 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
     _syncSearchController(state.searchQuery);
 
     return DrawerMainScreen(
-      title: state.isOwner ? AppStrings.checkInTitle : 'My Check-In',
+      title: state.isOwner
+          ? AppStrings.checkInTitle
+          : AppStrings.auditMyCheckInTitle,
       selectedMenu: AppMenuType.audits,
       centerTitle: true,
       appBarActions: const [
@@ -136,12 +139,22 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
   Widget _buildContent(AuditController controller, AuditState state) {
     final members = controller.visibleMembers;
     final showSearchAndFilter = state.isOwner;
+    final showSelectionTabs = state.isOwner && !state.isActualOwner;
 
     return ListView(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         if (showSearchAndFilter) ...[
+          if (showSelectionTabs) ...[
+            AuditStatusSwitcher(
+              selectedStatus: state.selectedStatus,
+              activeTitle: AppStrings.auditTeamMembersTab,
+              deactivatedTitle: AppStrings.auditMyCheckInsTab,
+              onStatusSelected: controller.selectStatus,
+            ),
+            const SizedBox(height: 22),
+          ],
           AuditSearchBar(
             controller: _searchController,
             onChanged: controller.updateSearchQuery,
@@ -274,15 +287,19 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
   }
 
   Widget _buildEmptyAuditState(AuditMemberStatus status) {
-    final isOwner = context.read<AuditController>().state.isOwner;
-    final statusLabel = switch ((isOwner, status)) {
-      (true, AuditMemberStatus.active) => AppStrings.auditActive.toLowerCase(),
-      (true, AuditMemberStatus.deactivated) =>
+    final state = context.read<AuditController>().state;
+    final statusLabel = switch ((state.isActualOwner, state.isOwner, status)) {
+      (true, _, AuditMemberStatus.active) =>
+        AppStrings.auditActive.toLowerCase(),
+      (true, _, AuditMemberStatus.deactivated) =>
         AppStrings.auditDeactivated.toLowerCase(),
-      (false, AuditMemberStatus.active) => 'team members',
-      (false, AuditMemberStatus.deactivated) => 'my check-ins',
+      (false, true, AuditMemberStatus.active) =>
+        AppStrings.auditTeamMembersTab.toLowerCase(),
+      (false, true, AuditMemberStatus.deactivated) =>
+        AppStrings.auditMyCheckInsTab.toLowerCase(),
+      (false, false, _) => AppStrings.auditMyCheckInsTab.toLowerCase(),
     };
-    final message = isOwner
+    final message = state.isActualOwner
         ? '${AppStrings.auditNoMembersFound}\nTry a different search for $statusLabel members.'
         : AppStrings.auditNoStatusAvailable(statusLabel);
 

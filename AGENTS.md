@@ -96,6 +96,11 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 - **Type Safety**: Always use typed providers and controllers; avoid raw `dynamic` types when accessing state from the UI.
 - **Cleanup**: Ensure all streams, listeners, and notifiers subscribed to in the UI are properly unsubscribed or disposed when the widget is disposed.
 
+## Permission Rules
+
+- **Owner Override**: Treat `User.isOwner == true` as a master-access override for app permissions. Owner users must not lose Create, Edit, manage, or team-access actions because of seat-scoped, hierarchy-scoped, or role-list checks.
+- **Permission Helper Source**: Put owner-first permission rules in shared user/app permission helpers before feature screens consume them. Do not re-encode owner exceptions ad hoc inside individual widgets when a shared helper can own the rule.
+
 ## Feature-Specific Best Practices
 
 - **Separation of Concerns**: Keep UI presentation logic in the screen file, business logic in the controller, and data access in the repository.

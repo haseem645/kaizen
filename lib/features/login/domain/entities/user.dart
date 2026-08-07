@@ -1,3 +1,5 @@
+import 'user_hierarchy_membership.dart';
+
 class User {
   final String? uuid;
   final String? status;
@@ -33,24 +35,103 @@ class User {
   final bool? hasPaymentDetailsProvided;
   final String? personalityType;
   final String? dateOfBirth;
+  final List<UserHierarchyMembership>? hierarchyMemberships;
 
-  List<String> get normalizedRoles => (roles ?? const <String>[])
-      .map((role) => role.trim().toLowerCase())
-      .where((role) => role.isNotEmpty)
-      .toList(growable: false);
+  List<String> get normalizedRoles =>
+      _normalizeRoles(roles: roles, hierarchyMemberships: hierarchyMemberships);
+  bool get hasOwnerOverrideAccess {
+    final availableRoles = normalizedRoles.toSet();
+    return isOwner == true || availableRoles.contains('owner');
+  }
+
+  bool get canManageAnyTrainingModules {
+    if (hasOwnerOverrideAccess) {
+      return true;
+    }
+
+    for (final membership
+        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
+      if (membership.canManageTrainingModules) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool get canCreateSeatProfiles {
+    final availableRoles = normalizedRoles.toSet();
+    return hasOwnerOverrideAccess ||
+        availableRoles.contains('csuite') ||
+        availableRoles.contains('dept_lead') ||
+        availableRoles.contains('team_lead');
+  }
 
   bool get canAccessAuditTeamMembers {
     final availableRoles = normalizedRoles.toSet();
-    if (availableRoles.isEmpty) {
-      return false;
-    }
-
-    return availableRoles.contains('owner') ||
-        availableRoles.contains('dept_lead');
+    return hasOwnerOverrideAccess ||
+        availableRoles.contains('dept_lead') ||
+        availableRoles.contains('team_lead');
   }
 
   bool get canAccessSandbox {
-    return isOwner == true || hasSandboxAccess == true;
+    return hasOwnerOverrideAccess || hasSandboxAccess == true;
+  }
+
+  bool occupiesSeatProfile(String seatProfileId) {
+    final normalizedSeatProfileId = seatProfileId.trim();
+    if (normalizedSeatProfileId.isEmpty) {
+      return false;
+    }
+
+    for (final membership
+        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
+      if (membership.job?.uuid.trim() == normalizedSeatProfileId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool canManageTrainingForSeatProfile({
+    required String seatProfileId,
+    String? departmentId,
+  }) {
+    final normalizedSeatProfileId = seatProfileId.trim();
+    if (normalizedSeatProfileId.isEmpty) {
+      return false;
+    }
+
+    if (hasOwnerOverrideAccess) {
+      return true;
+    }
+
+    if (occupiesSeatProfile(normalizedSeatProfileId)) {
+      return false;
+    }
+
+    final normalizedDepartmentId = departmentId?.trim() ?? '';
+    for (final membership
+        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
+      if (!membership.canManageTrainingModules) {
+        continue;
+      }
+
+      if (membership.manageableSeatProfileIds.contains(
+        normalizedSeatProfileId,
+      )) {
+        return true;
+      }
+
+      if (normalizedDepartmentId.isNotEmpty &&
+          membership.normalizedRole == 'dept_lead' &&
+          membership.departmentUuid?.trim() == normalizedDepartmentId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   User({
@@ -88,6 +169,7 @@ class User {
     this.hasPaymentDetailsProvided,
     this.personalityType,
     this.dateOfBirth,
+    this.hierarchyMemberships,
   });
 
   User copyWith({
@@ -125,6 +207,7 @@ class User {
     bool? hasPaymentDetailsProvided,
     String? personalityType,
     String? dateOfBirth,
+    List<UserHierarchyMembership>? hierarchyMemberships,
   }) {
     return User(
       uuid: uuid ?? this.uuid,
@@ -163,6 +246,7 @@ class User {
           hasPaymentDetailsProvided ?? this.hasPaymentDetailsProvided,
       personalityType: personalityType ?? this.personalityType,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      hierarchyMemberships: hierarchyMemberships ?? this.hierarchyMemberships,
     );
   }
 
@@ -210,6 +294,9 @@ class User {
       hasPaymentDetailsProvided: json['has_payment_details_provided'],
       personalityType: _readPersonalityType(json),
       dateOfBirth: _readDateOfBirth(json),
+      hierarchyMemberships: _parseHierarchyMemberships(
+        json['hierarchy_memberships'] ?? json['hierarchyMemberships'],
+      ),
     );
   }
 
@@ -249,6 +336,9 @@ class User {
       'has_payment_details_provided': hasPaymentDetailsProvided,
       'personality_type': personalityType,
       'date_of_birth': dateOfBirth,
+      'hierarchy_memberships': hierarchyMemberships
+          ?.map((membership) => membership.toJson())
+          .toList(growable: false),
     };
   }
 
@@ -335,6 +425,47 @@ class User {
     }
 
     return null;
+  }
+
+  static List<UserHierarchyMembership>? _parseHierarchyMemberships(
+    dynamic rawMemberships,
+  ) {
+    if (rawMemberships is! List) {
+      return null;
+    }
+
+    return rawMemberships
+        .whereType<Map<String, dynamic>>()
+        .map(UserHierarchyMembership.fromJson)
+        .toList(growable: false);
+  }
+
+  static List<String> _normalizeRoles({
+    List<String>? roles,
+    List<UserHierarchyMembership>? hierarchyMemberships,
+  }) {
+    final normalizedRoles = <String>[];
+    final seenRoles = <String>{};
+
+    void addRole(String? rawRole) {
+      final normalizedRole = rawRole?.trim().toLowerCase() ?? '';
+      if (normalizedRole.isEmpty || !seenRoles.add(normalizedRole)) {
+        return;
+      }
+
+      normalizedRoles.add(normalizedRole);
+    }
+
+    for (final role in roles ?? const <String>[]) {
+      addRole(role);
+    }
+
+    for (final membership
+        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
+      addRole(membership.role);
+    }
+
+    return List<String>.unmodifiable(normalizedRoles);
   }
 }
 
