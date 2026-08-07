@@ -7,6 +7,7 @@ enum AppMenuType {
   performanceSnapshot,
   seatProfiles,
   paygrades,
+  departments,
   kaizenGpt,
   setting,
   profile,

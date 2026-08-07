@@ -96,7 +96,10 @@ class SplashController extends ChangeNotifier {
         return;
       }
 
-      AppRouter.pushReplacementNamed<void, void>(context, AppRouter.kaizengram);
+      AppRouter.pushReplacementNamed<void, void>(
+        context,
+        AppRouter.defaultAuthenticatedRouteName,
+      );
     } else {
       if (pendingDeepLinkTarget != null) {
         _pendingStartupTarget = null;

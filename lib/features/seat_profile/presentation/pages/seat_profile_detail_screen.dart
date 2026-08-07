@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/widgets/app_text_view.dart';
+import '../../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../../../core/widgets/app_text_view.dart';
 import '../../../../routes/app_router.dart';
 import '../../data/datasources/seat_profile_remote_data_source.dart';
 import '../../data/repositories/seat_profile_repository_impl.dart';
 import '../../domain/entities/seat_profile_detail.dart';
 import '../../domain/usecases/get_seat_profiles_usecase.dart';
 import '../providers/seat_profile_detail_controller.dart';
-import 'seat_profile_description_dialog.dart';
+import 'seat_profile_description_sheet.dart';
+import 'seat_profile_generate_content_sheet.dart';
+import 'seat_profile_manage_categories_sheet.dart';
 
 class SeatProfileDetailScreen extends StatelessWidget {
   const SeatProfileDetailScreen({super.key, required this.seatId});
@@ -55,14 +58,28 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.mainBg,
+      appBar: AppBar(
+        backgroundColor: AppColors.mainBg,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+        ),
+        title: const AppTextView.title1(
+          AppStrings.seatProfileDetailsTitle,
+          color: AppColors.secondaryColor,
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       body: SafeArea(
+        top: false,
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           child: Column(
             children: [
-              _buildHeader(context),
-              const SizedBox(height: 18),
               if (controller.isLoading)
                 Expanded(child: Center(child: FastCircularProgressIndicator()))
               else if (controller.errorMessage != null)
@@ -77,6 +94,16 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
                     children: [
                       _buildSeatSummary(detail),
                       const SizedBox(height: 18),
+                      _DetailActionRow(
+                        controller: controller,
+                        onUpdateCategory: () => _showManageSeatCategoriesDialog(
+                          context,
+                          controller,
+                        ),
+                        onGenerate: () =>
+                            _showGenerateSeatContentSheet(context, controller),
+                      ),
+                      const SizedBox(height: 18),
                       if (detail.categories.isEmpty)
                         _buildMessage(AppStrings.seatProfileNoCategoriesFound)
                       else
@@ -84,8 +111,26 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
                           (category) => Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: _CategoryCard(
+                              controller: controller,
                               seatProfileId: detail.id,
                               category: category,
+                              onOpenDescription: (description) =>
+                                  _showSeatDescriptionSheet(
+                                    context,
+                                    controller,
+                                    description,
+                                  ),
+                              onDeleteDescription: (description) =>
+                                  _showDeleteDescriptionDialog(
+                                    context,
+                                    controller,
+                                    description,
+                                  ),
+                              onAddDescription: () => _showSeatAdditionSheet(
+                                context,
+                                controller,
+                                category,
+                              ),
                             ),
                           ),
                         ),
@@ -99,32 +144,96 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: InkWell(
-            onTap: () => Navigator.of(context).pop(),
-            child: SvgPicture.asset(
-              '${AppStrings.imagePath}back.svg',
-              width: 24,
-              height: 24,
-              colorFilter: const ColorFilter.mode(
-                Colors.white,
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-        ),
-        AppTextView.body(
-          AppStrings.seatProfileDetailsTitle,
-          color: AppColors.secondaryColor,
-          fontSize: 24,
-          fontWeight: FontWeight.w500,
-        ),
-      ],
+  Future<void> _showManageSeatCategoriesDialog(
+    BuildContext context,
+    SeatProfileDetailController controller,
+  ) async {
+    final didUpdate = await showSeatProfileManageCategoriesSheet(
+      context,
+      initialCategories: controller.categoryDrafts,
+      onSaveCategories: controller.saveSeatCategoryDrafts,
+    );
+    if (didUpdate != true || !context.mounted) {
+      return;
+    }
+
+    await controller.refresh();
+  }
+
+  Future<void> _showGenerateSeatContentSheet(
+    BuildContext context,
+    SeatProfileDetailController controller,
+  ) async {
+    controller.clearSeatContentGenerationError();
+
+    final hasExistingCategories =
+        controller.detail?.categories.isNotEmpty == true ||
+        controller.categoryDrafts.isNotEmpty;
+
+    await showSeatProfileGenerateContentSheet(
+      context,
+      controller: controller,
+      hasExistingCategories: hasExistingCategories,
+    );
+  }
+
+  Future<void> _showSeatAdditionSheet(
+    BuildContext context,
+    SeatProfileDetailController controller,
+    SeatProfileCategory category,
+  ) async {
+    await showSeatProfileDescriptionBottomSheet(
+      context,
+      description: const SeatProfileDescription(
+        id: '',
+        actualId: '',
+        name: '',
+        auditSpecifics: '',
+        auditFactorType: 'observation',
+        milestoneDays: '30',
+      ),
+      title: AppStrings.seatProfileSeatAdditionDialogTitle,
+      descriptionText: AppStrings.seatProfileCreateDescriptionSheetDescription,
+      submitLabel: AppStrings.seatProfileSaveAction,
+      onSave: (formData) => controller.addSeatDescription(
+        categoryId: category.id,
+        descriptionName: formData.descriptionName,
+        auditSpecifics: formData.auditSpecifics,
+        auditFactorType: formData.auditFactorType,
+        milestoneDays: formData.milestoneDays,
+      ),
+    );
+  }
+
+  Future<void> _showSeatDescriptionSheet(
+    BuildContext context,
+    SeatProfileDetailController controller,
+    SeatProfileDescription description,
+  ) async {
+    await showSeatProfileDescriptionBottomSheet(
+      context,
+      description: description,
+      onSave: (formData) => controller.updateSeatDescription(
+        description: description,
+        descriptionName: formData.descriptionName,
+        auditSpecifics: formData.auditSpecifics,
+        auditFactorType: formData.auditFactorType,
+        milestoneDays: formData.milestoneDays,
+      ),
+    );
+  }
+
+  Future<void> _showDeleteDescriptionDialog(
+    BuildContext context,
+    SeatProfileDetailController controller,
+    SeatProfileDescription description,
+  ) async {
+    await showDialog<bool>(
+      context: context,
+      builder: (_) => _DeleteSeatDescriptionDialog(
+        controller: controller,
+        description: description,
+      ),
     );
   }
 
@@ -143,10 +252,10 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
             color: AppColors.secondaryColor,
             fontWeight: FontWeight.w700,
           ),
-          if (detail.departmentName.isNotEmpty) ...[
+          if ((detail.department?.name ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
             AppTextView.body2(
-              detail.departmentName,
+              detail.department!.name,
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
@@ -167,22 +276,201 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
   }
 }
 
-class _CategoryCard extends StatefulWidget {
-  const _CategoryCard({required this.seatProfileId, required this.category});
+class _DetailActionRow extends StatelessWidget {
+  const _DetailActionRow({
+    required this.controller,
+    required this.onUpdateCategory,
+    required this.onGenerate,
+  });
 
-  final String seatProfileId;
-  final SeatProfileCategory category;
-
-  @override
-  State<_CategoryCard> createState() => _CategoryCardState();
-}
-
-class _CategoryCardState extends State<_CategoryCard> {
-  bool _isExpanded = false;
+  final SeatProfileDetailController controller;
+  final VoidCallback onUpdateCategory;
+  final VoidCallback onGenerate;
 
   @override
   Widget build(BuildContext context) {
-    final category = widget.category;
+    final isBusy = controller.isGeneratingSeatContent;
+    final isEnabled = controller.detail != null && !controller.isLoading;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _SeatProfileDottedActionButton(
+            label: AppStrings.seatProfileUpdateCategoryAction,
+            onTap: isEnabled && !isBusy ? onUpdateCategory : null,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _SeatProfileGradientActionButton(
+            label: AppStrings.seatProfileGenerateAction,
+            isLoading: controller.isGeneratingSeatContent,
+            onTap: isEnabled && controller.canGenerateSeatContent
+                ? onGenerate
+                : null,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SeatProfileDottedActionButton extends StatelessWidget {
+  const _SeatProfileDottedActionButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = onTap != null;
+    final borderColor = isEnabled
+        ? AppColors.secondaryColor
+        : AppColors.fieldBorder.withValues(alpha: 0.28);
+    const minimumHeight = 48.0;
+
+    return Opacity(
+      opacity: isEnabled ? 1 : 0.58,
+      child: CustomPaint(
+        painter: _SeatProfileDottedRoundedBorderPainter(
+          color: borderColor,
+          radius: 14,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Ink(
+              width: double.infinity,
+              height: minimumHeight,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark3.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: AppTextView.body(
+                  label,
+                  color: isEnabled
+                      ? AppColors.secondaryColor
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SeatProfileGradientActionButton extends StatelessWidget {
+  const _SeatProfileGradientActionButton({
+    required this.label,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = onTap != null && !isLoading;
+    const minimumHeight = 48.0;
+
+    return Opacity(
+      opacity: isEnabled || isLoading ? 1 : 0.58,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isEnabled ? onTap : null,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            width: double.infinity,
+            height: minimumHeight,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [AppColors.purple1, AppColors.secondaryColor],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.lightPurple1.withValues(alpha: 0.35),
+              ),
+              boxShadow: isEnabled
+                  ? [
+                      BoxShadow(
+                        color: AppColors.purple1.withValues(alpha: 0.36),
+                        blurRadius: 10,
+                        offset: const Offset(-6, 0),
+                        spreadRadius: -1,
+                      ),
+                      BoxShadow(
+                        color: AppColors.secondaryColor.withValues(alpha: 0.42),
+                        blurRadius: 16,
+                        offset: const Offset(12, 0),
+                        spreadRadius: -2,
+                      ),
+                    ]
+                  : const <BoxShadow>[],
+            ),
+            child: Center(
+              child: isLoading
+                  ? FastCircularProgressIndicator(width: 18, height: 18)
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 18,
+                          color: AppColors.textPrimary,
+                        ),
+                        const SizedBox(width: 10),
+                        AppTextView.body(
+                          label,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryCard extends StatelessWidget {
+  const _CategoryCard({
+    required this.controller,
+    required this.seatProfileId,
+    required this.category,
+    required this.onOpenDescription,
+    required this.onDeleteDescription,
+    required this.onAddDescription,
+  });
+
+  final SeatProfileDetailController controller;
+  final String seatProfileId;
+  final SeatProfileCategory category;
+  final ValueChanged<SeatProfileDescription> onOpenDescription;
+  final ValueChanged<SeatProfileDescription> onDeleteDescription;
+  final VoidCallback onAddDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpanded = controller.isCategoryExpanded(category.id);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -202,7 +490,10 @@ class _CategoryCardState extends State<_CategoryCard> {
                 Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    onTap: () => controller.setCategoryExpanded(
+                      category.id,
+                      !isExpanded,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Column(
@@ -235,14 +526,14 @@ class _CategoryCardState extends State<_CategoryCard> {
                     context,
                     AppRouter.seatProfileTrainingSetup,
                     arguments: SeatProfileTrainingSetupRouteArgs(
-                      initialSeatProfileId: widget.seatProfileId,
+                      initialSeatProfileId: seatProfileId,
                       initialCategoryId: category.id,
                     ),
                   ),
                 ),
               ],
             ),
-            if (_isExpanded) ...[
+            if (isExpanded) ...[
               const SizedBox(height: 16),
               if (category.descriptions.isEmpty)
                 AppTextView.body2(
@@ -253,9 +544,20 @@ class _CategoryCardState extends State<_CategoryCard> {
                 ...category.descriptions.map(
                   (description) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _InlineDescriptionCard(description: description),
+                    child: _InlineDescriptionCard(
+                      controller: controller,
+                      description: description,
+                      onOpenDescription: () => onOpenDescription(description),
+                      onDeleteDescription: () =>
+                          onDeleteDescription(description),
+                    ),
                   ),
                 ),
+              const SizedBox(height: 4),
+              _SeatProfileDottedActionButton(
+                label: AppStrings.seatProfileAddSeatDescriptionAction,
+                onTap: onAddDescription,
+              ),
             ],
           ],
         ),
@@ -272,55 +574,195 @@ class _CategoryCardState extends State<_CategoryCard> {
 }
 
 class _InlineDescriptionCard extends StatelessWidget {
-  const _InlineDescriptionCard({required this.description});
+  const _InlineDescriptionCard({
+    required this.controller,
+    required this.description,
+    required this.onOpenDescription,
+    required this.onDeleteDescription,
+  });
 
+  final SeatProfileDetailController controller;
+  final SeatProfileDescription description;
+  final VoidCallback onOpenDescription;
+  final VoidCallback onDeleteDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDeleting = controller.isDeletingDescription(description);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isDeleting ? null : onOpenDescription,
+        borderRadius: BorderRadius.circular(6),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.mainBg,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: AppTextView.body2(
+                      description.name,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _DeleteDescriptionIconButton(
+                    isDeleting: isDeleting,
+                    onTap: isDeleting ? null : onDeleteDescription,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  AppTextView.body3(
+                    '${AppStrings.seatProfileMilestoneDays}:',
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  AppTextView.body3(
+                    seatProfileDescriptionMilestoneLabel(
+                      description.milestoneDays,
+                    ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  AppTextView.body3(
+                    '${AppStrings.seatProfileCheckInType}:',
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  AppTextView.body3(
+                    seatProfileDescriptionCheckInTypeLabel(
+                      description.auditFactorType,
+                    ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AppTextView.body3(
+                AppStrings.seatProfileAuditSpecifics,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 6),
+              _ExpandableDescriptionText(
+                description: description.auditSpecifics,
+                onSeeAllTap: isDeleting
+                    ? null
+                    : () => _showAuditSpecificsDialog(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAuditSpecificsDialog(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) =>
+          _AuditSpecificsDialog(description: description.auditSpecifics),
+    );
+  }
+}
+
+class _DeleteSeatDescriptionDialog extends StatelessWidget {
+  const _DeleteSeatDescriptionDialog({
+    required this.controller,
+    required this.description,
+  });
+
+  final SeatProfileDetailController controller;
   final SeatProfileDescription description;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.28),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTextView.body2(
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return AppConfirmationDialog(
+          title: AppStrings.seatProfileDeleteDescriptionTitle,
+          description: AppStrings.seatProfileDeleteDescriptionDescription(
             description.name,
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              AppTextView.body3(
-                '${AppStrings.seatProfileMilestoneDays}:',
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-              AppTextView.body3(
-                description.milestoneDays,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ],
+          confirmText: AppStrings.seatProfileDeleteDescriptionAction,
+          cancelText: AppStrings.actionCancel,
+          isConfirmLoading: controller.isDeletingDescription(description),
+          onCancelCallback: () async {
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+          onConfirmCallback: () async {
+            final didDelete = await controller.deleteSeatDescription(
+              description,
+            );
+            if (!context.mounted) {
+              return;
+            }
+
+            Navigator.of(context).pop(didDelete);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _DeleteDescriptionIconButton extends StatelessWidget {
+  const _DeleteDescriptionIconButton({
+    required this.isDeleting,
+    required this.onTap,
+  });
+
+  final bool isDeleting;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Ink(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.red1.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.red1.withValues(alpha: 0.24)),
           ),
-          const SizedBox(height: 12),
-          AppTextView.body3(
-            AppStrings.seatProfileAuditSpecifics,
-            color: AppColors.textSecondary,
+          child: Center(
+            child: isDeleting
+                ? FastCircularProgressIndicator(width: 14, height: 14)
+                : const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.red1,
+                    size: 18,
+                  ),
           ),
-          const SizedBox(height: 6),
-          _ExpandableDescriptionText(
-            title: description.name,
-            description: description.auditSpecifics,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -356,20 +798,68 @@ class _ForwardArrowBadge extends StatelessWidget {
   }
 }
 
-class _ExpandableDescriptionText extends StatelessWidget {
-  const _ExpandableDescriptionText({
-    required this.title,
-    required this.description,
+class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
+  const _SeatProfileDottedRoundedBorderPainter({
+    required this.color,
+    required this.radius,
   });
 
-  final String title;
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    final inset = paint.strokeWidth / 2;
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        inset,
+        inset,
+        size.width - (inset * 2),
+        size.height - (inset * 2),
+      ),
+      Radius.circular(radius > inset ? radius - inset : radius),
+    );
+    const dashWidth = 5.0;
+    const dashSpace = 4.0;
+    final path = Path()..addRRect(rect);
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance += dashWidth + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(
+    covariant _SeatProfileDottedRoundedBorderPainter oldDelegate,
+  ) {
+    return oldDelegate.color != color || oldDelegate.radius != radius;
+  }
+}
+
+class _ExpandableDescriptionText extends StatelessWidget {
+  const _ExpandableDescriptionText({
+    required this.description,
+    this.onSeeAllTap,
+  });
+
   final String description;
+  final VoidCallback? onSeeAllTap;
 
   @override
   Widget build(BuildContext context) {
     final textStyle = const TextStyle(
       color: AppColors.textPrimary,
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: FontWeight.w400,
       height: 1.45,
     );
@@ -396,21 +886,22 @@ class _ExpandableDescriptionText extends StatelessWidget {
             if (hasOverflow) ...[
               const SizedBox(height: 8),
               InkWell(
-                onTap: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => SeatProfileDescriptionDialog(
-                    title: title,
-                    description: description,
+                onTap: onSeeAllTap,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 2,
                   ),
-                ),
-                child: const Text(
-                  'See All',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.secondaryColor,
+                  child: Text(
+                    AppStrings.seeAll,
+                    style: TextStyle(
+                      color: AppColors.secondaryColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.secondaryColor,
+                    ),
                   ),
                 ),
               ),
@@ -418,6 +909,107 @@ class _ExpandableDescriptionText extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _AuditSpecificsDialog extends StatelessWidget {
+  const _AuditSpecificsDialog({required this.description});
+
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surfaceDark,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 520),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: AppTextView.body1(
+                      AppStrings.seatProfileAuditSpecifics,
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  _AuditSpecificsDialogCloseButton(
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const AppDotDivider(),
+              const SizedBox(height: 18),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: AppTextView.body(
+                    description,
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: 140,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(AppStrings.done),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuditSpecificsDialogCloseButton extends StatelessWidget {
+  const _AuditSpecificsDialogCloseButton({required this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Ink(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.mainBg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Icon(
+            Icons.close_rounded,
+            size: 20,
+            color: onTap == null
+                ? AppColors.textSecondary
+                : AppColors.textPrimary,
+          ),
+        ),
+      ),
     );
   }
 }

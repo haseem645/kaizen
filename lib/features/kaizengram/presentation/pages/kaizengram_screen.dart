@@ -48,6 +48,25 @@ class KaizenGramScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appManager = context.watch<AppManager>();
+    if (appManager.usesParentApiEndpoints) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) {
+          return;
+        }
+
+        AppRouter.pushReplacementNamed<void, void>(
+          context,
+          AppRouter.trainingLibrary,
+        );
+      });
+
+      return Scaffold(
+        backgroundColor: AppColors.mainBg,
+        body: Center(child: FastCircularProgressIndicator()),
+      );
+    }
+
     return ChangeNotifierProxyProvider<AppManager, KaizengramController>(
       create: (context) => KaizengramController(
         KaizengramRemoteDataSource(),
@@ -70,7 +89,9 @@ class _KaizenGramView extends StatefulWidget {
 }
 
 class _KaizenGramViewState extends State<_KaizenGramView>
-    with SingleTickerProviderStateMixin, KaizengramNotifierState<_KaizenGramView> {
+    with
+        SingleTickerProviderStateMixin,
+        KaizengramNotifierState<_KaizenGramView> {
   late final TabController _tabController;
   late final KaizengramChatController _chatController;
   final ScrollController _mixedFeedScrollController = ScrollController();
@@ -81,22 +102,23 @@ class _KaizenGramViewState extends State<_KaizenGramView>
   var _isPickingComposeImage = false;
   var _isPickingComposeAttachment = false;
 
-  static const List<_PowerListEntry> _powerListEntriesFirstHalf = <_PowerListEntry>[
-    _PowerListEntry(
-      title: AppStrings.kaizengramLearningCompliancesTitle,
-      value: AppStrings.kaizengramLearningCompliancesDue,
-      icon: Icons.school_rounded,
-      accentColor: Color(0xFF25D7C2),
-      destination: _PowerListDestination.learningCompliance,
-    ),
-    _PowerListEntry(
-      title: AppStrings.kaizengramDocumentCompliancesTitle,
-      value: AppStrings.kaizengramDocumentCompliancesPending,
-      icon: Icons.description_rounded,
-      accentColor: Color(0xFFFFB547),
-      destination: _PowerListDestination.documentCompliance,
-    ),
-  ];
+  static const List<_PowerListEntry> _powerListEntriesFirstHalf =
+      <_PowerListEntry>[
+        _PowerListEntry(
+          title: AppStrings.kaizengramLearningCompliancesTitle,
+          value: AppStrings.kaizengramLearningCompliancesDue,
+          icon: Icons.school_rounded,
+          accentColor: Color(0xFF25D7C2),
+          destination: _PowerListDestination.learningCompliance,
+        ),
+        _PowerListEntry(
+          title: AppStrings.kaizengramDocumentCompliancesTitle,
+          value: AppStrings.kaizengramDocumentCompliancesPending,
+          icon: Icons.description_rounded,
+          accentColor: Color(0xFFFFB547),
+          destination: _PowerListDestination.documentCompliance,
+        ),
+      ];
 
   @override
   void initState() {
@@ -116,22 +138,23 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     super.dispose();
   }
 
-  static const List<_PowerListEntry> _powerListEntriesSecondHalf = <_PowerListEntry>[
-    _PowerListEntry(
-      title: AppStrings.kaizengramCheckInsTitle,
-      value: AppStrings.kaizengramCheckInsActive,
-      icon: Icons.fact_check_rounded,
-      accentColor: Color(0xFF7EA6FF),
-      destination: _PowerListDestination.audit,
-    ),
-    _PowerListEntry(
-      title: AppStrings.kaizengramCheckInReportsTitle,
-      value: AppStrings.kaizengramCheckInReportsReady,
-      icon: Icons.assignment_turned_in_rounded,
-      accentColor: Color(0xFFFF7D7D),
-      destination: _PowerListDestination.audit,
-    ),
-  ];
+  static const List<_PowerListEntry> _powerListEntriesSecondHalf =
+      <_PowerListEntry>[
+        _PowerListEntry(
+          title: AppStrings.kaizengramCheckInsTitle,
+          value: AppStrings.kaizengramCheckInsActive,
+          icon: Icons.fact_check_rounded,
+          accentColor: Color(0xFF7EA6FF),
+          destination: _PowerListDestination.audit,
+        ),
+        _PowerListEntry(
+          title: AppStrings.kaizengramCheckInReportsTitle,
+          value: AppStrings.kaizengramCheckInReportsReady,
+          icon: Icons.assignment_turned_in_rounded,
+          accentColor: Color(0xFFFF7D7D),
+          destination: _PowerListDestination.audit,
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +171,10 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     });
   }
 
-  List<Widget> _buildAppBarActions(BuildContext context, int unreadNotificationCount) {
+  List<Widget> _buildAppBarActions(
+    BuildContext context,
+    int unreadNotificationCount,
+  ) {
     return <Widget>[
       _buildGroupsAction(context),
       _buildChatAction(context),
@@ -162,7 +188,10 @@ class _KaizenGramViewState extends State<_KaizenGramView>
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: () => _openGroups(context),
-        child: const Padding(padding: EdgeInsets.all(4), child: Icon(Icons.groups_2_rounded)),
+        child: const Padding(
+          padding: EdgeInsets.all(4),
+          child: Icon(Icons.groups_2_rounded),
+        ),
       ),
     );
   }
@@ -173,12 +202,18 @@ class _KaizenGramViewState extends State<_KaizenGramView>
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: () => _openChat(context),
-        child: const Padding(padding: EdgeInsets.all(4), child: Icon(Icons.forum_rounded)),
+        child: const Padding(
+          padding: EdgeInsets.all(4),
+          child: Icon(Icons.forum_rounded),
+        ),
       ),
     );
   }
 
-  Widget _buildNotificationAction(BuildContext context, int unreadNotificationCount) {
+  Widget _buildNotificationAction(
+    BuildContext context,
+    int unreadNotificationCount,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: InkWell(
@@ -186,13 +221,18 @@ class _KaizenGramViewState extends State<_KaizenGramView>
         onTap: () => _openNotifications(context),
         child: Padding(
           padding: const EdgeInsets.all(4),
-          child: KaizengramNotificationActionIcon(unreadNotificationCount: unreadNotificationCount),
+          child: KaizengramNotificationActionIcon(
+            unreadNotificationCount: unreadNotificationCount,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildScreenBody(BuildContext context, KaizengramController controller) {
+  Widget _buildScreenBody(
+    BuildContext context,
+    KaizengramController controller,
+  ) {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -216,7 +256,8 @@ class _KaizenGramViewState extends State<_KaizenGramView>
   Widget showMixedFeed(BuildContext context, KaizengramController controller) {
     return RefreshIndicator(
       color: AppColors.secondaryColor,
-      onRefresh: () => context.read<KaizengramController>().initialize(forceRefresh: true),
+      onRefresh: () =>
+          context.read<KaizengramController>().initialize(forceRefresh: true),
       child: ListView(
         controller: _mixedFeedScrollController,
         padding: const EdgeInsets.only(bottom: 20),
@@ -230,7 +271,10 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     );
   }
 
-  Widget showSeparateFeed(BuildContext context, KaizengramController controller) {
+  Widget showSeparateFeed(
+    BuildContext context,
+    KaizengramController controller,
+  ) {
     return AnimatedBuilder(
       animation: _tabController,
       builder: (context, _) {
@@ -239,7 +283,9 @@ class _KaizenGramViewState extends State<_KaizenGramView>
 
         return _FeedTabList(
           posts: posts,
-          onRefresh: () => context.read<KaizengramController>().initialize(forceRefresh: true),
+          onRefresh: () => context.read<KaizengramController>().initialize(
+            forceRefresh: true,
+          ),
           scrollController: _scrollControllerFor(category),
           itemBuilder: (post) => _buildPostCard(context, controller, post),
           children: _buildSeparateFeedContent(
@@ -267,26 +313,42 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     ];
 
     if (controller.errorMessage != null && controller.posts.isEmpty) {
-      children.add(const _FeedStateMessage(message: AppStrings.kaizengramMessageUnableLoadFeed));
+      children.add(
+        const _FeedStateMessage(
+          message: AppStrings.kaizengramMessageUnableLoadFeed,
+        ),
+      );
       return children;
     }
 
     if (controller.posts.isEmpty) {
-      children.add(const _FeedStateMessage(message: AppStrings.kaizengramMessageNoFeedItems));
+      children.add(
+        const _FeedStateMessage(
+          message: AppStrings.kaizengramMessageNoFeedItems,
+        ),
+      );
       return children;
     }
 
     if (category == KaizengramPostCategory.audit) {
-      children.addAll(_buildWeeklyCheckInFeedChildren(context, controller, posts));
+      children.addAll(
+        _buildWeeklyCheckInFeedChildren(context, controller, posts),
+      );
       return children;
     }
 
     if (posts.isEmpty) {
-      children.add(const _FeedStateMessage(message: 'No feed items are available in this tab.'));
+      children.add(
+        const _FeedStateMessage(
+          message: 'No feed items are available in this tab.',
+        ),
+      );
       return children;
     }
 
-    children.addAll(posts.map((post) => _buildPostCard(context, controller, post)));
+    children.addAll(
+      posts.map((post) => _buildPostCard(context, controller, post)),
+    );
     return children;
   }
 
@@ -298,7 +360,9 @@ class _KaizenGramViewState extends State<_KaizenGramView>
       decoration: BoxDecoration(
         color: AppColors.surfaceDark.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.08)),
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.08),
+        ),
       ),
       child: TabBar(
         controller: _tabController,
@@ -314,9 +378,18 @@ class _KaizenGramViewState extends State<_KaizenGramView>
         unselectedLabelColor: AppColors.textSecondary,
         labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
         tabs: const <Widget>[
-          SizedBox(height: 32, child: Tab(text: AppStrings.kaizengramTabWeeklyCheckIn)),
-          SizedBox(height: 32, child: Tab(text: AppStrings.kaizengramTabLearning)),
-          SizedBox(height: 32, child: Tab(text: AppStrings.kaizengramTabDocument)),
+          SizedBox(
+            height: 32,
+            child: Tab(text: AppStrings.kaizengramTabWeeklyCheckIn),
+          ),
+          SizedBox(
+            height: 32,
+            child: Tab(text: AppStrings.kaizengramTabLearning),
+          ),
+          SizedBox(
+            height: 32,
+            child: Tab(text: AppStrings.kaizengramTabDocument),
+          ),
         ],
       ),
     );
@@ -339,12 +412,15 @@ class _KaizenGramViewState extends State<_KaizenGramView>
       final afterPostCount = index + 1;
       final shouldInsertSocialPost =
           socialPostIndex < controller.seededWeeklyCheckInSocialPosts.length &&
-          controller.weeklyCheckInSocialInsertAfterCounts.contains(afterPostCount);
+          controller.weeklyCheckInSocialInsertAfterCounts.contains(
+            afterPostCount,
+          );
       if (!shouldInsertSocialPost) {
         continue;
       }
 
-      final socialPost = controller.seededWeeklyCheckInSocialPosts[socialPostIndex];
+      final socialPost =
+          controller.seededWeeklyCheckInSocialPosts[socialPostIndex];
       widgets.add(_buildSocialPostCard(context, controller, socialPost));
       socialPostIndex++;
     }
@@ -352,7 +428,10 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     return widgets;
   }
 
-  Widget _buildComposeHeader(BuildContext context, KaizengramController controller) {
+  Widget _buildComposeHeader(
+    BuildContext context,
+    KaizengramController controller,
+  ) {
     return _KaizengramComposeHeader(
       displayName: controller.currentUserDisplayName,
       imagePath: controller.currentUserImagePath,
@@ -363,7 +442,10 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     );
   }
 
-  Widget _buildStoriesRow(BuildContext context, KaizengramController controller) {
+  Widget _buildStoriesRow(
+    BuildContext context,
+    KaizengramController controller,
+  ) {
     return ListenableBuilder(
       listenable: _chatController,
       builder: (context, _) {
@@ -388,7 +470,11 @@ class _KaizenGramViewState extends State<_KaizenGramView>
         .toList(growable: false);
     final feedStories = controller.stories
         .map(
-          (story) => _StoryEntry.feed(id: story.id, name: story.name, imagePath: story.avatarUrl),
+          (story) => _StoryEntry.feed(
+            id: story.id,
+            name: story.name,
+            imagePath: story.avatarUrl,
+          ),
         )
         .toList(growable: false);
     return <_StoryEntry>[...channelStories, ...feedStories];
@@ -403,7 +489,10 @@ class _KaizenGramViewState extends State<_KaizenGramView>
     return normalizedChannelName
         .split(RegExp(r'[-_\s]+'))
         .where((segment) => segment.isNotEmpty)
-        .map((segment) => '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}')
+        .map(
+          (segment) =>
+              '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
+        )
         .join(' ');
   }
 
@@ -428,9 +517,13 @@ class _KaizenGramViewState extends State<_KaizenGramView>
   List<Widget> _buildFeedStateChildren(KaizengramController controller) {
     return <Widget>[
       if (controller.errorMessage != null && controller.posts.isEmpty)
-        const _FeedStateMessage(message: AppStrings.kaizengramMessageUnableLoadFeed),
+        const _FeedStateMessage(
+          message: AppStrings.kaizengramMessageUnableLoadFeed,
+        ),
       if (controller.posts.isEmpty && controller.errorMessage == null)
-        const _FeedStateMessage(message: AppStrings.kaizengramMessageNoFeedItems),
+        const _FeedStateMessage(
+          message: AppStrings.kaizengramMessageNoFeedItems,
+        ),
     ];
   }
 
@@ -443,20 +536,29 @@ class _KaizenGramViewState extends State<_KaizenGramView>
       key: _postKeyFor(post.id),
       child: _PostCard(
         post: post,
-        fallbackText: _resolvedCommentPreviewText(controller.commentThreadForPost(post)),
+        fallbackText: _resolvedCommentPreviewText(
+          controller.commentThreadForPost(post),
+        ),
         onTap: () => _openPost(context, post),
         onLikeTap: () => controller.toggleLike(post.id),
         onCommentTap: () => _openComments(context, post),
         onFallbackMoreTap: () => _openFallbackComments(context, post),
         onShareTap: () => _sharePost(context, post),
         onAuditMediaTap: (selectedMediaItem) {
-          _showCommentsThreadSheet(context, post, selectedAuditMediaItem: selectedMediaItem);
+          _showCommentsThreadSheet(
+            context,
+            post,
+            selectedAuditMediaItem: selectedMediaItem,
+          );
         },
       ),
     );
   }
 
-  List<Widget> _buildMixedFeedChildren(BuildContext context, KaizengramController controller) {
+  List<Widget> _buildMixedFeedChildren(
+    BuildContext context,
+    KaizengramController controller,
+  ) {
     final widgets = <Widget>[];
     for (final socialPost in controller.socialPosts) {
       widgets.add(_buildSocialPostCard(context, controller, socialPost));
@@ -532,7 +634,8 @@ class _KaizenGramViewState extends State<_KaizenGramView>
 enum _PowerListDestination { learningCompliance, documentCompliance, audit }
 
 List<KaizengramAuditMediaItem> _buildAuditThreadItems(KaizengramFeedItem post) {
-  if (post.resolvedPostCategory != KaizengramPostCategory.audit || post.commentThread.isEmpty) {
+  if (post.resolvedPostCategory != KaizengramPostCategory.audit ||
+      post.commentThread.isEmpty) {
     return post.auditMediaItems;
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/next_quiz_video_screen.dart';
 
+import '../core/preference/app_preference.dart';
 import '../features/audit/domain/entities/audit_member_status.dart';
 import '../features/audit/domain/entities/audit_profile.dart';
 import '../features/audit/presentation/pages/audit_detail_screen.dart';
@@ -14,6 +15,7 @@ import '../features/compliance/domain/entities/learning_module_detail_track.dart
 import '../features/compliance/presentation/pages/compliance_screen.dart';
 import '../features/compliance/presentation/pages/compliance_tracks_screen.dart';
 import '../features/compliance/presentation/pages/training/compliance_training_screen.dart';
+import '../features/departments/presentation/pages/departments_screen.dart';
 import '../features/kaizen_gpt/presentation/pages/kaizen_gpt.dart';
 import '../features/kaizengram/presentation/pages/kaizengram_screen.dart';
 import '../features/login/presentation/pages/login_screen.dart';
@@ -23,7 +25,10 @@ import '../features/organizations/presentation/pages/organizations_screen.dart';
 import '../features/paygrades/presentation/pages/paygrade_detail_screen.dart';
 import '../features/paygrades/presentation/pages/paygrades_screen.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
+import '../features/seat_profile/domain/entities/department.dart';
 import '../features/seat_profile/domain/entities/seat_profile_detail.dart';
+import '../features/seat_profile/presentation/models/seat_profile_form_initial_data.dart';
+import '../features/seat_profile/presentation/pages/seat_profile_create_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_descriptions_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
@@ -47,7 +52,9 @@ class AppRouter {
   static const String performanceSnapshot = '/performance-snapshot';
   static const String reports = '/reports';
   static const String seatProfiles = '/seat-profiles';
+  static const String seatProfileCreate = '/seat-profiles/create';
   static const String paygrades = '/paygrades';
+  static const String departments = '/departments';
   static const String paygradeDetail = '/paygrades/detail';
   static const String organizations = '/organizations';
   static const String seatProfileDetail = '/seat-profiles/detail';
@@ -66,6 +73,12 @@ class AppRouter {
   static const String complianceTraining = '/compliance/training';
   static const String complianceNextVideoQuiz =
       '/compliance/training/next-quiz-video';
+
+  static String get defaultAuthenticatedRouteName {
+    return AppPreference.getUseParentApiEndpoints()
+        ? trainingLibrary
+        : kaizengram;
+  }
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -155,10 +168,32 @@ class AppRouter {
           settings: settings,
           builder: (_) => const SeatProfileScreen(),
         );
+      case seatProfileCreate:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => SeatProfileCreateScreen(
+            initialData: args is SeatProfileCreateRouteArgs && args.isEditMode
+                ? SeatProfileFormInitialData(
+                    seatId: args.seatId ?? '',
+                    actualId: args.actualId,
+                    name: args.initialName ?? '',
+                    department: args.initialDepartment,
+                    paygradeUnit: args.initialPaygradeUnit,
+                    initialCategory: args.initialCategory,
+                  )
+                : null,
+          ),
+        );
       case paygrades:
         return _buildRoute(
           settings: settings,
           builder: (_) => const PaygradesScreen(),
+        );
+      case departments:
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => const DepartmentsScreen(),
         );
       case organizations:
         return _buildRoute(
@@ -373,6 +408,35 @@ class SeatProfileDetailRouteArgs {
   const SeatProfileDetailRouteArgs({required this.seatId});
 
   final String seatId;
+}
+
+class SeatProfileCreateRouteArgs {
+  const SeatProfileCreateRouteArgs({
+    this.seatId,
+    this.actualId,
+    this.initialName,
+    this.initialDepartment,
+    this.initialPaygradeUnit,
+    this.initialCategory,
+  });
+
+  const SeatProfileCreateRouteArgs.edit({
+    required this.seatId,
+    this.actualId,
+    required this.initialName,
+    this.initialDepartment,
+    this.initialPaygradeUnit,
+    this.initialCategory,
+  });
+
+  final String? seatId;
+  final String? actualId;
+  final String? initialName;
+  final Department? initialDepartment;
+  final String? initialPaygradeUnit;
+  final SeatProfileCategory? initialCategory;
+
+  bool get isEditMode => (seatId?.trim().isNotEmpty ?? false);
 }
 
 class SeatProfileDescriptionsRouteArgs {

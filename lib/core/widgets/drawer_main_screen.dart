@@ -73,6 +73,7 @@ class DrawerMainScreen extends StatelessWidget {
           onPerformanceSnapshotTap: () => _openPerformanceSnapshot(context),
           onSeatProfilesTap: () => _openSeatProfiles(context),
           onPaygradesTap: () => _openPaygrades(context),
+          onDepartmentsTap: () => _openDepartments(context),
           onKaizenGptTap: () => _openKaizenGpt(context),
           onSettingTap: () => _openSetting(context),
           onDrawerHeaderTap: () => _openProfile(context),
@@ -97,7 +98,10 @@ class DrawerMainScreen extends StatelessWidget {
       return;
     }
 
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.kaizengram);
+    AppRouter.pushReplacementNamed<void, void>(
+      context,
+      AppRouter.defaultAuthenticatedRouteName,
+    );
   }
 
   void _openLearningTracks(BuildContext context) {
@@ -163,6 +167,14 @@ class DrawerMainScreen extends StatelessWidget {
     }
 
     AppRouter.pushReplacementNamed<void, void>(context, AppRouter.paygrades);
+  }
+
+  void _openDepartments(BuildContext context) {
+    if (selectedMenu == AppMenuType.departments) {
+      return;
+    }
+
+    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.departments);
   }
 
   void _openKaizenGpt(BuildContext context) {

@@ -430,6 +430,11 @@ class AppManager extends ChangeNotifier {
     try {
       final token = AppPreference.getAuthToken();
       final uri = ApiEndPoints.resolveUri(ApiEndPoints.setActiveOrganization);
+      final selectedOrganization = _findOrganizationById(organizationId);
+      final payload = _buildSetActiveOrganizationPayload(
+        organizationId: organizationId,
+        organization: selectedOrganization,
+      );
 
       final response = await http.post(
         uri,
@@ -437,10 +442,7 @@ class AppManager extends ChangeNotifier {
           'Content-Type': 'application/json',
           if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
-        body: jsonEncode(<String, String>{
-          'type': 'organization',
-          'uuid': organizationId,
-        }),
+        body: jsonEncode(payload),
       );
 
       if (response.statusCode < 200 || response.statusCode > 299) {
@@ -457,7 +459,7 @@ class AppManager extends ChangeNotifier {
       final navigator = AppRouter.navigatorKey.currentState;
       if (resetNavigationStack && navigator != null) {
         navigator.pushNamedAndRemoveUntil(
-          AppRouter.kaizengram,
+          AppRouter.defaultAuthenticatedRouteName,
           (route) => false,
         );
       }
@@ -652,7 +654,28 @@ class AppManager extends ChangeNotifier {
   }
 
   bool _isSandboxOrganization(Organization organization) {
+    final organizationType = organization.type.trim().toLowerCase();
+    if (organizationType == 'sandbox') {
+      return true;
+    }
+
     return organization.name.trim().toLowerCase().contains('sandbox');
+  }
+
+  Map<String, String> _buildSetActiveOrganizationPayload({
+    required String organizationId,
+    required Organization? organization,
+  }) {
+    final normalizedOrganizationId = organizationId.trim();
+    final resolvedType =
+        organization != null && _isSandboxOrganization(organization)
+        ? 'sandbox'
+        : 'organization';
+
+    return <String, String>{
+      'type': resolvedType,
+      'uuid': normalizedOrganizationId,
+    };
   }
 
   String? _resolveSelectionIdForUser(User? user) {

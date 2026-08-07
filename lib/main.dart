@@ -7,10 +7,13 @@ import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/services/deep_link_service.dart';
 import 'package:sparrowkaizen/core/widgets/billing_banner.dart';
 import 'package:sparrowkaizen/core/widgets/organization_conflict_dialog.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_video_upload_banner.dart';
 
 import 'core/constants/app_fonts.dart';
 import 'core/constants/app_strings.dart';
 import 'routes/app_router.dart';
+
+const bool _showTrainingVideoUploadBanner = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -111,24 +114,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             title: AppStrings.appTitle,
             theme: baseTheme.copyWith(
               textTheme: baseTheme.textTheme.apply(fontFamily: AppFonts.inter),
-              primaryTextTheme: baseTheme.primaryTextTheme.apply(
-                fontFamily: AppFonts.inter,
-              ),
+              primaryTextTheme: baseTheme.primaryTextTheme.apply(fontFamily: AppFonts.inter),
             ),
             builder: (context, child) {
               return Stack(
                 children: [
                   child ?? const SizedBox.shrink(),
                   if (appManager.showBillingBanner) const BillingBanner(),
-                  if (appManager.showOrganizationBanner)
-                    const OrganizationConflictDialog(),
+                  if (_showTrainingVideoUploadBanner)
+                    TrainingVideoUploadBanner(topOffset: appManager.showBillingBanner ? 52 : 6),
+                  if (appManager.showOrganizationBanner) const OrganizationConflictDialog(),
                 ],
               );
             },
             debugShowCheckedModeBanner: false,
-            navigatorObservers: <NavigatorObserver>[
-              _AppRouteObserver(appManager),
-            ],
+            navigatorObservers: <NavigatorObserver>[_AppRouteObserver(appManager)],
             initialRoute: AppRouter.splash,
             onGenerateRoute: AppRouter.onGenerateRoute,
           );

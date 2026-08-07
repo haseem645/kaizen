@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 
@@ -8,6 +9,7 @@ import '../network/api_endpoints.dart';
 import '../network/api_error.dart';
 import '../network/api_processor.dart';
 import '../preference/app_preference.dart';
+import '../utils/operation_cancellation_token.dart';
 
 class FileUploader {
   const FileUploader({ApiCallExecutor? apiCallExecutor})
@@ -44,10 +46,15 @@ class FileUploader {
     required List<int> fileBytes,
     required String contentType,
     ValueChanged<double>? onProgress,
+    OperationCancellationToken? cancellationToken,
   }) async {
     final uri = Uri.tryParse(uploadUrl);
     if (uri == null) {
       throw const ApiError.invalidUrl();
+    }
+
+    if (cancellationToken?.isCancelled == true) {
+      throw const OperationCancelledException();
     }
 
     final request = _ProgressByteRequest(
@@ -56,14 +63,88 @@ class FileUploader {
       fileBytes: fileBytes,
       contentType: contentType,
       onProgress: onProgress,
+      cancellationToken: cancellationToken,
     );
 
     final client = http.Client();
+    final removeCancellationListener = cancellationToken?.addListener(
+      client.close,
+    );
     late final http.Response response;
     try {
       final streamedResponse = await client.send(request);
+      if (cancellationToken?.isCancelled == true) {
+        throw const OperationCancelledException();
+      }
       response = await http.Response.fromStream(streamedResponse);
+      if (cancellationToken?.isCancelled == true) {
+        throw const OperationCancelledException();
+      }
+    } catch (_) {
+      if (cancellationToken?.isCancelled == true) {
+        throw const OperationCancelledException();
+      }
+      rethrow;
     } finally {
+      removeCancellationListener?.call();
+      client.close();
+    }
+
+    if (response.statusCode < 200 || response.statusCode > 299) {
+      debugPrint(
+        'Presigned upload failed (${response.statusCode}): ${response.body}',
+      );
+      throw ApiError.requestFailed(response.statusCode);
+    }
+  }
+
+  Future<void> uploadBinaryFileFromFile({
+    required String uploadUrl,
+    required File file,
+    required String contentType,
+    ValueChanged<double>? onProgress,
+    OperationCancellationToken? cancellationToken,
+  }) async {
+    final uri = Uri.tryParse(uploadUrl);
+    if (uri == null) {
+      throw const ApiError.invalidUrl();
+    }
+
+    if (cancellationToken?.isCancelled == true) {
+      throw const OperationCancelledException();
+    }
+
+    final request = _ProgressFileRequest(
+      'PUT',
+      uri,
+      fileStream: file.openRead(),
+      fileLength: await file.length(),
+      contentType: contentType,
+      onProgress: onProgress,
+      cancellationToken: cancellationToken,
+    );
+
+    final client = http.Client();
+    final removeCancellationListener = cancellationToken?.addListener(
+      client.close,
+    );
+    late final http.Response response;
+    try {
+      final streamedResponse = await client.send(request);
+      if (cancellationToken?.isCancelled == true) {
+        throw const OperationCancelledException();
+      }
+      response = await http.Response.fromStream(streamedResponse);
+      if (cancellationToken?.isCancelled == true) {
+        throw const OperationCancelledException();
+      }
+    } catch (_) {
+      if (cancellationToken?.isCancelled == true) {
+        throw const OperationCancelledException();
+      }
+      rethrow;
+    } finally {
+      removeCancellationListener?.call();
       client.close();
     }
 
@@ -220,6 +301,7 @@ class _ProgressByteRequest extends http.BaseRequest {
     required List<int> fileBytes,
     required this.contentType,
     this.onProgress,
+    this.cancellationToken,
   }) : _fileBytes = fileBytes {
     headers['Content-Type'] = contentType;
   }
@@ -227,6 +309,7 @@ class _ProgressByteRequest extends http.BaseRequest {
   final List<int> _fileBytes;
   final String contentType;
   final ValueChanged<double>? onProgress;
+  final OperationCancellationToken? cancellationToken;
 
   @override
   http.ByteStream finalize() {
@@ -238,6 +321,57 @@ class _ProgressByteRequest extends http.BaseRequest {
     final stream = Stream<List<int>>.fromIterable([_fileBytes]).transform(
       StreamTransformer<List<int>, List<int>>.fromHandlers(
         handleData: (chunk, sink) {
+          if (cancellationToken?.isCancelled == true) {
+            sink.addError(const OperationCancelledException());
+            return;
+          }
+          sentBytes += chunk.length;
+          if (totalBytes > 0) {
+            onProgress?.call((sentBytes / totalBytes).clamp(0, 1).toDouble());
+          } else {
+            onProgress?.call(1);
+          }
+          sink.add(chunk);
+        },
+      ),
+    );
+
+    return http.ByteStream(stream);
+  }
+}
+
+class _ProgressFileRequest extends http.BaseRequest {
+  _ProgressFileRequest(
+    super.method,
+    super.url, {
+    required Stream<List<int>> fileStream,
+    required int fileLength,
+    required this.contentType,
+    this.onProgress,
+    this.cancellationToken,
+  }) : _fileStream = fileStream {
+    contentLength = fileLength;
+    headers['Content-Type'] = contentType;
+  }
+
+  final Stream<List<int>> _fileStream;
+  final String contentType;
+  final ValueChanged<double>? onProgress;
+  final OperationCancellationToken? cancellationToken;
+
+  @override
+  http.ByteStream finalize() {
+    final totalBytes = contentLength ?? 0;
+    var sentBytes = 0;
+    super.finalize();
+
+    final stream = _fileStream.transform(
+      StreamTransformer<List<int>, List<int>>.fromHandlers(
+        handleData: (chunk, sink) {
+          if (cancellationToken?.isCancelled == true) {
+            sink.addError(const OperationCancelledException());
+            return;
+          }
           sentBytes += chunk.length;
           if (totalBytes > 0) {
             onProgress?.call((sentBytes / totalBytes).clamp(0, 1).toDouble());
