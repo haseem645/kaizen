@@ -77,7 +77,7 @@ class AppRouter {
   static String get defaultAuthenticatedRouteName {
     return AppPreference.getUseParentApiEndpoints()
         ? trainingLibrary
-        : kaizengram;
+        : compliance;
   }
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {

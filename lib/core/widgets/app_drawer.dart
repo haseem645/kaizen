@@ -17,7 +17,6 @@ class AppDrawer extends StatelessWidget {
     this.image,
     this.imageUrl,
     required this.selectedMenu,
-    this.onHomeTap,
     this.onProfileTap,
     this.onLearningTracksTap,
     this.onComplianceTap,
@@ -39,7 +38,6 @@ class AppDrawer extends StatelessWidget {
   final String? image;
   final String? imageUrl;
   final AppMenuType? selectedMenu;
-  final VoidCallback? onHomeTap;
   final VoidCallback? onProfileTap;
   final VoidCallback? onLearningTracksTap;
   final VoidCallback? onComplianceTap;
@@ -120,10 +118,10 @@ class AppDrawer extends StatelessWidget {
     return [
       _buildDrawerItem(
         context,
-        icon: Icons.home_outlined,
-        title: AppStrings.homeKaizengram,
-        isSelected: selectedMenu == AppMenuType.home,
-        onTap: onHomeTap,
+        icon: Icons.folder_open_outlined,
+        title: AppStrings.homeCompliance,
+        isSelected: selectedMenu == AppMenuType.compliance,
+        onTap: onComplianceTap,
       ),
       _buildDrawerItem(
         context,
@@ -138,13 +136,6 @@ class AppDrawer extends StatelessWidget {
         title: AppStrings.homeLearningTracks,
         isSelected: selectedMenu == AppMenuType.learningTracks,
         onTap: onLearningTracksTap,
-      ),
-      _buildDrawerItem(
-        context,
-        icon: Icons.folder_open_outlined,
-        title: AppStrings.homeCompliance,
-        isSelected: selectedMenu == AppMenuType.compliance,
-        onTap: onComplianceTap,
       ),
       _buildDrawerItem(
         context,

@@ -64,7 +64,6 @@ class DrawerMainScreen extends StatelessWidget {
               : appManager.currentOrganizationName,
           isSandboxMode: appManager.usesParentApiEndpoints,
           selectedMenu: selectedMenu,
-          onHomeTap: () => _openHome(context),
           onProfileTap: () => _openProfile(context),
           onLearningTracksTap: () => _openLearningTracks(context),
           onComplianceTap: () => _openCompliance(context),
@@ -91,17 +90,6 @@ class DrawerMainScreen extends StatelessWidget {
     }
 
     AppRouter.pushNamed(context, AppRouter.profile);
-  }
-
-  void _openHome(BuildContext context) {
-    if (selectedMenu == AppMenuType.home) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(
-      context,
-      AppRouter.defaultAuthenticatedRouteName,
-    );
   }
 
   void _openLearningTracks(BuildContext context) {

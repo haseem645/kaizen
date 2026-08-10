@@ -499,6 +499,10 @@ class AppStrings {
       'No gallery videos found yet. Use the camera tile to record one.';
   static const String trainingGalleryAccessHint =
       'Allow photo library access to show recent videos here.';
+  static const String trainingLimitedGalleryAccessHint =
+      'Only the videos you selected are visible. Choose more videos from your device to expand this list.';
+  static const String trainingSelectMoreVideos = 'Select More Videos';
+  static const String trainingManageGalleryAccess = 'Manage Access';
   static const String trainingUploadVideoHint =
       'Choose a video to attach to this lesson.';
   static const String trainingDeleteVideoTitle = 'Delete Video';

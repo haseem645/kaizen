@@ -1,8 +1,8 @@
 package com.kaizenteam
 
 import android.content.Intent
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
@@ -12,8 +12,12 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        trainingUploadNotificationBridge = TrainingUploadNotificationBridge(this)
-        trainingVideoCaptureBridge = TrainingVideoCaptureBridge(this)
+        if (!this::trainingUploadNotificationBridge.isInitialized) {
+            trainingUploadNotificationBridge = TrainingUploadNotificationBridge(this)
+        }
+        if (!this::trainingVideoCaptureBridge.isInitialized) {
+            trainingVideoCaptureBridge = TrainingVideoCaptureBridge(this)
+        }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             TRAINING_UPLOAD_NOTIFICATION_CHANNEL,
@@ -47,6 +51,10 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "captureTrainingVideoWithSystemCamera" -> {
                     trainingVideoCaptureBridge.captureVideoWithSystemCamera(result)
+                }
+
+                "restorePendingTrainingVideoCapture" -> {
+                    trainingVideoCaptureBridge.restorePendingCaptureIfNeeded(result)
                 }
 
                 else -> result.notImplemented()

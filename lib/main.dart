@@ -13,7 +13,7 @@ import 'core/constants/app_fonts.dart';
 import 'core/constants/app_strings.dart';
 import 'routes/app_router.dart';
 
-const bool _showTrainingVideoUploadBanner = true;
+const bool _showTrainingVideoUploadBanner = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -114,7 +114,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             title: AppStrings.appTitle,
             theme: baseTheme.copyWith(
               textTheme: baseTheme.textTheme.apply(fontFamily: AppFonts.inter),
-              primaryTextTheme: baseTheme.primaryTextTheme.apply(fontFamily: AppFonts.inter),
+              primaryTextTheme: baseTheme.primaryTextTheme.apply(
+                fontFamily: AppFonts.inter,
+              ),
             ),
             builder: (context, child) {
               return Stack(
@@ -122,13 +124,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   child ?? const SizedBox.shrink(),
                   if (appManager.showBillingBanner) const BillingBanner(),
                   if (_showTrainingVideoUploadBanner)
-                    TrainingVideoUploadBanner(topOffset: appManager.showBillingBanner ? 52 : 6),
-                  if (appManager.showOrganizationBanner) const OrganizationConflictDialog(),
+                    TrainingVideoUploadBanner(
+                      topOffset: appManager.showBillingBanner ? 52 : 6,
+                    ),
+                  if (appManager.showOrganizationBanner)
+                    const OrganizationConflictDialog(),
                 ],
               );
             },
             debugShowCheckedModeBanner: false,
-            navigatorObservers: <NavigatorObserver>[_AppRouteObserver(appManager)],
+            navigatorObservers: <NavigatorObserver>[
+              _AppRouteObserver(appManager),
+            ],
             initialRoute: AppRouter.splash,
             onGenerateRoute: AppRouter.onGenerateRoute,
           );
