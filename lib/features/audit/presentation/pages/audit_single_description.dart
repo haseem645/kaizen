@@ -13,6 +13,7 @@ import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/audit/domain/entities/audit_description_audit.dart';
 import 'package:sparrowkaizen/features/audit/domain/entities/quarterly_audit.dart';
 import 'package:sparrowkaizen/features/audit/presentation/providers/audit_controller.dart';
+import 'package:sparrowkaizen/features/audit/presentation/providers/audit_media_upload_controller.dart';
 import 'package:sparrowkaizen/features/audit/presentation/widgets/audit_media_preview.dart';
 import 'package:sparrowkaizen/features/audit/presentation/widgets/description_media_comment_bottom_sheet.dart';
 
@@ -46,16 +47,25 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   late final ValueNotifier<Future<AuditDescriptionAudit>>
   _auditDescriptionFutureNotifier;
   final ScrollController _scrollController = ScrollController();
+  int _lastHandledAuditUploadEventSequence = 0;
 
   @override
   void initState() {
     super.initState();
     _auditDescriptionFutureNotifier =
         ValueNotifier<Future<AuditDescriptionAudit>>(_loadAuditDescription());
+    _lastHandledAuditUploadEventSequence =
+        AuditMediaUploadController.instance.latestTerminalEventSequence;
+    AuditMediaUploadController.instance.addListener(
+      _handleAuditMediaUploadChanged,
+    );
   }
 
   @override
   void dispose() {
+    AuditMediaUploadController.instance.removeListener(
+      _handleAuditMediaUploadChanged,
+    );
     _auditDescriptionFutureNotifier.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -86,13 +96,17 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
     File? mediaFile,
     String? mediaType,
   ) async {
-    await context.read<AuditController>().createAuditDescriptionMediaComment(
-      descriptionId: descriptionId,
-      comment: comment,
-      mediaFile: mediaFile,
-      mediaType: mediaType,
-    );
-    await _refreshAuditDescriptionSilently();
+    final shouldRefreshImmediately = await context
+        .read<AuditController>()
+        .createAuditDescriptionMediaComment(
+          descriptionId: descriptionId,
+          comment: comment,
+          mediaFile: mediaFile,
+          mediaType: mediaType,
+        );
+    if (shouldRefreshImmediately) {
+      await _refreshAuditDescriptionSilently();
+    }
   }
 
   Future<void> _saveCommentWithoutMedia(
@@ -111,6 +125,54 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
     _auditDescriptionFutureNotifier.value = Future<AuditDescriptionAudit>.value(
       refreshedAuditDescription,
     );
+  }
+
+  void _handleAuditMediaUploadChanged() {
+    if (!mounted) {
+      return;
+    }
+
+    final terminalTasks = AuditMediaUploadController.instance
+        .terminalTasksSince(_lastHandledAuditUploadEventSequence);
+    if (terminalTasks.isEmpty) {
+      return;
+    }
+
+    _lastHandledAuditUploadEventSequence =
+        terminalTasks.last.terminalEventSequence;
+    var shouldRefresh = false;
+    String? failureMessage;
+    for (final task in terminalTasks) {
+      if (task.flow != AuditMediaUploadFlow.descriptionComment ||
+          task.descriptionId != widget.description.uuid) {
+        continue;
+      }
+
+      if (task.isCompleted) {
+        shouldRefresh = true;
+        continue;
+      }
+
+      if (task.isFailed && failureMessage == null) {
+        final message = task.errorMessage?.trim();
+        if (message != null && message.isNotEmpty) {
+          failureMessage = message;
+        }
+      }
+    }
+
+    if (shouldRefresh) {
+      unawaited(_refreshAuditDescriptionSilently());
+    }
+    if (failureMessage != null) {
+      _showSnackBar(failureMessage);
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _scrollToCommentsSection() {

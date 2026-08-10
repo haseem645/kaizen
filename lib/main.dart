@@ -13,7 +13,7 @@ import 'core/constants/app_fonts.dart';
 import 'core/constants/app_strings.dart';
 import 'routes/app_router.dart';
 
-const bool _showTrainingVideoUploadBanner = false;
+const bool _showTrainingVideoUploadBanner = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -124,9 +124,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   child ?? const SizedBox.shrink(),
                   if (appManager.showBillingBanner) const BillingBanner(),
                   if (_showTrainingVideoUploadBanner)
-                    TrainingVideoUploadBanner(
-                      topOffset: appManager.showBillingBanner ? 52 : 6,
-                    ),
+                    const TrainingVideoUploadBanner(),
                   if (appManager.showOrganizationBanner)
                     const OrganizationConflictDialog(),
                 ],

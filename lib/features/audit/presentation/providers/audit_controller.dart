@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/custom_functions.dart';
@@ -27,6 +28,7 @@ import '../../domain/usecases/get_quarterly_audit_usecase.dart';
 import '../../domain/usecases/mark_favorite_subordinate_usecase.dart';
 import '../../domain/usecases/mark_unfavorite_subordinate_usecase.dart';
 import '../../../login/domain/entities/user.dart';
+import 'audit_media_upload_controller.dart';
 import 'audit_state.dart';
 
 class AuditController extends ChangeNotifier {
@@ -613,7 +615,7 @@ class AuditController extends ChangeNotifier {
     );
   }
 
-  Future<void> createAuditDescriptionMediaComment({
+  Future<bool> createAuditDescriptionMediaComment({
     required String descriptionId,
     required String comment,
     File? mediaFile,
@@ -622,6 +624,29 @@ class AuditController extends ChangeNotifier {
     final auditRepository = _auditRepository;
     if (auditRepository == null) {
       throw StateError('AuditRepository is not configured.');
+    }
+
+    final resolvedMediaType = mediaType?.trim();
+    if (mediaFile != null &&
+        _shouldUseBackgroundMediaUpload(resolvedMediaType)) {
+      final didStart = await AuditMediaUploadController.instance
+          .startUploadForDescriptionMediaComment(
+            descriptionId: descriptionId,
+            comment: comment,
+            sourceFile: mediaFile,
+            mediaType: resolvedMediaType!,
+          );
+      if (!didStart) {
+        throw StateError(
+          AuditMediaUploadController.instance.startErrorMessage
+                      ?.trim()
+                      .isNotEmpty ==
+                  true
+              ? AuditMediaUploadController.instance.startErrorMessage!.trim()
+              : AppStrings.auditMediaUploadFailed,
+        );
+      }
+      return false;
     }
 
     String? mediaUrl;
@@ -647,8 +672,14 @@ class AuditController extends ChangeNotifier {
       descriptionId: descriptionId,
       comment: comment,
       mediaUrl: mediaUrl,
-      mediaType: mediaUrl == null ? null : mediaType,
+      mediaType: mediaUrl == null ? null : resolvedMediaType,
     );
+    return true;
+  }
+
+  bool _shouldUseBackgroundMediaUpload(String? mediaType) {
+    final normalizedType = mediaType?.trim().toLowerCase();
+    return normalizedType == 'video' || normalizedType == 'screen_recording';
   }
 
   Future<List<AuditProfile>> toggleFavoriteSubordinate({

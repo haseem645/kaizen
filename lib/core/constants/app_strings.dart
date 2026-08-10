@@ -477,12 +477,16 @@ class AppStrings {
       'Training video upload failed';
   static const String trainingBackgroundUploadContinues =
       'You can keep using the app.';
+  static const String backgroundUploadContinues = 'You can keep using the app.';
   static const String trainingReturnToLessonToAddThumbnail =
       'Return to the lesson to add a thumbnail.';
   static const String trainingUploadNotificationChannelName =
       'Training uploads';
   static const String trainingUploadNotificationChannelDescription =
       'Shows progress for training video uploads.';
+  static const String backgroundUploadNotificationChannelName = 'Uploads';
+  static const String backgroundUploadNotificationChannelDescription =
+      'Shows progress for background uploads.';
   static const String trainingVideoUploadAlreadyInProgress =
       'A training video upload is already in progress.';
   static const String trainingModuleVideoUploadAlreadyInProgress =
@@ -536,6 +540,10 @@ class AppStrings {
     return '$percent% uploaded';
   }
 
+  static String backgroundUploadProgressLabel(int percent) {
+    return '$percent% uploaded';
+  }
+
   static String trainingPreparingVideoUploadFor(String lessonName) {
     return 'Preparing $lessonName';
   }
@@ -562,6 +570,18 @@ class AppStrings {
 
   static String trainingVideoUploadsCount(int count) {
     return count == 1 ? '1 video upload' : '$count video uploads';
+  }
+
+  static String backgroundUploadsUploadingCount(int count) {
+    return count == 1 ? '1 upload in progress' : '$count uploads in progress';
+  }
+
+  static String backgroundUploadsCount(int count) {
+    return count == 1 ? '1 upload' : '$count uploads';
+  }
+
+  static String backgroundUploadsFailedCount(int count) {
+    return '$count Failed';
   }
 
   static const String trainingProgressLabel = 'Progress';
@@ -756,6 +776,20 @@ class AppStrings {
       'Unable to record a video right now. Please try again.';
   static const String auditPickVideoError =
       'Unable to pick a video right now. Please try again.';
+  static const String auditMediaUploadFailed =
+      'Unable to upload audit media right now.';
+  static const String auditMediaUploadAlreadyInProgress =
+      'This audit item already has a media upload in progress.';
+  static const String auditCommentMediaPreparing = 'Preparing comment media';
+  static const String auditCommentMediaUploading = 'Uploading comment media';
+  static const String auditCommentMediaFinalizing = 'Finalizing comment media';
+  static const String auditCommentMediaCompleted = 'Comment media uploaded';
+  static const String auditCommentMediaFailed = 'Comment media upload failed';
+  static const String auditAttachmentPreparing = 'Preparing audit media';
+  static const String auditAttachmentUploading = 'Uploading audit media';
+  static const String auditAttachmentFinalizing = 'Finalizing audit media';
+  static const String auditAttachmentCompleted = 'Audit media uploaded';
+  static const String auditAttachmentFailed = 'Audit media upload failed';
   static const String auditRestoreMediaError =
       'Unable to restore the interrupted media capture. Please try again.';
   static const String auditSaveRecordedVideoPermission =

@@ -248,6 +248,12 @@ abstract class AuditRepository {
     String? mediaType,
   });
 
+  Future<void> updateAuditMedia({
+    required String auditMediaId,
+    required String mediaUrl,
+    required String mediaType,
+  });
+
   Future<void> createAuditDescriptionComment({
     required String descriptionId,
     required String comment,
