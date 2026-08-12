@@ -15,14 +15,15 @@ class PaygradeRemoteDataSource {
     required int page,
     int pageSize = 10,
     String? departmentId,
-    String title = '',
+    String name = '',
   }) {
     return _apiCallExecutor.processApi<PaygradePageModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.payGrade,
       parameters: {
-        'department': departmentId ?? '',
-        'title': title,
+        if ((departmentId ?? '').trim().isNotEmpty)
+          'department': departmentId!.trim(),
+        if (name.trim().isNotEmpty) 'name': name.trim(),
         'page': page,
         'page_size': pageSize,
       },
@@ -40,25 +41,13 @@ class PaygradeRemoteDataSource {
     return getDepartmentsByAccess(isOwner: true);
   }
 
-  Future<List<DepartmentModel>> getDepartmentsByAccess({required bool isOwner}) {
+  Future<List<DepartmentModel>> getDepartmentsByAccess({
+    required bool isOwner,
+  }) {
     return _apiCallExecutor.processApi<List<DepartmentModel>>(
       apiCallType: ApiCallType.get,
-      endpoint: ApiEndPoints.allDepartments,
-      decoder: (json) {
-        if (json is! Map<String, dynamic>) {
-          throw const ApiError.invalidResponse();
-        }
-
-        final items = isOwner ? json['all'] : json['subordinate_departments'];
-        if (items is! List) {
-          throw const ApiError.invalidResponse();
-        }
-
-        return items
-            .whereType<Map<String, dynamic>>()
-            .map(DepartmentModel.fromApiJson)
-            .toList(growable: false);
-      },
+      endpoint: ApiEndPoints.departments(),
+      decoder: (json) => _decodeDepartments(json, isOwner: isOwner),
     );
   }
 
@@ -79,6 +68,131 @@ class PaygradeRemoteDataSource {
       },
     );
   }
+
+  Future<void> generatePaygrades({
+    required String actualId,
+    required int numPaygrades,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.put,
+      endpoint: ApiEndPoints.generatePayGrades(actualId),
+      parameters: <String, dynamic>{'num_paygrades': numPaygrades},
+      decoder: (_) {},
+    );
+  }
+
+  Future<PaygradeEntryModel> createPaygrade({
+    required String jobId,
+    required String type,
+    required String level,
+    required String title,
+    required String description,
+    required String promotionRequirement,
+    required int position,
+    required bool fromSandbox,
+  }) {
+    return _apiCallExecutor.processApi<PaygradeEntryModel>(
+      apiCallType: ApiCallType.post,
+      endpoint: ApiEndPoints.payGrade,
+      parameters: <String, dynamic>{
+        'uuid': '',
+        'level': level,
+        'type': type,
+        'title': title,
+        'description': description,
+        'promotion_requirement': promotionRequirement,
+        'position': position,
+        'from_sandbox': fromSandbox,
+        'job': jobId,
+      },
+      decoder: (json) {
+        return PaygradeEntryModel.fromApiJson(_decodePaygradeEntryJson(json));
+      },
+    );
+  }
+
+  Future<void> updatePaygrade({
+    required String paygradeId,
+    required String title,
+    required String description,
+    required String promotionRequirement,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.patch,
+      endpoint: ApiEndPoints.payGradeItem(paygradeId),
+      parameters: <String, dynamic>{
+        'uuid': paygradeId,
+        'title': title,
+        'description': description,
+        'promotion_requirement': promotionRequirement,
+      },
+      decoder: (_) {},
+    );
+  }
+
+  Future<void> deletePaygrade(String paygradeId) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.delete,
+      endpoint: ApiEndPoints.payGradeItem(paygradeId),
+      decoder: (_) {},
+    );
+  }
+}
+
+List<DepartmentModel> _decodeDepartments(
+  dynamic json, {
+  required bool isOwner,
+}) {
+  if (json is List) {
+    return json
+        .whereType<Map<String, dynamic>>()
+        .map(DepartmentModel.fromApiJson)
+        .toList(growable: false);
+  }
+
+  if (json is! Map<String, dynamic>) {
+    throw const ApiError.invalidResponse();
+  }
+
+  final items = isOwner ? json['all'] : json['subordinate_departments'];
+  if (items is! List) {
+    throw const ApiError.invalidResponse();
+  }
+
+  return items
+      .whereType<Map<String, dynamic>>()
+      .map(DepartmentModel.fromApiJson)
+      .toList(growable: false);
+}
+
+Map<String, dynamic> _decodePaygradeEntryJson(dynamic json) {
+  if (json is Map<String, dynamic>) {
+    if (_looksLikePaygradeEntry(json)) {
+      return json;
+    }
+
+    for (final key in const <String>[
+      'data',
+      'result',
+      'pay_grade',
+      'paygrade',
+    ]) {
+      final nestedValue = json[key];
+      if (nestedValue is Map<String, dynamic> &&
+          _looksLikePaygradeEntry(nestedValue)) {
+        return nestedValue;
+      }
+    }
+  }
+
+  throw const ApiError.invalidResponse();
+}
+
+bool _looksLikePaygradeEntry(Map<String, dynamic> json) {
+  return json.containsKey('uuid') ||
+      json.containsKey('title') ||
+      json.containsKey('description') ||
+      json.containsKey('promotion_requirement');
 }
 
 PaygradeRemoteDataSource createPaygradeRemoteDataSource() {

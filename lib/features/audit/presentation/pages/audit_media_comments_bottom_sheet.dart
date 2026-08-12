@@ -20,6 +20,7 @@ import '../../../compliance/presentation/pages/training/compliance_full_screen_v
 import '../../data/datasources/audit_remote_data_source.dart';
 import '../../domain/entities/audit_description_audit.dart';
 import '../../domain/entities/description_comments_response.dart';
+import '../providers/audit_media_upload_controller.dart';
 
 class AuditMediaCommentsBottomSheet extends StatefulWidget {
   const AuditMediaCommentsBottomSheet({
@@ -29,6 +30,7 @@ class AuditMediaCommentsBottomSheet extends StatefulWidget {
     required this.mediaList,
     required this.onMediaChanged,
     this.isReadOnly = false,
+    this.canReply = false,
   });
 
   final String descriptionId;
@@ -36,6 +38,7 @@ class AuditMediaCommentsBottomSheet extends StatefulWidget {
   final List<AuditDescriptionMedia> mediaList;
   final Future<void> Function() onMediaChanged;
   final bool isReadOnly;
+  final bool canReply;
 
   @override
   State<AuditMediaCommentsBottomSheet> createState() =>
@@ -57,17 +60,30 @@ class _AuditMediaCommentsBottomSheetState
   ScrollController? _sheetScrollController;
   late String _currentMediaUrl;
   late String _currentMediaType;
+  int _lastHandledAuditUploadEventSequence = 0;
 
   @override
   void initState() {
     super.initState();
     _currentMediaUrl = widget.selectedMedia.media;
     _currentMediaType = widget.selectedMedia.type;
+    _lastHandledAuditUploadEventSequence =
+        AuditMediaUploadController.instance.latestTerminalEventSequence;
+    AuditMediaUploadController.instance.addListener(
+      _handleAuditMediaUploadChanged,
+    );
+    _viewState.value = _viewState.value.copyWith(
+      isUploadingMedia: AuditMediaUploadController.instance
+          .isUploadActiveForAuditMedia(widget.selectedMedia.uuid),
+    );
     _loadComments();
   }
 
   @override
   void dispose() {
+    AuditMediaUploadController.instance.removeListener(
+      _handleAuditMediaUploadChanged,
+    );
     _viewState.dispose();
     _messageController.dispose();
     super.dispose();
@@ -256,7 +272,7 @@ class _AuditMediaCommentsBottomSheetState
                           isLoading: state.isLoadingComments,
                           errorMessage: state.commentsError,
                           comments: state.comments,
-                          canReply: !widget.isReadOnly,
+                          canReply: widget.canReply,
                           onReply: (comment) {
                             _updateViewState(
                               state.copyWith(
@@ -280,6 +296,9 @@ class _AuditMediaCommentsBottomSheetState
                         textColor: Colors.white,
                       ),
                     ),
+                  ],
+                  if (!widget.isReadOnly ||
+                      (widget.canReply && state.isReplying))
                     _SendMessageBar(
                       controller: _messageController,
                       isReplying: state.isReplying,
@@ -295,7 +314,6 @@ class _AuditMediaCommentsBottomSheetState
                         );
                       },
                     ),
-                  ],
                 ],
               );
             },
@@ -516,6 +534,11 @@ class _AuditMediaCommentsBottomSheetState
   }
 
   Future<void> _uploadSelectedMedia(_SelectedUploadMedia selectedMedia) async {
+    if (selectedMedia.mediaType == 'video') {
+      await _enqueueSelectedVideoUpload(selectedMedia);
+      return;
+    }
+
     _updateViewState(_viewState.value.copyWith(isUploadingMedia: true));
     try {
       final mediaFile = selectedMedia.file;
@@ -556,6 +579,88 @@ class _AuditMediaCommentsBottomSheetState
           'File failed to upload!, Try again later!',
         );
       }
+    }
+  }
+
+  Future<void> _enqueueSelectedVideoUpload(
+    _SelectedUploadMedia selectedMedia,
+  ) async {
+    _updateViewState(_viewState.value.copyWith(isUploadingMedia: true));
+    final didStart = await AuditMediaUploadController.instance
+        .startUploadForAuditMediaAttachment(
+          auditMediaId: widget.selectedMedia.uuid,
+          sourceFile: selectedMedia.file,
+          mediaType: selectedMedia.mediaType,
+        );
+    if (didStart) {
+      return;
+    }
+
+    _updateViewState(_viewState.value.copyWith(isUploadingMedia: false));
+    final message = AuditMediaUploadController.instance.startErrorMessage
+        ?.trim();
+    if (message != null && message.isNotEmpty) {
+      _showSnackBar(message);
+      return;
+    }
+
+    _showSnackBar(AppStrings.auditMediaUploadFailed);
+  }
+
+  void _handleAuditMediaUploadChanged() {
+    unawaited(_syncAuditMediaUploadState());
+  }
+
+  Future<void> _syncAuditMediaUploadState() async {
+    if (!mounted) {
+      return;
+    }
+
+    final isUploadingMedia = AuditMediaUploadController.instance
+        .isUploadActiveForAuditMedia(widget.selectedMedia.uuid);
+    if (_viewState.value.isUploadingMedia != isUploadingMedia) {
+      _updateViewState(
+        _viewState.value.copyWith(isUploadingMedia: isUploadingMedia),
+      );
+    }
+
+    final terminalTasks = AuditMediaUploadController.instance
+        .terminalTasksSince(_lastHandledAuditUploadEventSequence);
+    if (terminalTasks.isEmpty) {
+      return;
+    }
+
+    _lastHandledAuditUploadEventSequence =
+        terminalTasks.last.terminalEventSequence;
+    AuditMediaUploadResult? completedResult;
+    String? failureMessage;
+    for (final task in terminalTasks) {
+      if (task.flow != AuditMediaUploadFlow.mediaAttachment ||
+          task.auditMediaId != widget.selectedMedia.uuid) {
+        continue;
+      }
+
+      if (task.isCompleted) {
+        completedResult ??= task.resultPayload;
+        continue;
+      }
+
+      if (task.isFailed && failureMessage == null) {
+        final message = task.errorMessage?.trim();
+        if (message != null && message.isNotEmpty) {
+          failureMessage = message;
+        }
+      }
+    }
+
+    if (completedResult != null) {
+      _updateMediaState(completedResult.mediaUrl, completedResult.mediaType);
+      await widget.onMediaChanged();
+      await _loadCommentsSilently();
+    }
+
+    if (failureMessage != null) {
+      _showSnackBar(failureMessage);
     }
   }
 

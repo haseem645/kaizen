@@ -14,7 +14,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 - Favor feature ownership first. Keep feature-specific models, providers, widgets, and helpers inside the owning feature unless at least two features actively reuse them.
 - Preserve dependency direction: `presentation -> domain -> data`. UI code must not reach directly into remote/local data sources when a provider, controller, or repository already owns that interaction.
-- Treat repositories as the boundary for data access. API calls, persistence, and external SDK interactions should stay out of widgets and out of simple UI helper methods.
+- Treat repositories as the boundary for data access. API calls, persistence, and external SDK interactions should stay out of widgets and out of simple UI helpbber methods.
 - Keep domain logic framework-light when practical. Business rules, validation, filtering, mapping, and status decisions should be easy to test without depending on widget code.
 - Prefer view models or provider-owned presentation data when the UI needs formatted labels, grouped sections, or display-ready flags. Do not spread repeated mapping logic across multiple widgets.
 - Add to `lib/core/` only when behavior is truly shared, stable, and generic. Do not move code into `core` just to avoid importing from a feature.
@@ -95,6 +95,11 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 - **Avoid Direct Mutation**: UI widgets should never directly mutate controller state. All state changes must go through controller methods.
 - **Type Safety**: Always use typed providers and controllers; avoid raw `dynamic` types when accessing state from the UI.
 - **Cleanup**: Ensure all streams, listeners, and notifiers subscribed to in the UI are properly unsubscribed or disposed when the widget is disposed.
+
+## Permission Rules
+
+- **Owner Override**: Treat `User.isOwner == true` as a master-access override for app permissions. Owner users must not lose Create, Edit, manage, or team-access actions because of seat-scoped, hierarchy-scoped, or role-list checks.
+- **Permission Helper Source**: Put owner-first permission rules in shared user/app permission helpers before feature screens consume them. Do not re-encode owner exceptions ad hoc inside individual widgets when a shared helper can own the rule.
 
 ## Feature-Specific Best Practices
 

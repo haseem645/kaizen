@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
+import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
@@ -96,6 +98,9 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       title: AppStrings.seatProfileTitle,
       selectedMenu: AppMenuType.seatProfiles,
       centerTitle: true,
+      appBarActions: <Widget>[
+        _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
+      ],
       child: SafeArea(
         top: false,
         bottom: false,
@@ -294,6 +299,22 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     );
   }
 
+  Future<void> _openCreateSeatProfile(BuildContext context) async {
+    if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+      return;
+    }
+
+    final didCreate = await AppRouter.pushNamed(
+      context,
+      AppRouter.seatProfileCreate,
+    );
+    if (didCreate != true || !mounted) {
+      return;
+    }
+
+    await _controller.refresh();
+  }
+
   Future<void> _openFilterSheet(
     BuildContext context,
     SeatProfileController controller,
@@ -310,6 +331,39 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     }
 
     controller.selectFilter(selectedFilter);
+  }
+}
+
+class _SeatProfileCreateAction extends StatelessWidget {
+  const _SeatProfileCreateAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppManager.instance,
+      builder: (context, _) {
+        if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: AppGradientActionButton(
+            label: AppStrings.seatProfileCreateAction,
+            icon: Icons.add_rounded,
+            iconSize: 14,
+            textSize: 12,
+            minHeight: 34,
+            borderRadius: 10,
+            iconSpacing: 6,
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            onTap: onTap,
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -389,7 +443,9 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
                     AppRouter.pushNamed(
                       context,
                       AppRouter.seatProfileDetail,
-                      arguments: SeatProfileDetailRouteArgs(seatId: profile.id),
+                      arguments: SeatProfileDetailRouteArgs(
+                        seatId: profile.resolvedDetailId,
+                      ),
                     );
                   },
                   borderRadius: BorderRadius.circular(999),

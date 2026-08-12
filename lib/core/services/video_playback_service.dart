@@ -36,11 +36,34 @@ class VideoPlaybackService {
 
   static Future<VideoPlayerController?> createInitializedController(
     String? videoUrl, {
+    String? localFilePath,
     Map<String, String> headers = const <String, String>{},
     Duration cacheMaxAge = defaultCacheMaxAge,
     VideoPlayerOptions? videoPlayerOptions,
     VideoViewType viewType = VideoViewType.textureView,
   }) async {
+    final resolvedLocalFilePath = localFilePath?.trim();
+    if (resolvedLocalFilePath != null && resolvedLocalFilePath.isNotEmpty) {
+      final localFile = File(resolvedLocalFilePath);
+      if (await localFile.exists()) {
+        final localController = VideoPlayerController.file(
+          localFile,
+          videoPlayerOptions: videoPlayerOptions,
+          viewType: viewType,
+        );
+
+        try {
+          await localController.initialize();
+          return localController;
+        } catch (error) {
+          await localController.dispose();
+          debugPrint(
+            'Local video initialization failed for $resolvedLocalFilePath: $error',
+          );
+        }
+      }
+    }
+
     final resolvedUrl = CustomFunctions.resolveNetworkUrl(videoUrl);
     if (resolvedUrl == null) {
       return null;

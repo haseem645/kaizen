@@ -3,6 +3,7 @@ import '../../domain/entities/seat_profile.dart';
 class SeatProfileModel extends SeatProfile {
   const SeatProfileModel({
     required super.id,
+    required super.actualId,
     required super.name,
     required super.categoriesCount,
     required super.descriptionsCount,
@@ -11,8 +12,12 @@ class SeatProfileModel extends SeatProfile {
   });
 
   factory SeatProfileModel.fromApiJson(Map<String, dynamic> json) {
+    final id = _readString(json['uuid']) ?? '';
+    final actualId = _readString(json['actual_id']) ?? id;
+
     return SeatProfileModel(
-      id: _readString(json['uuid']) ?? '',
+      id: id,
+      actualId: actualId,
       name: _readString(json['title']) ?? 'Unknown Seat Profile',
       categoriesCount: _readInt(json['total_categories']) ?? 0,
       descriptionsCount: _readInt(json['total_descriptions']) ?? 0,

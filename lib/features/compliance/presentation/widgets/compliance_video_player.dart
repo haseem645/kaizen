@@ -17,6 +17,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
     super.key,
     required this.videoUrl,
     required this.title,
+    this.localVideoPath,
     this.thumbnailLink,
     this.height = 220,
     this.showTitle = true,
@@ -27,6 +28,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
 
   final String videoUrl;
   final String title;
+  final String? localVideoPath;
   final String? thumbnailLink;
   final double height;
   final bool showTitle;
@@ -46,6 +48,8 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   Future<void>? _initializeFuture;
   Object? _initializationError;
   int _initializationGeneration = 0;
+  VideoViewType _currentViewType = VideoViewType.textureView;
+  bool _didRetryWithPlatformView = false;
   late bool _showThumbnailPreview;
   bool _isPreparingPlayback = false;
   bool _isScrubbing = false;
@@ -63,13 +67,17 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   void didUpdateWidget(covariant ComplianceVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.videoUrl != widget.videoUrl ||
+        oldWidget.localVideoPath != widget.localVideoPath ||
         oldWidget.thumbnailLink != widget.thumbnailLink) {
       _showThumbnailPreview = _hasThumbnail;
       _isScrubbing = false;
       _scrubPositionMillis = null;
     }
 
-    if (oldWidget.videoUrl != widget.videoUrl) {
+    if (oldWidget.videoUrl != widget.videoUrl ||
+        oldWidget.localVideoPath != widget.localVideoPath) {
+      _currentViewType = VideoViewType.textureView;
+      _didRetryWithPlatformView = false;
       _disposeController();
       _warmUpVideoCache();
       _setupController();
@@ -92,16 +100,24 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     _initializationError = null;
     _controller = null;
     final generation = ++_initializationGeneration;
-    _initializeFuture = _initializeController(generation);
+    _initializeFuture = _initializeController(
+      generation,
+      viewType: _currentViewType,
+    );
   }
 
-  Future<void> _initializeController(int generation) async {
+  Future<void> _initializeController(
+    int generation, {
+    required VideoViewType viewType,
+  }) async {
     VideoPlayerController? controller;
 
     try {
       controller = await VideoPlaybackService.createInitializedController(
         widget.videoUrl,
+        localFilePath: widget.localVideoPath,
         cacheMaxAge: _cacheMaxAge,
+        viewType: viewType,
       );
       if (controller == null) {
         throw ArgumentError('Invalid video URL');
@@ -126,6 +142,15 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       if (controller != null) {
         await controller.dispose();
       }
+      if (_shouldRetryWithPlatformView(viewType, generation)) {
+        _currentViewType = VideoViewType.platformView;
+        _didRetryWithPlatformView = true;
+        _setupController();
+        if (mounted) {
+          setState(() {});
+        }
+        return;
+      }
       if (mounted && _isActiveGeneration(generation)) {
         setState(() {
           _initializationError = error;
@@ -133,6 +158,22 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       }
       rethrow;
     }
+  }
+
+  bool _shouldRetryWithPlatformView(
+    VideoViewType attemptedViewType,
+    int generation,
+  ) {
+    if (!mounted || !_isActiveGeneration(generation)) {
+      return false;
+    }
+
+    if (CustomFunctions.isApplePlatform()) {
+      return false;
+    }
+
+    return attemptedViewType == VideoViewType.textureView &&
+        !_didRetryWithPlatformView;
   }
 
   bool _isActiveGeneration(int generation) {

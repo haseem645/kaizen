@@ -13,13 +13,14 @@ import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/audit/domain/entities/audit_description_audit.dart';
 import 'package:sparrowkaizen/features/audit/domain/entities/quarterly_audit.dart';
 import 'package:sparrowkaizen/features/audit/presentation/providers/audit_controller.dart';
+import 'package:sparrowkaizen/features/audit/presentation/providers/audit_media_upload_controller.dart';
 import 'package:sparrowkaizen/features/audit/presentation/widgets/audit_media_preview.dart';
 import 'package:sparrowkaizen/features/audit/presentation/widgets/description_media_comment_bottom_sheet.dart';
 
-import '../../domain/entities/seat_description_training_route.dart';
-import 'audit_view_training_screen.dart';
+import '../../../training/domain/entities/seat_description_training_route.dart';
 import 'audit_media_comments_bottom_sheet.dart';
 import 'audit_screen_recording_capture_screen.dart';
+import '../../../training/presentation/pages/view_training_screen.dart';
 
 class SingleDescriptionDetails extends StatefulWidget {
   const SingleDescriptionDetails({
@@ -46,16 +47,25 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   late final ValueNotifier<Future<AuditDescriptionAudit>>
   _auditDescriptionFutureNotifier;
   final ScrollController _scrollController = ScrollController();
+  int _lastHandledAuditUploadEventSequence = 0;
 
   @override
   void initState() {
     super.initState();
     _auditDescriptionFutureNotifier =
         ValueNotifier<Future<AuditDescriptionAudit>>(_loadAuditDescription());
+    _lastHandledAuditUploadEventSequence =
+        AuditMediaUploadController.instance.latestTerminalEventSequence;
+    AuditMediaUploadController.instance.addListener(
+      _handleAuditMediaUploadChanged,
+    );
   }
 
   @override
   void dispose() {
+    AuditMediaUploadController.instance.removeListener(
+      _handleAuditMediaUploadChanged,
+    );
     _auditDescriptionFutureNotifier.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -86,13 +96,17 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
     File? mediaFile,
     String? mediaType,
   ) async {
-    await context.read<AuditController>().createAuditDescriptionMediaComment(
-      descriptionId: descriptionId,
-      comment: comment,
-      mediaFile: mediaFile,
-      mediaType: mediaType,
-    );
-    await _refreshAuditDescriptionSilently();
+    final shouldRefreshImmediately = await context
+        .read<AuditController>()
+        .createAuditDescriptionMediaComment(
+          descriptionId: descriptionId,
+          comment: comment,
+          mediaFile: mediaFile,
+          mediaType: mediaType,
+        );
+    if (shouldRefreshImmediately) {
+      await _refreshAuditDescriptionSilently();
+    }
   }
 
   Future<void> _saveCommentWithoutMedia(
@@ -111,6 +125,54 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
     _auditDescriptionFutureNotifier.value = Future<AuditDescriptionAudit>.value(
       refreshedAuditDescription,
     );
+  }
+
+  void _handleAuditMediaUploadChanged() {
+    if (!mounted) {
+      return;
+    }
+
+    final terminalTasks = AuditMediaUploadController.instance
+        .terminalTasksSince(_lastHandledAuditUploadEventSequence);
+    if (terminalTasks.isEmpty) {
+      return;
+    }
+
+    _lastHandledAuditUploadEventSequence =
+        terminalTasks.last.terminalEventSequence;
+    var shouldRefresh = false;
+    String? failureMessage;
+    for (final task in terminalTasks) {
+      if (task.flow != AuditMediaUploadFlow.descriptionComment ||
+          task.descriptionId != widget.description.uuid) {
+        continue;
+      }
+
+      if (task.isCompleted) {
+        shouldRefresh = true;
+        continue;
+      }
+
+      if (task.isFailed && failureMessage == null) {
+        final message = task.errorMessage?.trim();
+        if (message != null && message.isNotEmpty) {
+          failureMessage = message;
+        }
+      }
+    }
+
+    if (shouldRefresh) {
+      unawaited(_refreshAuditDescriptionSilently());
+    }
+    if (failureMessage != null) {
+      _showSnackBar(failureMessage);
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _scrollToCommentsSection() {
@@ -555,8 +617,7 @@ class _ViewTrainingAction extends StatelessWidget {
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) =>
-                AuditViewTrainingScreen(trainingRoute: trainingRoute),
+            builder: (_) => ViewTrainingScreen(trainingRoute: trainingRoute),
           ),
         );
       },
@@ -641,7 +702,8 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
   @override
   Widget build(BuildContext context) {
     final canEditBlocks =
-        widget.isOwner && !CustomFunctions.isDateBeforeToday(widget.date);
+        widget.isOwner &&
+        CustomFunctions.isAuditWithinContinueWindow(widget.date);
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
@@ -711,6 +773,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? AppColors.green1
                               : AppColors.green1.withValues(alpha: 0.5),
                           count: great,
+                          showDecrementControl: widget.isOwner,
                           onTapCount: canEditBlocks
                               ? () => _incrementRating(_PassBlockState.great)
                               : null,
@@ -725,6 +788,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? AppColors.orange1
                               : AppColors.orange1.withValues(alpha: 0.5),
                           count: almostThere,
+                          showDecrementControl: widget.isOwner,
                           onTapCount: canEditBlocks
                               ? () => _incrementRating(
                                   _PassBlockState.almostThere,
@@ -743,6 +807,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? AppColors.red1
                               : AppColors.red1.withValues(alpha: 0.5),
                           count: needsImprovement,
+                          showDecrementControl: widget.isOwner,
                           onTapCount: canEditBlocks
                               ? () => _incrementRating(
                                   _PassBlockState.needsImprovement,
@@ -950,6 +1015,7 @@ class _CommentsCardState extends State<_CommentsCard> {
   Widget build(BuildContext context) {
     final canManageComments =
         widget.isOwner && !CustomFunctions.isDateBeforeToday(widget.date);
+    final canReplyToComments = widget.isOwner;
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
@@ -1029,7 +1095,8 @@ class _CommentsCardState extends State<_CommentsCard> {
                             descriptionId: widget.description.uuid,
                             media: media[index],
                             mediaList: media,
-                            isReadOnly: !widget.isOwner,
+                            isReadOnly: !canManageComments,
+                            canReply: canReplyToComments,
                             onCommentsChanged: widget.onCommentsChanged,
                             onSheetClosed: widget.onCommentsSheetClosed,
                           );
@@ -1358,6 +1425,7 @@ class _CommentMediaCard extends StatelessWidget {
     required this.media,
     required this.mediaList,
     required this.isReadOnly,
+    required this.canReply,
     required this.onCommentsChanged,
     required this.onSheetClosed,
   });
@@ -1366,6 +1434,7 @@ class _CommentMediaCard extends StatelessWidget {
   final AuditDescriptionMedia media;
   final List<AuditDescriptionMedia> mediaList;
   final bool isReadOnly;
+  final bool canReply;
   final Future<void> Function() onCommentsChanged;
   final VoidCallback onSheetClosed;
 
@@ -1422,6 +1491,7 @@ class _CommentMediaCard extends StatelessWidget {
         selectedMedia: media,
         mediaList: mediaList,
         isReadOnly: isReadOnly,
+        canReply: canReply,
         onMediaChanged: onCommentsChanged,
       ),
     );
@@ -1566,6 +1636,7 @@ class _SelectionCounter extends StatelessWidget {
     this.onTapCount,
     this.onTapArrow,
     required this.canEditBlocks,
+    required this.showDecrementControl,
   });
 
   final Color color;
@@ -1573,6 +1644,7 @@ class _SelectionCounter extends StatelessWidget {
   final VoidCallback? onTapCount;
   final VoidCallback? onTapArrow;
   final bool canEditBlocks;
+  final bool showDecrementControl;
 
   @override
   Widget build(BuildContext context) {
@@ -1598,26 +1670,30 @@ class _SelectionCounter extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTapArrow,
-          child: Container(
-            width: 48,
-            height: 28,
-            decoration: BoxDecoration(
-              color: canEditBlocks
-                  ? AppColors.grey1
-                  : AppColors.grey1.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Colors.white,
-              size: 28,
+        if (showDecrementControl) ...[
+          const SizedBox(height: 8),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTapArrow,
+            child: Container(
+              width: 48,
+              height: 28,
+              decoration: BoxDecoration(
+                color: canEditBlocks
+                    ? AppColors.grey1
+                    : AppColors.grey1.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                canEditBlocks
+                    ? Icons.keyboard_arrow_down_rounded
+                    : Icons.lock_rounded,
+                color: Colors.white,
+                size: canEditBlocks ? 28 : 18,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

@@ -1,5 +1,5 @@
 import '../../domain/entities/quarterly_audit.dart';
-import '../../domain/entities/seat_description_training_route.dart';
+import '../../../training/domain/entities/seat_description_training_route.dart';
 
 class QuarterlyAuditModel extends QuarterlyAudit {
   const QuarterlyAuditModel({

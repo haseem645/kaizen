@@ -1,4 +1,4 @@
-import 'seat_description_training_route.dart';
+import '../../../training/domain/entities/seat_description_training_route.dart';
 
 class QuarterlyAudit {
   const QuarterlyAudit({

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/custom_functions.dart';
@@ -27,6 +28,7 @@ import '../../domain/usecases/get_quarterly_audit_usecase.dart';
 import '../../domain/usecases/mark_favorite_subordinate_usecase.dart';
 import '../../domain/usecases/mark_unfavorite_subordinate_usecase.dart';
 import '../../../login/domain/entities/user.dart';
+import 'audit_media_upload_controller.dart';
 import 'audit_state.dart';
 
 class AuditController extends ChangeNotifier {
@@ -89,7 +91,7 @@ class AuditController extends ChangeNotifier {
     return members
         .where((member) {
           final matchesStatus =
-              _state.isOwner ||
+              _state.isActualOwner ||
                   _state.selectedStatus == AuditMemberStatus.active
               ? member.status == _state.selectedStatus
               : true;
@@ -139,33 +141,45 @@ class AuditController extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    final user = await AppPreference.getUser();
-    final isOwner = _hasTeamMemberTabsAccess(user);
-    final selectedStatus = isOwner
-        ? AuditMemberStatus.active
-        : AuditMemberStatus.deactivated;
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
+    try {
+      final user = await AppPreference.getUser();
+      final isOwner = _hasTeamMemberTabsAccess(user);
+      final isActualOwner = _isActualOwner(user);
+      final selectedStatus = isOwner
+          ? AuditMemberStatus.active
+          : AuditMemberStatus.deactivated;
+      final currentYearQuarter = CustomFunctions.currentYearQuarter();
 
-    _activeMainListCache = null;
-    _myCheckInMainListCache = null;
+      _activeMainListCache = null;
+      _myCheckInMainListCache = null;
 
-    _state = _state.copyWith(
-      isLoading: true,
-      isOwner: isOwner,
-      selectedStatus: selectedStatus,
-      selectedAuditYear: currentYearQuarter.year,
-      selectedAuditQuarter: currentYearQuarter.quarter,
-      isLoadingMore: false,
-      clearMainList: true,
-      clearSelectedYearQuarter: true,
-    );
-    notifyListeners();
+      _state = _state.copyWith(
+        isLoading: true,
+        isOwner: isOwner,
+        isActualOwner: isActualOwner,
+        selectedStatus: selectedStatus,
+        selectedAuditYear: currentYearQuarter.year,
+        selectedAuditQuarter: currentYearQuarter.quarter,
+        isLoadingMore: false,
+        clearMainList: true,
+        clearSelectedYearQuarter: true,
+      );
+      notifyListeners();
 
-    final mainList = isOwner
-        ? await _loadTeamMembers(page: 1, pageSize: 12)
-        : await _preloadNonOwnerLists(page: 1, pageSize: 12);
-    _state = _state.copyWith(isLoading: false, mainList: mainList);
-    notifyListeners();
+      final mainList = isOwner && isActualOwner
+          ? await _loadTeamMembers(page: 1, pageSize: 12)
+          : await _preloadNonOwnerLists(page: 1, pageSize: 12);
+      _state = _state.copyWith(isLoading: false, mainList: mainList);
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+        clearMainList: true,
+      );
+      notifyListeners();
+      _logRecoverableError('initialize', error);
+    }
   }
 
   Future<void> loadNextPage() async {
@@ -180,23 +194,29 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(isLoadingMore: true);
     notifyListeners();
 
-    final nextPage = currentList.current + 1;
-    final nextList = await _loadListForSelectedStatus(
-      page: nextPage,
-      pageSize: 12,
-    );
-    final mergedList = AuditMainList(
-      count: nextList.count,
-      next: nextList.next,
-      previous: nextList.previous,
-      current: nextList.current,
-      results: [...currentList.results, ...nextList.results],
-    );
+    try {
+      final nextPage = currentList.current + 1;
+      final nextList = await _loadListForSelectedStatus(
+        page: nextPage,
+        pageSize: 12,
+      );
+      final mergedList = AuditMainList(
+        count: nextList.count,
+        next: nextList.next,
+        previous: nextList.previous,
+        current: nextList.current,
+        results: [...currentList.results, ...nextList.results],
+      );
 
-    _cacheList(_state.selectedStatus, mergedList);
+      _cacheList(_state.selectedStatus, mergedList);
 
-    _state = _state.copyWith(isLoadingMore: false, mainList: mergedList);
-    notifyListeners();
+      _state = _state.copyWith(isLoadingMore: false, mainList: mergedList);
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isLoadingMore: false);
+      notifyListeners();
+      _logRecoverableError('loadNextPage', error);
+    }
   }
 
   Future<void> initializeDetails(
@@ -205,43 +225,51 @@ class AuditController extends ChangeNotifier {
     int? quarter,
     bool clearEvaluationCharts = true,
   }) async {
-    final user = await AppPreference.getUser();
-    final isOwner = _hasTeamMemberTabsAccess(user);
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
-    final resolvedYear = year ?? currentYearQuarter.year;
-    final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
-    final selectedYearQuarterLabel =
-        resolvedYear == currentYearQuarter.year &&
-            resolvedQuarter == currentYearQuarter.quarter
-        ? null
-        : '$resolvedYear - Q$resolvedQuarter';
+    try {
+      final user = await AppPreference.getUser();
+      final isOwner = _hasTeamMemberTabsAccess(user);
+      final isActualOwner = _isActualOwner(user);
+      final currentYearQuarter = CustomFunctions.currentYearQuarter();
+      final resolvedYear = year ?? currentYearQuarter.year;
+      final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
+      final selectedYearQuarterLabel =
+          resolvedYear == currentYearQuarter.year &&
+              resolvedQuarter == currentYearQuarter.quarter
+          ? null
+          : '$resolvedYear - Q$resolvedQuarter';
 
-    _state = _state.copyWith(
-      isLoading: true,
-      isOwner: isOwner,
-      selectedAuditYear: resolvedYear,
-      selectedAuditQuarter: resolvedQuarter,
-      selectedYearQuarter: selectedYearQuarterLabel,
-      clearSelectedYearQuarter: selectedYearQuarterLabel == null,
-      clearDetails: true,
-      clearEvaluationCharts: clearEvaluationCharts,
-    );
-    notifyListeners();
+      _state = _state.copyWith(
+        isLoading: true,
+        isOwner: isOwner,
+        isActualOwner: isActualOwner,
+        selectedAuditYear: resolvedYear,
+        selectedAuditQuarter: resolvedQuarter,
+        selectedYearQuarter: selectedYearQuarterLabel,
+        clearSelectedYearQuarter: selectedYearQuarterLabel == null,
+        clearDetails: true,
+        clearEvaluationCharts: clearEvaluationCharts,
+      );
+      notifyListeners();
 
-    final getAuditDetailsUseCase = _getAuditDetailsUseCase;
-    if (profileJobId.trim().isEmpty || getAuditDetailsUseCase == null) {
+      final getAuditDetailsUseCase = _getAuditDetailsUseCase;
+      if (profileJobId.trim().isEmpty || getAuditDetailsUseCase == null) {
+        _state = _state.copyWith(isLoading: false);
+        notifyListeners();
+        return;
+      }
+
+      final details = await getAuditDetailsUseCase(
+        profileJobId: profileJobId,
+        year: resolvedYear,
+        quarter: resolvedQuarter,
+      );
+      _state = _state.copyWith(isLoading: false, details: details);
+      notifyListeners();
+    } catch (error) {
       _state = _state.copyWith(isLoading: false);
       notifyListeners();
-      return;
+      _logRecoverableError('initializeDetails', error);
     }
-
-    final details = await getAuditDetailsUseCase(
-      profileJobId: profileJobId,
-      year: resolvedYear,
-      quarter: resolvedQuarter,
-    );
-    _state = _state.copyWith(isLoading: false, details: details);
-    notifyListeners();
   }
 
   Future<void> showEvaluationChart(String profileJobId) async {
@@ -257,14 +285,20 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(isEvaluationChartLoading: true);
     notifyListeners();
 
-    final evaluationCharts = await _getAuditEvaluationChartUseCase(
-      profileJobId: profileJobId,
-    );
-    _state = _state.copyWith(
-      evaluationCharts: evaluationCharts,
-      isEvaluationChartLoading: false,
-    );
-    notifyListeners();
+    try {
+      final evaluationCharts = await _getAuditEvaluationChartUseCase(
+        profileJobId: profileJobId,
+      );
+      _state = _state.copyWith(
+        evaluationCharts: evaluationCharts,
+        isEvaluationChartLoading: false,
+      );
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isEvaluationChartLoading: false);
+      notifyListeners();
+      _logRecoverableError('showEvaluationChart', error);
+    }
   }
 
   Future<void> refreshEvaluationChart(String profileJobId) async {
@@ -277,14 +311,20 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(isEvaluationChartLoading: true);
     notifyListeners();
 
-    final evaluationCharts = await _getAuditEvaluationChartUseCase(
-      profileJobId: profileJobId,
-    );
-    _state = _state.copyWith(
-      evaluationCharts: evaluationCharts,
-      isEvaluationChartLoading: false,
-    );
-    notifyListeners();
+    try {
+      final evaluationCharts = await _getAuditEvaluationChartUseCase(
+        profileJobId: profileJobId,
+      );
+      _state = _state.copyWith(
+        evaluationCharts: evaluationCharts,
+        isEvaluationChartLoading: false,
+      );
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isEvaluationChartLoading: false);
+      notifyListeners();
+      _logRecoverableError('refreshEvaluationChart', error);
+    }
   }
 
   Future<void> initializeQuarterlyAudit({
@@ -310,11 +350,7 @@ class AuditController extends ChangeNotifier {
     _state = _state.copyWith(
       isLoading: false,
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      clearSelectedQuarterlyAuditDescription: true,
     );
     notifyListeners();
   }
@@ -325,61 +361,65 @@ class AuditController extends ChangeNotifier {
     int? year,
     int? quarter,
   }) async {
-    final user = await AppPreference.getUser();
-    final isOwner = _hasTeamMemberTabsAccess(user);
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
-    final resolvedYear = year ?? currentYearQuarter.year;
-    final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
-    final selectedYearQuarterLabel =
-        resolvedYear == currentYearQuarter.year &&
-            resolvedQuarter == currentYearQuarter.quarter
-        ? null
-        : '$resolvedYear - Q$resolvedQuarter';
+    try {
+      final user = await AppPreference.getUser();
+      final isOwner = _hasTeamMemberTabsAccess(user);
+      final isActualOwner = _isActualOwner(user);
+      final currentYearQuarter = CustomFunctions.currentYearQuarter();
+      final resolvedYear = year ?? currentYearQuarter.year;
+      final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
+      final selectedYearQuarterLabel =
+          resolvedYear == currentYearQuarter.year &&
+              resolvedQuarter == currentYearQuarter.quarter
+          ? null
+          : '$resolvedYear - Q$resolvedQuarter';
 
-    _state = _state.copyWith(
-      isLoading: true,
-      isOwner: isOwner,
-      selectedAuditYear: resolvedYear,
-      selectedAuditQuarter: resolvedQuarter,
-      selectedYearQuarter: selectedYearQuarterLabel,
-      clearSelectedYearQuarter: selectedYearQuarterLabel == null,
-      clearMainList: true,
-      clearQuarterlyAudit: true,
-    );
-    notifyListeners();
+      _state = _state.copyWith(
+        isLoading: true,
+        isOwner: isOwner,
+        isActualOwner: isActualOwner,
+        selectedAuditYear: resolvedYear,
+        selectedAuditQuarter: resolvedQuarter,
+        selectedYearQuarter: selectedYearQuarterLabel,
+        clearSelectedYearQuarter: selectedYearQuarterLabel == null,
+        clearMainList: true,
+        clearQuarterlyAudit: true,
+      );
+      notifyListeners();
 
-    final getQuarterlyAuditUseCase = _getQuarterlyAuditUseCase;
-    if (quarterlyAuditId.trim().isEmpty ||
-        date.trim().isEmpty ||
-        getQuarterlyAuditUseCase == null) {
+      final getQuarterlyAuditUseCase = _getQuarterlyAuditUseCase;
+      if (quarterlyAuditId.trim().isEmpty ||
+          date.trim().isEmpty ||
+          getQuarterlyAuditUseCase == null) {
+        _state = _state.copyWith(isLoading: false);
+        notifyListeners();
+        return;
+      }
+
+      final teamMembersFuture = _getAuditTeamMembersUseCase?.call(
+        page: 1,
+        pageSize: 10,
+        year: resolvedYear,
+        quarter: resolvedQuarter,
+      );
+      final quarterlyAudit = await getQuarterlyAuditUseCase(
+        quarterlyAuditId: quarterlyAuditId,
+        date: date,
+      );
+      final teamMembers = await teamMembersFuture;
+
+      _state = _state.copyWith(
+        isLoading: false,
+        mainList: _sortedMainList(teamMembers),
+        quarterlyAudit: quarterlyAudit,
+        clearSelectedQuarterlyAuditDescription: true,
+      );
+      notifyListeners();
+    } catch (error) {
       _state = _state.copyWith(isLoading: false);
       notifyListeners();
-      return;
+      _logRecoverableError('initializeSingleAuditDetails', error);
     }
-
-    final teamMembersFuture = _getAuditTeamMembersUseCase?.call(
-      page: 1,
-      pageSize: 10,
-      year: resolvedYear,
-      quarter: resolvedQuarter,
-    );
-    final quarterlyAudit = await getQuarterlyAuditUseCase(
-      quarterlyAuditId: quarterlyAuditId,
-      date: date,
-    );
-    final teamMembers = await teamMembersFuture;
-
-    _state = _state.copyWith(
-      isLoading: false,
-      mainList: _sortedMainList(teamMembers),
-      quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
-    );
-    notifyListeners();
   }
 
   Future<void> refreshSingleAuditDetails({
@@ -400,11 +440,7 @@ class AuditController extends ChangeNotifier {
 
     _state = _state.copyWith(
       quarterlyAudit: quarterlyAudit,
-      selectedQuarterlyAuditDescriptionUuid: quarterlyAudit.descriptions.isEmpty
-          ? null
-          : quarterlyAudit.descriptions.first.uuid,
-      clearSelectedQuarterlyAuditDescription:
-          quarterlyAudit.descriptions.isEmpty,
+      clearSelectedQuarterlyAuditDescription: true,
     );
     notifyListeners();
   }
@@ -579,7 +615,7 @@ class AuditController extends ChangeNotifier {
     );
   }
 
-  Future<void> createAuditDescriptionMediaComment({
+  Future<bool> createAuditDescriptionMediaComment({
     required String descriptionId,
     required String comment,
     File? mediaFile,
@@ -588,6 +624,29 @@ class AuditController extends ChangeNotifier {
     final auditRepository = _auditRepository;
     if (auditRepository == null) {
       throw StateError('AuditRepository is not configured.');
+    }
+
+    final resolvedMediaType = mediaType?.trim();
+    if (mediaFile != null &&
+        _shouldUseBackgroundMediaUpload(resolvedMediaType)) {
+      final didStart = await AuditMediaUploadController.instance
+          .startUploadForDescriptionMediaComment(
+            descriptionId: descriptionId,
+            comment: comment,
+            sourceFile: mediaFile,
+            mediaType: resolvedMediaType!,
+          );
+      if (!didStart) {
+        throw StateError(
+          AuditMediaUploadController.instance.startErrorMessage
+                      ?.trim()
+                      .isNotEmpty ==
+                  true
+              ? AuditMediaUploadController.instance.startErrorMessage!.trim()
+              : AppStrings.auditMediaUploadFailed,
+        );
+      }
+      return false;
     }
 
     String? mediaUrl;
@@ -613,8 +672,14 @@ class AuditController extends ChangeNotifier {
       descriptionId: descriptionId,
       comment: comment,
       mediaUrl: mediaUrl,
-      mediaType: mediaUrl == null ? null : mediaType,
+      mediaType: mediaUrl == null ? null : resolvedMediaType,
     );
+    return true;
+  }
+
+  bool _shouldUseBackgroundMediaUpload(String? mediaType) {
+    final normalizedType = mediaType?.trim().toLowerCase();
+    return normalizedType == 'video' || normalizedType == 'screen_recording';
   }
 
   Future<List<AuditProfile>> toggleFavoriteSubordinate({
@@ -676,13 +741,13 @@ class AuditController extends ChangeNotifier {
 
     _state = _state.copyWith(
       selectedStatus: status,
-      isLoading: !_state.isOwner,
+      isLoading: !_state.isActualOwner,
       isLoadingMore: false,
-      clearMainList: !_state.isOwner,
+      clearMainList: !_state.isActualOwner,
     );
     notifyListeners();
 
-    if (_state.isOwner) {
+    if (_state.isActualOwner) {
       return;
     }
 
@@ -693,10 +758,16 @@ class AuditController extends ChangeNotifier {
       return;
     }
 
-    final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
-    _cacheList(status, mainList);
-    _state = _state.copyWith(isLoading: false, mainList: mainList);
-    notifyListeners();
+    try {
+      final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
+      _cacheList(status, mainList);
+      _state = _state.copyWith(isLoading: false, mainList: mainList);
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isLoading: false);
+      notifyListeners();
+      _logRecoverableError('selectStatus', error);
+    }
   }
 
   void selectQuarterlyAuditDescription(String descriptionUuid) {
@@ -770,10 +841,19 @@ class AuditController extends ChangeNotifier {
       );
       notifyListeners();
 
-      final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
-      _cacheList(_state.selectedStatus, mainList);
-      _state = _state.copyWith(isLoading: false, mainList: mainList);
-      notifyListeners();
+      try {
+        final mainList = await _loadListForSelectedStatus(
+          page: 1,
+          pageSize: 12,
+        );
+        _cacheList(_state.selectedStatus, mainList);
+        _state = _state.copyWith(isLoading: false, mainList: mainList);
+        notifyListeners();
+      } catch (error) {
+        _state = _state.copyWith(isLoading: false);
+        notifyListeners();
+        _logRecoverableError('applyFilters', error);
+      }
       return;
     }
 
@@ -807,10 +887,16 @@ class AuditController extends ChangeNotifier {
     );
     notifyListeners();
 
-    final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
-    _cacheList(_state.selectedStatus, mainList);
-    _state = _state.copyWith(isLoading: false, mainList: mainList);
-    notifyListeners();
+    try {
+      final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
+      _cacheList(_state.selectedStatus, mainList);
+      _state = _state.copyWith(isLoading: false, mainList: mainList);
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isLoading: false);
+      notifyListeners();
+      _logRecoverableError('clearYearQuarterFilter', error);
+    }
   }
 
   void clearSeatProfileFilter() {
@@ -904,37 +990,45 @@ class AuditController extends ChangeNotifier {
     );
     notifyListeners();
 
-    late final PerformanceReport report;
     try {
-      report = await auditRepository.getPerformanceReportOverview(
+      late final PerformanceReport report;
+      try {
+        report = await auditRepository.getPerformanceReportOverview(
+          profile: currentReport.profile,
+          startDate: startDate,
+          endDate: endDate,
+        );
+      } on ApiError catch (error) {
+        if (!_shouldUseOpenSeatFallback(error)) {
+          _state = _state.copyWith(isPerformanceReportLoading: false);
+          notifyListeners();
+          _logRecoverableError('applyPerformanceReportCustomDateRange', error);
+          return;
+        }
+
+        report = _buildOpenSeatPerformanceReport(currentReport.profile);
+      }
+
+      final certifiedReports = await _loadCertifiedReportsForPerformanceReport(
+        auditRepository: auditRepository,
         profile: currentReport.profile,
+        report: report,
         startDate: startDate,
         endDate: endDate,
       );
-    } on ApiError catch (error) {
-      if (!_shouldUseOpenSeatFallback(error)) {
-        _state = _state.copyWith(isPerformanceReportLoading: false);
-        notifyListeners();
-        rethrow;
-      }
 
-      report = _buildOpenSeatPerformanceReport(currentReport.profile);
+      _state = _state.copyWith(
+        isPerformanceReportLoading: false,
+        performanceReport: report,
+        certifiedReportOptions: certifiedReports,
+        clearSelectedCertifiedReportUuid: true,
+      );
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isPerformanceReportLoading: false);
+      notifyListeners();
+      _logRecoverableError('applyPerformanceReportCustomDateRange', error);
     }
-    final certifiedReports = await _loadCertifiedReportsForPerformanceReport(
-      auditRepository: auditRepository,
-      profile: currentReport.profile,
-      report: report,
-      startDate: startDate,
-      endDate: endDate,
-    );
-
-    _state = _state.copyWith(
-      isPerformanceReportLoading: false,
-      performanceReport: report,
-      certifiedReportOptions: certifiedReports,
-      clearSelectedCertifiedReportUuid: true,
-    );
-    notifyListeners();
   }
 
   Future<void> generatePerformanceReportRemarks() async {
@@ -973,10 +1067,10 @@ class AuditController extends ChangeNotifier {
         isGeneratingPerformanceReportRemarks: false,
       );
       notifyListeners();
-    } catch (_) {
+    } catch (error) {
       _state = _state.copyWith(isGeneratingPerformanceReportRemarks: false);
       notifyListeners();
-      rethrow;
+      _logRecoverableError('generatePerformanceReportRemarks', error);
     }
   }
 
@@ -989,37 +1083,45 @@ class AuditController extends ChangeNotifier {
     }
 
     final currentYearQuarter = CustomFunctions.currentYearQuarter();
-    late final PerformanceReport report;
     try {
-      report = await auditRepository.getPerformanceReportOverview(
+      late final PerformanceReport report;
+      try {
+        report = await auditRepository.getPerformanceReportOverview(
+          profile: profile,
+          year: currentYearQuarter.year,
+          quarter: currentYearQuarter.quarter,
+        );
+      } on ApiError catch (error) {
+        if (!_shouldUseOpenSeatFallback(error)) {
+          _state = _state.copyWith(isPerformanceReportLoading: false);
+          notifyListeners();
+          _logRecoverableError('_loadQuarterPerformanceReport', error);
+          return;
+        }
+
+        report = _buildOpenSeatPerformanceReport(profile);
+      }
+
+      final certifiedReports = await _loadCertifiedReportsForPerformanceReport(
+        auditRepository: auditRepository,
         profile: profile,
+        report: report,
         year: currentYearQuarter.year,
         quarter: currentYearQuarter.quarter,
       );
-    } on ApiError catch (error) {
-      if (!_shouldUseOpenSeatFallback(error)) {
-        _state = _state.copyWith(isPerformanceReportLoading: false);
-        notifyListeners();
-        rethrow;
-      }
 
-      report = _buildOpenSeatPerformanceReport(profile);
+      _state = _state.copyWith(
+        isPerformanceReportLoading: false,
+        performanceReport: report,
+        certifiedReportOptions: certifiedReports,
+        clearSelectedCertifiedReportUuid: true,
+      );
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isPerformanceReportLoading: false);
+      notifyListeners();
+      _logRecoverableError('_loadQuarterPerformanceReport', error);
     }
-    final certifiedReports = await _loadCertifiedReportsForPerformanceReport(
-      auditRepository: auditRepository,
-      profile: profile,
-      report: report,
-      year: currentYearQuarter.year,
-      quarter: currentYearQuarter.quarter,
-    );
-
-    _state = _state.copyWith(
-      isPerformanceReportLoading: false,
-      performanceReport: report,
-      certifiedReportOptions: certifiedReports,
-      clearSelectedCertifiedReportUuid: true,
-    );
-    notifyListeners();
   }
 
   Future<void> selectCertifiedReport(String? uuid) async {
@@ -1078,12 +1180,12 @@ class AuditController extends ChangeNotifier {
         performanceReport: detail.report,
         performanceReportCommitment: detail.commitmentComment,
       );
-    } catch (_) {
+    } catch (error) {
       _state = _state.copyWith(
         isPerformanceReportLoading: false,
         clearSelectedCertifiedReportUuid: true,
       );
-      rethrow;
+      _logRecoverableError('selectCertifiedReport', error);
     }
     notifyListeners();
   }
@@ -1151,6 +1253,7 @@ class AuditController extends ChangeNotifier {
       paygradePipeline: report.paygradePipeline,
       currentPaygrade: report.currentPaygrade,
       paygradeUnit: report.paygradeUnit,
+      coreValues: report.coreValues,
       remarkVersion: report.remarkVersion,
     );
   }
@@ -1530,6 +1633,7 @@ class AuditController extends ChangeNotifier {
             paygradePipeline: currentReport.paygradePipeline,
             currentPaygrade: currentReport.currentPaygrade,
             paygradeUnit: currentReport.paygradeUnit,
+            coreValues: currentReport.coreValues,
             remarkVersion: currentReport.remarkVersion,
           ),
           certifiedReportOptions: certifiedReports,
@@ -1665,6 +1769,7 @@ class AuditController extends ChangeNotifier {
       paygradePipeline: const <PerformanceReportPaygradeStep>[],
       currentPaygrade: '--',
       paygradeUnit: '--',
+      coreValues: const <PerformanceReportCoreValue>[],
       remarkVersion: 0,
     );
   }
@@ -1673,7 +1778,7 @@ class AuditController extends ChangeNotifier {
     required int page,
     required int pageSize,
   }) {
-    if (!_state.isOwner &&
+    if (!_state.isActualOwner &&
         _state.selectedStatus == AuditMemberStatus.deactivated) {
       return _loadMyCheckIns(page: page, pageSize: pageSize);
     }
@@ -1808,8 +1913,17 @@ class AuditController extends ChangeNotifier {
     );
   }
 
+  void _logRecoverableError(String operation, Object error) {
+    debugPrint('AuditController.$operation failed: $error');
+  }
+
   bool _hasTeamMemberTabsAccess(User? user) {
     return user?.canAccessAuditTeamMembers ?? false;
+  }
+
+  bool _isActualOwner(User? user) {
+    return user?.isOwner == true ||
+        user?.normalizedRoles.contains('owner') == true;
   }
 }
 

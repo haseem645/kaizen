@@ -44,7 +44,11 @@ class CustomFunctions {
     'lib/assets/images/ISTP_Craftsman(M).png',
   ];
 
-  static showCustomAlert(BuildContext context, String title, String description) {
+  static showCustomAlert(
+    BuildContext context,
+    String title,
+    String description,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -86,7 +90,11 @@ class CustomFunctions {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final targetDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    final targetDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+    );
     final differenceInDays = targetDate.difference(today).inDays;
 
     if (differenceInDays < 0) {
@@ -144,10 +152,15 @@ class CustomFunctions {
   static ({int year, int quarter}) currentYearQuarter({DateTime? date}) {
     final resolvedDate = date ?? DateTime.now();
 
-    return (year: resolvedDate.year, quarter: ((resolvedDate.month - 1) ~/ 3) + 1);
+    return (
+      year: resolvedDate.year,
+      quarter: ((resolvedDate.month - 1) ~/ 3) + 1,
+    );
   }
 
-  static ({DateTime start, DateTime end}) currentQuarterDateRange({DateTime? date}) {
+  static ({DateTime start, DateTime end}) currentQuarterDateRange({
+    DateTime? date,
+  }) {
     final resolvedDate = date ?? DateTime.now();
     final quarter = ((resolvedDate.month - 1) ~/ 3) + 1;
     final startMonth = ((quarter - 1) * 3) + 1;
@@ -171,9 +184,42 @@ class CustomFunctions {
     }
 
     final todayDate = apiDateString();
-    final hasMatchingAuditDate = audits.any((audit) => isSameDate(audit.date, todayDate));
+    final hasMatchingAuditDate = audits.any(
+      (audit) => isSameDate(audit.date, todayDate),
+    );
 
     return !hasMatchingAuditDate;
+  }
+
+  static bool isAuditWithinContinueWindow(
+    String? value, {
+    int continueDays = 7,
+    DateTime? referenceDate,
+  }) {
+    final resolved = value?.trim();
+    if (resolved == null || resolved.isEmpty || continueDays <= 0) {
+      return false;
+    }
+
+    final parsedDate = _parseDeadline(resolved);
+    if (parsedDate == null) {
+      return false;
+    }
+
+    final resolvedReferenceDate = referenceDate ?? DateTime.now();
+    final today = DateTime(
+      resolvedReferenceDate.year,
+      resolvedReferenceDate.month,
+      resolvedReferenceDate.day,
+    );
+    final targetDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+    );
+    final differenceInDays = today.difference(targetDate).inDays;
+
+    return differenceInDays >= 0 && differenceInDays < continueDays;
   }
 
   static QuarterlyAuditDescription? resolveTargetAuditDescription({
@@ -196,7 +242,9 @@ class CustomFunctions {
     }
 
     for (final description in descriptions) {
-      if (description.hasAudit || description.pass > 0 || description.noPass > 0) {
+      if (description.hasAudit ||
+          description.pass > 0 ||
+          description.noPass > 0) {
         return description;
       }
     }
@@ -225,7 +273,10 @@ class CustomFunctions {
     required QuarterlyAudit audit,
     required QuarterlyAuditDescription description,
   }) {
-    final title = resolveAuditCategoryTitle(audit: audit, description: description).trim();
+    final title = resolveAuditCategoryTitle(
+      audit: audit,
+      description: description,
+    ).trim();
 
     if (title.isNotEmpty) {
       return title;
@@ -271,7 +322,9 @@ class CustomFunctions {
     return 'Wait';
   }
 
-  static bool shouldShowAuditDescription(QuarterlyAuditDescription description) {
+  static bool shouldShowAuditDescription(
+    QuarterlyAuditDescription description,
+  ) {
     final isPastAuditDate = isDateBeforeToday(description.lastAuditDate);
     final hasPassOrNoPass = description.pass > 0 || description.noPass > 0;
 
@@ -300,7 +353,10 @@ class CustomFunctions {
     return resolved
         .split(RegExp(r'[_\s]+'))
         .where((part) => part.isNotEmpty)
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}')
+        .map(
+          (part) =>
+              '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+        )
         .join(' ');
   }
 
@@ -314,7 +370,8 @@ class CustomFunctions {
 
   static bool isNoLongerNeededStatus(String? status) {
     final normalized = normalizedStatus(status);
-    return normalized == 'no longer required' || normalized == 'no longer needed';
+    return normalized == 'no longer required' ||
+        normalized == 'no longer needed';
   }
 
   static bool isPassedStatus(String? status) {
@@ -342,7 +399,10 @@ class CustomFunctions {
     return normalizedStatus(status) == 'cancelled';
   }
 
-  static String fileNameFromPath(String path, {String fallback = 'document.jpg'}) {
+  static String fileNameFromPath(
+    String path, {
+    String fallback = 'document.jpg',
+  }) {
     final normalizedPath = path.replaceAll('\\', '/');
     final name = normalizedPath.split('/').last.trim();
     return name.isEmpty ? fallback : name;
@@ -369,7 +429,10 @@ class CustomFunctions {
     return '$formattedSize ${units[unitIndex]}';
   }
 
-  static String contentTypeFromPath(String path, {String fallback = 'image/jpeg'}) {
+  static String contentTypeFromPath(
+    String path, {
+    String fallback = 'image/jpeg',
+  }) {
     final type = lookupMimeType(path) ?? fallback;
     debugPrint('Content-Type: $type');
     return type;
@@ -409,7 +472,11 @@ class CustomFunctions {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final targetDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    final targetDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+    );
 
     return targetDate.difference(today).inDays < 0;
   }
@@ -427,7 +494,11 @@ class CustomFunctions {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final targetDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    final targetDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+    );
 
     return targetDate.isBefore(today);
   }
@@ -448,7 +519,11 @@ class CustomFunctions {
       return false;
     }
 
-    final targetDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    final targetDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+    );
     final referenceDate = DateTime(
       parsedReferenceDate.year,
       parsedReferenceDate.month,
@@ -488,7 +563,9 @@ class CustomFunctions {
     final timestamp = int.tryParse(trimmedValue);
     if (timestamp != null) {
       final isMilliseconds = trimmedValue.length >= 13;
-      return DateTime.fromMillisecondsSinceEpoch(isMilliseconds ? timestamp : timestamp * 1000);
+      return DateTime.fromMillisecondsSinceEpoch(
+        isMilliseconds ? timestamp : timestamp * 1000,
+      );
     }
 
     return DateTime.tryParse(trimmedValue) ?? _parseFormattedDate(trimmedValue);
@@ -573,7 +650,11 @@ class CustomFunctions {
     return null;
   }
 
-  static DateTime? _safeDate({required int? year, required int? month, required int? day}) {
+  static DateTime? _safeDate({
+    required int? year,
+    required int? month,
+    required int? day,
+  }) {
     if (year == null || month == null || day == null) {
       return null;
     }
@@ -582,7 +663,9 @@ class CustomFunctions {
     }
 
     final parsedDate = DateTime(year, month, day);
-    if (parsedDate.year != year || parsedDate.month != month || parsedDate.day != day) {
+    if (parsedDate.year != year ||
+        parsedDate.month != month ||
+        parsedDate.day != day) {
       return null;
     }
 
@@ -646,7 +729,9 @@ class CustomFunctions {
       return null;
     }
 
-    return trimmed.replaceAll(RegExp(r'\s*-\s*'), '_').replaceAll(RegExp(r'\s+'), '');
+    return trimmed
+        .replaceAll(RegExp(r'\s*-\s*'), '_')
+        .replaceAll(RegExp(r'\s+'), '');
   }
 
   static String? resolveNetworkUrl(String? url) {
@@ -752,7 +837,10 @@ class CustomFunctions {
     return fallback;
   }
 
-  static String displayCommentText(String? comment, {String fallback = 'No Comment'}) {
+  static String displayCommentText(
+    String? comment, {
+    String fallback = 'No Comment',
+  }) {
     return resolvedText(comment) ?? fallback;
   }
 
@@ -769,7 +857,8 @@ class CustomFunctions {
 
   static bool isApplePlatform([TargetPlatform? platform]) {
     final resolvedPlatform = platform ?? defaultTargetPlatform;
-    return resolvedPlatform == TargetPlatform.iOS || resolvedPlatform == TargetPlatform.macOS;
+    return resolvedPlatform == TargetPlatform.iOS ||
+        resolvedPlatform == TargetPlatform.macOS;
   }
 
   static String urlWithoutQuery(String value) {

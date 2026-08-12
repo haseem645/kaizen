@@ -103,7 +103,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
 
         AppRouter.pushReplacementNamed<void, void>(
           context,
-          AppRouter.kaizengram,
+          AppRouter.defaultAuthenticatedRouteName,
         );
       });
     }

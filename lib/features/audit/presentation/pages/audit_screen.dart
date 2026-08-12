@@ -100,7 +100,9 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
     _syncSearchController(state.searchQuery);
 
     return DrawerMainScreen(
-      title: state.isOwner ? AppStrings.checkInTitle : 'My Check-In',
+      title: state.isOwner
+          ? AppStrings.checkInTitle
+          : AppStrings.auditMyCheckInTitle,
       selectedMenu: AppMenuType.audits,
       centerTitle: true,
       appBarActions: const [
@@ -136,28 +138,33 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
 
   Widget _buildContent(AuditController controller, AuditState state) {
     final members = controller.visibleMembers;
+    final showSearchAndFilter = state.isOwner;
+    final showSelectionTabs = state.isOwner && !state.isActualOwner;
 
     return ListView(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        if (state.isOwner)
-          AuditStatusSwitcher(
-            selectedStatus: state.selectedStatus,
-            onStatusSelected: controller.selectStatus,
-            activeTitle: 'Team Members',
-            deactivatedTitle: 'My Check-In',
+        if (showSearchAndFilter) ...[
+          if (showSelectionTabs) ...[
+            AuditStatusSwitcher(
+              selectedStatus: state.selectedStatus,
+              activeTitle: AppStrings.auditTeamMembersTab,
+              deactivatedTitle: AppStrings.auditMyCheckInsTab,
+              onStatusSelected: controller.selectStatus,
+            ),
+            const SizedBox(height: 22),
+          ],
+          AuditSearchBar(
+            controller: _searchController,
+            onChanged: controller.updateSearchQuery,
+            onFilterTap: () => _openFilterSheet(context, controller, state),
           ),
-        const SizedBox(height: 22),
-        AuditSearchBar(
-          controller: _searchController,
-          onChanged: controller.updateSearchQuery,
-          onFilterTap: () => _openFilterSheet(context, controller, state),
-        ),
-        if (state.selectedYearQuarter != null ||
-            state.selectedSeatProfile != null) ...[
-          const SizedBox(height: 14),
-          _buildAppliedFilterTags(controller, state),
+          if (state.selectedYearQuarter != null ||
+              state.selectedSeatProfile != null) ...[
+            const SizedBox(height: 14),
+            _buildAppliedFilterTags(controller, state),
+          ],
         ],
         const SizedBox(height: 18),
         if (members.isEmpty)
@@ -280,16 +287,21 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
   }
 
   Widget _buildEmptyAuditState(AuditMemberStatus status) {
-    final statusLabel = switch ((
-      context.read<AuditController>().state.isOwner,
-      status,
-    )) {
-      (true, AuditMemberStatus.active) => AppStrings.auditActive.toLowerCase(),
-      (true, AuditMemberStatus.deactivated) =>
+    final state = context.read<AuditController>().state;
+    final statusLabel = switch ((state.isActualOwner, state.isOwner, status)) {
+      (true, _, AuditMemberStatus.active) =>
+        AppStrings.auditActive.toLowerCase(),
+      (true, _, AuditMemberStatus.deactivated) =>
         AppStrings.auditDeactivated.toLowerCase(),
-      (false, AuditMemberStatus.active) => 'team members',
-      (false, AuditMemberStatus.deactivated) => 'my check-ins',
+      (false, true, AuditMemberStatus.active) =>
+        AppStrings.auditTeamMembersTab.toLowerCase(),
+      (false, true, AuditMemberStatus.deactivated) =>
+        AppStrings.auditMyCheckInsTab.toLowerCase(),
+      (false, false, _) => AppStrings.auditMyCheckInsTab.toLowerCase(),
     };
+    final message = state.isActualOwner
+        ? '${AppStrings.auditNoMembersFound}\nTry a different search for $statusLabel members.'
+        : AppStrings.auditNoStatusAvailable(statusLabel);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -298,7 +310,7 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
         borderRadius: BorderRadius.circular(14),
       ),
       child: AppTextView.body(
-        '${AppStrings.auditNoMembersFound}\nTry a different search for $statusLabel members.',
+        message,
         color: AppColors.textSecondary,
         textAlign: TextAlign.center,
         height: 1.5,

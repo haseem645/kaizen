@@ -8,7 +8,7 @@ import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/quarterly_audit.dart';
 import '../../domain/entities/seat_description_audit_report_comments.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
-import '../../domain/entities/seat_description_training.dart';
+import '../../../training/domain/entities/seat_description_training.dart';
 import '../../domain/entities/single_audit_report_category_details.dart';
 import '../../domain/repositories/audit_repository.dart';
 import '../datasources/audit_remote_data_source.dart';
@@ -280,9 +280,26 @@ class AuditRepositoryImpl implements AuditRepository {
 
   @override
   Future<List<SeatDescriptionTrainingModule>>
-  getSeatDescriptionTrainingModules({required String descriptionId}) {
+  getSeatDescriptionTrainingModules({
+    required String descriptionId,
+    bool forceRefresh = false,
+  }) {
     return _remoteDataSource.getSeatDescriptionTrainingModules(
       descriptionId: descriptionId,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  @override
+  Future<SeatDescriptionTrainingModule> createSeatDescriptionTrainingModule({
+    required String jobId,
+    required String descriptionId,
+    required String title,
+  }) {
+    return _remoteDataSource.createSeatDescriptionTrainingModule(
+      jobId: jobId,
+      descriptionId: descriptionId,
+      title: title,
     );
   }
 
@@ -299,6 +316,149 @@ class AuditRepositoryImpl implements AuditRepository {
   getSeatDescriptionTrainingModuleDocument({required String moduleId}) {
     return _remoteDataSource.getSeatDescriptionTrainingModuleDocument(
       moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<List<SeatDescriptionTrainingQuestion>>
+  getSeatDescriptionTrainingModuleQuestions({required String moduleId}) {
+    return _remoteDataSource.getSeatDescriptionTrainingModuleQuestions(
+      moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<SeatDescriptionTrainingQuestion> addSeatDescriptionTrainingQuestion({
+    required String moduleId,
+    required String questionText,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    required String correctOptionUuid,
+  }) {
+    return _remoteDataSource.addSeatDescriptionTrainingQuestion(
+      moduleId: moduleId,
+      questionText: questionText,
+      options: options,
+      correctOptionUuid: correctOptionUuid,
+    );
+  }
+
+  @override
+  Future<void> generateSeatDescriptionTrainingModuleQuiz({
+    required String moduleId,
+    required int numQuestions,
+    required int optionsPerQuestion,
+    required String difficultyLevel,
+    required bool replaceExistingQuestions,
+  }) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleQuiz(
+      moduleId: moduleId,
+      numQuestions: numQuestions,
+      optionsPerQuestion: optionsPerQuestion,
+      difficultyLevel: difficultyLevel,
+      replaceExistingQuestions: replaceExistingQuestions,
+    );
+  }
+
+  @override
+  Future<void> generateSeatDescriptionTrainingModuleSop({
+    required String moduleId,
+  }) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleSop(
+      moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<String?> generateSeatDescriptionTrainingModuleSummary({
+    required String moduleId,
+  }) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleSummary(
+      moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<String> generateSeatDescriptionTrainingModuleVideoUploadUrl({
+    required String fileName,
+  }) {
+    return _remoteDataSource
+        .generateSeatDescriptionTrainingModuleVideoUploadUrl(
+          fileName: fileName,
+        );
+  }
+
+  @override
+  Future<void> uploadSeatDescriptionTrainingModuleVideoFile({
+    required String uploadUrl,
+    required String fileName,
+    required List<int> fileBytes,
+    required String contentType,
+  }) {
+    return _remoteDataSource.uploadSeatDescriptionTrainingModuleVideoFile(
+      uploadUrl: uploadUrl,
+      fileName: fileName,
+      fileBytes: fileBytes,
+      contentType: contentType,
+    );
+  }
+
+  @override
+  Future<SeatDescriptionTrainingVideo> addSeatDescriptionTrainingModuleVideo({
+    required String moduleId,
+    required String videoUuid,
+    required String title,
+    required String videoUrl,
+    required int duration,
+  }) {
+    return _remoteDataSource.addSeatDescriptionTrainingModuleVideo(
+      moduleId: moduleId,
+      videoUuid: videoUuid,
+      title: title,
+      videoUrl: videoUrl,
+      duration: duration,
+    );
+  }
+
+  @override
+  Future<void> deleteSeatDescriptionTrainingModuleVideo({
+    required String videoId,
+  }) {
+    return _remoteDataSource.deleteSeatDescriptionTrainingModuleVideo(
+      videoId: videoId,
+    );
+  }
+
+  @override
+  Future<void> updateSeatDescriptionTrainingModuleThumbnail({
+    required String moduleId,
+    required String thumbnailUrl,
+  }) {
+    return _remoteDataSource.updateSeatDescriptionTrainingModuleThumbnail(
+      moduleId: moduleId,
+      thumbnailUrl: thumbnailUrl,
+    );
+  }
+
+  @override
+  Future<void> deleteSeatDescriptionTrainingModule({required String moduleId}) {
+    return _remoteDataSource.deleteSeatDescriptionTrainingModule(
+      moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<SeatDescriptionTrainingQuestion>
+  updateSeatDescriptionTrainingQuestion({
+    required String questionId,
+    required String questionText,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    String? correctOptionUuid,
+  }) {
+    return _remoteDataSource.updateSeatDescriptionTrainingQuestion(
+      questionId: questionId,
+      questionText: questionText,
+      options: options,
+      correctOptionUuid: correctOptionUuid,
     );
   }
 
@@ -371,6 +531,19 @@ class AuditRepositoryImpl implements AuditRepository {
     return _remoteDataSource.createAuditDescriptionMedia(
       descriptionId: descriptionId,
       comment: comment,
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
+    );
+  }
+
+  @override
+  Future<void> updateAuditMedia({
+    required String auditMediaId,
+    required String mediaUrl,
+    required String mediaType,
+  }) {
+    return _remoteDataSource.updateAuditMedia(
+      auditMediaId: auditMediaId,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
     );

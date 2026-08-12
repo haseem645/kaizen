@@ -20,7 +20,12 @@ This skill is the canonical home for repository navigation guidance in this proj
 - Feature index: `references/features-index.md`
 - Feature routing files: `references/features/*.md`
 
-## Compatibility Notes
+## Source Of Truth
 
-- Legacy compatibility shims remain at `lib/features/SKILLS.md` and `lib/features/<feature>/SKILL.md`.
-- Prefer the `.codex` files as the maintained source of truth.
+- The `.codex` routing files are the maintained source of truth.
+- Feature-level `lib/features/**/SKILL.md` compatibility shims have been removed.
+
+## Implementation Rule
+
+- Do not use `setState()` to update widget or screen state in this project.
+- For new or changed UI flows, use the project’s existing state update patterns such as `Provider`, `ChangeNotifier`, `ProxyProvider`, or the owning controller/provider logic already established in the touched feature.
