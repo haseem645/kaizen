@@ -12,13 +12,13 @@ class GetPaygradesUseCase {
     required int page,
     int pageSize = 10,
     String? departmentId,
-    String title = '',
+    String name = '',
   }) {
     return _repository.getPaygrades(
       page: page,
       pageSize: pageSize,
       departmentId: departmentId,
-      title: title,
+      name: name,
     );
   }
 
