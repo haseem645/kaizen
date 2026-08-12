@@ -27,6 +27,7 @@ class PerformanceReport {
     required this.paygradePipeline,
     required this.currentPaygrade,
     required this.paygradeUnit,
+    this.coreValues = const <PerformanceReportCoreValue>[],
     this.remarkVersion = 0,
   });
 
@@ -55,6 +56,7 @@ class PerformanceReport {
   final List<PerformanceReportPaygradeStep> paygradePipeline;
   final String currentPaygrade;
   final String paygradeUnit;
+  final List<PerformanceReportCoreValue> coreValues;
   final int remarkVersion;
 }
 
@@ -108,6 +110,34 @@ class PerformanceReportPaygradeStep {
   final String payRateDisplay;
   final String promotionRequirement;
   final bool isCurrent;
+}
+
+class PerformanceReportCoreValue {
+  const PerformanceReportCoreValue({
+    required this.title,
+    this.description,
+    this.iconKey,
+    this.colorHex,
+    this.details = const <PerformanceReportCoreValueDetail>[],
+    this.rawData = const <String, dynamic>{},
+  });
+
+  final String title;
+  final String? description;
+  final String? iconKey;
+  final String? colorHex;
+  final List<PerformanceReportCoreValueDetail> details;
+  final Map<String, dynamic> rawData;
+}
+
+class PerformanceReportCoreValueDetail {
+  const PerformanceReportCoreValueDetail({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
 }
 
 class CertifiedReportOption {

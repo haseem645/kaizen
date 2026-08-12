@@ -31,6 +31,7 @@ class PerformanceReportModel extends PerformanceReport {
     required super.paygradePipeline,
     required super.currentPaygrade,
     required super.paygradeUnit,
+    super.coreValues,
     super.remarkVersion,
   });
 
@@ -44,6 +45,12 @@ class PerformanceReportModel extends PerformanceReport {
     final paygrades = _listOfMaps(json['paygrades']);
     final availableProfiles = _listOfMaps(json['profiles']);
     final categories = _listOfMaps(json['categories']);
+    final coreValueEntries = _firstNonEmptyListOfMaps(<dynamic>[
+      json['core_values'],
+      json['coreValues'],
+      _map(json['data'])['core_values'],
+      _map(personalityValue)['core_values'],
+    ]);
     final personality = _map(personalityValue);
     final hasPersonalityData =
         personalityValue is Map && personality.isNotEmpty;
@@ -194,6 +201,10 @@ class PerformanceReportModel extends PerformanceReport {
           ),
         )
         .toList(growable: false);
+    final coreValues = coreValueEntries
+        .map(_mapCoreValue)
+        .whereType<PerformanceReportCoreValue>()
+        .toList(growable: false);
 
     return PerformanceReportModel(
       profile: profile,
@@ -253,6 +264,7 @@ class PerformanceReportModel extends PerformanceReport {
           ? '--'
           : _paygradeLabel(assignedPaygrade),
       paygradeUnit: _stringFromMaps([job], ['unit'], fallback: '--'),
+      coreValues: coreValues,
     );
   }
 
@@ -332,6 +344,170 @@ class PerformanceReportModel extends PerformanceReport {
     return '$initials $index';
   }
 
+  static PerformanceReportCoreValue? _mapCoreValue(Map<String, dynamic> json) {
+    final title = _stringFromMaps(
+      [json],
+      ['title', 'name', 'label', 'core_value', 'value'],
+    );
+    final description = _nullableStringFromMaps(
+      [json],
+      ['description', 'detail', 'summary', 'remarks', 'remark'],
+    );
+    final details = _buildCoreValueDetails(json);
+
+    if (title.isEmpty && description == null && details.isEmpty) {
+      return null;
+    }
+
+    return PerformanceReportCoreValue(
+      title: title.isEmpty ? 'Core Value' : title,
+      description: description,
+      iconKey: _nullableStringFromMaps([json], ['icon', 'icon_key', 'key']),
+      colorHex: _nullableStringFromMaps(
+        [json],
+        ['color_hex', 'colorHex', 'hex_color', 'hexCode', 'hex_code'],
+      ),
+      details: details,
+      rawData: Map<String, dynamic>.from(json),
+    );
+  }
+
+  static List<PerformanceReportCoreValueDetail> _buildCoreValueDetails(
+    Map<String, dynamic> json,
+  ) {
+    const ignoredKeys = <String>{
+      'title',
+      'name',
+      'label',
+      'core_value',
+      'value',
+      'description',
+      'detail',
+      'summary',
+      'remarks',
+      'remark',
+      'icon',
+      'icon_key',
+      'key',
+      'uuid',
+      'id',
+    };
+
+    final details = <PerformanceReportCoreValueDetail>[];
+    for (final entry in json.entries) {
+      if (_shouldHideCoreValueDetailKey(entry.key, ignoredKeys)) {
+        continue;
+      }
+
+      final value = _formatCoreValueDetailValue(entry.value);
+      if (value == null || value.isEmpty) {
+        continue;
+      }
+
+      details.add(
+        PerformanceReportCoreValueDetail(
+          label: _formatCoreValueDetailLabel(entry.key),
+          value: value,
+        ),
+      );
+    }
+
+    return details;
+  }
+
+  static String? _formatCoreValueDetailValue(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is String) {
+      final trimmedValue = value.trim();
+      return trimmedValue.isEmpty ? null : trimmedValue;
+    }
+
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+
+    if (value is List) {
+      final items = value
+          .map(_stringifyCoreValueListItem)
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+      if (items.isEmpty) {
+        return null;
+      }
+      return items.map((item) => '• $item').join('\n');
+    }
+
+    if (value is Map) {
+      final mapValue = _map(value);
+      final preferredValue = _stringFromMaps(
+        [mapValue],
+        ['title', 'name', 'label', 'description', 'detail', 'summary'],
+      );
+      if (preferredValue.isNotEmpty) {
+        return preferredValue;
+      }
+
+      final pairs = mapValue.entries
+          .map((entry) {
+            if (_shouldHideCoreValueDetailKey(entry.key, const <String>{})) {
+              return null;
+            }
+            final nestedValue = _formatCoreValueDetailValue(entry.value);
+            if (nestedValue == null || nestedValue.isEmpty) {
+              return null;
+            }
+
+            return '${_formatCoreValueDetailLabel(entry.key)}: ${nestedValue.replaceAll('\n', ' ')}';
+          })
+          .whereType<String>()
+          .toList(growable: false);
+      if (pairs.isEmpty) {
+        return null;
+      }
+
+      return pairs.join('\n');
+    }
+
+    final fallbackValue = value.toString().trim();
+    return fallbackValue.isEmpty ? null : fallbackValue;
+  }
+
+  static String _stringifyCoreValueListItem(dynamic item) {
+    final value = _formatCoreValueDetailValue(item);
+    return value?.replaceAll('\n', ' ').trim() ?? '';
+  }
+
+  static String _formatCoreValueDetailLabel(String key) {
+    return key
+        .split(RegExp(r'[_\-\s]+'))
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty)
+        .map(
+          (segment) =>
+              '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+  }
+
+  static bool _shouldHideCoreValueDetailKey(
+    String key,
+    Set<String> ignoredKeys,
+  ) {
+    final normalizedKey = key.trim().toLowerCase();
+    if (ignoredKeys.contains(normalizedKey)) {
+      return true;
+    }
+
+    final compactKey = normalizedKey.replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return compactKey == 'colorhex' ||
+        compactKey == 'colorcode' ||
+        compactKey == 'hexcolor' ||
+        compactKey == 'hexcode';
+  }
+
   static int _resolveConfidenceLevel(num value) {
     final normalized = _normalizeConfidenceDisplay(value.toDouble());
     return normalized.round();
@@ -363,6 +539,19 @@ class PerformanceReportModel extends PerformanceReport {
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
+  }
+
+  static List<Map<String, dynamic>> _firstNonEmptyListOfMaps(
+    List<dynamic> values,
+  ) {
+    for (final value in values) {
+      final mappedList = _listOfMaps(value);
+      if (mappedList.isNotEmpty) {
+        return mappedList;
+      }
+    }
+
+    return const <Map<String, dynamic>>[];
   }
 
   static String _stringFromMaps(
