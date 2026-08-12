@@ -144,14 +144,18 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
   Widget build(BuildContext context) {
     final controller = context.watch<LoginController>();
     return Scaffold(
-      backgroundColor: const Color(0xFF292C3C),
+      backgroundColor: AppColors.hex292c3c,
       resizeToAvoidBottomInset: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF33364B), Color(0xFF2E3144), Color(0xFF292C3C)],
+            colors: [
+              AppColors.hex33364b,
+              AppColors.hex2e3144,
+              AppColors.hex292c3c,
+            ],
             stops: [0.0, 0.42, 1.0],
           ),
         ),

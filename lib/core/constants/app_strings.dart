@@ -598,7 +598,7 @@ class AppStrings {
   static const String trainingSubmitQuiz = 'Submit Quiz';
   static const String trainingNoModulesAvailable =
       'No training modules available.';
-  static const String trainingLibraryTitle = 'Training Library';
+  static const String trainingLibraryTitle = 'LMS';
   static const String trainingLibraryAllFilter = 'All';
   static const String trainingLibraryLessonsSection = 'Training Modules';
   static const String trainingLibraryDepartment = 'Department';
@@ -642,6 +642,8 @@ class AppStrings {
   static const String trainingNoTranscriptAvailable =
       'No transcript available.';
   static const String trainingNoSummaryAvailable = 'No summary available.';
+  static const String trainingNoSummaryAvailableSnackBar =
+      'No Summary Available';
   static const String trainingSummaryLabel = 'Summary';
   static String trainingLibraryLessonsCount(int count) =>
       '$count ${count == 1 ? 'Lesson' : 'Lessons'}';
@@ -722,6 +724,7 @@ class AppStrings {
   static const String continueAction = "Continue";
 
   // Actions
+  static const String continueCheckIn = "Continue Check-in";
   static const String newCheckIn = "New Check-in";
 
   // Date placeholders (if needed for static display)

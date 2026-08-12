@@ -55,7 +55,7 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
   String? _highlightedMessageId;
   int _highlightSequence = 0;
 
-  static const Color _screenBackground = Color(0xFF111317);
+  static const Color _screenBackground = AppColors.hex111317;
 
   @override
   void dispose() {
@@ -66,24 +66,29 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
   @override
   Widget build(BuildContext context) {
     return buildWithNotifier((context) {
-      final hasSelectedConversation = context.select<KaizengramChatController, bool>(
-        (controller) => controller.hasSelectedConversation,
-      );
-      final conversationTitle = context.select<KaizengramChatController, String>(
-        (controller) => controller.currentConversationTitle,
-      );
-      final conversationLabel = context.select<KaizengramChatController, String>(
-        (controller) => controller.currentConversationLabel,
-      );
-      final isCurrentConversationChannel = context.select<KaizengramChatController, bool>(
-        (controller) => controller.isCurrentConversationChannel,
-      );
+      final hasSelectedConversation = context
+          .select<KaizengramChatController, bool>(
+            (controller) => controller.hasSelectedConversation,
+          );
+      final conversationTitle = context
+          .select<KaizengramChatController, String>(
+            (controller) => controller.currentConversationTitle,
+          );
+      final conversationLabel = context
+          .select<KaizengramChatController, String>(
+            (controller) => controller.currentConversationLabel,
+          );
+      final isCurrentConversationChannel = context
+          .select<KaizengramChatController, bool>(
+            (controller) => controller.isCurrentConversationChannel,
+          );
       final messageVersion = context.select<KaizengramChatController, int>(
         (controller) => controller.messageVersion,
       );
       final controller = context.read<KaizengramChatController>();
       final messages = controller.messages;
-      final autoScrollKey = '$conversationTitle-$messageVersion-${messages.length}';
+      final autoScrollKey =
+          '$conversationTitle-$messageVersion-${messages.length}';
 
       if (messages.isNotEmpty && _lastAutoScrollKey != autoScrollKey) {
         _lastAutoScrollKey = autoScrollKey;
@@ -159,14 +164,19 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
     ];
   }
 
-  Widget _buildBody(String conversationTitle, List<KaizengramChatMessage> messages) {
+  Widget _buildBody(
+    String conversationTitle,
+    List<KaizengramChatMessage> messages,
+  ) {
     return SafeArea(
       top: false,
       bottom: false,
       child: Column(
         children: <Widget>[
           Expanded(child: _buildMessagesContent(messages)),
-          KaizengramChatMessageComposer(key: ValueKey<String>(conversationTitle)),
+          KaizengramChatMessageComposer(
+            key: ValueKey<String>(conversationTitle),
+          ),
         ],
       ),
     );
@@ -182,11 +192,16 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       itemCount: messages.length,
       separatorBuilder: (_, __) => const SizedBox(height: 14),
-      itemBuilder: (context, index) => _buildMessageItem(context, messages, index),
+      itemBuilder: (context, index) =>
+          _buildMessageItem(context, messages, index),
     );
   }
 
-  Widget _buildMessageItem(BuildContext context, List<KaizengramChatMessage> messages, int index) {
+  Widget _buildMessageItem(
+    BuildContext context,
+    List<KaizengramChatMessage> messages,
+    int index,
+  ) {
     final message = messages[index];
     return KeyedSubtree(
       key: _messageKeyFor(message.id),
@@ -199,7 +214,10 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
     );
   }
 
-  Future<void> _handleMenuSelection(BuildContext context, _ChatMenuAction action) async {
+  Future<void> _handleMenuSelection(
+    BuildContext context,
+    _ChatMenuAction action,
+  ) async {
     switch (action) {
       case _ChatMenuAction.users:
         await _showUsersSheet(context);
@@ -228,7 +246,8 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
     }
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (_) => DeleteChannelConfirmationDialog(channelName: deletedChannel),
+      builder: (_) =>
+          DeleteChannelConfirmationDialog(channelName: deletedChannel),
     );
 
     if (shouldDelete != true || !context.mounted) {
@@ -248,12 +267,17 @@ class _KaizengramChatViewState extends State<_KaizengramChatView>
   }
 
   GlobalKey _messageKeyFor(String messageId) {
-    return _messageKeys.putIfAbsent(messageId, () => GlobalObjectKey(messageId));
+    return _messageKeys.putIfAbsent(
+      messageId,
+      () => GlobalObjectKey(messageId),
+    );
   }
 
   Future<void> _scrollToMessage(String messageId) async {
     final controller = context.read<KaizengramChatController>();
-    final targetIndex = controller.messages.indexWhere((message) => message.id == messageId);
+    final targetIndex = controller.messages.indexWhere(
+      (message) => message.id == messageId,
+    );
     if (targetIndex == -1 || !_scrollController.hasClients) {
       return;
     }
@@ -351,7 +375,11 @@ class _NoConversationSelectedView extends StatelessWidget {
 }
 
 class _ChatAppBarTitle extends StatelessWidget {
-  const _ChatAppBarTitle({required this.title, required this.subtitle, required this.isChannel});
+  const _ChatAppBarTitle({
+    required this.title,
+    required this.subtitle,
+    required this.isChannel,
+  });
 
   final String title;
   final String subtitle;
@@ -370,7 +398,11 @@ class _ChatAppBarTitle extends StatelessWidget {
           fontWeight: FontWeight.w800,
         ),
         const SizedBox(height: 2),
-        AppTextView.body4(subtitle, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+        AppTextView.body4(
+          subtitle,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
       ],
     );
   }
@@ -401,7 +433,9 @@ class _ChatMessageTile extends StatelessWidget {
       child: Row(
         key: ValueKey<String>(message.id),
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isOwnMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isOwnMessage
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: <Widget>[
           if (!isOwnMessage) ...<Widget>[
             ChatUserInitialAvatar(
@@ -412,7 +446,9 @@ class _ChatMessageTile extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isOwnMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isOwnMessage
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: <Widget>[
                 AnimatedScale(
                   scale: isHighlighted ? 1.02 : 1,
@@ -421,12 +457,19 @@ class _ChatMessageTile extends StatelessWidget {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOut,
-                    constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.68),
-                    padding: const EdgeInsets.only(left: 14, right: 14, bottom: 14, top: 8),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.sizeOf(context).width * 0.68,
+                    ),
+                    padding: const EdgeInsets.only(
+                      left: 14,
+                      right: 14,
+                      bottom: 14,
+                      top: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: isOwnMessage
                           ? AppColors.secondaryColor.withValues(alpha: 0.22)
-                          : const Color(0xFF1B1E27),
+                          : AppColors.hex1b1e27,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: isHighlighted
@@ -459,14 +502,16 @@ class _ChatMessageTile extends StatelessWidget {
                             replyTo: message.replyTo!,
                             users: controller.users,
                             isOwnMessage: isOwnMessage,
-                            onTap: () => onReplyPreviewTap(message.replyTo!.messageId),
+                            onTap: () =>
+                                onReplyPreviewTap(message.replyTo!.messageId),
                           ),
                           const SizedBox(height: 10),
                         ],
                         if (message.hasMedia) ...<Widget>[
                           _ChatMessageMediaStrip(
                             attachments: message.attachments,
-                            onOpenAttachment: (index) => _openMediaViewer(context, index),
+                            onOpenAttachment: (index) =>
+                                _openMediaViewer(context, index),
                           ),
                           if (message.hasText) const SizedBox(height: 10),
                         ],
@@ -581,7 +626,9 @@ class _ReplyPreviewCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           decoration: BoxDecoration(
-            color: isOwnMessage ? const Color(0x332A2D3D) : const Color(0xFF24283D),
+            color: isOwnMessage
+                ? AppColors.hex332a2d3d
+                : AppColors.surfaceDark3,
             borderRadius: BorderRadius.circular(12),
           ),
           child: IntrinsicHeight(
@@ -637,12 +684,19 @@ class _PopupMenuLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppTextView.body2(title, color: AppColors.textPrimary, fontWeight: FontWeight.w600);
+    return AppTextView.body2(
+      title,
+      color: AppColors.textPrimary,
+      fontWeight: FontWeight.w600,
+    );
   }
 }
 
 class _ChatMessageMediaStrip extends StatelessWidget {
-  const _ChatMessageMediaStrip({required this.attachments, required this.onOpenAttachment});
+  const _ChatMessageMediaStrip({
+    required this.attachments,
+    required this.onOpenAttachment,
+  });
 
   final List<KaizengramMessageAttachment> attachments;
   final ValueChanged<int> onOpenAttachment;
@@ -667,7 +721,8 @@ class _ChatMessageMediaStrip extends StatelessWidget {
         if (attachments.length <= kaizengramMessageAttachmentLimit) {
           const maxSquareSide = 96.0;
           var squareSide =
-              (availableWidth - (spacing * (attachments.length - 1))) / attachments.length;
+              (availableWidth - (spacing * (attachments.length - 1))) /
+              attachments.length;
           if (squareSide > maxSquareSide) {
             squareSide = maxSquareSide;
           }
@@ -676,7 +731,9 @@ class _ChatMessageMediaStrip extends StatelessWidget {
             height: squareSide,
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: List<Widget>.generate(attachments.length * 2 - 1, (index) {
+              children: List<Widget>.generate(attachments.length * 2 - 1, (
+                index,
+              ) {
                 if (index.isOdd) {
                   return const SizedBox(width: spacing);
                 }
@@ -734,7 +791,12 @@ class _ChatMessageMediaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mediaChild = attachment.isPdf
-        ? _ChatMessagePdfCard(attachment: attachment, width: width, height: height, onOpen: onOpen)
+        ? _ChatMessagePdfCard(
+            attachment: attachment,
+            width: width,
+            height: height,
+            onOpen: onOpen,
+          )
         : attachment.isVideo
         ? ChatVideoPreview(
             videoPath: attachment.path,
@@ -753,12 +815,14 @@ class _ChatMessageMediaCard extends StatelessWidget {
                   ? Image.network(
                       attachment.path,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const _ChatMessageMediaFallback(),
+                      errorBuilder: (_, __, ___) =>
+                          const _ChatMessageMediaFallback(),
                     )
                   : Image.file(
                       File(attachment.path),
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const _ChatMessageMediaFallback(),
+                      errorBuilder: (_, __, ___) =>
+                          const _ChatMessageMediaFallback(),
                     ),
             ),
           );
@@ -771,7 +835,7 @@ class _ChatMessageMediaCard extends StatelessWidget {
         child: Container(
           width: double.infinity,
           height: double.infinity,
-          color: const Color(0xFF111317),
+          color: AppColors.hex111317,
           child: mediaChild,
         ),
       ),
@@ -859,7 +923,11 @@ class _ChatMessageMediaFallback extends StatelessWidget {
     return const SizedBox(
       height: 140,
       child: Center(
-        child: Icon(Icons.broken_image_outlined, color: AppColors.textSecondary, size: 28),
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: AppColors.textSecondary,
+          size: 28,
+        ),
       ),
     );
   }

@@ -1545,7 +1545,7 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
       width: 72,
       height: 72,
       decoration: BoxDecoration(
-        color: const Color(0xFF14182A),
+        color: AppColors.hex14182a,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Center(

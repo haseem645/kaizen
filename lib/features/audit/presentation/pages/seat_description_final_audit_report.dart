@@ -77,7 +77,10 @@ class _SeatDescriptionFinalAuditReportScreenState
         bottom: false,
         child: Column(
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 0), child: _buildHeader(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: _buildHeader(context),
+            ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -126,48 +129,68 @@ class _SeatDescriptionFinalAuditReportScreenState
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    child: FutureBuilder<List<SeatDescriptionFinalAuditProfile>>(
-                      future: _profilesFuture,
-                      builder: (context, profilesSnapshot) {
-                        final profiles = profilesSnapshot.data ?? const [];
-                        return Column(
-                          children: [
-                            _ReportIdentityCard(report: report, profiles: profiles),
-                            const SizedBox(height: 16),
-                            _ConfidenceLevelCard(stats: report.summaryData.stats),
-                            const SizedBox(height: 16),
-                            _DetailTextCard(title: 'Description', body: report.description),
-                            const SizedBox(height: 16),
-                            _DetailTextCard(title: 'Specifics', body: report.jobSpecifics),
-                            const SizedBox(height: 16),
-                            _PerformanceTrendCard(
-                              selectedTimeRange: _selectedTimeRange,
-                              trends: report.summaryData.trends,
-                            ),
-                            const SizedBox(height: 16),
+                    child:
+                        FutureBuilder<List<SeatDescriptionFinalAuditProfile>>(
+                          future: _profilesFuture,
+                          builder: (context, profilesSnapshot) {
+                            final profiles = profilesSnapshot.data ?? const [];
+                            return Column(
+                              children: [
+                                _ReportIdentityCard(
+                                  report: report,
+                                  profiles: profiles,
+                                ),
+                                const SizedBox(height: 16),
+                                _ConfidenceLevelCard(
+                                  stats: report.summaryData.stats,
+                                ),
+                                const SizedBox(height: 16),
+                                _DetailTextCard(
+                                  title: 'Description',
+                                  body: report.description,
+                                ),
+                                const SizedBox(height: 16),
+                                _DetailTextCard(
+                                  title: 'Specifics',
+                                  body: report.jobSpecifics,
+                                ),
+                                const SizedBox(height: 16),
+                                _PerformanceTrendCard(
+                                  selectedTimeRange: _selectedTimeRange,
+                                  trends: report.summaryData.trends,
+                                ),
+                                const SizedBox(height: 16),
 
-                            FutureBuilder<SeatDescriptionAuditReportComments>(
-                              future: _commentsFuture,
-                              builder: (context, commentsSnapshot) {
-                                final allComments = commentsSnapshot.data?.items ?? const [];
-                                return _CommentsCard(
-                                  comments: _filterComments(allComments),
-                                  hasComments: allComments.isNotEmpty,
-                                  isLoading:
-                                      commentsSnapshot.connectionState != ConnectionState.done,
-                                  searchController: _commentsSearchController,
-                                  onSearchChanged: (value) {
-                                    setState(() {
-                                      _commentsQuery = value.trim().toLowerCase();
-                                    });
+                                FutureBuilder<
+                                  SeatDescriptionAuditReportComments
+                                >(
+                                  future: _commentsFuture,
+                                  builder: (context, commentsSnapshot) {
+                                    final allComments =
+                                        commentsSnapshot.data?.items ??
+                                        const [];
+                                    return _CommentsCard(
+                                      comments: _filterComments(allComments),
+                                      hasComments: allComments.isNotEmpty,
+                                      isLoading:
+                                          commentsSnapshot.connectionState !=
+                                          ConnectionState.done,
+                                      searchController:
+                                          _commentsSearchController,
+                                      onSearchChanged: (value) {
+                                        setState(() {
+                                          _commentsQuery = value
+                                              .trim()
+                                              .toLowerCase();
+                                        });
+                                      },
+                                    );
                                   },
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                   );
                 },
               ),
@@ -195,7 +218,10 @@ class _SeatDescriptionFinalAuditReportScreenState
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -225,26 +251,30 @@ class _SeatDescriptionFinalAuditReportScreenState
 
   Future<SeatDescriptionAuditReportComments> _loadComments() {
     final timeRange = _resolvedTimeRangeApiValue();
-    return context.read<AuditController>().loadSeatDescriptionAuditReportComments(
-      flowFirstId: widget.flowFirstId,
-      profileUuid: widget.profileUuid,
-      descriptionId: widget.descriptionId,
-      quarter: timeRange == null ? widget.quarter : null,
-      year: timeRange == null ? widget.year : null,
-      timeRange: timeRange,
-    );
+    return context
+        .read<AuditController>()
+        .loadSeatDescriptionAuditReportComments(
+          flowFirstId: widget.flowFirstId,
+          profileUuid: widget.profileUuid,
+          descriptionId: widget.descriptionId,
+          quarter: timeRange == null ? widget.quarter : null,
+          year: timeRange == null ? widget.year : null,
+          timeRange: timeRange,
+        );
   }
 
   Future<List<SeatDescriptionFinalAuditProfile>> _loadProfiles() {
     final timeRange = _resolvedTimeRangeApiValue();
-    return context.read<AuditController>().loadSeatDescriptionAuditReportProfiles(
-      flowFirstId: widget.flowFirstId,
-      profileUuid: widget.profileUuid,
-      descriptionId: widget.descriptionId,
-      quarter: timeRange == null ? widget.quarter : null,
-      year: timeRange == null ? widget.year : null,
-      timeRange: timeRange,
-    );
+    return context
+        .read<AuditController>()
+        .loadSeatDescriptionAuditReportProfiles(
+          flowFirstId: widget.flowFirstId,
+          profileUuid: widget.profileUuid,
+          descriptionId: widget.descriptionId,
+          quarter: timeRange == null ? widget.quarter : null,
+          year: timeRange == null ? widget.year : null,
+          timeRange: timeRange,
+        );
   }
 
   String? _resolvedTimeRangeApiValue() {
@@ -309,7 +339,10 @@ class _ReportIdentityCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _ReportMetaItem(label: 'Name', value: _resolveProfileName()),
+                child: _ReportMetaItem(
+                  label: 'Name',
+                  value: _resolveProfileName(),
+                ),
               ),
             ],
           ),
@@ -376,7 +409,11 @@ class _ReportMetaItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body3(label, color: AppColors.grey1, fontWeight: FontWeight.w600),
+        AppTextView.body3(
+          label,
+          color: AppColors.grey1,
+          fontWeight: FontWeight.w600,
+        ),
         const SizedBox(height: 6),
         AppTextView.body1(
           value.isEmpty ? '-' : value,
@@ -396,7 +433,8 @@ class _ConfidenceLevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalCount = stats.totalGreat + stats.totalAlmostThere + stats.totalNeedsImprovement;
+    final totalCount =
+        stats.totalGreat + stats.totalAlmostThere + stats.totalNeedsImprovement;
 
     return Container(
       width: double.infinity,
@@ -550,7 +588,10 @@ class _DetailTextCard extends StatelessWidget {
 }
 
 class _PerformanceTrendCard extends StatelessWidget {
-  const _PerformanceTrendCard({required this.selectedTimeRange, required this.trends});
+  const _PerformanceTrendCard({
+    required this.selectedTimeRange,
+    required this.trends,
+  });
 
   final String selectedTimeRange;
   final List<SeatDescriptionFinalAuditTrend> trends;
@@ -561,10 +602,17 @@ class _PerformanceTrendCard extends StatelessWidget {
     final validTrends =
         (usesQuarterLayout
               ? trends
-                    .where((item) => (item.quarter ?? '').isNotEmpty && item.year != null)
+                    .where(
+                      (item) =>
+                          (item.quarter ?? '').isNotEmpty && item.year != null,
+                    )
                     .toList(growable: false)
               : trends.where((item) => item.week > 0).toList(growable: false))
-          ..sort(usesQuarterLayout ? _compareQuarterTrends : (a, b) => a.week.compareTo(b.week));
+          ..sort(
+            usesQuarterLayout
+                ? _compareQuarterTrends
+                : (a, b) => a.week.compareTo(b.week),
+          );
 
     return Container(
       width: double.infinity,
@@ -588,7 +636,10 @@ class _PerformanceTrendCard extends StatelessWidget {
             const SizedBox(
               height: 120,
               child: Center(
-                child: AppTextView.body2('No trend data found.', color: AppColors.textSecondary),
+                child: AppTextView.body2(
+                  'No trend data found.',
+                  color: AppColors.textSecondary,
+                ),
               ),
             )
           else
@@ -602,8 +653,14 @@ class _PerformanceTrendCard extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       _TrendLegendItem(label: 'Great', color: AppColors.green1),
-                      _TrendLegendItem(label: 'Almost There', color: AppColors.orange1),
-                      _TrendLegendItem(label: 'Needs Improvement', color: AppColors.red1),
+                      _TrendLegendItem(
+                        label: 'Almost There',
+                        color: AppColors.orange1,
+                      ),
+                      _TrendLegendItem(
+                        label: 'Needs Improvement',
+                        color: AppColors.red1,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -614,7 +671,10 @@ class _PerformanceTrendCard extends StatelessWidget {
                       chartData: _trendChartData(validTrends),
                       maxY: _chartMaxY(
                         validTrends.fold<int>(0, (currentMax, trend) {
-                          final total = trend.great + trend.almostThere + trend.needsImprovement;
+                          final total =
+                              trend.great +
+                              trend.almostThere +
+                              trend.needsImprovement;
                           return math.max(currentMax, total);
                         }),
                       ).toDouble(),
@@ -631,7 +691,10 @@ class _PerformanceTrendCard extends StatelessWidget {
   bool get _usesQuarterLayout =>
       selectedTimeRange == 'Last 4 Quarters' || selectedTimeRange == 'All Time';
 
-  int _compareQuarterTrends(SeatDescriptionFinalAuditTrend a, SeatDescriptionFinalAuditTrend b) {
+  int _compareQuarterTrends(
+    SeatDescriptionFinalAuditTrend a,
+    SeatDescriptionFinalAuditTrend b,
+  ) {
     final yearCompare = (a.year ?? 0).compareTo(b.year ?? 0);
     if (yearCompare != 0) {
       return yearCompare;
@@ -653,7 +716,9 @@ class _PerformanceTrendCard extends StatelessWidget {
   BarChartData _trendChartData(List<SeatDescriptionFinalAuditTrend> trends) {
     final usesQuarterLayout = _usesQuarterLayout;
     final trendsByWeek = {
-      for (final trend in trends.where((item) => item.week >= 1 && item.week <= 13))
+      for (final trend in trends.where(
+        (item) => item.week >= 1 && item.week <= 13,
+      ))
         trend.week: trend,
     };
     final maxTotal = trends.fold<int>(0, (currentMax, trend) {
@@ -672,7 +737,9 @@ class _PerformanceTrendCard extends StatelessWidget {
       ),
       titlesData: FlTitlesData(
         show: true,
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
@@ -706,7 +773,9 @@ class _PerformanceTrendCard extends StatelessWidget {
             showTitles: true,
             interval: interval.toDouble(),
             getTitlesWidget: (value, meta) {
-              if (value < 0 || value > maxY || value % interval.toDouble() != 0) {
+              if (value < 0 ||
+                  value > maxY ||
+                  value % interval.toDouble() != 0) {
                 return const SizedBox.shrink();
               }
 
@@ -723,40 +792,57 @@ class _PerformanceTrendCard extends StatelessWidget {
       borderData: FlBorderData(show: false),
       minY: 0,
       maxY: maxY.toDouble(),
-      barGroups: List<BarChartGroupData>.generate(usesQuarterLayout ? trends.length : 13, (index) {
-        final trend = usesQuarterLayout ? trends[index] : trendsByWeek[index + 1];
-        final great = (trend?.great ?? 0).toDouble();
-        final almostThere = (trend?.almostThere ?? 0).toDouble();
-        final needsImprovement = (trend?.needsImprovement ?? 0).toDouble();
-        final greatEnd = great;
-        final almostThereEnd = great + almostThere;
-        final total = great + almostThere + needsImprovement;
+      barGroups: List<BarChartGroupData>.generate(
+        usesQuarterLayout ? trends.length : 13,
+        (index) {
+          final trend = usesQuarterLayout
+              ? trends[index]
+              : trendsByWeek[index + 1];
+          final great = (trend?.great ?? 0).toDouble();
+          final almostThere = (trend?.almostThere ?? 0).toDouble();
+          final needsImprovement = (trend?.needsImprovement ?? 0).toDouble();
+          final greatEnd = great;
+          final almostThereEnd = great + almostThere;
+          final total = great + almostThere + needsImprovement;
 
-        return BarChartGroupData(
-          x: usesQuarterLayout ? index : index + 1,
-          barsSpace: 0,
-          barRods: [
-            BarChartRodData(
-              toY: total,
-              width: usesQuarterLayout ? 24 : 12,
-              borderRadius: BorderRadius.circular(3),
-              color: total == 0 ? Colors.white12 : AppColors.green1,
-              rodStackItems: total == 0
-                  ? const <BarChartRodStackItem>[]
-                  : [
-                      if (great > 0) BarChartRodStackItem(0, greatEnd, AppColors.green1),
-                      if (almostThere > 0)
-                        BarChartRodStackItem(greatEnd, almostThereEnd, AppColors.orange1),
-                      if (needsImprovement > 0)
-                        BarChartRodStackItem(almostThereEnd, total, AppColors.red1),
-                    ],
-            ),
-          ],
-        );
-      }, growable: false),
+          return BarChartGroupData(
+            x: usesQuarterLayout ? index : index + 1,
+            barsSpace: 0,
+            barRods: [
+              BarChartRodData(
+                toY: total,
+                width: usesQuarterLayout ? 24 : 12,
+                borderRadius: BorderRadius.circular(3),
+                color: total == 0 ? Colors.white12 : AppColors.green1,
+                rodStackItems: total == 0
+                    ? const <BarChartRodStackItem>[]
+                    : [
+                        if (great > 0)
+                          BarChartRodStackItem(0, greatEnd, AppColors.green1),
+                        if (almostThere > 0)
+                          BarChartRodStackItem(
+                            greatEnd,
+                            almostThereEnd,
+                            AppColors.orange1,
+                          ),
+                        if (needsImprovement > 0)
+                          BarChartRodStackItem(
+                            almostThereEnd,
+                            total,
+                            AppColors.red1,
+                          ),
+                      ],
+              ),
+            ],
+          );
+        },
+        growable: false,
+      ),
       groupsSpace: usesQuarterLayout ? 18 : 8,
       barTouchData: BarTouchData(enabled: true),
-      alignment: usesQuarterLayout ? BarChartAlignment.center : BarChartAlignment.spaceBetween,
+      alignment: usesQuarterLayout
+          ? BarChartAlignment.center
+          : BarChartAlignment.spaceBetween,
     );
   }
 
@@ -764,7 +850,10 @@ class _PerformanceTrendCard extends StatelessWidget {
     return week >= 1 && week <= 13 ? 'w$week' : '';
   }
 
-  String _quarterAxisLabel(int index, List<SeatDescriptionFinalAuditTrend> trends) {
+  String _quarterAxisLabel(
+    int index,
+    List<SeatDescriptionFinalAuditTrend> trends,
+  ) {
     if (index < 0 || index >= trends.length) {
       return '';
     }
@@ -835,7 +924,9 @@ class _TrendProfilesAvatarStack extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final profile in visibleProfiles) ...[_TrendProfileAvatar(imageUrl: profile.image)],
+        for (final profile in visibleProfiles) ...[
+          _TrendProfileAvatar(imageUrl: profile.image),
+        ],
         if (remainingCount > 0)
           Container(
             width: 18,
@@ -898,7 +989,9 @@ class _TrendChartWithProfiles extends StatelessWidget {
             ? _bottomTitlesHeightQuarter
             : _bottomTitlesHeightDefault;
         final chartTopInset = usesQuarterLayout ? _quarterChartTopInset : 0.0;
-        final chartBottomInset = usesQuarterLayout ? _quarterChartBottomInset : 0.0;
+        final chartBottomInset = usesQuarterLayout
+            ? _quarterChartBottomInset
+            : 0.0;
         final plotHeight = math.max(
           0.0,
           chartHeight - bottomTitlesHeight - chartTopInset - chartBottomInset,
@@ -910,15 +1003,21 @@ class _TrendChartWithProfiles extends StatelessWidget {
           children: [
             Positioned.fill(
               child: Padding(
-                padding: EdgeInsets.only(top: chartTopInset, bottom: chartBottomInset),
+                padding: EdgeInsets.only(
+                  top: chartTopInset,
+                  bottom: chartBottomInset,
+                ),
                 child: BarChart(chartData),
               ),
             ),
             ...trendsWithProfiles.map((entry) {
               final index = entry.$1;
               final trend = entry.$2;
-              final total = trend.great + trend.almostThere + trend.needsImprovement;
-              final markerHeight = _TrendProfilesAvatarStack.estimatedHeight(trend.profiles.length);
+              final total =
+                  trend.great + trend.almostThere + trend.needsImprovement;
+              final markerHeight = _TrendProfilesAvatarStack.estimatedHeight(
+                trend.profiles.length,
+              );
               final barCenterX = _barCenterX(
                 index: index,
                 plotWidth: plotWidth,
@@ -930,11 +1029,19 @@ class _TrendChartWithProfiles extends StatelessWidget {
               final top = barEndY - markerHeight + (_avatarSize / 2);
 
               return Positioned(
-                left: (leftTitlesWidth + barCenterX - 9).clamp(0.0, math.max(0.0, chartWidth - 18)),
+                left: (leftTitlesWidth + barCenterX - 9).clamp(
+                  0.0,
+                  math.max(0.0, chartWidth - 18),
+                ),
                 top: usesQuarterLayout
                     ? 2
-                    : top.clamp(0.0, math.max(0.0, chartHeight - bottomTitlesHeight - 18)),
-                child: IgnorePointer(child: _TrendProfilesAvatarStack(profiles: trend.profiles)),
+                    : top.clamp(
+                        0.0,
+                        math.max(0.0, chartHeight - bottomTitlesHeight - 18),
+                      ),
+                child: IgnorePointer(
+                  child: _TrendProfilesAvatarStack(profiles: trend.profiles),
+                ),
               );
             }),
           ],
@@ -943,23 +1050,33 @@ class _TrendChartWithProfiles extends StatelessWidget {
     );
   }
 
-  double _barCenterX({required int index, required double plotWidth, required int groupCount}) {
+  double _barCenterX({
+    required int index,
+    required double plotWidth,
+    required int groupCount,
+  }) {
     if (groupCount <= 0) {
       return 0;
     }
 
     if (usesQuarterLayout) {
       final totalContentWidth =
-          (groupCount * _barWidthQuarter) + ((groupCount - 1) * _groupsSpaceQuarter);
+          (groupCount * _barWidthQuarter) +
+          ((groupCount - 1) * _groupsSpaceQuarter);
       final startX = math.max(0.0, (plotWidth - totalContentWidth) / 2);
-      return startX + (index * (_barWidthQuarter + _groupsSpaceQuarter)) + (_barWidthQuarter / 2);
+      return startX +
+          (index * (_barWidthQuarter + _groupsSpaceQuarter)) +
+          (_barWidthQuarter / 2);
     }
 
     if (groupCount == 1) {
       return plotWidth / 2;
     }
 
-    final totalSpacing = math.max(0.0, plotWidth - (groupCount * _barWidthDefault));
+    final totalSpacing = math.max(
+      0.0,
+      plotWidth - (groupCount * _barWidthDefault),
+    );
     final spacing = totalSpacing / (groupCount - 1);
     return (index * (_barWidthDefault + spacing)) + (_barWidthDefault / 2);
   }
@@ -1014,14 +1131,22 @@ class _TrendLegendItem extends StatelessWidget {
           ],
         ),
         const SizedBox(width: 6),
-        AppTextView.body3(label, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+        AppTextView.body3(
+          label,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
       ],
     );
   }
 }
 
 class _TimeRangeDropdown extends StatelessWidget {
-  const _TimeRangeDropdown({required this.value, required this.items, required this.onChanged});
+  const _TimeRangeDropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
 
   final String value;
   final List<String> items;
@@ -1049,7 +1174,10 @@ class _TimeRangeDropdown extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           items: items
-              .map((item) => DropdownMenuItem<String>(value: item, child: Text(item)))
+              .map(
+                (item) =>
+                    DropdownMenuItem<String>(value: item, child: Text(item)),
+              )
               .toList(growable: false),
           onChanged: onChanged,
         ),
@@ -1101,12 +1229,18 @@ class _CommentsCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
             const SizedBox(height: 12),
-            _CommentsSearchBar(controller: searchController, onChanged: onSearchChanged),
+            _CommentsSearchBar(
+              controller: searchController,
+              onChanged: onSearchChanged,
+            ),
             const SizedBox(height: 12),
           ] else
             const SizedBox(height: 12),
           if (isLoading)
-            SizedBox(height: 48, child: Center(child: FastCircularProgressIndicator()))
+            SizedBox(
+              height: 48,
+              child: Center(child: FastCircularProgressIndicator()),
+            )
           else if (comments.isEmpty)
             const AppTextView.body(
               'No check-in comments available.',
@@ -1148,7 +1282,11 @@ class _CommentsSearchBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SvgPicture.asset('${AppStrings.imagePath}search.svg', width: 18, height: 18),
+          SvgPicture.asset(
+            '${AppStrings.imagePath}search.svg',
+            width: 18,
+            height: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -1189,7 +1327,9 @@ class _CommentListTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: comment.uuid.trim().isEmpty ? null : () => _openCommentsSheet(context),
+        onTap: comment.uuid.trim().isEmpty
+            ? null
+            : () => _openCommentsSheet(context),
         child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -1208,7 +1348,9 @@ class _CommentListTile extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: AppTextView.body2(
-                  comment.comment.trim().isEmpty ? AppStrings.noComment : comment.comment,
+                  comment.comment.trim().isEmpty
+                      ? AppStrings.noComment
+                      : comment.comment,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
@@ -1310,7 +1452,11 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
                   color: AppColors.secondaryColor,
                   borderRadius: BorderRadius.circular(17),
                 ),
-                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -1322,7 +1468,7 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
       width: 72,
       height: 72,
       decoration: BoxDecoration(
-        color: const Color(0xFF14182A),
+        color: AppColors.hex14182a,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Center(
@@ -1333,7 +1479,11 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
             color: AppColors.secondaryColor,
             borderRadius: BorderRadius.circular(17),
           ),
-          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
+          child: const Icon(
+            Icons.play_arrow_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
         ),
       ),
     );
@@ -1345,7 +1495,10 @@ class _CommentMediaLoadingPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset('${AppStrings.imagePath}no_image.png', fit: BoxFit.cover);
+    return Image.asset(
+      '${AppStrings.imagePath}no_image.png',
+      fit: BoxFit.cover,
+    );
   }
 }
 

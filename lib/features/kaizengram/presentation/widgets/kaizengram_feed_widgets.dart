@@ -20,7 +20,7 @@ class _PowerListCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(0, 0, 0, 18),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF20253A),
+        color: AppColors.hex20253a,
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
         ),
@@ -180,7 +180,7 @@ class _WeeklyCheckInSocialTextCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(0, 0, 0, 18),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF20253A),
+        color: AppColors.hex20253a,
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
         ),
@@ -831,9 +831,9 @@ class _StoriesRow extends StatelessWidget {
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
                             colors: <Color>[
-                              Color(0xFFF9CE34),
-                              Color(0xFFEE2A7B),
-                              Color(0xFF6228D7),
+                              AppColors.hexf9ce34,
+                              AppColors.hexee2a7b,
+                              AppColors.hex6228d7,
                             ],
                           ),
                         ),
@@ -1138,7 +1138,7 @@ class _ComposePostSourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF24283D),
+      color: AppColors.surfaceDark3,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,

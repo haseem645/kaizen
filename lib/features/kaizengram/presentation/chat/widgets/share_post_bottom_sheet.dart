@@ -391,14 +391,14 @@ class _ShareGroupAvatar extends StatelessWidget {
 
       return CircleAvatar(
         radius: 18,
-        backgroundColor: const Color(0xFF24283D),
+        backgroundColor: AppColors.surfaceDark3,
         backgroundImage: imageProvider,
       );
     }
 
     return CircleAvatar(
       radius: 18,
-      backgroundColor: const Color(0xFF24283D),
+      backgroundColor: AppColors.surfaceDark3,
       backgroundImage: NetworkImage(group.imageUrl),
     );
   }
@@ -419,7 +419,7 @@ class _ShareChannelAvatar extends StatelessWidget {
           : FileImage(File(imagePath));
       return CircleAvatar(
         radius: 18,
-        backgroundColor: const Color(0xFF24283D),
+        backgroundColor: AppColors.surfaceDark3,
         backgroundImage: imageProvider,
       );
     }
@@ -428,7 +428,7 @@ class _ShareChannelAvatar extends StatelessWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         shape: BoxShape.circle,
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.06),

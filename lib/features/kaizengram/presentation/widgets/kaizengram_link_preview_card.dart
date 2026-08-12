@@ -55,7 +55,7 @@ class KaizengramLinkPreviewCard extends StatelessWidget {
             onTap: () => kaizengramOpenUrl(preview.url),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF24283D),
+                color: AppColors.surfaceDark3,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: AppColors.textPrimary.withValues(alpha: 0.08),

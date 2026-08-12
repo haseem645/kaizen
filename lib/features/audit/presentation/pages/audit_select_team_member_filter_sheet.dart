@@ -242,11 +242,11 @@ class _SelectionOptionTile extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: isSelected
                       ? AppColors.secondaryColor
-                      : const Color(0xFFD9D4F0),
+                      : AppColors.hexd9d4f0,
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFF7747E6)
-                        : const Color(0xFFD9D4F0),
+                        ? AppColors.hex7747e6
+                        : AppColors.hexd9d4f0,
                     width: 2,
                   ),
                 ),

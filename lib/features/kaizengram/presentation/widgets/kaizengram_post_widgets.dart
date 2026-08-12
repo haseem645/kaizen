@@ -130,7 +130,7 @@ class _PostCardState extends State<_PostCard>
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
                           color: post.isLiked
-                              ? const Color(0xFFFF4D67)
+                              ? AppColors.hexff4d67
                               : AppColors.textPrimary,
                         ),
                       ),

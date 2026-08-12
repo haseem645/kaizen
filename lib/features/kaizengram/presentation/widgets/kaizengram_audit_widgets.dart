@@ -96,17 +96,17 @@ class KaizengramAuditMediaBottomSheet extends StatelessWidget {
                     children: <Widget>[
                       KaizengramRatingSummaryBlock(
                         count: badCount,
-                        color: const Color(0xFFF04438),
+                        color: AppColors.red1,
                       ),
                       const SizedBox(width: 12),
                       KaizengramRatingSummaryBlock(
                         count: improvementCount,
-                        color: const Color(0xFFFF8A4C),
+                        color: AppColors.orange1,
                       ),
                       const SizedBox(width: 12),
                       KaizengramRatingSummaryBlock(
                         count: goodCount,
-                        color: const Color(0xFF15B79F),
+                        color: AppColors.green1,
                       ),
                     ],
                   ),
@@ -625,7 +625,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
   if (postCategory == KaizengramPostCategory.learningCompliance) {
     if (normalized == 'compliant') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFE3F8F4),
+        backgroundColor: AppColors.hexe3f8f4,
         borderColor: AppColors.green1,
         textColor: AppColors.green1,
       );
@@ -633,7 +633,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
 
     if (normalized == 'non compliance') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFFFE1E1),
+        backgroundColor: AppColors.hexffe1e1,
         borderColor: AppColors.red,
         textColor: AppColors.red,
       );
@@ -641,7 +641,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
 
     if (normalized == 'in progress') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFF0E9FF),
+        backgroundColor: AppColors.hexf0e9ff,
         borderColor: AppColors.purple1,
         textColor: AppColors.purple1,
       );
@@ -651,7 +651,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
   if (postCategory == KaizengramPostCategory.documentCompliance) {
     if (normalized == 'pending approval') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFF0E9FF),
+        backgroundColor: AppColors.hexf0e9ff,
         borderColor: AppColors.purple1,
         textColor: AppColors.purple1,
       );
@@ -659,15 +659,15 @@ _TrackStatusStyle _resolveTrackStatusStyle(
 
     if (normalized == 'pending submission') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFE8F2FF),
-        borderColor: Color(0xFF2F80ED),
-        textColor: Color(0xFF2F80ED),
+        backgroundColor: AppColors.hexe8f2ff,
+        borderColor: AppColors.hex2f80ed,
+        textColor: AppColors.hex2f80ed,
       );
     }
 
     if (normalized == 'compliant') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFE3F8F4),
+        backgroundColor: AppColors.hexe3f8f4,
         borderColor: AppColors.green1,
         textColor: AppColors.green1,
       );
@@ -675,7 +675,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
 
     if (normalized == 'rejected') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFFFE1E1),
+        backgroundColor: AppColors.hexffe1e1,
         borderColor: AppColors.red,
         textColor: AppColors.red,
       );
@@ -686,7 +686,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
       normalized == 'good' ||
       CustomFunctions.isPassedStatus(normalized)) {
     return const _TrackStatusStyle(
-      backgroundColor: Color(0xFFE3F8F4),
+      backgroundColor: AppColors.hexe3f8f4,
       borderColor: AppColors.green1,
       textColor: AppColors.green1,
     );
@@ -698,7 +698,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
       CustomFunctions.isFailedStatus(normalized) ||
       CustomFunctions.isCancelledStatus(normalized)) {
     return const _TrackStatusStyle(
-      backgroundColor: Color(0xFFFFE1E1),
+      backgroundColor: AppColors.hexffe1e1,
       borderColor: AppColors.red,
       textColor: AppColors.red,
     );
@@ -713,7 +713,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
       postCategory == KaizengramPostCategory.audit &&
           normalized == 'improvement needed') {
     return const _TrackStatusStyle(
-      backgroundColor: Color(0xFFFFE8D9),
+      backgroundColor: AppColors.hexffe8d9,
       borderColor: AppColors.orange1,
       textColor: AppColors.orange1,
     );
@@ -721,7 +721,7 @@ _TrackStatusStyle _resolveTrackStatusStyle(
 
   if (CustomFunctions.isNoLongerNeededStatus(normalized)) {
     return const _TrackStatusStyle(
-      backgroundColor: Color(0xFFE4E7EC),
+      backgroundColor: AppColors.hexe4e7ec,
       borderColor: AppColors.grey1,
       textColor: AppColors.grey2,
     );

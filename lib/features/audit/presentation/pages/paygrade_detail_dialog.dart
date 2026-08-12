@@ -12,7 +12,8 @@ Future<void> showPaygradeDetailDialog(
   return showDialog<void>(
     context: context,
     barrierDismissible: true,
-    builder: (dialogContext) => _PaygradeDetailDialog(step: step, currentStep: currentStep),
+    builder: (dialogContext) =>
+        _PaygradeDetailDialog(step: step, currentStep: currentStep),
   );
 }
 
@@ -56,7 +57,10 @@ class _PaygradeDetailDialog extends StatelessWidget {
                       height: 20,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.textPrimary, width: 1.6),
+                        border: Border.all(
+                          color: AppColors.textPrimary,
+                          width: 1.6,
+                        ),
                       ),
                       child: const Icon(
                         Icons.close_rounded,
@@ -100,10 +104,14 @@ class _PaygradeDetailDialog extends StatelessWidget {
                         const SizedBox(height: 24),
                         RichText(
                           text: TextSpan(
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                             children: [
                               TextSpan(
-                                text: 'Estimated Target Payrate at ${step.label}: ',
+                                text:
+                                    'Estimated Target Payrate at ${step.label}: ',
                                 style: const TextStyle(
                                   color: AppColors.secondaryColor,
                                   fontWeight: FontWeight.w800,
@@ -111,7 +119,9 @@ class _PaygradeDetailDialog extends StatelessWidget {
                               ),
                               TextSpan(
                                 text: step.payRateDisplay,
-                                style: const TextStyle(color: AppColors.textPrimary),
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ],
                           ),
@@ -136,7 +146,9 @@ class _PaygradeDetailDialog extends StatelessWidget {
 
     final items = trimmed
         .split(RegExp(r'[\r\n]+'))
-        .map((item) => item.replaceFirst(RegExp(r'^[\-\u2022\*]\s*'), '').trim())
+        .map(
+          (item) => item.replaceFirst(RegExp(r'^[\-\u2022\*]\s*'), '').trim(),
+        )
         .where((item) => item.isNotEmpty)
         .toList(growable: false);
 
@@ -279,7 +291,7 @@ class _TargetPaygradeConnector extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.mainBg,
-                    border: Border.all(color: const Color(0xFF31D4FF), width: 2.2),
+                    border: Border.all(color: AppColors.hex31d4ff, width: 2.2),
                   ),
                 ),
                 Expanded(
@@ -288,14 +300,18 @@ class _TargetPaygradeConnector extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF3FD8FF).withValues(alpha: 0.28),
+                          AppColors.hex3fd8ff.withValues(alpha: 0.28),
                           AppColors.secondaryColor.withValues(alpha: 0.45),
                         ],
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 18, height: 20, child: CustomPaint(painter: _ArrowHeadPainter())),
+                SizedBox(
+                  width: 18,
+                  height: 20,
+                  child: CustomPaint(painter: _ArrowHeadPainter()),
+                ),
               ],
             ),
           ),
@@ -360,15 +376,20 @@ class _PaygradeDeltaChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.35), width: 1.2),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
+        border: Border.all(
+          color: AppColors.textSecondary.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const AppTextView.title1(
             '+',
-            color: Color(0xFF31D4FF),
+            color: AppColors.hex31d4ff,
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
@@ -400,7 +421,10 @@ class _ArrowHeadPainter extends CustomPainter {
 
     final paint = Paint()
       ..shader = LinearGradient(
-        colors: [AppColors.secondaryColor.withValues(alpha: 0.78), const Color(0xFFA67DFF)],
+        colors: [
+          AppColors.secondaryColor.withValues(alpha: 0.78),
+          AppColors.secondaryColor,
+        ],
       ).createShader(Offset.zero & size);
 
     canvas.drawPath(path, paint);

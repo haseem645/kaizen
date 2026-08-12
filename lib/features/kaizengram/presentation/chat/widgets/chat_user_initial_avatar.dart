@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/constants/app_colors.dart';
 
 import '../../../../../core/widgets/app_text_view.dart';
 
@@ -37,11 +38,11 @@ class ChatUserInitialAvatar extends StatelessWidget {
 
 Color kaizengramChatAccentColorForIndex(int index) {
   const palette = <Color>[
-    Color(0xFFA67DFF),
-    Color(0xFF25D7C2),
-    Color(0xFFFFB547),
-    Color(0xFF7EA6FF),
-    Color(0xFFFF7D7D),
+    AppColors.secondaryColor,
+    AppColors.progressColor,
+    AppColors.hexffb547,
+    AppColors.hex7ea6ff,
+    AppColors.hexff7d7d,
   ];
 
   return palette[index % palette.length];

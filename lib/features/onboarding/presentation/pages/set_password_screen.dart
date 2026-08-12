@@ -282,7 +282,7 @@ class _PasswordField extends StatelessWidget {
             vertical: 12,
           ),
           border: InputBorder.none,
-          errorStyle: const TextStyle(color: Color(0xFFFFB3B3)),
+          errorStyle: const TextStyle(color: AppColors.hexffb3b3),
           suffixIcon: IconButton(
             onPressed: onToggle,
             icon: Icon(

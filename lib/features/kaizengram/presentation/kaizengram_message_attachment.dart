@@ -234,7 +234,7 @@ class _KaizengramAttachmentSourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF24283D),
+      color: AppColors.surfaceDark3,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,

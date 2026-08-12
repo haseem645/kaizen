@@ -251,7 +251,7 @@ class _ChatVideoPreviewFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 160,
-      color: const Color(0xFF111317),
+      color: AppColors.hex111317,
       alignment: Alignment.center,
       child: const Icon(
         Icons.videocam_rounded,

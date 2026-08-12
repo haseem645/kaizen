@@ -25,7 +25,9 @@ class TracksCard extends StatelessWidget {
     final foregroundColor = isDisabled
         ? AppColors.textSecondary.withValues(alpha: 0.65)
         : AppColors.textPrimary;
-    final trailingTextColor = isDisabled ? AppColors.textSecondary : AppColors.textPrimary;
+    final trailingTextColor = isDisabled
+        ? AppColors.textSecondary
+        : AppColors.textPrimary;
     final statusStyle = _resolveStatusStyle();
 
     return InkWell(
@@ -34,7 +36,9 @@ class TracksCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDisabled ? AppColors.surfaceDark.withValues(alpha: 0.55) : AppColors.surfaceDark,
+          color: isDisabled
+              ? AppColors.surfaceDark.withValues(alpha: 0.55)
+              : AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(5),
         ),
         child: Column(
@@ -107,11 +111,19 @@ class TracksCard extends StatelessWidget {
                 );
               },
             )
-          : Image.asset('lib/assets/images/no_image.png', width: 68, height: 68, fit: BoxFit.cover),
+          : Image.asset(
+              'lib/assets/images/no_image.png',
+              width: 68,
+              height: 68,
+              fit: BoxFit.cover,
+            ),
     );
   }
 
-  Widget _buildStatusRow(_TrackStatusStyle statusStyle, Color trailingTextColor) {
+  Widget _buildStatusRow(
+    _TrackStatusStyle statusStyle,
+    Color trailingTextColor,
+  ) {
     return Row(
       children: [
         Container(
@@ -143,7 +155,7 @@ class TracksCard extends StatelessWidget {
 
     if (CustomFunctions.isFailedStatus(track.displayStatus)) {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFFFE1E1),
+        backgroundColor: AppColors.hexffe1e1,
         borderColor: AppColors.red,
         textColor: AppColors.red,
       );
@@ -151,7 +163,7 @@ class TracksCard extends StatelessWidget {
 
     if (CustomFunctions.isPassedStatus(track.displayStatus)) {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFE3F8F4),
+        backgroundColor: AppColors.hexe3f8f4,
         borderColor: AppColors.green1,
         textColor: AppColors.green1,
       );

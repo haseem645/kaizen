@@ -214,7 +214,7 @@ class _KaizengramGroupsSharedStore {
         isManaged: true,
         isPinned: true,
         icon: Icons.local_hospital_outlined,
-        accentColor: const Color(0xFF0BA9E3),
+        accentColor: AppColors.blue,
         imageUrl:
             'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -233,7 +233,7 @@ class _KaizengramGroupsSharedStore {
         isManaged: false,
         isPinned: false,
         icon: Icons.school_outlined,
-        accentColor: const Color(0xFF25D7C2),
+        accentColor: AppColors.progressColor,
         imageUrl:
             'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -252,7 +252,7 @@ class _KaizengramGroupsSharedStore {
         isManaged: false,
         hasInvite: true,
         icon: Icons.fact_check_outlined,
-        accentColor: const Color(0xFFFF8E5D),
+        accentColor: AppColors.hexff8e5d,
         imageUrl:
             'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -270,7 +270,7 @@ class _KaizengramGroupsSharedStore {
         isJoined: false,
         isManaged: false,
         icon: Icons.people_outline_rounded,
-        accentColor: const Color(0xFFFF7D7D),
+        accentColor: AppColors.hexff7d7d,
         imageUrl:
             'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -288,7 +288,7 @@ class _KaizengramGroupsSharedStore {
         isJoined: true,
         isManaged: false,
         icon: Icons.medication_outlined,
-        accentColor: const Color(0xFF3CC4F4),
+        accentColor: AppColors.hex3cc4f4,
         imageUrl:
             'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -306,7 +306,7 @@ class _KaizengramGroupsSharedStore {
         isJoined: false,
         isManaged: false,
         icon: Icons.memory_outlined,
-        accentColor: const Color(0xFFA67DFF),
+        accentColor: AppColors.secondaryColor,
         imageUrl:
             'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -324,7 +324,7 @@ class _KaizengramGroupsSharedStore {
         isJoined: true,
         isManaged: true,
         icon: Icons.workspace_premium_outlined,
-        accentColor: const Color(0xFF7EA6FF),
+        accentColor: AppColors.hex7ea6ff,
         imageUrl:
             'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=300&q=80',
         coverImageUrl:
@@ -558,7 +558,7 @@ class KaizengramGroupsScreen extends StatefulWidget {
 
 class _KaizengramGroupsScreenState extends State<KaizengramGroupsScreen>
     with KaizengramNotifierState<KaizengramGroupsScreen> {
-  static const Color _screenBackground = Color(0xFF111317);
+  static const Color _screenBackground = AppColors.hex111317;
 
   late final _KaizengramGroupsSharedStore _store;
   late final TextEditingController _searchController;
@@ -1218,17 +1218,17 @@ class _KaizengramGroupsScreenState extends State<KaizengramGroupsScreen>
   Color _accentForTopic(String topic) {
     switch (topic) {
       case AppStrings.categoryClinicOps:
-        return const Color(0xFF0BA9E3);
+        return AppColors.blue;
       case AppStrings.categoryTraining:
-        return const Color(0xFF25D7C2);
+        return AppColors.progressColor;
       case AppStrings.categoryAudit:
-        return const Color(0xFFFF8E5D);
+        return AppColors.hexff8e5d;
       case AppStrings.categoryLeadership:
-        return const Color(0xFF7EA6FF);
+        return AppColors.hex7ea6ff;
       case AppStrings.categoryPeopleOps:
-        return const Color(0xFFFF7D7D);
+        return AppColors.hexff7d7d;
       case AppStrings.categoryTechnology:
-        return const Color(0xFFA67DFF);
+        return AppColors.secondaryColor;
       default:
         return AppColors.blue;
     }
@@ -1627,9 +1627,9 @@ class _KaizengramMyGroupsScreenState extends State<_KaizengramMyGroupsScreen>
       final groups = widget.groupsBuilder();
 
       return Scaffold(
-        backgroundColor: const Color(0xFF111317),
+        backgroundColor: AppColors.hex111317,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF111317),
+          backgroundColor: AppColors.hex111317,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -1691,7 +1691,7 @@ class _GroupsTabBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppColors.secondaryColor.withValues(alpha: 0.20)
-                          : const Color(0xFF1B1E27),
+                          : AppColors.hex1b1e27,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isSelected
@@ -1774,7 +1774,7 @@ class _MyGroupsPanel extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1E27),
+              color: AppColors.hex1b1e27,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -1816,7 +1816,7 @@ class _CreateGroupListTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1B1E27),
+            color: AppColors.hex1b1e27,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -1886,7 +1886,7 @@ class _CreateGroupAppBarAction extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1E27),
+              color: AppColors.hex1b1e27,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.textPrimary.withValues(alpha: 0.16),
@@ -1920,7 +1920,7 @@ class _MyGroupSlimTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF1B1E27),
+            color: AppColors.hex1b1e27,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -2003,7 +2003,7 @@ class _JoinedGroupPostCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B1E27),
+          color: AppColors.hex1b1e27,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -2149,7 +2149,7 @@ class _GroupPostListCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -2167,7 +2167,7 @@ class _GroupPostListCard extends StatelessWidget {
                 children: <Widget>[
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: const Color(0xFF232834),
+                    backgroundColor: AppColors.hex232834,
                     backgroundImage: authorImageProvider,
                     child: authorImageProvider == null
                         ? const Icon(
@@ -2352,7 +2352,7 @@ class _GroupFeatureCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1B1E27),
+            color: AppColors.hex1b1e27,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -2485,7 +2485,7 @@ class _GroupsEmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -2574,9 +2574,9 @@ class _KaizengramGroupDetailScreenState
   Widget build(BuildContext context) {
     return buildWithNotifier((context) {
       return Scaffold(
-        backgroundColor: const Color(0xFF111317),
+        backgroundColor: AppColors.hex111317,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF111317),
+          backgroundColor: AppColors.hex111317,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -2644,7 +2644,7 @@ class _KaizengramGroupDetailScreenState
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B1E27),
+                  color: AppColors.hex1b1e27,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -2955,17 +2955,17 @@ class _KaizengramGroupDetailScreenState
   Color _accentForTopic(String topic) {
     switch (topic) {
       case AppStrings.categoryClinicOps:
-        return const Color(0xFF0BA9E3);
+        return AppColors.blue;
       case AppStrings.categoryTraining:
-        return const Color(0xFF25D7C2);
+        return AppColors.progressColor;
       case AppStrings.categoryAudit:
-        return const Color(0xFFFF8E5D);
+        return AppColors.hexff8e5d;
       case AppStrings.categoryLeadership:
-        return const Color(0xFF7EA6FF);
+        return AppColors.hex7ea6ff;
       case AppStrings.categoryPeopleOps:
-        return const Color(0xFFFF7D7D);
+        return AppColors.hexff7d7d;
       case AppStrings.categoryTechnology:
-        return const Color(0xFFA67DFF);
+        return AppColors.secondaryColor;
       default:
         return AppColors.blue;
     }
@@ -3068,7 +3068,7 @@ class _GroupDetailHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -3215,7 +3215,7 @@ class _GroupCoverImageFallback extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: height,
-      color: const Color(0xFF232834),
+      color: AppColors.hex232834,
     );
   }
 }
@@ -3272,7 +3272,7 @@ class _GroupManageBottomSheet extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           decoration: const BoxDecoration(
-            color: Color(0xFF111317),
+            color: AppColors.hex111317,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SingleChildScrollView(
@@ -3374,7 +3374,7 @@ class _GroupManageActionTile extends StatelessWidget {
         : AppColors.textPrimary;
     final backgroundColor = isDestructive
         ? AppColors.red.withValues(alpha: 0.12)
-        : const Color(0xFF1B1E27);
+        : AppColors.hex1b1e27;
     final borderColor = isDestructive
         ? AppColors.red.withValues(alpha: 0.22)
         : AppColors.textPrimary.withValues(alpha: 0.08);
@@ -3459,7 +3459,7 @@ class _GroupAttachmentPreviewStrip extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFF24283D),
+          color: AppColors.surfaceDark3,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -3650,7 +3650,7 @@ class _GroupAttachmentPreviewCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 color: useDraftStyle
-                    ? const Color(0xFF111317)
+                    ? AppColors.hex111317
                     : AppColors.surfaceDark3,
                 child: mediaChild,
               ),
@@ -3781,7 +3781,7 @@ class _GroupAttachmentFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF232834),
+      color: AppColors.hex232834,
       alignment: Alignment.center,
       child: const Icon(
         Icons.broken_image_outlined,
@@ -3913,7 +3913,7 @@ class _GroupWritePostBottomSheetState extends State<_GroupWritePostBottomSheet>
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF111317),
+                      color: AppColors.hex111317,
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(24),
                       ),
@@ -3959,7 +3959,7 @@ class _GroupWritePostBottomSheetState extends State<_GroupWritePostBottomSheet>
                               children: <Widget>[
                                 CircleAvatar(
                                   radius: 20,
-                                  backgroundColor: const Color(0xFF232834),
+                                  backgroundColor: AppColors.hex232834,
                                   backgroundImage: authorImageProvider,
                                   child: authorImageProvider == null
                                       ? const Icon(
@@ -4034,7 +4034,7 @@ class _GroupWritePostBottomSheetState extends State<_GroupWritePostBottomSheet>
                                 const SizedBox(height: 14),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1B1E27),
+                                    color: AppColors.hex1b1e27,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: AppColors.textPrimary.withValues(
@@ -4300,7 +4300,7 @@ class _GroupInvitePeopleBottomSheetState
             height: sheetHeight,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             decoration: const BoxDecoration(
-              color: Color(0xFF111317),
+              color: AppColors.hex111317,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
@@ -4338,7 +4338,7 @@ class _GroupInvitePeopleBottomSheetState
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B1E27),
+                    color: AppColors.hex1b1e27,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: _errorText == null
@@ -4624,7 +4624,7 @@ class _GroupInviteSuggestionTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -4750,7 +4750,7 @@ class _GroupInviteEmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -4827,7 +4827,7 @@ class _GroupCommentsBottomSheetState extends State<_GroupCommentsBottomSheet>
           child: Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             decoration: const BoxDecoration(
-              color: Color(0xFF111317),
+              color: AppColors.hex111317,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
@@ -4881,7 +4881,7 @@ class _GroupCommentsBottomSheetState extends State<_GroupCommentsBottomSheet>
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1B1E27),
+                          color: AppColors.hex1b1e27,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: AppColors.textPrimary.withValues(
@@ -4979,7 +4979,7 @@ class _GroupCommentTile extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1E27),
+              color: AppColors.hex1b1e27,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -5017,7 +5017,7 @@ class _GroupCommentsEmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1E27),
+        color: AppColors.hex1b1e27,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -5143,7 +5143,7 @@ class _GroupDraftBottomSheetState extends State<_GroupDraftBottomSheet>
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           decoration: const BoxDecoration(
-            color: Color(0xFF111317),
+            color: AppColors.hex111317,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SingleChildScrollView(
@@ -5452,7 +5452,7 @@ class _GroupImagePickerTile extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1E27),
+                color: AppColors.hex1b1e27,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -5471,7 +5471,7 @@ class _GroupImagePickerTile extends StatelessWidget {
                               fit: BoxFit.cover,
                             )
                           : Container(
-                              color: const Color(0xFF232834),
+                              color: AppColors.hex232834,
                               alignment: Alignment.center,
                               child: Icon(
                                 placeholderIcon,
@@ -5575,7 +5575,7 @@ class _LabeledTextField extends StatelessWidget {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1B1E27),
+            color: AppColors.hex1b1e27,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: AppColors.textPrimary.withValues(alpha: 0.08),
@@ -5621,7 +5621,7 @@ class _SelectableOptionTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.secondaryColor.withValues(alpha: 0.16)
-              : const Color(0xFF1B1E27),
+              : AppColors.hex1b1e27,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
@@ -5663,7 +5663,7 @@ class _SelectableChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.blue.withValues(alpha: 0.18)
-              : const Color(0xFF1B1E27),
+              : AppColors.hex1b1e27,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isSelected

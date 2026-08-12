@@ -185,7 +185,7 @@ class _AuditVideoPreviewState extends State<_AuditVideoPreview> {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Color(0x40000000), Color(0x14000000)],
+                    colors: [AppColors.hex40000000, AppColors.hex14000000],
                   ),
                 ),
                 child: Center(
@@ -209,7 +209,7 @@ class AuditTextCommentPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFC8B0FF),
+      color: AppColors.hexc8b0ff,
       child: const Center(
         child: Icon(
           Icons.text_fields_rounded,

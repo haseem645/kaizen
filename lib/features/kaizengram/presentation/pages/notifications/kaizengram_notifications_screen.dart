@@ -16,7 +16,7 @@ class KaizengramNotificationsScreen extends StatelessWidget {
     final sections = controller.notificationSections;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111317),
+      backgroundColor: AppColors.hex111317,
       appBar: _buildAppBar(),
       body: SafeArea(top: false, child: _buildBody(controller, sections)),
     );
@@ -24,7 +24,7 @@ class KaizengramNotificationsScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: const Color(0xFF111317),
+      backgroundColor: AppColors.hex111317,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -181,7 +181,7 @@ class _NotificationRow extends StatelessWidget {
           TextSpan(
             text: ' ${_timeLabelFor(item.occurredAt)}',
             style: const TextStyle(
-              color: Color(0xFF8D93A6),
+              color: AppColors.hex8d93a6,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -249,7 +249,7 @@ class _NotificationAvatar extends StatelessWidget {
           child: Container(
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF1B1E27),
+              color: AppColors.hex1b1e27,
             ),
             child: Center(
               child: AppTextView.body1(
@@ -269,7 +269,7 @@ class _NotificationAvatar extends StatelessWidget {
             decoration: BoxDecoration(
               color: accentColor,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF111317), width: 2),
+              border: Border.all(color: AppColors.hex111317, width: 2),
             ),
             child: Icon(_iconFor(item.type), size: 12, color: Colors.white),
           ),
@@ -381,7 +381,7 @@ class _PreviewFallback extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: <Color>[
             accentColor.withValues(alpha: 0.9),
-            const Color(0xFF262B3E),
+            AppColors.hex262b3e,
           ],
         ),
       ),
@@ -474,14 +474,14 @@ Color _accentColorFor(KaizengramNotificationItem item) {
   switch (item.post.resolvedPostCategory) {
     case KaizengramPostCategory.audit:
       return item.type == KaizengramNotificationType.readyForFollowUp
-          ? const Color(0xFFFF7D7D)
-          : const Color(0xFF7EA6FF);
+          ? AppColors.hexff7d7d
+          : AppColors.hex7ea6ff;
     case KaizengramPostCategory.learningCompliance:
-      return const Color(0xFF25D7C2);
+      return AppColors.progressColor;
     case KaizengramPostCategory.documentCompliance:
       return item.type == KaizengramNotificationType.requestedUpload
-          ? const Color(0xFFFF9A62)
-          : const Color(0xFFFFB547);
+          ? AppColors.hexff9a62
+          : AppColors.hexffb547;
   }
 }
 

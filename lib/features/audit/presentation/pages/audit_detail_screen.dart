@@ -610,7 +610,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     required bool isAuditActionLoading,
   }) {
     final hasDetails = details != null;
-    final canCreateNewAuditToday =
+    final shouldStartNewAudit =
         hasDetails && CustomFunctions.shouldStartNewAudit(details);
 
     return Container(
@@ -632,10 +632,16 @@ class _AuditDetailsScreenView extends StatelessWidget {
             padding: EdgeInsets.only(left: 14, right: 14, top: 12),
             child: hasDetails
                 ? AppButton(
-                    text: AppStrings.newCheckIn,
-                    onPressed: canCreateNewAuditToday && !isAuditActionLoading
-                        ? () => _handleNewAuditAction(context, details)
-                        : null,
+                    text: shouldStartNewAudit
+                        ? AppStrings.newCheckIn
+                        : AppStrings.continueCheckIn,
+                    onPressed: isAuditActionLoading
+                        ? null
+                        : () => _handleAuditAction(
+                            context,
+                            details,
+                            shouldStartNewAudit,
+                          ),
                     isLoading: isAuditActionLoading,
                     minimumHeight: 40,
                   )
@@ -646,9 +652,10 @@ class _AuditDetailsScreenView extends StatelessWidget {
     );
   }
 
-  Future<void> _handleNewAuditAction(
+  Future<void> _handleAuditAction(
     BuildContext context,
     AuditDetails details,
+    bool shouldStartNewAudit,
   ) async {
     if (!context.read<AuditController>().state.isOwner) {
       return;
@@ -678,7 +685,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
         context,
         details,
         todayDate,
-        requireDescriptionSelection: true,
+        requireDescriptionSelection: shouldStartNewAudit,
       );
     } finally {
       controller.setAuditActionLoading(false);

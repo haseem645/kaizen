@@ -388,7 +388,7 @@ class _AuditMediaCommentsBottomSheetState
                       child: AppButton(
                         text: 'Yes',
                         onPressed: () => Navigator.of(dialogContext).pop(true),
-                        backgroundColor: const Color(0xFFC62828),
+                        backgroundColor: AppColors.hexc62828,
                         textColor: Colors.white,
                         borderRadius: 8,
                         minimumHeight: 42,
@@ -844,12 +844,12 @@ class _EmptyMediaUploadCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           child: CustomPaint(
             painter: const _DashedBorderPainter(
-              color: Color(0xFF9B9EAD),
+              color: AppColors.hex9b9ead,
               radius: 18,
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF2A2D3D),
+                color: AppColors.mainBg,
                 borderRadius: BorderRadius.circular(18),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),

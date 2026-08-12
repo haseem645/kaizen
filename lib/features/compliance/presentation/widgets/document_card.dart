@@ -19,7 +19,9 @@ class DocumentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final latestDocumentStatus = CustomFunctions.displayStatus(document.latestDocumentStatus);
+    final latestDocumentStatus = CustomFunctions.displayStatus(
+      document.latestDocumentStatus,
+    );
     final expiryText = document.hasExpiry
         ? CustomFunctions.formatDate(document.latestDocumentExpiryDate)
         : 'No Expiry';
@@ -31,8 +33,12 @@ class DocumentCard extends StatelessWidget {
     final uploadButtonText = normalizedStatus == 'compliant'
         ? AppStrings.reUpload
         : AppStrings.uploadDoc;
-    final uploadButtonColor = isUploadDisabled ? AppColors.grey1 : AppColors.secondaryColor;
-    final uploadContentColor = isUploadDisabled ? AppColors.grey2 : AppColors.textPrimary;
+    final uploadButtonColor = isUploadDisabled
+        ? AppColors.grey1
+        : AppColors.secondaryColor;
+    final uploadContentColor = isUploadDisabled
+        ? AppColors.grey2
+        : AppColors.textPrimary;
     final viewableDocumentUrl = _viewableDocumentUrl(document);
 
     return Container(
@@ -100,7 +106,10 @@ class DocumentCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
                   color: statusStyle.backgroundColor,
                   borderRadius: BorderRadius.circular(8),
@@ -119,7 +128,11 @@ class DocumentCard extends StatelessWidget {
                 color: AppColors.grey1,
                 fontSize: 11,
               ),
-              AppTextView.body2(expiryText, color: AppColors.textPrimary, fontSize: 11),
+              AppTextView.body2(
+                expiryText,
+                color: AppColors.textPrimary,
+                fontSize: 11,
+              ),
             ],
           ),
           if (latestDocumentStatus != null) ...[
@@ -131,15 +144,22 @@ class DocumentCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          Container(height: 1, color: AppColors.fieldBorder.withValues(alpha: 0.20)),
+          Container(
+            height: 1,
+            color: AppColors.fieldBorder.withValues(alpha: 0.20),
+          ),
           const SizedBox(height: 4),
           FilledButton(
-            onPressed: isUploadDisabled ? null : () => _showUploadSheet(context),
+            onPressed: isUploadDisabled
+                ? null
+                : () => _showUploadSheet(context),
             style: FilledButton.styleFrom(
               backgroundColor: uploadButtonColor,
               disabledBackgroundColor: uploadButtonColor,
               minimumSize: Size.fromHeight(30),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -148,7 +168,10 @@ class DocumentCard extends StatelessWidget {
                   '${AppStrings.imagePath}upload.svg',
                   width: 24,
                   height: 15,
-                  colorFilter: ColorFilter.mode(uploadContentColor, BlendMode.srcIn),
+                  colorFilter: ColorFilter.mode(
+                    uploadContentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
                 const SizedBox(width: 9),
                 AppTextView.body(
@@ -166,7 +189,9 @@ class DocumentCard extends StatelessWidget {
   }
 
   String _normalizedDocumentStatus(ComplianceDocument document) {
-    return CustomFunctions.normalizedStatus(document.rawStatus ?? document.status);
+    return CustomFunctions.normalizedStatus(
+      document.rawStatus ?? document.status,
+    );
   }
 
   String? _viewableDocumentUrl(ComplianceDocument document) {
@@ -188,7 +213,7 @@ class DocumentCard extends StatelessWidget {
     if (rawStatus == 'compliant') {
       return const _DocumentStatusStyle(
         label: 'Compliant',
-        backgroundColor: Color(0xFFE3F8F4),
+        backgroundColor: AppColors.hexe3f8f4,
         borderColor: AppColors.green1,
         textColor: AppColors.green1,
       );
@@ -197,16 +222,16 @@ class DocumentCard extends StatelessWidget {
     if (rawStatus == 'pending submission') {
       return const _DocumentStatusStyle(
         label: 'Pending Submission',
-        backgroundColor: Color(0xFFE8F2FF),
-        borderColor: Color(0xFF2F80ED),
-        textColor: Color(0xFF2F80ED),
+        backgroundColor: AppColors.hexe8f2ff,
+        borderColor: AppColors.hex2f80ed,
+        textColor: AppColors.hex2f80ed,
       );
     }
 
     if (CustomFunctions.isNoLongerNeededStatus(rawStatus)) {
       return const _DocumentStatusStyle(
         label: 'No Longer Required',
-        backgroundColor: Color(0xFFE4E7EC),
+        backgroundColor: AppColors.hexe4e7ec,
         borderColor: AppColors.grey1,
         textColor: AppColors.grey2,
       );
@@ -215,7 +240,7 @@ class DocumentCard extends StatelessWidget {
     if (rawStatus == 'rejected') {
       return const _DocumentStatusStyle(
         label: 'Rejected',
-        backgroundColor: Color(0xFFFFE1E1),
+        backgroundColor: AppColors.hexffe1e1,
         borderColor: AppColors.red,
         textColor: AppColors.red,
       );
@@ -244,7 +269,9 @@ class DocumentCard extends StatelessWidget {
       return;
     }
 
-    await context.read<ComplianceDocumentController>().initialize(forceRefresh: true);
+    await context.read<ComplianceDocumentController>().initialize(
+      forceRefresh: true,
+    );
   }
 
   Future<void> _openDocumentPreview(

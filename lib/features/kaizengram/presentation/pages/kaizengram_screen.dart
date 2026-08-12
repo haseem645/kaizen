@@ -108,14 +108,14 @@ class _KaizenGramViewState extends State<_KaizenGramView>
           title: AppStrings.kaizengramLearningCompliancesTitle,
           value: AppStrings.kaizengramLearningCompliancesDue,
           icon: Icons.school_rounded,
-          accentColor: Color(0xFF25D7C2),
+          accentColor: AppColors.progressColor,
           destination: _PowerListDestination.learningCompliance,
         ),
         _PowerListEntry(
           title: AppStrings.kaizengramDocumentCompliancesTitle,
           value: AppStrings.kaizengramDocumentCompliancesPending,
           icon: Icons.description_rounded,
-          accentColor: Color(0xFFFFB547),
+          accentColor: AppColors.hexffb547,
           destination: _PowerListDestination.documentCompliance,
         ),
       ];
@@ -144,14 +144,14 @@ class _KaizenGramViewState extends State<_KaizenGramView>
           title: AppStrings.kaizengramCheckInsTitle,
           value: AppStrings.kaizengramCheckInsActive,
           icon: Icons.fact_check_rounded,
-          accentColor: Color(0xFF7EA6FF),
+          accentColor: AppColors.hex7ea6ff,
           destination: _PowerListDestination.audit,
         ),
         _PowerListEntry(
           title: AppStrings.kaizengramCheckInReportsTitle,
           value: AppStrings.kaizengramCheckInReportsReady,
           icon: Icons.assignment_turned_in_rounded,
-          accentColor: Color(0xFFFF7D7D),
+          accentColor: AppColors.hexff7d7d,
           destination: _PowerListDestination.audit,
         ),
       ];
@@ -238,7 +238,7 @@ class _KaizenGramViewState extends State<_KaizenGramView>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: <Color>[Color(0xFF252A40), Color(0xFF1B1F31)],
+          colors: <Color>[AppColors.hex252a40, AppColors.hex1b1f31],
         ),
       ),
       child: controller.isLoading
