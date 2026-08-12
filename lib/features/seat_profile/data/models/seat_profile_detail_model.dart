@@ -1,17 +1,21 @@
+import '../../domain/entities/department.dart';
 import '../../domain/entities/seat_profile_detail.dart';
+import 'department_model.dart';
 
 class SeatProfileDetailModel extends SeatProfileDetail {
   const SeatProfileDetailModel({
     required super.id,
+    required super.actualId,
     required super.title,
-    required super.departmentName,
+    required super.department,
+    required super.paygradeUnit,
     required super.categories,
   });
 
   factory SeatProfileDetailModel.fromApiJson(Map<String, dynamic> json) {
-    final department = json['department'] as Map<String, dynamic>?;
+    final department = _readDepartment(json['department']);
     final categories =
-        (json['categories'] as List?)
+        ((json['job_categories'] ?? json['categories']) as List?)
             ?.whereType<Map<String, dynamic>>()
             .map(SeatProfileCategoryModel.fromApiJson)
             .toList(growable: false) ??
@@ -19,8 +23,10 @@ class SeatProfileDetailModel extends SeatProfileDetail {
 
     return SeatProfileDetailModel(
       id: json['uuid']?.toString().trim() ?? '',
+      actualId: json['actual_id']?.toString().trim() ?? '',
       title: json['title']?.toString().trim() ?? '',
-      departmentName: department?['name']?.toString().trim() ?? '',
+      department: department,
+      paygradeUnit: json['paygrade_unit']?.toString().trim() ?? '',
       categories: categories,
     );
   }
@@ -36,7 +42,7 @@ class SeatProfileCategoryModel extends SeatProfileCategory {
 
   factory SeatProfileCategoryModel.fromApiJson(Map<String, dynamic> json) {
     final descriptions =
-        (json['descriptions'] as List?)
+        ((json['job_category_descriptions'] ?? json['descriptions']) as List?)
             ?.whereType<Map<String, dynamic>>()
             .map(SeatProfileDescriptionModel.fromApiJson)
             .toList(growable: false) ??
@@ -54,19 +60,116 @@ class SeatProfileCategoryModel extends SeatProfileCategory {
 class SeatProfileDescriptionModel extends SeatProfileDescription {
   const SeatProfileDescriptionModel({
     required super.id,
+    required super.actualId,
     required super.name,
     required super.auditSpecifics,
+    required super.auditFactorType,
     required super.milestoneDays,
   });
 
   factory SeatProfileDescriptionModel.fromApiJson(Map<String, dynamic> json) {
     return SeatProfileDescriptionModel(
       id: json['uuid']?.toString().trim() ?? '',
+      actualId: json['actual_id']?.toString().trim() ?? '',
       name: json['description']?.toString().trim() ?? '',
       auditSpecifics: json['job_specifics']?.toString().trim() ?? '',
+      auditFactorType: _readDescriptionAuditFactorType(json),
       milestoneDays: json['milestone_day']?.toString().trim() ?? '',
     );
   }
+}
+
+String _readDescriptionAuditFactorType(Map<String, dynamic> json) {
+  const candidateKeys = <String>[
+    'audit_factor_type',
+    'auditFactorType',
+    'check_in_type',
+    'checkInType',
+    'audit_type',
+    'auditType',
+  ];
+
+  final directMatch = _findFirstNonEmptyStringForKeys(json, candidateKeys);
+  if (directMatch != null) {
+    return directMatch;
+  }
+
+  return '';
+}
+
+String? _findFirstNonEmptyStringForKeys(
+  Map<String, dynamic> source,
+  List<String> candidateKeys,
+) {
+  for (final key in candidateKeys) {
+    final resolved = _readNestedString(source[key]);
+    if (resolved != null) {
+      return resolved;
+    }
+  }
+
+  for (final entry in source.entries) {
+    final value = entry.value;
+    if (value is Map<String, dynamic>) {
+      final resolved = _findFirstNonEmptyStringForKeys(value, candidateKeys);
+      if (resolved != null) {
+        return resolved;
+      }
+      continue;
+    }
+
+    if (value is Map) {
+      final resolved = _findFirstNonEmptyStringForKeys(
+        Map<String, dynamic>.from(value),
+        candidateKeys,
+      );
+      if (resolved != null) {
+        return resolved;
+      }
+      continue;
+    }
+
+    if (value is List) {
+      for (final item in value) {
+        if (item is Map<String, dynamic>) {
+          final resolved = _findFirstNonEmptyStringForKeys(item, candidateKeys);
+          if (resolved != null) {
+            return resolved;
+          }
+        } else if (item is Map) {
+          final resolved = _findFirstNonEmptyStringForKeys(
+            Map<String, dynamic>.from(item),
+            candidateKeys,
+          );
+          if (resolved != null) {
+            return resolved;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+String? _readNestedString(dynamic value) {
+  if (value is String) {
+    final resolved = value.trim();
+    return resolved.isEmpty ? null : resolved;
+  }
+
+  if (value is Map<String, dynamic>) {
+    for (final nestedKey in const <String>['value', 'label', 'name', 'title']) {
+      final resolved = _readNestedString(value[nestedKey]);
+      if (resolved != null) {
+        return resolved;
+      }
+    }
+  } else if (value is Map) {
+    return _readNestedString(Map<String, dynamic>.from(value));
+  }
+
+  return null;
 }
 
 double? _readDouble(dynamic value) {
@@ -77,4 +180,16 @@ double? _readDouble(dynamic value) {
     return value.toDouble();
   }
   return double.tryParse(value?.toString() ?? '');
+}
+
+Department? _readDepartment(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return DepartmentModel.fromApiJson(value);
+  }
+
+  if (value is Map) {
+    return DepartmentModel.fromApiJson(Map<String, dynamic>.from(value));
+  }
+
+  return null;
 }

@@ -1,3 +1,5 @@
+import '../../../training/domain/entities/seat_description_training_route.dart';
+
 class QuarterlyAudit {
   const QuarterlyAudit({
     required this.uuid,
@@ -43,6 +45,7 @@ class QuarterlyAuditDescription {
     required this.isMirror,
     required this.description,
     required this.jobSpecifics,
+    required this.trainingRoute,
     required this.great,
     required this.needsImprovement,
     required this.almostThere,
@@ -60,6 +63,7 @@ class QuarterlyAuditDescription {
   final bool isMirror;
   final String description;
   final String jobSpecifics;
+  final SeatDescriptionTrainingRoute trainingRoute;
   final int great;
   final int needsImprovement;
   final int almostThere;

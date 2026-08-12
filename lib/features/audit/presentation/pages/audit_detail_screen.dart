@@ -21,12 +21,18 @@ import '../../domain/usecases/get_audit_overview_usecase.dart';
 import '../../domain/usecases/get_quarterly_audit_usecase.dart';
 import '../providers/audit_controller.dart';
 import '../widgets/upgrade_plan_dialog.dart';
-import 'audit_single_description.dart';
 
 class AuditDetailsScreen extends StatelessWidget {
-  const AuditDetailsScreen({super.key, required this.profileJobId});
+  const AuditDetailsScreen({
+    super.key,
+    required this.profileJobId,
+    this.year,
+    this.quarter,
+  });
 
   final String profileJobId;
+  final int? year;
+  final int? quarter;
 
   @override
   Widget build(BuildContext context) {
@@ -65,17 +71,27 @@ class AuditDetailsScreen extends StatelessWidget {
             null,
             null,
             context.read<AuditRepositoryImpl>(),
-          )..initializeDetails(profileJobId),
+          )..initializeDetails(profileJobId, year: year, quarter: quarter),
         ),
       ],
-      child: _AuditDetailsScreenView(profileJobId: profileJobId),
+      child: _AuditDetailsScreenView(
+        profileJobId: profileJobId,
+        year: year,
+        quarter: quarter,
+      ),
     );
   }
 }
 
 class _AuditDetailsScreenView extends StatelessWidget {
-  const _AuditDetailsScreenView({required this.profileJobId});
+  const _AuditDetailsScreenView({
+    required this.profileJobId,
+    this.year,
+    this.quarter,
+  });
   final String profileJobId;
+  final int? year;
+  final int? quarter;
 
   @override
   Widget build(BuildContext context) {
@@ -397,19 +413,6 @@ class _AuditDetailsScreenView extends StatelessWidget {
     );
   }
 
-  Future<void> _openAuditReport(BuildContext context, AuditDetails details) {
-    final currentYearQuarter = CustomFunctions.currentYearQuarter();
-    return AppRouter.pushNamed(
-      context,
-      AppRouter.auditReport,
-      arguments: AuditReportRouteArgs(
-        profileJobId: details.profileJob,
-        initialYear: currentYearQuarter.year,
-        initialQuarter: currentYearQuarter.quarter,
-      ),
-    );
-  }
-
   Widget _buildGraphIcon(String iconName) {
     return Container(
       padding: const EdgeInsets.all(5),
@@ -460,6 +463,10 @@ class _AuditDetailsScreenView extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final audit = visibleAudits[index];
+        final actionLabel =
+            CustomFunctions.isAuditWithinContinueWindow(audit.date)
+            ? AppStrings.continueAction
+            : AppStrings.view;
 
         return Material(
           color: AppColors.surfaceDark,
@@ -529,7 +536,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           AppTextView.body2(
-                            AppStrings.view,
+                            actionLabel,
                             color: AppColors.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -574,8 +581,9 @@ class _AuditDetailsScreenView extends StatelessWidget {
   Future<void> _openSingleAuditDetails(
     BuildContext context,
     AuditDetails details,
-    String date,
-  ) async {
+    String date, {
+    bool requireDescriptionSelection = false,
+  }) async {
     await AppRouter.pushNamed(
       context,
       AppRouter.singleAuditDetails,
@@ -583,6 +591,9 @@ class _AuditDetailsScreenView extends StatelessWidget {
         quarterlyAuditId: details.uuid,
         date: date,
         lastAuditDate: details.lastAuditDate,
+        year: year,
+        quarter: quarter,
+        requireDescriptionSelection: requireDescriptionSelection,
       ),
     );
 
@@ -599,7 +610,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     required bool isAuditActionLoading,
   }) {
     final hasDetails = details != null;
-    final shouldStartNewAudit =
+    final canCreateNewAuditToday =
         hasDetails && CustomFunctions.shouldStartNewAudit(details);
 
     return Container(
@@ -621,16 +632,10 @@ class _AuditDetailsScreenView extends StatelessWidget {
             padding: EdgeInsets.only(left: 14, right: 14, top: 12),
             child: hasDetails
                 ? AppButton(
-                    text: shouldStartNewAudit
-                        ? AppStrings.newCheckIn
-                        : 'Continue Check-in',
-                    onPressed: isAuditActionLoading
-                        ? null
-                        : () => _handleAuditAction(
-                            context,
-                            details,
-                            shouldStartNewAudit,
-                          ),
+                    text: AppStrings.newCheckIn,
+                    onPressed: canCreateNewAuditToday && !isAuditActionLoading
+                        ? () => _handleNewAuditAction(context, details)
+                        : null,
                     isLoading: isAuditActionLoading,
                     minimumHeight: 40,
                   )
@@ -641,10 +646,9 @@ class _AuditDetailsScreenView extends StatelessWidget {
     );
   }
 
-  Future<void> _handleAuditAction(
+  Future<void> _handleNewAuditAction(
     BuildContext context,
     AuditDetails details,
-    bool shouldStartNewAudit,
   ) async {
     if (!context.read<AuditController>().state.isOwner) {
       return;
@@ -668,50 +672,14 @@ class _AuditDetailsScreenView extends StatelessWidget {
     controller.setAuditActionLoading(true);
 
     try {
-      final quarterlyAudit = await controller.loadQuarterlyAuditForDate(
-        quarterlyAuditId: details.uuid,
-        date: todayDate,
-      );
-
-      if (!context.mounted || quarterlyAudit == null) {
-        return;
-      }
-
-      final description = CustomFunctions.resolveTargetAuditDescription(
-        quarterlyAudit: quarterlyAudit,
-        shouldStartNewAudit: shouldStartNewAudit,
-      );
-      if (description == null) {
-        return;
-      }
-
       controller.setAuditActionLoading(false);
 
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ChangeNotifierProvider<AuditController>.value(
-            value: controller,
-            child: SingleDescriptionDetails(
-              audit: quarterlyAudit,
-              description: description,
-              date: todayDate,
-              isOwner: controller.state.isOwner,
-              onAuditUpdated: () async {
-                await _refreshControllerDetailsAfterAuditReturn(
-                  controller,
-                  details.profileJob,
-                );
-              },
-            ),
-          ),
-        ),
+      await _openSingleAuditDetails(
+        context,
+        details,
+        todayDate,
+        requireDescriptionSelection: true,
       );
-
-      if (!context.mounted) {
-        return;
-      }
-
-      await _refreshDetailsAfterAuditReturn(context, details.profileJob);
     } finally {
       controller.setAuditActionLoading(false);
     }
@@ -733,6 +701,8 @@ class _AuditDetailsScreenView extends StatelessWidget {
   ) async {
     await controller.initializeDetails(
       profileJobId,
+      year: year,
+      quarter: quarter,
       clearEvaluationCharts: !controller.showGraph,
     );
 

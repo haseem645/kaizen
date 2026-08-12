@@ -14,13 +14,13 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
     required int page,
     int pageSize = 10,
     String? departmentId,
-    String title = '',
+    String name = '',
   }) {
     return _remoteDataSource.getPaygrades(
       page: page,
       pageSize: pageSize,
       departmentId: departmentId,
-      title: title,
+      name: name,
     );
   }
 
@@ -38,5 +38,59 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
       paygradeId: paygradeId,
       type: type,
     );
+  }
+
+  @override
+  Future<void> generatePaygrades({
+    required String actualId,
+    required int numPaygrades,
+  }) {
+    return _remoteDataSource.generatePaygrades(
+      actualId: actualId,
+      numPaygrades: numPaygrades,
+    );
+  }
+
+  @override
+  Future<PaygradeEntry> createPaygrade({
+    required String jobId,
+    required String type,
+    required String level,
+    required String title,
+    required String description,
+    required String promotionRequirement,
+    required int position,
+    required bool fromSandbox,
+  }) {
+    return _remoteDataSource.createPaygrade(
+      jobId: jobId,
+      type: type,
+      level: level,
+      title: title,
+      description: description,
+      promotionRequirement: promotionRequirement,
+      position: position,
+      fromSandbox: fromSandbox,
+    );
+  }
+
+  @override
+  Future<void> updatePaygrade({
+    required String paygradeId,
+    required String title,
+    required String description,
+    required String promotionRequirement,
+  }) {
+    return _remoteDataSource.updatePaygrade(
+      paygradeId: paygradeId,
+      title: title,
+      description: description,
+      promotionRequirement: promotionRequirement,
+    );
+  }
+
+  @override
+  Future<void> deletePaygrade(String paygradeId) {
+    return _remoteDataSource.deletePaygrade(paygradeId);
   }
 }

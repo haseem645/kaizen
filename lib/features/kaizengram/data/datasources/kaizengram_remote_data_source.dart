@@ -55,7 +55,7 @@ class KaizengramRemoteDataSource {
                 : track.displayName),
       type: KaizengramFeedType.learningCompliance,
       title: _displayText(track.displayName, fallback: 'Learning Compliance'),
-      description: track.displayStatus,
+      description: '',
       status: track.displayStatus,
       seatProfile: _displayText(track.displayJob, fallback: 'No Job'),
       rawDeadline: _normalizedText(track.deadline),
@@ -95,7 +95,9 @@ class KaizengramRemoteDataSource {
       schedule: null,
       trackAssignmentUuid: null,
       documentPreviewUrl: latestDocumentUrl ?? thumbnailUrl,
-      feedImageUrl: isVideo ? thumbnailUrl : (thumbnailUrl ?? latestDocumentUrl),
+      feedImageUrl: isVideo
+          ? thumbnailUrl
+          : (thumbnailUrl ?? latestDocumentUrl),
       feedVideoUrl: isVideo ? latestDocumentUrl : null,
       subtitle: 'Document Compliance',
       timestampLabel: document.updatedAt.trim().isEmpty
@@ -105,7 +107,9 @@ class KaizengramRemoteDataSource {
   }
 
   String _documentStatusLabel(ComplianceDocument document) {
-    final rawStatus = CustomFunctions.normalizedStatus(document.rawStatus ?? document.status);
+    final rawStatus = CustomFunctions.normalizedStatus(
+      document.rawStatus ?? document.status,
+    );
     if (rawStatus == 'compliant') {
       return 'Compliant';
     }

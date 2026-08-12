@@ -7,15 +7,24 @@ import '../../features/login/domain/entities/user.dart';
 
 class AppPreference {
   static late SharedPreferences _sharedPrefs;
-  static final String _userKey = "userKey";
-  static final String _accessTokenKey = "accessToken";
-  static final String _refreshTokenKey = "refreshToken";
-  static final String _onboardingTokenKey = "onboardingToken";
-  static final String _onboardingTokenTypeKey = "onboardingTokenType";
-  static final String _activeCompanyKey = "activeCompany";
+  static const String _userKey = 'userKey';
+  static const String _accessTokenKey = 'accessToken';
+  static const String _refreshTokenKey = 'refreshToken';
+  static const String _onboardingTokenKey = 'onboardingToken';
+  static const String _onboardingTokenTypeKey = 'onboardingTokenType';
+  static const String _activeCompanyKey = 'activeCompany';
+  static const String _useParentApiEndpointsKey = 'useParentApiEndpoints';
+  static const String _selectedOrganizationIdKey = 'selectedOrganizationId';
+  static bool _useParentApiEndpoints = false;
+  static String? _selectedOrganizationId;
 
   static Future<void> init() async {
     _sharedPrefs = await SharedPreferences.getInstance();
+    _useParentApiEndpoints =
+        _sharedPrefs.getBool(_useParentApiEndpointsKey) ?? false;
+    _selectedOrganizationId = _sharedPrefs.getString(
+      _selectedOrganizationIdKey,
+    );
   }
 
   static String getAuthToken() {
@@ -80,6 +89,8 @@ class AppPreference {
     await clearTokens();
     await clearActiveCompany();
     await clearUser();
+    await clearSelectedOrganizationId();
+    await clearUseParentApiEndpoints();
     await clearOnboardingSession();
   }
 
@@ -104,6 +115,43 @@ class AppPreference {
 
   static Future<void> clearActiveCompany() async {
     await _sharedPrefs.remove(_activeCompanyKey);
+  }
+
+  static bool getUseParentApiEndpoints() {
+    return _useParentApiEndpoints;
+  }
+
+  static Future<void> setUseParentApiEndpoints(bool value) async {
+    if (_useParentApiEndpoints == value) {
+      return;
+    }
+
+    _useParentApiEndpoints = value;
+    await _sharedPrefs.setBool(_useParentApiEndpointsKey, value);
+  }
+
+  static Future<void> clearUseParentApiEndpoints() async {
+    _useParentApiEndpoints = false;
+    await _sharedPrefs.remove(_useParentApiEndpointsKey);
+  }
+
+  static String? getSelectedOrganizationId() {
+    return _selectedOrganizationId;
+  }
+
+  static Future<void> setSelectedOrganizationId(String value) async {
+    final normalizedValue = value.trim();
+    if (_selectedOrganizationId == normalizedValue) {
+      return;
+    }
+
+    _selectedOrganizationId = normalizedValue;
+    await _sharedPrefs.setString(_selectedOrganizationIdKey, normalizedValue);
+  }
+
+  static Future<void> clearSelectedOrganizationId() async {
+    _selectedOrganizationId = null;
+    await _sharedPrefs.remove(_selectedOrganizationIdKey);
   }
 
   static String getPreferredApiToken({bool includeOnboardingToken = false}) {

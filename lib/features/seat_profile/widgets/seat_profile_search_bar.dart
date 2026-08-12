@@ -31,37 +31,61 @@ class SeatProfileSearchBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.fieldBorder),
             ),
-            child: Row(
-              children: [
-                SvgPicture.asset(
-                  "${AppStrings.imagePath}search.svg",
-                  width: 20,
-                  height: 20,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    onChanged: onChanged,
-                    cursorHeight: 16,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) {
+                final hasQuery = value.text.trim().isNotEmpty;
+
+                return Row(
+                  children: [
+                    SvgPicture.asset(
+                      "${AppStrings.imagePath}search.svg",
+                      width: 20,
+                      height: 20,
                     ),
-                    cursorColor: AppColors.textPrimary,
-                    decoration: InputDecoration(
-                      hintText: hintText ?? AppStrings.auditSearchHint,
-                      hintStyle: TextStyle(
-                        color: AppColors.grey1,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        onChanged: onChanged,
+                        cursorHeight: 16,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                        ),
+                        cursorColor: AppColors.textPrimary,
+                        decoration: InputDecoration(
+                          hintText: hintText ?? AppStrings.auditSearchHint,
+                          hintStyle: TextStyle(
+                            color: AppColors.grey1,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          border: InputBorder.none,
+                        ),
                       ),
-                      border: InputBorder.none,
                     ),
-                  ),
-                ),
-                //const Icon(Icons.arrow_drop_down, color: AppColors.textPrimary),
-              ],
+                    if (hasQuery)
+                      IconButton(
+                        onPressed: () {
+                          controller.clear();
+                          onChanged('');
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 24,
+                          height: 24,
+                        ),
+                        splashRadius: 16,
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ),

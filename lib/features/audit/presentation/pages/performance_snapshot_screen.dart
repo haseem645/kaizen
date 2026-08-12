@@ -56,6 +56,9 @@ class _PerformanceSnapshotView extends StatelessWidget {
     final controller = context.watch<PerformanceSnapshotController>();
     final data = controller.currentData;
     final visibleReports = controller.visibleReports;
+    final showTeamReportsControls = controller.canAccessTeamReports;
+    final showSelectionTabs =
+        showTeamReportsControls && !controller.isActualOwner;
 
     return DrawerMainScreen(
       title: AppStrings.performanceSnapshot,
@@ -70,41 +73,45 @@ class _PerformanceSnapshotView extends StatelessWidget {
                 controller: controller.scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
-                  _PerformanceSnapshotTabs(
-                    selectedTab: controller.selectedTab,
-                    onTabSelected: (tab) {
-                      controller.selectTab(
-                        tab == PerformanceSnapshotTab.reports
-                            ? AuditMemberStatus.active
-                            : AuditMemberStatus.deactivated,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 22),
-                  AuditSearchBar(
-                    controller: controller.searchController,
-                    onChanged: (_) {},
-                    onFilterTap: () =>
-                        _openSeatProfileFilter(context, controller),
-                  ),
-                  if (controller.selectedJobTitle != null) ...[
-                    const SizedBox(height: 14),
-                    _FilterTag(
-                      label: controller.selectedJobTitle!,
-                      onClear: controller.clearSelectedJobTitle,
+                  if (showTeamReportsControls) ...[
+                    if (showSelectionTabs) ...[
+                      _PerformanceSnapshotTabs(
+                        selectedTab: controller.selectedTab,
+                        onTabSelected: (tab) {
+                          controller.selectTab(
+                            tab == PerformanceSnapshotTab.reports
+                                ? AuditMemberStatus.active
+                                : AuditMemberStatus.deactivated,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 22),
+                    ],
+                    AuditSearchBar(
+                      controller: controller.searchController,
+                      onChanged: (_) {},
+                      onFilterTap: () =>
+                          _openSeatProfileFilter(context, controller),
                     ),
-                  ],
-                  const SizedBox(height: 18),
-                  if (controller.isFilterLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 18),
-                      child: Center(
-                        child: AppTextView.body2(
-                          AppStrings.performanceSnapshotFilterLoading,
-                          color: AppColors.textSecondary,
+                    if (controller.selectedJobTitle != null) ...[
+                      const SizedBox(height: 14),
+                      _FilterTag(
+                        label: controller.selectedJobTitle!,
+                        onClear: controller.clearSelectedJobTitle,
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    if (controller.isFilterLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 18),
+                        child: Center(
+                          child: AppTextView.body2(
+                            AppStrings.performanceSnapshotFilterLoading,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
-                    ),
+                  ],
                   if (visibleReports.isEmpty)
                     _EmptyState(message: controller.emptyStateMessage)
                   else ...[

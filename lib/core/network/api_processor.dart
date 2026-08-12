@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,6 +8,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/network/api_endpoints.dart';
 import 'package:sparrowkaizen/core/network/api_error.dart';
+import 'package:sparrowkaizen/core/network/models/organization_conflict_payload.dart';
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/utils/auth_controller.dart';
 
@@ -14,8 +16,20 @@ class ApiCallExecutor {
   const ApiCallExecutor();
 
   static const Duration _getCacheTtl = Duration(seconds: 30);
+  static const Duration _requestTimeout = Duration(seconds: 30);
+  static const int _maxGetRequestRetries = 2;
   static final Map<String, _CachedHttpResponse> _getCache =
       <String, _CachedHttpResponse>{};
+  static final http.Client _httpClient = http.Client();
+
+  static void clearGetCache() {
+    if (_getCache.isEmpty) {
+      return;
+    }
+
+    _getCache.clear();
+    debugPrint('GET cache INVALIDATED');
+  }
 
   Future<Response> processApi<Response>({
     required ApiCallType apiCallType,
@@ -25,14 +39,16 @@ class ApiCallExecutor {
     Map<String, String>? headers,
     String? authToken,
     bool allowAutoRefresh = true,
+    bool allowConflictRetry = true,
     bool invalidateCacheBeforeRequest = false,
   }) async {
+    final resolvedEndpoint = ApiEndPoints.resolveEndpoint(endpoint);
     final resolvedAuthToken =
         authToken ??
         (endpoint == ApiEndPoints.login ? null : AppPreference.getAuthToken());
     final cacheKey = _buildCacheKey(
       apiCallType: apiCallType,
-      endpoint: endpoint,
+      endpoint: resolvedEndpoint,
       parameters: parameters,
       authToken: resolvedAuthToken,
     );
@@ -50,7 +66,7 @@ class ApiCallExecutor {
 
     response ??= await _sendRequest(
       apiCallType: apiCallType,
-      endpoint: endpoint,
+      endpoint: resolvedEndpoint,
       parameters: parameters,
       headers: headers,
       authToken: resolvedAuthToken,
@@ -58,7 +74,7 @@ class ApiCallExecutor {
 
     final statusCode = response.statusCode;
     final fullEndpoint =
-        '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$endpoint';
+        '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$resolvedEndpoint';
     debugPrint('Call $fullEndpoint $statusCode');
 
     if (statusCode == 401 &&
@@ -73,6 +89,7 @@ class ApiCallExecutor {
         parameters: parameters,
         headers: headers,
         allowAutoRefresh: false,
+        allowConflictRetry: allowConflictRetry,
         invalidateCacheBeforeRequest: invalidateCacheBeforeRequest,
         decoder: decoder,
       );
@@ -81,7 +98,29 @@ class ApiCallExecutor {
     final retriedStatusCode = response.statusCode;
 
     if (retriedStatusCode == 409) {
-      AppManager.instance.handleConflict409();
+      final conflictPayload = OrganizationConflictPayload.fromResponseBody(
+        response.body,
+      );
+      if (allowConflictRetry && conflictPayload != null) {
+        final resolvedConflict = await AppManager.instance
+            .resolveConflictWithServerActiveOrganization(conflictPayload);
+        if (resolvedConflict) {
+          debugPrint('Retrying $fullEndpoint after organization conflict');
+          return processApi<Response>(
+            apiCallType: apiCallType,
+            endpoint: endpoint,
+            authToken: resolvedAuthToken,
+            parameters: parameters,
+            headers: headers,
+            allowAutoRefresh: allowAutoRefresh,
+            allowConflictRetry: false,
+            invalidateCacheBeforeRequest: invalidateCacheBeforeRequest,
+            decoder: decoder,
+          );
+        }
+      }
+
+      await AppManager.instance.handleConflict409();
     }
 
     if (retriedStatusCode < 200 || retriedStatusCode > 299) {
@@ -112,6 +151,7 @@ class ApiCallExecutor {
     Map<String, dynamic>? parameters,
     Map<String, String>? headers,
     String? authToken,
+    int attempt = 0,
   }) async {
     final fullEndpoint =
         '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$endpoint';
@@ -141,21 +181,93 @@ class ApiCallExecutor {
       resolvedHeaders.addAll(headers);
     }
 
-    final request = http.Request(apiCallType.value, uri);
-    request.headers.addAll(resolvedHeaders);
-
-    if (apiCallType != ApiCallType.get && parameters != null) {
-      request.body = jsonEncode(parameters);
-    }
-
     try {
-      final streamedResponse = await request.send();
-      return await http.Response.fromStream(streamedResponse);
-    } on SocketException {
-      throw ApiError.requestFailed(0, message: 'Unable to connect to server.');
-    } on HttpException {
-      throw ApiError.requestFailed(0, message: 'Unable to connect to server.');
+      final request = http.Request(apiCallType.value, uri);
+      request.headers.addAll(resolvedHeaders);
+
+      if (apiCallType != ApiCallType.get && parameters != null) {
+        request.body = jsonEncode(parameters);
+      }
+
+      final streamedResponse = await _httpClient
+          .send(request)
+          .timeout(_requestTimeout);
+      return await http.Response.fromStream(
+        streamedResponse,
+      ).timeout(_requestTimeout);
+    } on SocketException catch (_) {
+      if (_shouldRetryRequest(apiCallType: apiCallType, attempt: attempt)) {
+        return _retryRequest(
+          apiCallType: apiCallType,
+          endpoint: endpoint,
+          parameters: parameters,
+          headers: headers,
+          authToken: authToken,
+          attempt: attempt,
+        );
+      }
+
+      throw ApiError.requestFailed(
+        0,
+        message: AppStrings.apiUnableToConnectServer,
+      );
+    } on HttpException catch (_) {
+      if (_shouldRetryRequest(apiCallType: apiCallType, attempt: attempt)) {
+        return _retryRequest(
+          apiCallType: apiCallType,
+          endpoint: endpoint,
+          parameters: parameters,
+          headers: headers,
+          authToken: authToken,
+          attempt: attempt,
+        );
+      }
+
+      throw ApiError.requestFailed(
+        0,
+        message: AppStrings.apiUnableToConnectServer,
+      );
+    } on TimeoutException catch (_) {
+      if (_shouldRetryRequest(apiCallType: apiCallType, attempt: attempt)) {
+        return _retryRequest(
+          apiCallType: apiCallType,
+          endpoint: endpoint,
+          parameters: parameters,
+          headers: headers,
+          authToken: authToken,
+          attempt: attempt,
+        );
+      }
+
+      throw ApiError.requestFailed(0, message: AppStrings.apiRequestTimedOut);
     }
+  }
+
+  bool _shouldRetryRequest({
+    required ApiCallType apiCallType,
+    required int attempt,
+  }) {
+    return apiCallType == ApiCallType.get && attempt < _maxGetRequestRetries;
+  }
+
+  Future<http.Response> _retryRequest({
+    required ApiCallType apiCallType,
+    required String endpoint,
+    Map<String, dynamic>? parameters,
+    Map<String, String>? headers,
+    String? authToken,
+    required int attempt,
+  }) async {
+    final retryDelay = Duration(milliseconds: 400 * (attempt + 1));
+    await Future<void>.delayed(retryDelay);
+    return _sendRequest(
+      apiCallType: apiCallType,
+      endpoint: endpoint,
+      parameters: parameters,
+      headers: headers,
+      authToken: authToken,
+      attempt: attempt + 1,
+    );
   }
 
   Uri buildUriWithQueryParameters({
@@ -219,12 +331,7 @@ class ApiCallExecutor {
   }
 
   void _invalidateGetCache() {
-    if (_getCache.isEmpty) {
-      return;
-    }
-
-    _getCache.clear();
-    debugPrint('GET cache INVALIDATED');
+    clearGetCache();
   }
 
   void _invalidateGetCacheEntry(String cacheKey) {

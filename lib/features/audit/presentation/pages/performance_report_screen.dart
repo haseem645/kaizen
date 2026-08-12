@@ -20,6 +20,84 @@ import 'paygrade_detail_dialog.dart';
 import 'performance_report_dialogs.dart';
 import 'seat_description_final_audit_report.dart';
 
+const List<Map<String, Object>> _flutterIconsList = <Map<String, Object>>[
+  <String, Object>{
+    'key': 'target',
+    'label': 'Target',
+    'icon': Icons.gps_fixed_outlined,
+    'color': Color(0xFF18C4E8),
+    'keywords': <String>['target', 'customer', 'customer first', 'focus'],
+  },
+  <String, Object>{
+    'key': 'shield',
+    'label': 'Shield',
+    'icon': Icons.shield_outlined,
+    'color': Color(0xFFB65CFF),
+    'keywords': <String>['shield', 'secure', 'safety', 'protection'],
+  },
+  <String, Object>{
+    'key': 'users',
+    'label': 'People',
+    'icon': Icons.groups_outlined,
+    'color': Color(0xFF1ED9C8),
+    'keywords': <String>['users', 'people', 'customer care', 'professional'],
+  },
+  <String, Object>{
+    'key': 'lightbulb',
+    'label': 'Innovation',
+    'icon': Icons.lightbulb_outlined,
+    'color': Color(0xFF14C7F3),
+    'keywords': <String>['lightbulb', 'innovation', 'creative', 'idea'],
+  },
+  <String, Object>{
+    'key': 'handshake',
+    'label': 'Teamwork',
+    'icon': Icons.handshake_outlined,
+    'color': Color(0xFFF08A24),
+    'keywords': <String>['handshake', 'teamwork', 'team', 'collaboration'],
+  },
+  <String, Object>{
+    'key': 'scale',
+    'label': 'Integrity',
+    'icon': Icons.balance_outlined,
+    'color': Color(0xFFB96CFF),
+    'keywords': <String>['scale', 'integrity', 'ethics', 'honesty'],
+  },
+  <String, Object>{
+    'key': 'award',
+    'label': 'Excellence',
+    'icon': Icons.emoji_events_outlined,
+    'color': Color(0xFFFF5E33),
+    'keywords': <String>['award', 'excellence', 'superb', 'memorable'],
+  },
+  <String, Object>{
+    'key': 'trending_up',
+    'label': 'Growth',
+    'icon': Icons.trending_up_outlined,
+    'color': Color(0xFF4DD17F),
+    'keywords': <String>['trending_up', 'growth', 'improve', 'learning'],
+  },
+  <String, Object>{
+    'key': 'heart',
+    'label': 'Care',
+    'icon': Icons.favorite_border_outlined,
+    'color': Color(0xFFF46AA8),
+    'keywords': <String>['heart', 'care', 'compassion', 'empathy'],
+  },
+  <String, Object>{
+    'key': 'check_circle',
+    'label': 'Accountability',
+    'icon': Icons.check_circle_outline_outlined,
+    'color': Color(0xFF2EA8FF),
+    'keywords': <String>[
+      'check_circle',
+      'accountability',
+      'ownership',
+      'responsibility',
+    ],
+  },
+];
+
 class PerformanceReportScreen extends StatelessWidget {
   const PerformanceReportScreen({
     super.key,
@@ -61,6 +139,148 @@ class PerformanceReportScreen extends StatelessWidget {
   }
 }
 
+class _CoreValueVisualSpec {
+  const _CoreValueVisualSpec({
+    required this.key,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  final String key;
+  final String label;
+  final IconData icon;
+  final Color color;
+}
+
+_CoreValueVisualSpec _resolveCoreValueVisualSpec({
+  required PerformanceReportCoreValue coreValue,
+}) {
+  final normalizedTitle = coreValue.title.trim().toLowerCase();
+  final normalizedIconKey = coreValue.iconKey?.trim().toLowerCase() ?? '';
+  final accentColor = _resolveCoreValueAccentColor(coreValue);
+
+  for (final iconMap in _flutterIconsList) {
+    final key = (iconMap['key'] as String?)?.toLowerCase() ?? '';
+    final label = (iconMap['label'] as String?)?.toLowerCase() ?? '';
+    final keywords = iconMap['keywords'] as List<String>? ?? const <String>[];
+    final matchesExplicitIcon =
+        normalizedIconKey.isNotEmpty &&
+        (normalizedIconKey == key || normalizedIconKey == label);
+    final matchesTitle =
+        normalizedTitle.contains(key) ||
+        normalizedTitle.contains(label) ||
+        keywords.any((keyword) => normalizedTitle.contains(keyword));
+
+    if (matchesExplicitIcon || matchesTitle) {
+      return _coreValueVisualSpecFromMap(iconMap, accentColor: accentColor);
+    }
+  }
+
+  if (_flutterIconsList.isEmpty) {
+    return _CoreValueVisualSpec(
+      key: 'award',
+      label: 'Excellence',
+      icon: Icons.emoji_events_outlined,
+      color: accentColor ?? AppColors.secondaryColor,
+    );
+  }
+
+  return _coreValueVisualSpecFromMap(
+    _flutterIconsList[_stableCoreValueIconIndex(coreValue.title)],
+    accentColor: accentColor,
+  );
+}
+
+_CoreValueVisualSpec _coreValueVisualSpecFromMap(
+  Map<String, Object> iconMap, {
+  Color? accentColor,
+}) {
+  final iconData = iconMap['icon'];
+  final color = iconMap['color'];
+  final resolvedColor =
+      accentColor ?? (color is Color ? color : AppColors.secondaryColor);
+
+  return _CoreValueVisualSpec(
+    key: iconMap['key'] as String? ?? '',
+    label: iconMap['label'] as String? ?? '',
+    icon: iconData is IconData ? iconData : Icons.emoji_events_outlined,
+    color: resolvedColor,
+  );
+}
+
+Color? _resolveCoreValueAccentColor(PerformanceReportCoreValue coreValue) {
+  final rawColorValue = _firstNonEmptyCoreValueString(<String?>[
+    coreValue.colorHex,
+    coreValue.rawData['color_hex']?.toString(),
+    coreValue.rawData['colorHex']?.toString(),
+    coreValue.rawData['hex_color']?.toString(),
+    coreValue.rawData['hexCode']?.toString(),
+    coreValue.rawData['hex_code']?.toString(),
+  ]);
+  final normalizedHex = _normalizeCoreValueHex(rawColorValue);
+  if (!_isValidCoreValueHex(normalizedHex)) {
+    return null;
+  }
+
+  final raw = normalizedHex.substring(1);
+  return Color(int.parse(raw, radix: 16) | 0xFF000000);
+}
+
+String _normalizeCoreValueHex(String? value) {
+  final cleaned = value?.trim().toUpperCase().replaceAll(' ', '') ?? '';
+  if (cleaned.isEmpty) {
+    return '';
+  }
+
+  var raw = cleaned;
+  if (raw.startsWith('#')) {
+    raw = raw.substring(1);
+  }
+  if (raw.startsWith('0X')) {
+    raw = raw.substring(2);
+  }
+  if (raw.length == 3) {
+    raw = raw.split('').map((segment) => '$segment$segment').join();
+  } else if (raw.length == 8) {
+    raw = raw.substring(2);
+  }
+
+  if (raw.isEmpty) {
+    return '';
+  }
+
+  return '#$raw';
+}
+
+bool _isValidCoreValueHex(String value) {
+  return RegExp(r'^#[0-9A-F]{6}$').hasMatch(value);
+}
+
+String? _firstNonEmptyCoreValueString(List<String?> values) {
+  for (final value in values) {
+    final normalizedValue = value?.trim() ?? '';
+    if (normalizedValue.isNotEmpty) {
+      return normalizedValue;
+    }
+  }
+
+  return null;
+}
+
+int _stableCoreValueIconIndex(String title) {
+  final normalizedTitle = title.trim();
+  if (normalizedTitle.isEmpty) {
+    return 0;
+  }
+
+  final seed = normalizedTitle.runes.fold<int>(
+    0,
+    (currentValue, rune) => currentValue + rune,
+  );
+  return seed % _flutterIconsList.length;
+}
+
 class _PerformanceReportView extends StatefulWidget {
   const _PerformanceReportView({required this.isMyReport});
 
@@ -74,6 +294,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
   late final TextEditingController _commentsController;
   late final ValueNotifier<_PerformanceReportLocalState> _localStateNotifier;
   String _lastSyncedCommitment = '';
+  bool _canGenerateRemarks = false;
 
   static const List<String> _timeRanges = <String>[
     'This Quarter',
@@ -85,6 +306,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     super.initState();
     _commentsController = TextEditingController();
     _localStateNotifier = ValueNotifier(const _PerformanceReportLocalState());
+    _loadGenerateRemarksAccess();
   }
 
   @override
@@ -92,6 +314,17 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     _commentsController.dispose();
     _localStateNotifier.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadGenerateRemarksAccess() async {
+    final user = await AppPreference.getUser();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _canGenerateRemarks = user?.canAccessAuditTeamMembers ?? false;
+    });
   }
 
   @override
@@ -137,8 +370,19 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
       body: SafeArea(
         top: false,
         bottom: false,
-        child: state.isPerformanceReportLoading || report == null
+        child: state.isPerformanceReportLoading
             ? FastCircularProgressIndicator()
+            : report == null
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: AppTextView.body(
+                    AppStrings.performanceReportUnavailable,
+                    color: AppColors.textSecondary,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
             : ValueListenableBuilder<_PerformanceReportLocalState>(
                 valueListenable: _localStateNotifier,
                 builder: (context, localState, _) {
@@ -229,6 +473,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                             _PersonaCard(
                               report: report,
                               showPersonaHeader: state.isOwner,
+                              showGenerateRemarksAction: _canGenerateRemarks,
                               isGeneratingRemarks:
                                   state.isGeneratingPerformanceReportRemarks,
                               onGenerateRemarks: () async {
@@ -255,6 +500,10 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                               currentStep: currentPaygradeStep,
                             ),
                           ),
+                          if (report.coreValues.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _CoreValuesCard(values: report.coreValues),
+                          ],
                           if (!widget.isMyReport) ...[
                             const SizedBox(height: 16),
                             _CommitmentCard(
@@ -948,22 +1197,11 @@ class _MetricCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: AppTextView.title1(
-                  value,
-                  color: valueColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Icon(
-                Icons.info_outline,
-                color: AppColors.secondaryColor,
-                size: 14,
-              ),
-            ],
+          AppTextView.title1(
+            value,
+            color: valueColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
           const SizedBox(height: 4),
           AppTextView.body4(
@@ -1121,6 +1359,7 @@ class _PersonaCard extends StatelessWidget {
   const _PersonaCard({
     required this.report,
     required this.showPersonaHeader,
+    required this.showGenerateRemarksAction,
     required this.isGeneratingRemarks,
     required this.onGenerateRemarks,
     required this.onDescriptionGo,
@@ -1130,6 +1369,7 @@ class _PersonaCard extends StatelessWidget {
 
   final PerformanceReport report;
   final bool showPersonaHeader;
+  final bool showGenerateRemarksAction;
   final bool isGeneratingRemarks;
   final Future<void> Function() onGenerateRemarks;
   final ValueChanged<PerformanceReportRatingRow> onDescriptionGo;
@@ -1199,53 +1439,55 @@ class _PersonaCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                height: 32,
-                child: OutlinedButton(
-                  onPressed: isGeneratingRemarks ? null : onGenerateRemarks,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.secondaryColor,
-                    side: const BorderSide(color: AppColors.secondaryColor),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        isGeneratingRemarks
-                            ? 'Generating...'
-                            : 'Generate Remarks',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.secondaryColor,
-                        ),
+            if (showGenerateRemarksAction) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  height: 32,
+                  child: OutlinedButton(
+                    onPressed: isGeneratingRemarks ? null : onGenerateRemarks,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.secondaryColor,
+                      side: const BorderSide(color: AppColors.secondaryColor),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      if (isGeneratingRemarks) ...[
-                        const SizedBox(width: 8),
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.secondaryColor,
-                            ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isGeneratingRemarks
+                              ? 'Generating...'
+                              : 'Generate Remarks',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.secondaryColor,
                           ),
                         ),
+                        if (isGeneratingRemarks) ...[
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.secondaryColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 16),
           ],
           _RatingsTable(
@@ -1785,6 +2027,125 @@ class _PipelineStep extends StatelessWidget {
               step.caption,
               color: AppColors.textSecondary,
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoreValuesCard extends StatelessWidget {
+  const _CoreValuesCard({required this.values});
+
+  final List<PerformanceReportCoreValue> values;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AppTextView.body2(
+            AppStrings.performanceReportCoreValuesTitle,
+            color: AppColors.secondaryColor,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List<Widget>.generate(values.length, (index) {
+                final value = values[index];
+                final visualSpec = _resolveCoreValueVisualSpec(
+                  coreValue: value,
+                );
+
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index == values.length - 1 ? 0 : 12,
+                  ),
+                  child: _CoreValuePill(
+                    coreValue: value,
+                    visualSpec: visualSpec,
+                    onTap: () => showPerformanceReportCoreValueDialog(
+                      context,
+                      coreValue: value,
+                      icon: visualSpec.icon,
+                      accentColor: visualSpec.color,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoreValuePill extends StatelessWidget {
+  const _CoreValuePill({
+    required this.coreValue,
+    required this.visualSpec,
+    required this.onTap,
+  });
+
+  final PerformanceReportCoreValue coreValue;
+  final _CoreValueVisualSpec visualSpec;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 156, maxWidth: 220),
+        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark2,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: visualSpec.color, width: 1.3),
+          boxShadow: [
+            BoxShadow(
+              color: visualSpec.color.withValues(alpha: 0.12),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: visualSpec.color,
+              ),
+              child: Icon(
+                visualSpec.icon,
+                color: AppColors.textPrimary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: AppTextView.body1(
+                coreValue.title,
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

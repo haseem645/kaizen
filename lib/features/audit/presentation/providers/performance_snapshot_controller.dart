@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
+import '../../../../core/preference/app_preference.dart';
 import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/audit_main_list.dart';
 import '../../domain/entities/audit_member.dart';
@@ -21,15 +22,20 @@ class PerformanceSnapshotController extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   final ScrollController scrollController = ScrollController();
 
-  PerformanceSnapshotTab _selectedTab = PerformanceSnapshotTab.reports;
+  PerformanceSnapshotTab _selectedTab = PerformanceSnapshotTab.myReports;
   PagedAuditData _reportsData = const PagedAuditData();
   PagedAuditData _myReportsData = const PagedAuditData();
+  bool _canAccessTeamReports = false;
+  bool _isActualOwner = false;
+  bool _isInitializing = true;
   bool _isFilterLoading = false;
   List<String> _jobOptions = const <String>[];
   String _searchQuery = '';
   String? _selectedJobTitle;
   String? _myReportsErrorMessage;
 
+  bool get canAccessTeamReports => _canAccessTeamReports;
+  bool get isActualOwner => _isActualOwner;
   PerformanceSnapshotTab get selectedTab => _selectedTab;
   bool get isFilterLoading => _isFilterLoading;
   List<String> get jobOptions => _jobOptions;
@@ -58,7 +64,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
   }
 
   bool get isInitialLoading =>
-      currentData.isLoading && currentData.items.isEmpty;
+      _isInitializing || (currentData.isLoading && currentData.items.isEmpty);
 
   String get emptyStateMessage {
     final hasFilters =
@@ -75,10 +81,31 @@ class PerformanceSnapshotController extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    await loadReports();
+    try {
+      final user = await AppPreference.getUser();
+      _canAccessTeamReports = user?.canAccessAuditTeamMembers ?? false;
+      _isActualOwner = user?.isOwner == true;
+      _selectedTab = _canAccessTeamReports
+          ? PerformanceSnapshotTab.reports
+          : PerformanceSnapshotTab.myReports;
+      notifyListeners();
+
+      if (_canAccessTeamReports) {
+        await loadReports();
+      } else {
+        await loadMyReports();
+      }
+    } finally {
+      _isInitializing = false;
+      notifyListeners();
+    }
   }
 
   void selectTab(AuditMemberStatus status) {
+    if (!_canAccessTeamReports) {
+      return;
+    }
+
     final nextTab = status == AuditMemberStatus.active
         ? PerformanceSnapshotTab.reports
         : PerformanceSnapshotTab.myReports;
@@ -110,17 +137,25 @@ class PerformanceSnapshotController extends ChangeNotifier {
     notifyListeners();
 
     final nextPage = loadMore ? currentData.currentPage + 1 : 1;
-    final result = await _repository.getPerformanceSnapshot(
-      page: nextPage,
-      pageSize: 12,
-    );
-    final parsed = _parsePerformanceSnapshotResponse(result);
-    final parsedItems = parsed.items;
+    try {
+      final result = await _repository.getPerformanceSnapshot(
+        page: nextPage,
+        pageSize: 12,
+      );
+      final parsed = _parsePerformanceSnapshotResponse(result);
+      final parsedItems = parsed.items;
 
-    _reportsData = PagedAuditData.fromMainList(
-      parsed.mainList,
-      items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
-    );
+      _reportsData = PagedAuditData.fromMainList(
+        parsed.mainList,
+        items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
+      );
+    } catch (error) {
+      _reportsData = currentData.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+      );
+      debugPrint('PerformanceSnapshotController.loadReports failed: $error');
+    }
     notifyListeners();
   }
 
@@ -161,8 +196,22 @@ class PerformanceSnapshotController extends ChangeNotifier {
         );
         _myReportsErrorMessage = 'Profile doesnt exist';
       } else {
-        rethrow;
+        _myReportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        _myReportsErrorMessage = error.message;
+        debugPrint(
+          'PerformanceSnapshotController.loadMyReports failed: $error',
+        );
       }
+    } catch (error) {
+      _myReportsData = currentData.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+      );
+      _myReportsErrorMessage = error.toString();
+      debugPrint('PerformanceSnapshotController.loadMyReports failed: $error');
     }
     notifyListeners();
   }
@@ -191,6 +240,10 @@ class PerformanceSnapshotController extends ChangeNotifier {
 
     try {
       _jobOptions = await _repository.getSubordinateJobTitles();
+    } catch (error) {
+      debugPrint(
+        'PerformanceSnapshotController.ensureJobOptionsLoaded failed: $error',
+      );
     } finally {
       _isFilterLoading = false;
       notifyListeners();

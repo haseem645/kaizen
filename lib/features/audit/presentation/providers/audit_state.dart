@@ -11,6 +11,7 @@ class AuditState {
   const AuditState({
     this.isLoading = true,
     this.isOwner = true,
+    this.isActualOwner = false,
     this.mainList,
     this.isLoadingMore = false,
     this.isAuditActionLoading = false,
@@ -22,6 +23,8 @@ class AuditState {
     this.searchQuery = '',
     this.selectedYearQuarter,
     this.selectedSeatProfile,
+    this.selectedAuditYear,
+    this.selectedAuditQuarter,
     this.performanceReport,
     this.isPerformanceReportLoading = false,
     this.isGeneratingPerformanceReportRemarks = false,
@@ -43,6 +46,7 @@ class AuditState {
 
   final bool isLoading;
   final bool isOwner;
+  final bool isActualOwner;
   final AuditMainList? mainList;
   final bool isLoadingMore;
   final bool isAuditActionLoading;
@@ -54,6 +58,8 @@ class AuditState {
   final String searchQuery;
   final String? selectedYearQuarter;
   final String? selectedSeatProfile;
+  final int? selectedAuditYear;
+  final int? selectedAuditQuarter;
   final PerformanceReport? performanceReport;
   final bool isPerformanceReportLoading;
   final bool isGeneratingPerformanceReportRemarks;
@@ -75,6 +81,7 @@ class AuditState {
   AuditState copyWith({
     bool? isLoading,
     bool? isOwner,
+    bool? isActualOwner,
     AuditMainList? mainList,
     bool? isLoadingMore,
     bool? isAuditActionLoading,
@@ -86,6 +93,8 @@ class AuditState {
     String? searchQuery,
     String? selectedYearQuarter,
     String? selectedSeatProfile,
+    int? selectedAuditYear,
+    int? selectedAuditQuarter,
     PerformanceReport? performanceReport,
     bool? isPerformanceReportLoading,
     bool? isGeneratingPerformanceReportRemarks,
@@ -123,6 +132,7 @@ class AuditState {
     return AuditState(
       isLoading: isLoading ?? this.isLoading,
       isOwner: isOwner ?? this.isOwner,
+      isActualOwner: isActualOwner ?? this.isActualOwner,
       mainList: clearMainList ? null : mainList ?? this.mainList,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       isAuditActionLoading: isAuditActionLoading ?? this.isAuditActionLoading,
@@ -143,6 +153,8 @@ class AuditState {
       selectedSeatProfile: clearSelectedSeatProfile
           ? null
           : selectedSeatProfile ?? this.selectedSeatProfile,
+      selectedAuditYear: selectedAuditYear ?? this.selectedAuditYear,
+      selectedAuditQuarter: selectedAuditQuarter ?? this.selectedAuditQuarter,
       performanceReport: clearPerformanceReport
           ? null
           : performanceReport ?? this.performanceReport,

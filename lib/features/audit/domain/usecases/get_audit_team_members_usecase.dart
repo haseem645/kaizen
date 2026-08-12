@@ -6,7 +6,17 @@ class GetAuditTeamMembersUseCase {
 
   final AuditRepository _repository;
 
-  Future<AuditMainList> call({int page = 1, int pageSize = 10}) {
-    return _repository.getAuditTeamMembers(page: page, pageSize: pageSize);
+  Future<AuditMainList> call({
+    int page = 1,
+    int pageSize = 10,
+    int? year,
+    int? quarter,
+  }) {
+    return _repository.getAuditTeamMembers(
+      page: page,
+      pageSize: pageSize,
+      year: year,
+      quarter: quarter,
+    );
   }
 }

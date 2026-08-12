@@ -1,4 +1,5 @@
 import '../../domain/entities/quarterly_audit.dart';
+import '../../../training/domain/entities/seat_description_training_route.dart';
 
 class QuarterlyAuditModel extends QuarterlyAudit {
   const QuarterlyAuditModel({
@@ -106,6 +107,7 @@ class QuarterlyAuditDescriptionModel extends QuarterlyAuditDescription {
     required super.isMirror,
     required super.description,
     required super.jobSpecifics,
+    required super.trainingRoute,
     required super.great,
     required super.needsImprovement,
     required super.almostThere,
@@ -122,6 +124,7 @@ class QuarterlyAuditDescriptionModel extends QuarterlyAuditDescription {
     Map<String, dynamic> json,
   ) {
     final auditDetails = _readMap(json['audit_details']);
+    final trainingRoute = _readMap(json['training_route']);
 
     return QuarterlyAuditDescriptionModel(
       uuid: _readString(json['uuid']) ?? '',
@@ -129,6 +132,11 @@ class QuarterlyAuditDescriptionModel extends QuarterlyAuditDescription {
       isMirror: _readBool(json['is_mirror']) ?? false,
       description: _readString(json['description']) ?? '',
       jobSpecifics: _readString(json['job_specifics']) ?? '',
+      trainingRoute: SeatDescriptionTrainingRoute(
+        job: _readString(trainingRoute?['job']) ?? '',
+        category: _readString(trainingRoute?['category']) ?? '',
+        description: _readString(trainingRoute?['description']) ?? '',
+      ),
       great: _readInt(auditDetails?['great']) ?? 0,
       needsImprovement: _readInt(auditDetails?['needs_improvement']) ?? 0,
       almostThere: _readInt(auditDetails?['almost_there']) ?? 0,

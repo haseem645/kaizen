@@ -1,4 +1,5 @@
 import '../../domain/entities/seat_description_final_audit_report.dart';
+import '../../../training/domain/entities/seat_description_training_route.dart';
 
 class SeatDescriptionFinalAuditReportModel
     extends SeatDescriptionFinalAuditReport {

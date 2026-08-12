@@ -27,11 +27,17 @@ class SingleAuditDetailsScreen extends StatelessWidget {
     required this.quarterlyAuditId,
     required this.date,
     required this.lastAuditDate,
+    this.year,
+    this.quarter,
+    this.requireDescriptionSelection = false,
   });
 
   final String quarterlyAuditId;
   final String date;
   final String lastAuditDate;
+  final int? year;
+  final int? quarter;
+  final bool requireDescriptionSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -57,23 +63,32 @@ class SingleAuditDetailsScreen extends StatelessWidget {
           update: (_, repository, __) => createMarkUnfavoriteSubordinateUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
-          create: (context) => AuditController(
-            context.read<GetAuditOverviewUseCase>(),
-            null,
-            null,
-            context.read<GetQuarterlyAuditUseCase>(),
-            context.read<GetAuditTeamMembersUseCase>(),
-            context.read<MarkFavoriteSubordinateUseCase>(),
-            context.read<MarkUnfavoriteSubordinateUseCase>(),
-            context.read<AuditRepositoryImpl>(),
-          )..initializeSingleAuditDetails(quarterlyAuditId: quarterlyAuditId, date: date),
+          create: (context) =>
+              AuditController(
+                context.read<GetAuditOverviewUseCase>(),
+                null,
+                null,
+                context.read<GetQuarterlyAuditUseCase>(),
+                context.read<GetAuditTeamMembersUseCase>(),
+                context.read<MarkFavoriteSubordinateUseCase>(),
+                context.read<MarkUnfavoriteSubordinateUseCase>(),
+                context.read<AuditRepositoryImpl>(),
+              )..initializeSingleAuditDetails(
+                quarterlyAuditId: quarterlyAuditId,
+                date: date,
+                year: year,
+                quarter: quarter,
+              ),
         ),
       ],
       child: _SingleAuditDetailsView(
-        key: ValueKey('$quarterlyAuditId|$date|$lastAuditDate'),
+        key: ValueKey('$quarterlyAuditId|$date|$lastAuditDate|$year|$quarter'),
         quarterlyAuditId: quarterlyAuditId,
         date: date,
         lastAuditDate: lastAuditDate,
+        year: year,
+        quarter: quarter,
+        requireDescriptionSelection: requireDescriptionSelection,
       ),
     );
   }
@@ -85,11 +100,17 @@ class _SingleAuditDetailsView extends StatefulWidget {
     required this.date,
     required this.lastAuditDate,
     required this.quarterlyAuditId,
+    this.year,
+    this.quarter,
+    required this.requireDescriptionSelection,
   });
 
   final String date;
   final String lastAuditDate;
   final String quarterlyAuditId;
+  final int? year;
+  final int? quarter;
+  final bool requireDescriptionSelection;
 
   @override
   State<_SingleAuditDetailsView> createState() => _SingleAuditDetailsViewState();
@@ -110,7 +131,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     final didIdentityChange =
         oldWidget.lastAuditDate != widget.lastAuditDate ||
         oldWidget.date != widget.date ||
-        oldWidget.quarterlyAuditId != widget.quarterlyAuditId;
+        oldWidget.quarterlyAuditId != widget.quarterlyAuditId ||
+        oldWidget.year != widget.year ||
+        oldWidget.quarter != widget.quarter ||
+        oldWidget.requireDescriptionSelection != widget.requireDescriptionSelection;
     if (!didIdentityChange) {
       return;
     }
@@ -124,6 +148,8 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
       context.read<AuditController>().initializeSingleAuditDetails(
         quarterlyAuditId: widget.quarterlyAuditId,
         date: widget.date,
+        year: widget.year,
+        quarter: widget.quarter,
       );
     });
   }
@@ -139,6 +165,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     final controller = context.watch<AuditController>();
     final state = controller.state;
     final audit = state.quarterlyAudit;
+    final members = state.mainList?.results ?? const <AuditProfile>[];
     final profileDescription = audit?.descriptions.isEmpty ?? true
         ? null
         : audit!.descriptions.first;
@@ -169,12 +196,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                   child: Column(
                     children: [
                       _buildAuditProfileCard(audit, profileDescription),
-                      const SizedBox(height: 18),
-                      _buildSwitchTeamMembersSection(
-                        context,
-                        audit,
-                        state.mainList?.results ?? const <AuditProfile>[],
-                      ),
+                      if (members.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        _buildSwitchTeamMembersSection(context, audit, members),
+                      ],
                       const SizedBox(height: 18),
                       ValueListenableBuilder<_SingleAuditFiltersState>(
                         valueListenable: _filtersNotifier,
@@ -199,6 +224,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     QuarterlyAuditDescription description,
   ) async {
     final auditController = context.read<AuditController>();
+    auditController.selectQuarterlyAuditDescription(description.uuid);
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -330,6 +356,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     QuarterlyAudit audit,
     List<AuditProfile> members,
   ) {
+    if (members.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final previewMembers = members.take(4).toList(growable: false);
 
     return Column(
@@ -460,7 +490,11 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return AppRouter.pushReplacementNamed<void, void>(
       context,
       AppRouter.auditDetails,
-      arguments: AuditDetailsRouteArgs(profileJobId: member.profileJob),
+      arguments: AuditDetailsRouteArgs(
+        profileJobId: member.profileJob,
+        year: widget.year,
+        quarter: widget.quarter,
+      ),
     );
   }
 
@@ -531,6 +565,23 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             ),
           ],
         ),
+        if (widget.requireDescriptionSelection) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.24)),
+            ),
+            child: const AppTextView.body2(
+              AppStrings.checkInSelectDescriptionPrompt,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
         const SizedBox(height: 10),
         AnimatedSize(
           duration: const Duration(milliseconds: 280),

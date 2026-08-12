@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -64,6 +65,9 @@ class _DescriptionMediaCommentBottomSheetState
     super.initState();
     _selectedMedia = widget.initialMediaFile;
     _selectedMediaType = widget.initialMediaType;
+    if (_selectedMedia == null) {
+      unawaited(_restoreLostMediaIfNeeded());
+    }
   }
 
   @override
@@ -337,10 +341,15 @@ class _DescriptionMediaCommentBottomSheetState
         return;
       }
 
+      final mediaFile = File(pickedFile.path);
       setState(() {
-        _selectedMedia = File(pickedFile.path);
+        _selectedMedia = mediaFile;
         _selectedMediaType = 'video';
       });
+
+      if (source == ImageSource.camera) {
+        await _persistCapturedVideoToGallery(mediaFile);
+      }
     } on PlatformException catch (error) {
       if (!mounted) {
         return;
@@ -358,6 +367,149 @@ class _DescriptionMediaCommentBottomSheetState
     } finally {
       if (mounted) {
         setState(() => _isPickingMedia = false);
+      }
+    }
+  }
+
+  Future<void> _restoreLostMediaIfNeeded() async {
+    if (!Platform.isAndroid || _selectedMedia != null) {
+      return;
+    }
+
+    try {
+      final response = await _imagePicker.retrieveLostData();
+      if (!mounted || response.isEmpty) {
+        return;
+      }
+
+      if (response.exception != null) {
+        _showSnackBar(AppStrings.auditRestoreMediaError);
+        return;
+      }
+
+      final restoredFile =
+          response.file ??
+          (response.files?.isNotEmpty == true ? response.files!.first : null);
+      if (restoredFile == null) {
+        return;
+      }
+
+      final restoredMediaType = _resolveRecoveredMediaType(
+        retrieveType: response.type,
+        path: restoredFile.path,
+      );
+      if (restoredMediaType == null ||
+          !_canRestoreRecoveredMedia(restoredMediaType)) {
+        return;
+      }
+
+      final mediaFile = File(restoredFile.path);
+      if (!await mediaFile.exists()) {
+        if (!mounted) {
+          return;
+        }
+        _showSnackBar(
+          restoredMediaType == 'video'
+              ? AppStrings.auditRecordedVideoMissing
+              : AppStrings.auditPickImageError,
+        );
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedMedia = mediaFile;
+        _selectedMediaType = restoredMediaType;
+      });
+
+      if (restoredMediaType == 'video' &&
+          widget.contentType == DescriptionMediaCommentContentType.video) {
+        await _persistCapturedVideoToGallery(mediaFile);
+      }
+    } catch (error) {
+      debugPrint('Unable to restore lost media: $error');
+      if (mounted) {
+        _showSnackBar(AppStrings.auditRestoreMediaError);
+      }
+    }
+  }
+
+  String? _resolveRecoveredMediaType({
+    required RetrieveType? retrieveType,
+    required String path,
+  }) {
+    if (retrieveType == RetrieveType.image) {
+      return 'image';
+    }
+    if (retrieveType == RetrieveType.video) {
+      return 'video';
+    }
+
+    final contentType = CustomFunctions.contentTypeFromPath(
+      path,
+      fallback: 'application/octet-stream',
+    );
+    if (contentType.startsWith('image/')) {
+      return 'image';
+    }
+    if (contentType.startsWith('video/')) {
+      return 'video';
+    }
+
+    return null;
+  }
+
+  bool _canRestoreRecoveredMedia(String mediaType) {
+    return switch (widget.contentType) {
+      DescriptionMediaCommentContentType.photo => mediaType == 'image',
+      DescriptionMediaCommentContentType.video => mediaType == 'video',
+      DescriptionMediaCommentContentType.upload =>
+        mediaType == 'image' || mediaType == 'video',
+      DescriptionMediaCommentContentType.screenRecording => false,
+    };
+  }
+
+  Future<void> _persistCapturedVideoToGallery(File mediaFile) async {
+    if (!await mediaFile.exists()) {
+      if (mounted) {
+        _showSnackBar(AppStrings.auditRecordedVideoMissing);
+      }
+      return;
+    }
+
+    try {
+      final permissionState = await PhotoManager.requestPermissionExtend(
+        requestOption: const PermissionRequestOption(
+          iosAccessLevel: IosAccessLevel.addOnly,
+          androidPermission: AndroidPermission(
+            type: RequestType.video,
+            mediaLocation: false,
+          ),
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+
+      if (!permissionState.hasAccess) {
+        _showSnackBar(AppStrings.auditSaveRecordedVideoPermission);
+        return;
+      }
+
+      await PhotoManager.editor.saveVideo(
+        mediaFile,
+        title: CustomFunctions.fileNameFromPath(
+          mediaFile.path,
+          fallback: 'audit-video.mp4',
+        ),
+      );
+    } catch (error) {
+      debugPrint('Unable to save recorded video to gallery: $error');
+      if (mounted) {
+        _showSnackBar(AppStrings.auditSaveRecordedVideoError);
       }
     }
   }

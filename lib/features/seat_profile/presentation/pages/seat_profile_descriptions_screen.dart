@@ -5,12 +5,21 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/seat_profile_detail.dart';
-import 'seat_profile_description_dialog.dart';
+import 'seat_profile_description_sheet.dart';
 
 class SeatProfileDescriptionsScreen extends StatelessWidget {
-  const SeatProfileDescriptionsScreen({super.key, required this.category});
+  const SeatProfileDescriptionsScreen({
+    super.key,
+    required this.category,
+    this.onUpdateDescription,
+  });
 
   final SeatProfileCategory category;
+  final Future<void> Function(
+    SeatProfileDescription description,
+    SeatProfileDescriptionFormData formData,
+  )?
+  onUpdateDescription;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +71,10 @@ class SeatProfileDescriptionsScreen extends StatelessWidget {
                           ...category.descriptions.map(
                             (description) => Padding(
                               padding: const EdgeInsets.only(bottom: 16),
-                              child: _DescriptionCard(description: description),
+                              child: _DescriptionCard(
+                                description: description,
+                                onUpdateDescription: onUpdateDescription,
+                              ),
                             ),
                           ),
                         ],
@@ -87,7 +99,10 @@ class SeatProfileDescriptionsScreen extends StatelessWidget {
               '${AppStrings.imagePath}back.svg',
               width: 24,
               height: 24,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
@@ -110,86 +125,127 @@ class SeatProfileDescriptionsScreen extends StatelessWidget {
 }
 
 class _DescriptionCard extends StatelessWidget {
-  const _DescriptionCard({required this.description});
+  const _DescriptionCard({
+    required this.description,
+    required this.onUpdateDescription,
+  });
 
   final SeatProfileDescription description;
+  final Future<void> Function(
+    SeatProfileDescription description,
+    SeatProfileDescriptionFormData formData,
+  )?
+  onUpdateDescription;
+
+  Future<void> _openDescriptionSheet(BuildContext context) async {
+    await showSeatProfileDescriptionBottomSheet(
+      context,
+      description: description,
+      onSave: onUpdateDescription == null
+          ? null
+          : (formData) => onUpdateDescription!(description, formData),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openDescriptionSheet(context),
         borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTextView.body1(
-            description.name,
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(6),
           ),
-          const SizedBox(height: 6),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppTextView.body2(
-                "${AppStrings.seatProfileMilestoneDays}: ",
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 4),
-              AppTextView.body2(
-                description.milestoneDays,
+              AppTextView.body1(
+                description.name,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  AppTextView.body2(
+                    "${AppStrings.seatProfileMilestoneDays}: ",
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  AppTextView.body2(
+                    seatProfileDescriptionMilestoneLabel(
+                      description.milestoneDays,
+                    ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  AppTextView.body2(
+                    "${AppStrings.seatProfileCheckInType}: ",
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  AppTextView.body2(
+                    seatProfileDescriptionCheckInTypeLabel(
+                      description.auditFactorType,
+                    ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              AppTextView.body2(
+                AppStrings.seatProfileAuditSpecifics,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 6),
+              _ExpandableDescriptionText(
+                description: description.auditSpecifics,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextView.body2(
+                    AppStrings.seatProfileViewTraining,
+                    color: AppColors.secondaryColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppColors.secondaryColor,
+                    size: 14,
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 14),
-          AppTextView.body2(AppStrings.seatProfileAuditSpecifics, color: AppColors.textSecondary),
-          const SizedBox(height: 6),
-          _ExpandableDescriptionText(
-            title: description.name,
-            description: description.auditSpecifics,
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: () {},
-            borderRadius: BorderRadius.circular(999),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppTextView.body2(
-                  AppStrings.seatProfileViewTraining,
-                  color: AppColors.secondaryColor,
-                  fontWeight: FontWeight.w700,
-                ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: AppColors.secondaryColor,
-                  size: 14,
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _ExpandableDescriptionText extends StatelessWidget {
-  const _ExpandableDescriptionText({required this.title, required this.description});
+  const _ExpandableDescriptionText({required this.description});
 
-  final String title;
   final String description;
 
   @override
   Widget build(BuildContext context) {
     final textStyle = const TextStyle(
       color: AppColors.textPrimary,
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: FontWeight.w400,
       height: 1.45,
     );
@@ -207,24 +263,22 @@ class _ExpandableDescriptionText extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(description, style: textStyle, maxLines: 7, overflow: TextOverflow.ellipsis),
+            Text(
+              description,
+              style: textStyle,
+              maxLines: 7,
+              overflow: TextOverflow.ellipsis,
+            ),
             if (hasOverflow) ...[
               const SizedBox(height: 8),
-              InkWell(
-                onTap: () => showDialog<void>(
-                  context: context,
-                  builder: (_) =>
-                      SeatProfileDescriptionDialog(title: title, description: description),
-                ),
-                child: const Text(
-                  'See All',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.secondaryColor,
-                  ),
+              Text(
+                AppStrings.seeAll,
+                style: TextStyle(
+                  color: AppColors.secondaryColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.secondaryColor,
                 ),
               ),
             ],
