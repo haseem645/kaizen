@@ -16,11 +16,13 @@ class SeatProfileRepositoryImpl implements SeatProfileRepository {
     required int page,
     int pageSize = 10,
     String? departmentId,
+    String title = '',
   }) {
     return _remoteDataSource.getSeatProfiles(
       page: page,
       pageSize: pageSize,
       departmentId: departmentId,
+      title: title,
     );
   }
 

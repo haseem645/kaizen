@@ -14,11 +14,13 @@ class GetSeatProfilesUseCase {
     required int page,
     int pageSize = 10,
     String? departmentId,
+    String title = '',
   }) {
     return _repository.getSeatProfiles(
       page: page,
       pageSize: pageSize,
       departmentId: departmentId,
+      title: title,
     );
   }
 

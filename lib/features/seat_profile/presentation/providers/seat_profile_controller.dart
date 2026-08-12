@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
@@ -16,6 +18,7 @@ class SeatProfileController extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
 
   static const int _pageSize = 10;
+  static const Duration _searchDebounceDuration = Duration(milliseconds: 400);
 
   bool _isInitialLoading = false;
   bool _isListLoading = false;
@@ -29,6 +32,8 @@ class SeatProfileController extends ChangeNotifier {
   String _selectedDepartmentId = 'all';
   List<Department> _departments = const <Department>[];
   List<SeatProfile> _items = const <SeatProfile>[];
+  Timer? _searchDebounceTimer;
+  bool _hasPendingSearchRefresh = false;
 
   bool get isInitialLoading => _isInitialLoading;
   bool get isListLoading => _isListLoading;
@@ -37,26 +42,17 @@ class SeatProfileController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   SeatProfileFilter get selectedFilter => _selectedFilter;
   String get selectedDepartmentId => _selectedDepartmentId;
-  List<Department> get departments => List<Department>.unmodifiable(_departments);
+  List<Department> get departments =>
+      List<Department>.unmodifiable(_departments);
 
   List<SeatProfile> get visibleItems {
-    final query = _searchQuery.trim().toLowerCase();
-
     return _items
         .where((item) {
-          final matchesFilter = switch (_selectedFilter) {
+          return switch (_selectedFilter) {
             SeatProfileFilter.all => true,
             SeatProfileFilter.primaryPaygrade => item.hasPrimaryPaygrade,
             SeatProfileFilter.ancillaryPaygrade => item.hasAncillaryPaygrade,
           };
-
-          final matchesQuery =
-              query.isEmpty ||
-              item.name.toLowerCase().contains(query) ||
-              item.categoriesCount.toString().contains(query) ||
-              item.descriptionsCount.toString().contains(query);
-
-          return matchesFilter && matchesQuery;
         })
         .toList(growable: false);
   }
@@ -64,8 +60,10 @@ class SeatProfileController extends ChangeNotifier {
   String get selectedFilterLabel {
     return switch (_selectedFilter) {
       SeatProfileFilter.all => AppStrings.seatProfileFilterAll,
-      SeatProfileFilter.primaryPaygrade => AppStrings.seatProfileFilterPrimaryPaygrade,
-      SeatProfileFilter.ancillaryPaygrade => AppStrings.seatProfileFilterAncillaryPaygrade,
+      SeatProfileFilter.primaryPaygrade =>
+        AppStrings.seatProfileFilterPrimaryPaygrade,
+      SeatProfileFilter.ancillaryPaygrade =>
+        AppStrings.seatProfileFilterAncillaryPaygrade,
     };
   }
 
@@ -77,7 +75,9 @@ class SeatProfileController extends ChangeNotifier {
     _isInitialLoading = true;
     _errorMessage = null;
     _selectedDepartmentId = 'all';
+    _searchQuery = '';
     _departments = const <Department>[];
+    searchController.clear();
     notifyListeners();
 
     try {
@@ -96,7 +96,11 @@ class SeatProfileController extends ChangeNotifier {
   }
 
   Future<void> loadNextPage() async {
-    if (_isInitialLoading || _isListLoading || _isRefreshing || _isLoadingMore || !_hasNextPage) {
+    if (_isInitialLoading ||
+        _isListLoading ||
+        _isRefreshing ||
+        _isLoadingMore ||
+        !_hasNextPage) {
       return;
     }
 
@@ -112,7 +116,9 @@ class SeatProfileController extends ChangeNotifier {
   }
 
   Future<void> _loadDepartments() async {
-    _departments = List<Department>.unmodifiable(await _getSeatProfilesUseCase.getDepartments());
+    _departments = List<Department>.unmodifiable(
+      await _getSeatProfilesUseCase.getDepartments(),
+    );
   }
 
   Future<void> _refreshSeatProfiles({required bool showLoader}) async {
@@ -140,6 +146,7 @@ class SeatProfileController extends ChangeNotifier {
       _isRefreshing = false;
     }
     notifyListeners();
+    _flushPendingSearchRefresh();
   }
 
   Future<void> _reloadSeatProfiles() async {
@@ -153,13 +160,19 @@ class SeatProfileController extends ChangeNotifier {
     final response = await _getSeatProfilesUseCase(
       page: page,
       pageSize: _pageSize,
-      departmentId: _selectedDepartmentId == 'all' ? null : _selectedDepartmentId,
+      departmentId: _selectedDepartmentId == 'all'
+          ? null
+          : _selectedDepartmentId,
+      title: _searchQuery.trim(),
     );
     _currentPage = page;
     _hasNextPage = response.hasNextPage && response.items.isNotEmpty;
     _items = replace
         ? List<SeatProfile>.unmodifiable(response.items)
-        : List<SeatProfile>.unmodifiable(<SeatProfile>[..._items, ...response.items]);
+        : List<SeatProfile>.unmodifiable(<SeatProfile>[
+            ..._items,
+            ...response.items,
+          ]);
   }
 
   void updateSearchQuery(String value) {
@@ -168,7 +181,7 @@ class SeatProfileController extends ChangeNotifier {
     }
 
     _searchQuery = value;
-    notifyListeners();
+    _scheduleSearchRefresh();
   }
 
   void selectFilter(SeatProfileFilter filter) {
@@ -191,8 +204,44 @@ class SeatProfileController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     searchController.dispose();
     super.dispose();
+  }
+
+  void _scheduleSearchRefresh({bool immediate = false}) {
+    _searchDebounceTimer?.cancel();
+
+    if (immediate) {
+      unawaited(_runDebouncedSearchRefresh());
+      return;
+    }
+
+    _searchDebounceTimer = Timer(_searchDebounceDuration, () {
+      unawaited(_runDebouncedSearchRefresh());
+    });
+  }
+
+  Future<void> _runDebouncedSearchRefresh() async {
+    if (_isInitialLoading || _isListLoading || _isRefreshing) {
+      _hasPendingSearchRefresh = true;
+      return;
+    }
+
+    _hasPendingSearchRefresh = false;
+    await _refreshSeatProfiles(showLoader: true);
+  }
+
+  void _flushPendingSearchRefresh() {
+    if (!_hasPendingSearchRefresh ||
+        _isInitialLoading ||
+        _isListLoading ||
+        _isRefreshing) {
+      return;
+    }
+
+    _hasPendingSearchRefresh = false;
+    _scheduleSearchRefresh(immediate: true);
   }
 }
 
@@ -202,6 +251,8 @@ SeatProfileRepositoryImpl createSeatProfileRepository(
   return SeatProfileRepositoryImpl(remoteDataSource);
 }
 
-GetSeatProfilesUseCase createGetSeatProfilesUseCase(SeatProfileRepositoryImpl repository) {
+GetSeatProfilesUseCase createGetSeatProfilesUseCase(
+  SeatProfileRepositoryImpl repository,
+) {
   return GetSeatProfilesUseCase(repository);
 }

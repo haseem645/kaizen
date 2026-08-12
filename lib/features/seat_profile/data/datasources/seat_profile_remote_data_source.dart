@@ -18,11 +18,13 @@ class SeatProfileRemoteDataSource {
     required int page,
     int pageSize = 10,
     String? departmentId,
+    String title = '',
   }) {
     return _apiCallExecutor.processApi<SeatProfilePageModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.jobs,
       parameters: {
+        if (title.trim().isNotEmpty) 'title': title.trim(),
         'page': page,
         'page_size': pageSize,
         if (departmentId != null && departmentId.trim().isNotEmpty)

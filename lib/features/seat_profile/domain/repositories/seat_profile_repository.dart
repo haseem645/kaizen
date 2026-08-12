@@ -9,6 +9,7 @@ abstract class SeatProfileRepository {
     required int page,
     int pageSize = 10,
     String? departmentId,
+    String title = '',
   });
   Future<SeatProfileDetail> getSeatProfileDetail(String seatId);
   Future<List<Department>> getDepartments();
