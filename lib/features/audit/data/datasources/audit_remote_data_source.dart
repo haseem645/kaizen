@@ -367,6 +367,7 @@ class AuditRemoteDataSource {
             paygradePipeline: baseReport.paygradePipeline,
             currentPaygrade: baseReport.currentPaygrade,
             paygradeUnit: baseReport.paygradeUnit,
+            coreValues: baseReport.coreValues,
             remarkVersion: baseReport.remarkVersion,
           ),
           commitmentComment:

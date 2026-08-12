@@ -1253,6 +1253,7 @@ class AuditController extends ChangeNotifier {
       paygradePipeline: report.paygradePipeline,
       currentPaygrade: report.currentPaygrade,
       paygradeUnit: report.paygradeUnit,
+      coreValues: report.coreValues,
       remarkVersion: report.remarkVersion,
     );
   }
@@ -1632,6 +1633,7 @@ class AuditController extends ChangeNotifier {
             paygradePipeline: currentReport.paygradePipeline,
             currentPaygrade: currentReport.currentPaygrade,
             paygradeUnit: currentReport.paygradeUnit,
+            coreValues: currentReport.coreValues,
             remarkVersion: currentReport.remarkVersion,
           ),
           certifiedReportOptions: certifiedReports,
@@ -1767,6 +1769,7 @@ class AuditController extends ChangeNotifier {
       paygradePipeline: const <PerformanceReportPaygradeStep>[],
       currentPaygrade: '--',
       paygradeUnit: '--',
+      coreValues: const <PerformanceReportCoreValue>[],
       remarkVersion: 0,
     );
   }
