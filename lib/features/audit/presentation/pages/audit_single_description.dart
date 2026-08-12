@@ -702,7 +702,8 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
   @override
   Widget build(BuildContext context) {
     final canEditBlocks =
-        widget.isOwner && !CustomFunctions.isDateBeforeToday(widget.date);
+        widget.isOwner &&
+        CustomFunctions.isAuditWithinContinueWindow(widget.date);
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
@@ -1683,10 +1684,12 @@ class _SelectionCounter extends StatelessWidget {
                     : AppColors.grey1.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.keyboard_arrow_down_rounded,
+              child: Icon(
+                canEditBlocks
+                    ? Icons.keyboard_arrow_down_rounded
+                    : Icons.lock_rounded,
                 color: Colors.white,
-                size: 28,
+                size: canEditBlocks ? 28 : 18,
               ),
             ),
           ),
