@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:http/http.dart' as http;
 
 import '../../features/login/domain/entities/user.dart';
 import '../../features/organizations/domain/entities/organization.dart';
 import '../../routes/app_router.dart';
-import '../network/api_error.dart';
+import '../constants/app_strings.dart';
 import '../network/api_endpoints.dart';
+import '../network/api_error.dart';
 import '../network/api_processor.dart';
+import '../network/models/organization_conflict_payload.dart';
 import '../preference/app_preference.dart';
 import 'app_manager_remote_data_source.dart';
 import 'models/company_billing_details.dart';
@@ -42,8 +44,7 @@ class AppManager extends ChangeNotifier {
 
   bool get isLoadingOrganizations => _isLoadingOrganizations;
   bool get isSettingActiveOrganization => _isSettingActiveOrganization;
-  bool get showOrganizationBanner =>
-      _showOrganizationBanner && !_isShowingOrganizationsScreen;
+  bool get showOrganizationBanner => _showOrganizationBanner && !_isShowingOrganizationsScreen;
   bool get showBillingBanner =>
       _billingDetails?.status == 'unpaid' &&
       !_isBillingBannerDismissed &&
@@ -56,12 +57,9 @@ class AppManager extends ChangeNotifier {
   bool get isRefreshingOrganizationContext => _isRefreshingOrganizationContext;
   bool get hasPendingOrganizationConflict =>
       _isHandlingOrganizationConflict && !_didResolveOrganizationConflict;
-  bool get currentUserHasOwnerOverrideAccess =>
-      _currentUser?.hasOwnerOverrideAccess == true;
-  bool get currentUserCanAccessSandbox =>
-      _currentUser?.canAccessSandbox == true;
-  bool get currentUserCanCreateSeatProfiles =>
-      _currentUser?.canCreateSeatProfiles == true;
+  bool get currentUserHasOwnerOverrideAccess => _currentUser?.hasOwnerOverrideAccess == true;
+  bool get currentUserCanAccessSandbox => _currentUser?.canAccessSandbox == true;
+  bool get currentUserCanCreateSeatProfiles => _currentUser?.canCreateSeatProfiles == true;
   bool get currentUserCanManageAnyTrainingModules =>
       _currentUser?.canManageAnyTrainingModules == true;
 
@@ -83,9 +81,7 @@ class AppManager extends ChangeNotifier {
         return currentUserCanAccessSandbox;
       }
 
-      final selectedOrganization = _findOrganizationById(
-        selectedOrganizationId,
-      );
+      final selectedOrganization = _findOrganizationById(selectedOrganizationId);
       if (selectedOrganization != null) {
         return _isSandboxOrganization(selectedOrganization);
       }
@@ -99,8 +95,7 @@ class AppManager extends ChangeNotifier {
     }
 
     final resolvedOrganization = currentOrganization;
-    if (resolvedOrganization != null &&
-        _isSandboxOrganization(resolvedOrganization)) {
+    if (resolvedOrganization != null && _isSandboxOrganization(resolvedOrganization)) {
       return true;
     }
 
@@ -111,9 +106,7 @@ class AppManager extends ChangeNotifier {
   Organization? get currentOrganization {
     final selectedOrganizationId = _selectedOrganizationId;
     if (selectedOrganizationId != null) {
-      final selectedOrganization = _findOrganizationForSelection(
-        selectedOrganizationId,
-      );
+      final selectedOrganization = _findOrganizationForSelection(selectedOrganizationId);
       if (selectedOrganization != null) {
         return selectedOrganization;
       }
@@ -121,9 +114,7 @@ class AppManager extends ChangeNotifier {
 
     final userOrganizationId = _resolveUserBackedOrganizationSelectionId();
     if (userOrganizationId != null) {
-      final userOrganization = _findOrganizationForSelection(
-        userOrganizationId,
-      );
+      final userOrganization = _findOrganizationForSelection(userOrganizationId);
       if (userOrganization != null) {
         return userOrganization;
       }
@@ -151,12 +142,9 @@ class AppManager extends ChangeNotifier {
     return _activeCompany?.uuid.trim() ?? '';
   }
 
-  List<Organization> get organizations =>
-      List<Organization>.unmodifiable(_organizations);
+  List<Organization> get organizations => List<Organization>.unmodifiable(_organizations);
   List<Organization> get visibleOrganizations =>
-      List<Organization>.unmodifiable(
-        _organizations.where(_shouldShowOrganization),
-      );
+      List<Organization>.unmodifiable(_organizations.where(_shouldShowOrganization));
   String get currentOrganizationName {
     final resolvedOrganization = currentOrganization;
     if (resolvedOrganization != null) {
@@ -174,19 +162,11 @@ class AppManager extends ChangeNotifier {
     return '';
   }
 
-  Future<void> initialize({
-    bool forceRefresh = false,
-    bool requireSuccess = false,
-  }) async {
-    await fetchOrganizations(
-      forceRefresh: forceRefresh,
-      requireSuccess: requireSuccess,
-    );
+  Future<void> initialize({bool forceRefresh = false, bool requireSuccess = false}) async {
+    await fetchOrganizations(forceRefresh: forceRefresh, requireSuccess: requireSuccess);
   }
 
-  Future<void> refreshSessionContext({
-    bool forceOrganizationsRefresh = true,
-  }) async {
+  Future<void> refreshSessionContext({bool forceOrganizationsRefresh = true}) async {
     final authToken = AppPreference.getAuthToken().trim();
     if (authToken.isEmpty) {
       return;
@@ -221,8 +201,7 @@ class AppManager extends ChangeNotifier {
     _currentUser = await AppPreference.getUser();
     _activeCompany = await AppPreference.getActiveCompany();
     _selectedOrganizationId =
-        _resolveSelectionIdForUser(_currentUser) ??
-        AppPreference.getSelectedOrganizationId();
+        _resolveSelectionIdForUser(_currentUser) ?? AppPreference.getSelectedOrganizationId();
     _syncParentApiEndpointMode();
     _notifyListenersSafely();
   }
@@ -261,8 +240,7 @@ class AppManager extends ChangeNotifier {
 
     _activeCompany = activeCompany;
     _billingDetails = activeCompany?.billing;
-    if (previousCompanyId != nextCompanyId ||
-        activeCompany?.billing?.status != 'unpaid') {
+    if (previousCompanyId != nextCompanyId || activeCompany?.billing?.status != 'unpaid') {
       _isBillingBannerDismissed = false;
     }
 
@@ -316,10 +294,7 @@ class AppManager extends ChangeNotifier {
     _notifyListenersSafely();
   }
 
-  Future<void> fetchOrganizations({
-    bool forceRefresh = false,
-    bool requireSuccess = false,
-  }) async {
+  Future<void> fetchOrganizations({bool forceRefresh = false, bool requireSuccess = false}) async {
     if (_isLoadingOrganizations && !forceRefresh) {
       return;
     }
@@ -372,25 +347,41 @@ class AppManager extends ChangeNotifier {
   }
 
   Future<void> handleConflict409() async {
-    _isHandlingOrganizationConflict = true;
+    _isHandlingOrganizationConflict = false;
     _didResolveOrganizationConflict = false;
     _showOrganizationBanner = false;
+    _isShowingOrganizationsScreen = false;
     await fetchOrganizations(forceRefresh: true);
-
-    if (_isShowingOrganizationsScreen) {
-      _notifyListenersSafely();
-      return;
-    }
-
-    final navigator = AppRouter.navigatorKey.currentState;
-    if (navigator == null) {
-      _showOrganizationBanner = true;
-      _notifyListenersSafely();
-      return;
-    }
-
+    _showOrganizationConflictChangedSnackBar();
     _notifyListenersSafely();
-    await openOrganizationsScreen(openedForConflict: true);
+  }
+
+  Future<bool> resolveConflictWithServerActiveOrganization(
+    OrganizationConflictPayload conflictPayload,
+  ) async {
+    final organizationId = conflictPayload.organizationId.trim();
+    final organizationType = _normalizeOrganizationType(conflictPayload.organizationType);
+    if (organizationId.isEmpty || organizationType.isEmpty) {
+      return false;
+    }
+
+    _isHandlingOrganizationConflict = false;
+    _showOrganizationBanner = false;
+    _isShowingOrganizationsScreen = false;
+    _showOrganizationConflictChangedSnackBar();
+    _notifyListenersSafely();
+
+    final didSetOrganization = await _setActiveOrganizationInternal(
+      organizationId: organizationId,
+      organizationType: organizationType,
+    );
+    if (!didSetOrganization) {
+      return false;
+    }
+
+    await fetchOrganizations(forceRefresh: true);
+    _notifyListenersSafely();
+    return true;
   }
 
   Future<void> openOrganizationsScreen({bool openedForConflict = false}) async {
@@ -446,34 +437,15 @@ class AppManager extends ChangeNotifier {
     _notifyListenersSafely();
 
     try {
-      final token = AppPreference.getAuthToken();
-      final uri = ApiEndPoints.resolveUri(ApiEndPoints.setActiveOrganization);
       final selectedOrganization = _findOrganizationById(organizationId);
-      final payload = _buildSetActiveOrganizationPayload(
+      final organizationType = _resolveOrganizationType(organization: selectedOrganization);
+      final didSetOrganization = await _setActiveOrganizationInternal(
         organizationId: organizationId,
-        organization: selectedOrganization,
+        organizationType: organizationType,
       );
-
-      final response = await http.post(
-        uri,
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(payload),
-      );
-
-      if (response.statusCode < 200 || response.statusCode > 299) {
+      if (!didSetOrganization) {
         return false;
       }
-
-      ApiCallExecutor.clearGetCache();
-      await _syncCurrentOrganization(organizationId);
-      await _refreshActiveCompany();
-      _didResolveOrganizationConflict = true;
-      _isHandlingOrganizationConflict = false;
-      _showOrganizationBanner = false;
-      _isShowingOrganizationsScreen = false;
       final navigator = AppRouter.navigatorKey.currentState;
       if (resetNavigationStack && navigator != null) {
         navigator.pushNamedAndRemoveUntil(
@@ -492,16 +464,17 @@ class AppManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncCurrentOrganization(String organizationId) async {
+  Future<void> _syncCurrentOrganization(String organizationId, {String? organizationType}) async {
     final normalizedOrganizationId = organizationId.trim();
     if (normalizedOrganizationId.isEmpty) {
       return;
     }
 
+    final normalizedOrganizationType = _normalizeOrganizationType(organizationType);
     final matchedOrganization = _findOrganizationById(normalizedOrganizationId);
-    final persistedOrganizationId =
-        matchedOrganization != null &&
-            _isSandboxOrganization(matchedOrganization)
+    final persistedOrganizationId = normalizedOrganizationType.isNotEmpty
+        ? (_isSandboxOrganizationType(normalizedOrganizationType) ? '' : normalizedOrganizationId)
+        : matchedOrganization != null && _isSandboxOrganization(matchedOrganization)
         ? ''
         : normalizedOrganizationId;
     if (_selectedOrganizationId != persistedOrganizationId) {
@@ -520,9 +493,7 @@ class AppManager extends ChangeNotifier {
       return;
     }
 
-    final updatedUser = currentUser.copyWith(
-      organizationUuid: persistedOrganizationId,
-    );
+    final updatedUser = currentUser.copyWith(organizationUuid: persistedOrganizationId);
     _currentUser = updatedUser;
     await AppPreference.saveUser(updatedUser);
     _syncParentApiEndpointMode();
@@ -530,6 +501,22 @@ class AppManager extends ChangeNotifier {
 
   Future<void> _refreshActiveCompany() async {
     await _refreshActiveCompanyForToken();
+  }
+
+  void _showOrganizationConflictChangedSnackBar() {
+    final context = AppRouter.navigatorKey.currentContext;
+    if (context == null) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) {
+      return;
+    }
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text(AppStrings.organizationConflictChangedMessage)));
   }
 
   Future<void> _refreshCurrentOrganizationContext() async {
@@ -541,9 +528,7 @@ class AppManager extends ChangeNotifier {
     try {
       ApiCallExecutor.clearGetCache();
       final remoteDataSource = AppManagerRemoteDataSource();
-      final refreshedUser = await remoteDataSource.fetchUserDetail(
-        accessToken: authToken,
-      );
+      final refreshedUser = await remoteDataSource.fetchUserDetail(accessToken: authToken);
       await AppPreference.saveUser(refreshedUser);
       updateCurrentUser(refreshedUser);
       await _refreshActiveCompanyForToken(authToken: authToken);
@@ -559,9 +544,7 @@ class AppManager extends ChangeNotifier {
     try {
       ApiCallExecutor.clearGetCache();
       final remoteDataSource = AppManagerRemoteDataSource();
-      final refreshedUser = await remoteDataSource.fetchUserDetail(
-        accessToken: authToken,
-      );
+      final refreshedUser = await remoteDataSource.fetchUserDetail(accessToken: authToken);
       await AppPreference.saveUser(refreshedUser);
       updateCurrentUser(refreshedUser);
       await _refreshActiveCompanyForToken(authToken: authToken);
@@ -572,15 +555,15 @@ class AppManager extends ChangeNotifier {
   }
 
   Future<void> _refreshActiveCompanyForToken({String? authToken}) async {
-    final resolvedAuthToken =
-        authToken?.trim() ?? AppPreference.getAuthToken().trim();
+    final resolvedAuthToken = authToken?.trim() ?? AppPreference.getAuthToken().trim();
     if (resolvedAuthToken.isEmpty) {
       return;
     }
 
     try {
-      final companyDetails = await AppManagerRemoteDataSource()
-          .fetchCompanyDetails(accessToken: resolvedAuthToken);
+      final companyDetails = await AppManagerRemoteDataSource().fetchCompanyDetails(
+        accessToken: resolvedAuthToken,
+      );
       await AppPreference.saveActiveCompany(companyDetails);
       saveActiveCompany(companyDetails);
     } catch (_) {
@@ -601,8 +584,7 @@ class AppManager extends ChangeNotifier {
 
     final scheduler = SchedulerBinding.instance;
     final phase = scheduler.schedulerPhase;
-    if (phase == SchedulerPhase.idle ||
-        phase == SchedulerPhase.postFrameCallbacks) {
+    if (phase == SchedulerPhase.idle || phase == SchedulerPhase.postFrameCallbacks) {
       scheduleMicrotask(dispatchNotification);
       return;
     }
@@ -683,17 +665,67 @@ class AppManager extends ChangeNotifier {
   Map<String, String> _buildSetActiveOrganizationPayload({
     required String organizationId,
     required Organization? organization,
+    String? organizationType,
   }) {
     final normalizedOrganizationId = organizationId.trim();
-    final resolvedType =
-        organization != null && _isSandboxOrganization(organization)
-        ? 'sandbox'
-        : 'organization';
+    final normalizedOrganizationType = _normalizeOrganizationType(organizationType);
+    final resolvedType = normalizedOrganizationType.isNotEmpty
+        ? normalizedOrganizationType
+        : _resolveOrganizationType(organization: organization);
 
-    return <String, String>{
-      'type': resolvedType,
-      'uuid': normalizedOrganizationId,
-    };
+    return <String, String>{'type': resolvedType, 'uuid': normalizedOrganizationId};
+  }
+
+  Future<bool> _setActiveOrganizationInternal({
+    required String organizationId,
+    required String organizationType,
+  }) async {
+    final token = AppPreference.getAuthToken();
+    final uri = ApiEndPoints.resolveUri(ApiEndPoints.setActiveOrganization);
+    final selectedOrganization = _findOrganizationById(organizationId);
+    final payload = _buildSetActiveOrganizationPayload(
+      organizationId: organizationId,
+      organization: selectedOrganization,
+      organizationType: organizationType,
+    );
+
+    final response = await http.post(
+      uri,
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode < 200 || response.statusCode > 299) {
+      return false;
+    }
+
+    ApiCallExecutor.clearGetCache();
+    await _syncCurrentOrganization(organizationId, organizationType: organizationType);
+    await _refreshActiveCompany();
+    _didResolveOrganizationConflict = true;
+    _isHandlingOrganizationConflict = false;
+    _showOrganizationBanner = false;
+    _isShowingOrganizationsScreen = false;
+    return true;
+  }
+
+  String _resolveOrganizationType({required Organization? organization}) {
+    if (organization != null && _isSandboxOrganization(organization)) {
+      return 'sandbox';
+    }
+
+    return 'organization';
+  }
+
+  String _normalizeOrganizationType(String? organizationType) {
+    return organizationType?.trim().toLowerCase() ?? '';
+  }
+
+  bool _isSandboxOrganizationType(String organizationType) {
+    return _normalizeOrganizationType(organizationType) == 'sandbox';
   }
 
   String? _resolveSelectionIdForUser(User? user) {
@@ -735,9 +767,7 @@ class AppManager extends ChangeNotifier {
       return;
     }
 
-    unawaited(
-      AppPreference.setSelectedOrganizationId(nextSelectedOrganizationId),
-    );
+    unawaited(AppPreference.setSelectedOrganizationId(nextSelectedOrganizationId));
   }
 
   void _reconcileSelectedOrganization() {
@@ -755,9 +785,7 @@ class AppManager extends ChangeNotifier {
       }
 
       _selectedOrganizationId = fallbackOrganizationId;
-      unawaited(
-        AppPreference.setSelectedOrganizationId(fallbackOrganizationId),
-      );
+      unawaited(AppPreference.setSelectedOrganizationId(fallbackOrganizationId));
       return;
     }
 

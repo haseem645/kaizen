@@ -8,6 +8,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/network/api_endpoints.dart';
 import 'package:sparrowkaizen/core/network/api_error.dart';
+import 'package:sparrowkaizen/core/network/models/organization_conflict_payload.dart';
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/utils/auth_controller.dart';
 
@@ -38,6 +39,7 @@ class ApiCallExecutor {
     Map<String, String>? headers,
     String? authToken,
     bool allowAutoRefresh = true,
+    bool allowConflictRetry = true,
     bool invalidateCacheBeforeRequest = false,
   }) async {
     final resolvedEndpoint = ApiEndPoints.resolveEndpoint(endpoint);
@@ -87,6 +89,7 @@ class ApiCallExecutor {
         parameters: parameters,
         headers: headers,
         allowAutoRefresh: false,
+        allowConflictRetry: allowConflictRetry,
         invalidateCacheBeforeRequest: invalidateCacheBeforeRequest,
         decoder: decoder,
       );
@@ -95,7 +98,29 @@ class ApiCallExecutor {
     final retriedStatusCode = response.statusCode;
 
     if (retriedStatusCode == 409) {
-      AppManager.instance.handleConflict409();
+      final conflictPayload = OrganizationConflictPayload.fromResponseBody(
+        response.body,
+      );
+      if (allowConflictRetry && conflictPayload != null) {
+        final resolvedConflict = await AppManager.instance
+            .resolveConflictWithServerActiveOrganization(conflictPayload);
+        if (resolvedConflict) {
+          debugPrint('Retrying $fullEndpoint after organization conflict');
+          return processApi<Response>(
+            apiCallType: apiCallType,
+            endpoint: endpoint,
+            authToken: resolvedAuthToken,
+            parameters: parameters,
+            headers: headers,
+            allowAutoRefresh: allowAutoRefresh,
+            allowConflictRetry: false,
+            invalidateCacheBeforeRequest: invalidateCacheBeforeRequest,
+            decoder: decoder,
+          );
+        }
+      }
+
+      await AppManager.instance.handleConflict409();
     }
 
     if (retriedStatusCode < 200 || retriedStatusCode > 299) {

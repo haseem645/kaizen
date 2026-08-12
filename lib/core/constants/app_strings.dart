@@ -279,6 +279,9 @@ class AppStrings {
       'Available organisations are being listed here. Please set active organisation from the given list';
   static const String organizationsBannerText =
       'Click Here to set active organisation on the system';
+  static const String organizationConflictChangedMessage =
+      'Someone has changed Active Organisation';
+
   static const String billingBannerText =
       'Payment is required to keep using paid features';
   static const String paidFeaturesUnavailable = 'Paid Features Unavailable';
@@ -334,6 +337,7 @@ class AppStrings {
   static const String seatProfileAuditSpecifics = 'Audit Specifics';
   static const String seatProfileViewTraining = 'View Training';
   static const String seatProfileSetupTrainingTitle = 'Setup Training';
+  static const String seatProfileNoMatchFound = 'No Match Found';
   static const String seatProfileSelectSeatProfile = 'Select Seat Profile';
   static const String seatProfileSelectCategory = 'Select Category';
   static const String seatProfileSelectDescription = 'Select Description';
@@ -366,6 +370,9 @@ class AppStrings {
   static const String certify = 'Certify';
   static const String performanceReportUnavailable =
       'Performance report is not available right now.';
+  static const String performanceReportCoreValuesTitle = 'Core Values';
+  static const String performanceReportCoreValueDetailsFallback =
+      'No details available yet.';
   static const String performanceSnapshotNoReports = 'No reports available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
   static const String performanceSnapshotDataUnavailable =
@@ -712,6 +719,7 @@ class AppStrings {
   static const String auditEvaluationChart = "Audit Evaluation Chart";
   static const String score = "Score";
   static const String view = "View";
+  static const String continueAction = "Continue";
 
   // Actions
   static const String newCheckIn = "New Check-in";
