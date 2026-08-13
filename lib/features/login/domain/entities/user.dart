@@ -94,10 +94,7 @@ class User {
     return false;
   }
 
-  bool canManageTrainingForSeatProfile({
-    required String seatProfileId,
-    String? departmentId,
-  }) {
+  bool canManageTrainingForSeatProfile({required String seatProfileId}) {
     final normalizedSeatProfileId = seatProfileId.trim();
     if (normalizedSeatProfileId.isEmpty) {
       return false;
@@ -111,7 +108,6 @@ class User {
       return false;
     }
 
-    final normalizedDepartmentId = departmentId?.trim() ?? '';
     for (final membership
         in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
       if (!membership.canManageTrainingModules) {
@@ -121,12 +117,6 @@ class User {
       if (membership.manageableSeatProfileIds.contains(
         normalizedSeatProfileId,
       )) {
-        return true;
-      }
-
-      if (normalizedDepartmentId.isNotEmpty &&
-          membership.normalizedRole == 'dept_lead' &&
-          membership.departmentUuid?.trim() == normalizedDepartmentId) {
         return true;
       }
     }
