@@ -1,3 +1,4 @@
+import '../../../training/domain/entities/seat_description_training.dart';
 import '../../domain/entities/audit_description_audit.dart';
 import '../../domain/entities/audit_details.dart';
 import '../../domain/entities/audit_evaluation_chart.dart';
@@ -8,7 +9,6 @@ import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/quarterly_audit.dart';
 import '../../domain/entities/seat_description_audit_report_comments.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
-import '../../../training/domain/entities/seat_description_training.dart';
 import '../../domain/entities/single_audit_report_category_details.dart';
 import '../../domain/repositories/audit_repository.dart';
 import '../datasources/audit_remote_data_source.dart';
@@ -64,25 +64,13 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<dynamic> getMyPerformanceSnapshot({
-    required int page,
-    required int pageSize,
-  }) {
-    return _remoteDataSource.getMyPerformanceSnapshot(
-      page: page,
-      pageSize: pageSize,
-    );
+  Future<dynamic> getMyPerformanceSnapshot({required int page, required int pageSize}) {
+    return _remoteDataSource.getMyPerformanceSnapshot(page: page, pageSize: pageSize);
   }
 
   @override
-  Future<dynamic> getPerformanceSnapshot({
-    required int page,
-    required int pageSize,
-  }) {
-    return _remoteDataSource.getPerformanceSnapshot(
-      page: page,
-      pageSize: pageSize,
-    );
+  Future<dynamic> getPerformanceSnapshot({required int page, required int pageSize}) {
+    return _remoteDataSource.getPerformanceSnapshot(page: page, pageSize: pageSize);
   }
 
   Future<List<String>> getSubordinateJobTitles() {
@@ -152,12 +140,8 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<String> getCertifiedReportPdfUrl({
-    required String certifiedReportUuid,
-  }) {
-    return _remoteDataSource.getCertifiedReportPdfUrl(
-      certifiedReportUuid: certifiedReportUuid,
-    );
+  Future<String> getCertifiedReportPdfUrl({required String certifiedReportUuid}) {
+    return _remoteDataSource.getCertifiedReportPdfUrl(certifiedReportUuid: certifiedReportUuid);
   }
 
   @override
@@ -165,10 +149,7 @@ class AuditRepositoryImpl implements AuditRepository {
     required String profileJobId,
     required Map<String, dynamic> payload,
   }) {
-    return _remoteDataSource.certifyPerformanceReport(
-      profileJobId: profileJobId,
-      payload: payload,
-    );
+    return _remoteDataSource.certifyPerformanceReport(profileJobId: profileJobId, payload: payload);
   }
 
   @override
@@ -185,12 +166,8 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<List<AuditEvaluationChart>> getAuditEvaluationChart({
-    required String profileJobId,
-  }) {
-    return _remoteDataSource.getAuditEvaluationChart(
-      profileJobId: profileJobId,
-    );
+  Future<List<AuditEvaluationChart>> getAuditEvaluationChart({required String profileJobId}) {
+    return _remoteDataSource.getAuditEvaluationChart(profileJobId: profileJobId);
   }
 
   @override
@@ -239,8 +216,7 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<SeatDescriptionAuditReportComments>
-  getSeatDescriptionAuditReportComments({
+  Future<SeatDescriptionAuditReportComments> getSeatDescriptionAuditReportComments({
     required String flowFirstId,
     String? profileUuid,
     required String descriptionId,
@@ -259,8 +235,7 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<List<SeatDescriptionFinalAuditProfile>>
-  getSeatDescriptionAuditReportProfiles({
+  Future<List<SeatDescriptionFinalAuditProfile>> getSeatDescriptionAuditReportProfiles({
     required String flowFirstId,
     String? profileUuid,
     required String descriptionId,
@@ -279,8 +254,7 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<List<SeatDescriptionTrainingModule>>
-  getSeatDescriptionTrainingModules({
+  Future<List<SeatDescriptionTrainingModule>> getSeatDescriptionTrainingModules({
     required String descriptionId,
     bool forceRefresh = false,
   }) {
@@ -304,27 +278,24 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<SeatDescriptionTrainingModuleDetail>
-  getSeatDescriptionTrainingModuleDetail({required String moduleId}) {
-    return _remoteDataSource.getSeatDescriptionTrainingModuleDetail(
-      moduleId: moduleId,
-    );
+  Future<SeatDescriptionTrainingModuleDetail> getSeatDescriptionTrainingModuleDetail({
+    required String moduleId,
+  }) {
+    return _remoteDataSource.getSeatDescriptionTrainingModuleDetail(moduleId: moduleId);
   }
 
   @override
-  Future<SeatDescriptionTrainingDocument>
-  getSeatDescriptionTrainingModuleDocument({required String moduleId}) {
-    return _remoteDataSource.getSeatDescriptionTrainingModuleDocument(
-      moduleId: moduleId,
-    );
+  Future<SeatDescriptionTrainingDocument> getSeatDescriptionTrainingModuleDocument({
+    required String moduleId,
+  }) {
+    return _remoteDataSource.getSeatDescriptionTrainingModuleDocument(moduleId: moduleId);
   }
 
   @override
-  Future<List<SeatDescriptionTrainingQuestion>>
-  getSeatDescriptionTrainingModuleQuestions({required String moduleId}) {
-    return _remoteDataSource.getSeatDescriptionTrainingModuleQuestions(
-      moduleId: moduleId,
-    );
+  Future<List<SeatDescriptionTrainingQuestion>> getSeatDescriptionTrainingModuleQuestions({
+    required String moduleId,
+  }) {
+    return _remoteDataSource.getSeatDescriptionTrainingModuleQuestions(moduleId: moduleId);
   }
 
   @override
@@ -360,31 +331,20 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<void> generateSeatDescriptionTrainingModuleSop({
-    required String moduleId,
-  }) {
-    return _remoteDataSource.generateSeatDescriptionTrainingModuleSop(
-      moduleId: moduleId,
-    );
+  Future<void> generateSeatDescriptionTrainingModuleSop({required String moduleId}) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleSop(moduleId: moduleId);
   }
 
   @override
-  Future<String?> generateSeatDescriptionTrainingModuleSummary({
-    required String moduleId,
-  }) {
-    return _remoteDataSource.generateSeatDescriptionTrainingModuleSummary(
-      moduleId: moduleId,
-    );
+  Future<String?> generateSeatDescriptionTrainingModuleSummary({required String moduleId}) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleSummary(moduleId: moduleId);
   }
 
   @override
-  Future<String> generateSeatDescriptionTrainingModuleVideoUploadUrl({
-    required String fileName,
-  }) {
-    return _remoteDataSource
-        .generateSeatDescriptionTrainingModuleVideoUploadUrl(
-          fileName: fileName,
-        );
+  Future<String> generateSeatDescriptionTrainingModuleVideoUploadUrl({required String fileName}) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleVideoUploadUrl(
+      fileName: fileName,
+    );
   }
 
   @override
@@ -420,12 +380,8 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
-  Future<void> deleteSeatDescriptionTrainingModuleVideo({
-    required String videoId,
-  }) {
-    return _remoteDataSource.deleteSeatDescriptionTrainingModuleVideo(
-      videoId: videoId,
-    );
+  Future<void> deleteSeatDescriptionTrainingModuleVideo({required String videoId}) {
+    return _remoteDataSource.deleteSeatDescriptionTrainingModuleVideo(videoId: videoId);
   }
 
   @override
@@ -441,14 +397,11 @@ class AuditRepositoryImpl implements AuditRepository {
 
   @override
   Future<void> deleteSeatDescriptionTrainingModule({required String moduleId}) {
-    return _remoteDataSource.deleteSeatDescriptionTrainingModule(
-      moduleId: moduleId,
-    );
+    return _remoteDataSource.deleteSeatDescriptionTrainingModule(moduleId: moduleId);
   }
 
   @override
-  Future<SeatDescriptionTrainingQuestion>
-  updateSeatDescriptionTrainingQuestion({
+  Future<SeatDescriptionTrainingQuestion> updateSeatDescriptionTrainingQuestion({
     required String questionId,
     required String questionText,
     required List<SeatDescriptionTrainingQuestionOption> options,
@@ -467,10 +420,7 @@ class AuditRepositoryImpl implements AuditRepository {
     required String quarterlyAuditId,
     required String date,
   }) {
-    return _remoteDataSource.getQuarterlyAudit(
-      quarterlyAuditId: quarterlyAuditId,
-      date: date,
-    );
+    return _remoteDataSource.getQuarterlyAudit(quarterlyAuditId: quarterlyAuditId, date: date);
   }
 
   @override
@@ -491,19 +441,12 @@ class AuditRepositoryImpl implements AuditRepository {
     required String descriptionId,
     required Map<String, int> audit,
   }) {
-    return _remoteDataSource.submitDescriptionAudit(
-      descriptionId: descriptionId,
-      audit: audit,
-    );
+    return _remoteDataSource.submitDescriptionAudit(descriptionId: descriptionId, audit: audit);
   }
 
   @override
-  Future<String> generateAuditDescriptionMediaUploadUrl({
-    required String fileName,
-  }) {
-    return _remoteDataSource.generateAuditDescriptionMediaUploadUrl(
-      fileName: fileName,
-    );
+  Future<String> generateAuditDescriptionMediaUploadUrl({required String fileName}) {
+    return _remoteDataSource.generateAuditDescriptionMediaUploadUrl(fileName: fileName);
   }
 
   @override
@@ -575,15 +518,11 @@ class AuditRepositoryImpl implements AuditRepository {
 
   @override
   Future<void> markFavoriteSubordinate({required String profileJobId}) {
-    return _remoteDataSource.markFavoriteSubordinate(
-      profileJobId: profileJobId,
-    );
+    return _remoteDataSource.markFavoriteSubordinate(profileJobId: profileJobId);
   }
 
   @override
   Future<void> markUnfavoriteSubordinate({required String profileJobId}) {
-    return _remoteDataSource.markUnfavoriteSubordinate(
-      profileJobId: profileJobId,
-    );
+    return _remoteDataSource.markUnfavoriteSubordinate(profileJobId: profileJobId);
   }
 }
