@@ -1,3 +1,4 @@
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/audit_member.dart';
 import '../../domain/entities/audit_member_status.dart';
@@ -312,8 +313,15 @@ class PerformanceReportModel extends PerformanceReport {
   }
 
   static String _paygradeLabel(Map<String, dynamic> paygrade) {
-    final payRate = _numFromMaps([paygrade], ['pay_rate']).toInt();
-    return '\$$payRate/hr';
+    final payRate = _numFromMaps([paygrade], ['pay_rate']);
+    if (payRate <= 0) {
+      return AppStrings.paygradesUnavailableDisplay;
+    }
+
+    final formattedRate = payRate % 1 == 0
+        ? payRate.toInt().toString()
+        : payRate.toString();
+    return '\$$formattedRate/hr';
   }
 
   static String _paygradeCaption(Map<String, dynamic> paygrade) {
@@ -322,6 +330,10 @@ class PerformanceReportModel extends PerformanceReport {
 
   static String _paygradeRateDisplay(Map<String, dynamic> paygrade) {
     final payRate = _numFromMaps([paygrade], ['pay_rate']);
+    if (payRate <= 0) {
+      return AppStrings.paygradesUnavailableDisplay;
+    }
+
     final formattedRate = payRate % 1 == 0
         ? payRate.toInt().toString()
         : payRate.toString();

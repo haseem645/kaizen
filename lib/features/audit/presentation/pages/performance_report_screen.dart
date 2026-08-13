@@ -98,6 +98,9 @@ const List<Map<String, Object>> _flutterIconsList = <Map<String, Object>>[
   },
 ];
 
+bool _isUnavailablePaygradeDisplay(String value) =>
+    value.trim() == AppStrings.paygradesUnavailableDisplay;
+
 class PerformanceReportScreen extends StatelessWidget {
   const PerformanceReportScreen({
     super.key,
@@ -994,7 +997,9 @@ class _ProfileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paygradeLabel = 'Paygrade: ${report.currentPaygrade}';
+    final isUnavailablePaygrade = _isUnavailablePaygradeDisplay(
+      report.currentPaygrade,
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1033,11 +1038,24 @@ class _ProfileSummaryCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                     const SizedBox(height: 3),
-                    AppTextView.body3(
-                      paygradeLabel,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        const AppTextView.body3(
+                          'Paygrade: ',
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                        AppTextView.body3(
+                          report.currentPaygrade,
+                          color: isUnavailablePaygrade
+                              ? AppColors.secondaryColor
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1835,8 +1853,13 @@ class _PaygradePipelineCard extends StatelessWidget {
 
   final PerformanceReport report;
   final ValueChanged<PerformanceReportPaygradeStep> onStepTap;
+  static const double _stepIndicatorHeight = 34;
   static const double _stepWidth = 58;
+  static const double _stepCircleSize = 58;
   static const double _connectorWidth = 30;
+  static const double _connectorThickness = 3;
+  static const double _connectorTopOffset =
+      _stepIndicatorHeight + (_stepCircleSize / 2) - (_connectorThickness / 2);
 
   @override
   Widget build(BuildContext context) {
@@ -1863,7 +1886,7 @@ class _PaygradePipelineCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 2),
           if (!hasPaygrades)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
@@ -1885,10 +1908,12 @@ class _PaygradePipelineCard extends StatelessWidget {
                   (index) {
                     if (index.isOdd) {
                       return Padding(
-                        padding: const EdgeInsets.only(top: 55),
+                        padding: const EdgeInsets.only(
+                          top: _connectorTopOffset,
+                        ),
                         child: Container(
                           width: _connectorWidth,
-                          height: 3,
+                          height: _connectorThickness,
                           color: AppColors.secondaryColor.withValues(
                             alpha: 0.45,
                           ),
@@ -1943,6 +1968,9 @@ class _PipelineStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isUnavailablePaygrade =
+        step.payRateAmount <= 0 || _isUnavailablePaygradeDisplay(step.caption);
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -1951,7 +1979,7 @@ class _PipelineStep extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(
-              height: 34,
+              height: _PaygradePipelineCard._stepIndicatorHeight,
               child: step.isCurrent
                   ? Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1992,8 +2020,8 @@ class _PipelineStep extends StatelessWidget {
                   : const SizedBox.shrink(),
             ),
             Container(
-              width: 58,
-              height: 58,
+              width: _PaygradePipelineCard._stepCircleSize,
+              height: _PaygradePipelineCard._stepCircleSize,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -2025,7 +2053,9 @@ class _PipelineStep extends StatelessWidget {
             const SizedBox(height: 10),
             AppTextView.body4(
               step.caption,
-              color: AppColors.textSecondary,
+              color: isUnavailablePaygrade
+                  ? AppColors.secondaryColor
+                  : AppColors.textSecondary,
               textAlign: TextAlign.center,
             ),
           ],
