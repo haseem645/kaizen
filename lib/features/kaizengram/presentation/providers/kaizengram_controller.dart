@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/custom_functions.dart';
-import '../../data/datasources/kaizengram_remote_data_source.dart';
 import '../../../login/domain/entities/user.dart';
+import '../../data/datasources/kaizengram_remote_data_source.dart';
 import '../kaizengram_message_attachment.dart';
 
 enum KaizengramFeedType { learningCompliance, documentCompliance }
@@ -26,8 +26,7 @@ enum KaizengramNotificationType {
 enum KaizengramNotificationBucket { today, thisWeek, earlier }
 
 class KaizengramController extends ChangeNotifier {
-  KaizengramController(this._remoteDataSource, {User? currentUser})
-    : _currentUser = currentUser;
+  KaizengramController(this._remoteDataSource, {User? currentUser}) : _currentUser = currentUser;
 
   final KaizengramRemoteDataSource _remoteDataSource;
   final Map<String, String> _imageAssignments = <String, String>{};
@@ -43,18 +42,14 @@ class KaizengramController extends ChangeNotifier {
   KaizengramRemoteDataSource get remoteDataSource => _remoteDataSource;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  List<KaizengramFeedItem> get posts =>
-      List<KaizengramFeedItem>.unmodifiable(_posts);
+  List<KaizengramFeedItem> get posts => List<KaizengramFeedItem>.unmodifiable(_posts);
   List<KaizengramSocialPost> get socialPosts =>
       List<KaizengramSocialPost>.unmodifiable(_socialPosts);
   List<KaizengramNotificationItem> get notifications =>
       List<KaizengramNotificationItem>.unmodifiable(_buildNotifications());
   List<KaizengramNotificationSection> get notificationSections =>
-      List<KaizengramNotificationSection>.unmodifiable(
-        _buildNotificationSections(),
-      );
-  int get unreadNotificationCount =>
-      notifications.where((item) => item.isUnread).length;
+      List<KaizengramNotificationSection>.unmodifiable(_buildNotificationSections());
+  int get unreadNotificationCount => notifications.where((item) => item.isUnread).length;
   bool get useSeparateFeedDemo => _useSeparateFeedDemo;
   String get currentUserDisplayName {
     final resolvedName = CustomFunctions.resolveName(_currentUser).trim();
@@ -66,13 +61,10 @@ class KaizengramController extends ChangeNotifier {
     return imagePath == null || imagePath.isEmpty ? null : imagePath;
   }
 
-  String? get currentUserImageUrl => CustomFunctions.resolveImageUrl(
-    _currentUser?.imageUrl ?? _currentUser?.image,
-  );
-  List<int> get weeklyCheckInSocialInsertAfterCounts =>
-      _weeklyCheckInSocialInsertAfterCounts;
-  List<KaizengramSocialPost> get seededWeeklyCheckInSocialPosts =>
-      _weeklyCheckInSocialPosts;
+  String? get currentUserImageUrl =>
+      CustomFunctions.resolveImageUrl(_currentUser?.imageUrl ?? _currentUser?.image);
+  List<int> get weeklyCheckInSocialInsertAfterCounts => _weeklyCheckInSocialInsertAfterCounts;
+  List<KaizengramSocialPost> get seededWeeklyCheckInSocialPosts => _weeklyCheckInSocialPosts;
 
   List<KaizengramStory> get stories => _posts
       .map(
@@ -133,8 +125,7 @@ class KaizengramController extends ChangeNotifier {
     required String channelName,
     String? avatarImagePath,
     String? avatarUrl,
-    List<KaizengramMessageAttachment> attachments =
-        const <KaizengramMessageAttachment>[],
+    List<KaizengramMessageAttachment> attachments = const <KaizengramMessageAttachment>[],
     String? mediaImagePath,
     String? mediaImageUrl,
   }) {
@@ -147,8 +138,7 @@ class KaizengramController extends ChangeNotifier {
         .take(kaizengramMessageAttachmentLimit)
         .toList(growable: false);
     final legacyAttachments = <KaizengramMessageAttachment>[
-      if (normalizedMediaImagePath != null &&
-          normalizedMediaImagePath.isNotEmpty)
+      if (normalizedMediaImagePath != null && normalizedMediaImagePath.isNotEmpty)
         KaizengramMessageAttachment.fromPath(normalizedMediaImagePath),
       if (normalizedMediaImageUrl != null && normalizedMediaImageUrl.isNotEmpty)
         KaizengramMessageAttachment.fromPath(normalizedMediaImageUrl),
@@ -160,8 +150,7 @@ class KaizengramController extends ChangeNotifier {
       return;
     }
 
-    final seed =
-        '$authorName-$normalizedMessage-${DateTime.now().microsecondsSinceEpoch}';
+    final seed = '$authorName-$normalizedMessage-${DateTime.now().microsecondsSinceEpoch}';
     _socialPosts.insert(
       0,
       KaizengramSocialPost(
@@ -182,8 +171,7 @@ class KaizengramController extends ChangeNotifier {
 
   void createCurrentUserSocialPost({
     required String message,
-    List<KaizengramMessageAttachment> attachments =
-        const <KaizengramMessageAttachment>[],
+    List<KaizengramMessageAttachment> attachments = const <KaizengramMessageAttachment>[],
     String? mediaImagePath,
     String? mediaImageUrl,
   }) {
@@ -213,8 +201,7 @@ class KaizengramController extends ChangeNotifier {
     required String authorName,
     required String message,
     String? replyToCommentId,
-    List<KaizengramMessageAttachment> attachments =
-        const <KaizengramMessageAttachment>[],
+    List<KaizengramMessageAttachment> attachments = const <KaizengramMessageAttachment>[],
   }) {
     final normalizedMessage = message.trim();
     final normalizedAttachments = attachments
@@ -227,15 +214,11 @@ class KaizengramController extends ChangeNotifier {
 
     final resolvedPost = resolveSocialPost(post);
     final updatedComments = List<KaizengramComment>.from(resolvedPost.comments);
-    final normalizedAuthorName = authorName.trim().isEmpty
-        ? 'You'
-        : authorName.trim();
+    final normalizedAuthorName = authorName.trim().isEmpty ? 'You' : authorName.trim();
     String? sentCommentId;
 
     if (replyToCommentId != null) {
-      final targetIndex = updatedComments.indexWhere(
-        (comment) => comment.id == replyToCommentId,
-      );
+      final targetIndex = updatedComments.indexWhere((comment) => comment.id == replyToCommentId);
       if (targetIndex != -1) {
         final target = updatedComments[targetIndex];
         final reply = KaizengramComment(
@@ -264,9 +247,7 @@ class KaizengramController extends ChangeNotifier {
       updatedComments.add(newComment);
     }
 
-    _socialPostComments[post.id] = List<KaizengramComment>.unmodifiable(
-      updatedComments,
-    );
+    _socialPostComments[post.id] = List<KaizengramComment>.unmodifiable(updatedComments);
     _syncMutableSocialPostComments(post.id, updatedComments);
     notifyListeners();
     return sentCommentId;
@@ -276,8 +257,7 @@ class KaizengramController extends ChangeNotifier {
     required KaizengramSocialPost post,
     required String message,
     String? replyToCommentId,
-    List<KaizengramMessageAttachment> attachments =
-        const <KaizengramMessageAttachment>[],
+    List<KaizengramMessageAttachment> attachments = const <KaizengramMessageAttachment>[],
   }) {
     return addSocialPostComment(
       post: post,
@@ -312,9 +292,7 @@ class KaizengramController extends ChangeNotifier {
   }
 
   List<KaizengramFeedItem> postsForCategory(KaizengramPostCategory category) {
-    return _posts
-        .where((post) => post.resolvedPostCategory == category)
-        .toList(growable: false);
+    return _posts.where((post) => post.resolvedPostCategory == category).toList(growable: false);
   }
 
   KaizengramFeedItem? postById(String postId) {
@@ -334,8 +312,7 @@ class KaizengramController extends ChangeNotifier {
     final selectedMediaComments =
         selectedAuditMediaItem?.commentThread ?? const <KaizengramComment>[];
     final rawDescription = CustomFunctions.resolvedText(post.description);
-    final resolvedDescription =
-        rawDescription == null || post.description == post.status
+    final resolvedDescription = rawDescription == null || post.description == post.status
         ? null
         : post.description;
 
@@ -398,8 +375,7 @@ class KaizengramController extends ChangeNotifier {
 
   static const bool _useSeparateFeedDemo = true;
   static const List<int> _weeklyCheckInSocialInsertAfterCounts = <int>[2, 5];
-  static const List<KaizengramSocialPost>
-  _weeklyCheckInSocialPosts = <KaizengramSocialPost>[
+  static const List<KaizengramSocialPost> _weeklyCheckInSocialPosts = <KaizengramSocialPost>[
     KaizengramSocialPost(
       id: 'weekly-social-post-1',
       authorName: AppStrings.kaizengramWeeklySocialAuthorOne,
@@ -458,13 +434,8 @@ class KaizengramController extends ChangeNotifier {
     return '$postId-$prefix-${DateTime.now().microsecondsSinceEpoch}';
   }
 
-  void _syncMutableSocialPostComments(
-    String postId,
-    List<KaizengramComment> comments,
-  ) {
-    final socialPostIndex = _socialPosts.indexWhere(
-      (post) => post.id == postId,
-    );
+  void _syncMutableSocialPostComments(String postId, List<KaizengramComment> comments) {
+    final socialPostIndex = _socialPosts.indexWhere((post) => post.id == postId);
     if (socialPostIndex == -1) {
       return;
     }
@@ -480,18 +451,15 @@ class KaizengramController extends ChangeNotifier {
       return const <KaizengramNotificationSection>[];
     }
 
-    final grouped =
-        <KaizengramNotificationBucket, List<KaizengramNotificationItem>>{
-          KaizengramNotificationBucket.today: <KaizengramNotificationItem>[],
-          KaizengramNotificationBucket.thisWeek: <KaizengramNotificationItem>[],
-          KaizengramNotificationBucket.earlier: <KaizengramNotificationItem>[],
-        };
+    final grouped = <KaizengramNotificationBucket, List<KaizengramNotificationItem>>{
+      KaizengramNotificationBucket.today: <KaizengramNotificationItem>[],
+      KaizengramNotificationBucket.thisWeek: <KaizengramNotificationItem>[],
+      KaizengramNotificationBucket.earlier: <KaizengramNotificationItem>[],
+    };
 
     final now = DateTime.now();
     for (final notification in notifications) {
-      grouped[_notificationBucketFor(notification.occurredAt, now)]!.add(
-        notification,
-      );
+      grouped[_notificationBucketFor(notification.occurredAt, now)]!.add(notification);
     }
 
     return KaizengramNotificationBucket.values
@@ -499,9 +467,7 @@ class KaizengramController extends ChangeNotifier {
         .map(
           (bucket) => KaizengramNotificationSection(
             bucket: bucket,
-            items: List<KaizengramNotificationItem>.unmodifiable(
-              grouped[bucket]!,
-            ),
+            items: List<KaizengramNotificationItem>.unmodifiable(grouped[bucket]!),
           ),
         )
         .toList(growable: false);
@@ -536,29 +502,15 @@ class KaizengramController extends ChangeNotifier {
       }
     }
 
-    notifications.sort(
-      (first, second) => second.occurredAt.compareTo(first.occurredAt),
-    );
+    notifications.sort((first, second) => second.occurredAt.compareTo(first.occurredAt));
     return notifications;
   }
 
-  List<
-    ({
-      String actorName,
-      KaizengramNotificationType type,
-      String? targetCommentId,
-    })
-  >
+  List<({String actorName, KaizengramNotificationType type, String? targetCommentId})>
   _notificationSeedsFor(KaizengramFeedItem post) {
     switch (post.resolvedPostCategory) {
       case KaizengramPostCategory.audit:
-        return <
-          ({
-            String actorName,
-            KaizengramNotificationType type,
-            String? targetCommentId,
-          })
-        >[
+        return <({String actorName, KaizengramNotificationType type, String? targetCommentId})>[
           (
             actorName: _notificationActor(
               post.auditedBy,
@@ -577,13 +529,7 @@ class KaizengramController extends ChangeNotifier {
           ),
         ];
       case KaizengramPostCategory.learningCompliance:
-        return <
-          ({
-            String actorName,
-            KaizengramNotificationType type,
-            String? targetCommentId,
-          })
-        >[
+        return <({String actorName, KaizengramNotificationType type, String? targetCommentId})>[
           (
             actorName: _notificationActor(
               post.postedByName,
@@ -607,13 +553,7 @@ class KaizengramController extends ChangeNotifier {
             normalizedStatus.isNotEmpty &&
             normalizedStatus != 'compliant' &&
             normalizedStatus != 'no longer required';
-        return <
-          ({
-            String actorName,
-            KaizengramNotificationType type,
-            String? targetCommentId,
-          })
-        >[
+        return <({String actorName, KaizengramNotificationType type, String? targetCommentId})>[
           (
             actorName: _notificationActor(
               post.postedByName,
@@ -644,10 +584,7 @@ class KaizengramController extends ChangeNotifier {
     return post.commentThread.first.id;
   }
 
-  KaizengramNotificationBucket _notificationBucketFor(
-    DateTime occurredAt,
-    DateTime now,
-  ) {
+  KaizengramNotificationBucket _notificationBucketFor(DateTime occurredAt, DateTime now) {
     if (_isSameCalendarDay(occurredAt, now)) {
       return KaizengramNotificationBucket.today;
     }
@@ -660,9 +597,7 @@ class KaizengramController extends ChangeNotifier {
   }
 
   bool _isSameCalendarDay(DateTime left, DateTime right) {
-    return left.year == right.year &&
-        left.month == right.month &&
-        left.day == right.day;
+    return left.year == right.year && left.month == right.month && left.day == right.day;
   }
 
   String _notificationActor(String? value, {required String fallback}) {
@@ -1020,9 +955,7 @@ class KaizengramController extends ChangeNotifier {
       deadlineDate: null,
       schedule: null,
       trackAssignmentUuid: null,
-      documentPreviewUrl: normalizedImages.isEmpty
-          ? null
-          : normalizedImages.first,
+      documentPreviewUrl: normalizedImages.isEmpty ? null : normalizedImages.first,
       feedImageUrl: normalizedImages.isEmpty ? null : normalizedImages.first,
       feedVideoUrl: null,
       subtitle: 'Posted by $postedByName',
@@ -1063,8 +996,7 @@ class KaizengramController extends ChangeNotifier {
         .where((value) => value.isNotEmpty)
         .toList(growable: false);
     final resolvedPrimaryImageUrl =
-        normalizedImageUrl ??
-        (normalizedMediaUrls.isEmpty ? null : normalizedMediaUrls.first);
+        normalizedImageUrl ?? (normalizedMediaUrls.isEmpty ? null : normalizedMediaUrls.first);
     final comments = _buildCommentThread(
       descriptionAuthor: null,
       descriptionMessage: null,
@@ -1100,9 +1032,7 @@ class KaizengramController extends ChangeNotifier {
       trackAssignmentUuid: null,
       documentPreviewUrl: null,
       feedImageUrl: resolvedPrimaryImageUrl,
-      feedVideoUrl: normalizedVideoUrl?.isEmpty == true
-          ? null
-          : normalizedVideoUrl,
+      feedVideoUrl: normalizedVideoUrl?.isEmpty == true ? null : normalizedVideoUrl,
       subtitle: 'Posted by $postedByName',
       timestampLabel: dueBy,
       likes: likes,
@@ -1165,14 +1095,11 @@ class KaizengramController extends ChangeNotifier {
       deadlineDate: null,
       schedule: null,
       trackAssignmentUuid: null,
-      documentPreviewUrl:
-          normalizedVideoUrl != null && normalizedVideoUrl.isNotEmpty
+      documentPreviewUrl: normalizedVideoUrl != null && normalizedVideoUrl.isNotEmpty
           ? normalizedVideoUrl
           : normalizedImageUrl,
       feedImageUrl: normalizedImageUrl,
-      feedVideoUrl: normalizedVideoUrl?.isEmpty == true
-          ? null
-          : normalizedVideoUrl,
+      feedVideoUrl: normalizedVideoUrl?.isEmpty == true ? null : normalizedVideoUrl,
       subtitle: 'Posted by $postedByName',
       timestampLabel: dueBy,
       likes: likes,
@@ -1180,9 +1107,7 @@ class KaizengramController extends ChangeNotifier {
       isLiked: isLiked,
       postedByName: postedByName,
       departmentName: departmentName,
-      mediaUrls: normalizedImageUrl == null
-          ? const <String>[]
-          : <String>[normalizedImageUrl],
+      mediaUrls: normalizedImageUrl == null ? const <String>[] : <String>[normalizedImageUrl],
       headerImageUrl: _personImage(postedByName),
       commentThread: comments,
     );
@@ -1302,22 +1227,10 @@ class KaizengramController extends ChangeNotifier {
       'The support review will close this out after the final confirmation is attached.',
     ];
     const ownerTimes = <String>['1h', '53m', '46m', '39m', '31m', '24m', '18m'];
-    const reviewerTimes = <String>[
-      '26m',
-      '21m',
-      '16m',
-      '12m',
-      '9m',
-      '6m',
-      '3m',
-    ];
+    const reviewerTimes = <String>['26m', '21m', '16m', '12m', '9m', '6m', '3m'];
 
     final ownerName = _seededValue('$seed-learning-owner', followUpOwners);
-    final reviewerName = _seededValue(
-      '$seed-learning-reviewer',
-      supportReviewers,
-      offset: 1,
-    );
+    final reviewerName = _seededValue('$seed-learning-reviewer', supportReviewers, offset: 1);
     final focusIndex = seed.hashCode.abs() % completionFocuses.length;
 
     return <({String author, String message, String time})>[
@@ -1389,28 +1302,12 @@ class KaizengramController extends ChangeNotifier {
       'The compliance queue will refresh after the updated record is uploaded and verified.',
       'The next validation pass will start once the missing proof is added to this thread.',
     ];
-    const coordinatorTimes = <String>[
-      '58m',
-      '49m',
-      '42m',
-      '35m',
-      '27m',
-      '19m',
-      '14m',
-    ];
+    const coordinatorTimes = <String>['58m', '49m', '42m', '35m', '27m', '19m', '14m'];
     const reviewerTimes = <String>['18m', '15m', '11m', '8m', '6m', '4m', '2m'];
 
     final offset = seed.hashCode.abs() % documentNeeds.length;
-    final coordinatorName = _seededValue(
-      '$seed-document-owner',
-      coordinators,
-      offset: 1,
-    );
-    final reviewerName = _seededValue(
-      '$seed-document-reviewer',
-      reviewers,
-      offset: 2,
-    );
+    final coordinatorName = _seededValue('$seed-document-owner', coordinators, offset: 1);
+    final reviewerName = _seededValue('$seed-document-reviewer', reviewers, offset: 2);
 
     return <({String author, String message, String time})>[
       (
@@ -1499,36 +1396,14 @@ class KaizengramController extends ChangeNotifier {
       'before the next reviewer pass.',
       'in the next shift handoff.',
     ];
-    const ownerTimes = <String>[
-      '47m',
-      '43m',
-      '39m',
-      '34m',
-      '29m',
-      '24m',
-      '19m',
-    ];
+    const ownerTimes = <String>['47m', '43m', '39m', '34m', '29m', '24m', '19m'];
     const qaTimes = <String>['26m', '22m', '17m', '14m', '11m', '8m', '5m'];
-    const teamTimes = <String>[
-      'Just now',
-      '3m',
-      '6m',
-      '9m',
-      '12m',
-      '15m',
-      '18m',
-    ];
+    const teamTimes = <String>['Just now', '3m', '6m', '9m', '12m', '15m', '18m'];
 
     final index = seed.hashCode.abs();
-    final normalizedAuditDate = auditedAt.trim().isEmpty
-        ? 'this week'
-        : auditedAt;
+    final normalizedAuditDate = auditedAt.trim().isEmpty ? 'this week' : auditedAt;
     final ownerName = _seededValue('$seed-audit-owner', followUpOwners);
-    final reviewerName = _seededValue(
-      '$seed-audit-reviewer',
-      qaReviewers,
-      offset: 1,
-    );
+    final reviewerName = _seededValue('$seed-audit-reviewer', qaReviewers, offset: 1);
     final coordinatorName = _seededValue(
       '$seed-audit-coordinator',
       departmentCoordinators,
@@ -1566,11 +1441,7 @@ class KaizengramController extends ChangeNotifier {
     required String auditedBy,
   }) {
     final previewImages = thumbnails.isEmpty
-        ? <String>[
-            _image('$seed-preview-1'),
-            _image('$seed-preview-2'),
-            _image('$seed-preview-3'),
-          ]
+        ? <String>[_image('$seed-preview-1'), _image('$seed-preview-2'), _image('$seed-preview-3')]
         : thumbnails;
 
     String imageAt(int index) {
@@ -1604,9 +1475,7 @@ class KaizengramController extends ChangeNotifier {
       KaizengramAuditRating.needsImprovement,
     ];
 
-    return List<KaizengramAuditMediaItem>.generate(previewImages.length, (
-      index,
-    ) {
+    return List<KaizengramAuditMediaItem>.generate(previewImages.length, (index) {
       final isVideoItem = previewImages.length > 1 && index % 4 == 1;
       final title = '$seatName ${titles[index % titles.length]}';
       final rating = ratings[index % ratings.length];
@@ -1703,37 +1572,13 @@ class KaizengramController extends ChangeNotifier {
       'The final check is assigned and will be revalidated before the next reviewer pass.',
       'The team logged the next step and will confirm closure in the upcoming weekly check-in.',
     ];
-    const ownerTimes = <String>[
-      '42m',
-      '38m',
-      '33m',
-      '27m',
-      '22m',
-      '17m',
-      '13m',
-    ];
+    const ownerTimes = <String>['42m', '38m', '33m', '27m', '22m', '17m', '13m'];
     const qaTimes = <String>['24m', '19m', '15m', '12m', '9m', '6m', '4m'];
-    const departmentTimes = <String>[
-      'Just now',
-      '2m',
-      '5m',
-      '7m',
-      '10m',
-      '14m',
-      '18m',
-    ];
+    const departmentTimes = <String>['Just now', '2m', '5m', '7m', '10m', '14m', '18m'];
 
     final offset = (seed.hashCode.abs() + index) % findingDetails.length;
-    final ownerName = _seededValue(
-      '$seed-media-owner-$index',
-      mediaOwners,
-      offset: 1,
-    );
-    final reviewerName = _seededValue(
-      '$seed-media-reviewer-$index',
-      mediaReviewers,
-      offset: 2,
-    );
+    final ownerName = _seededValue('$seed-media-owner-$index', mediaOwners, offset: 1);
+    final reviewerName = _seededValue('$seed-media-reviewer-$index', mediaReviewers, offset: 2);
     final coordinatorName = _seededValue(
       '$seed-media-coordinator-$index',
       mediaCoordinators,
@@ -1747,8 +1592,7 @@ class KaizengramController extends ChangeNotifier {
 
     return _buildCommentThread(
       descriptionAuthor: auditedBy,
-      descriptionMessage:
-          '$title was marked as $ratingLabel. ${findingDetails[offset]}',
+      descriptionMessage: '$title was marked as $ratingLabel. ${findingDetails[offset]}',
       avatarUrl: thumbnailUrl,
       descriptionFirst: false,
       replies: <({String author, String message, String time})>[
@@ -1758,15 +1602,10 @@ class KaizengramController extends ChangeNotifier {
               '${ownerResponses[offset]} $postedByName already reviewed this thread for $title.',
           time: ownerTimes[offset],
         ),
-        (
-          author: reviewerName,
-          message: qaFollowUps[offset],
-          time: qaTimes[offset],
-        ),
+        (author: reviewerName, message: qaFollowUps[offset], time: qaTimes[offset]),
         (
           author: coordinatorName,
-          message:
-              '${departmentClosures[offset]} $departmentName is tracking $title separately.',
+          message: '${departmentClosures[offset]} $departmentName is tracking $title separately.',
           time: departmentTimes[offset],
         ),
       ],
@@ -1801,11 +1640,7 @@ class KaizengramController extends ChangeNotifier {
   }
 
   List<String> _gallery(String seed, int count) {
-    return List<String>.generate(
-      count,
-      (index) => _image('$seed-${index + 1}'),
-      growable: false,
-    );
+    return List<String>.generate(count, (index) => _image('$seed-${index + 1}'), growable: false);
   }
 
   String? _personImage(String value) {
@@ -2149,8 +1984,7 @@ class KaizengramSocialPost {
   }
 
   bool get hasAttachments => resolvedAttachments.isNotEmpty;
-  bool get hasMediaImage =>
-      resolvedAttachments.any((attachment) => attachment.isImage);
+  bool get hasMediaImage => resolvedAttachments.any((attachment) => attachment.isImage);
 
   KaizengramSocialPost copyWith({
     String? id,
@@ -2182,10 +2016,7 @@ class KaizengramSocialPost {
 }
 
 class KaizengramNotificationSection {
-  const KaizengramNotificationSection({
-    required this.bucket,
-    required this.items,
-  });
+  const KaizengramNotificationSection({required this.bucket, required this.items});
 
   final KaizengramNotificationBucket bucket;
   final List<KaizengramNotificationItem> items;
