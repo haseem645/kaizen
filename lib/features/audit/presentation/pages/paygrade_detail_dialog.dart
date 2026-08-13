@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/performance_report.dart';
+
+bool _isUnavailablePaygradeDisplay(String value) =>
+    value.trim() == AppStrings.paygradesUnavailableDisplay;
+
+Color _paygradeDisplayColor(String value) =>
+    _isUnavailablePaygradeDisplay(value)
+    ? AppColors.secondaryColor
+    : AppColors.textPrimary;
 
 Future<void> showPaygradeDetailDialog(
   BuildContext context, {
@@ -119,8 +128,10 @@ class _PaygradeDetailDialog extends StatelessWidget {
                               ),
                               TextSpan(
                                 text: step.payRateDisplay,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
+                                style: TextStyle(
+                                  color: _paygradeDisplayColor(
+                                    step.payRateDisplay,
+                                  ),
                                 ),
                               ),
                             ],
@@ -170,7 +181,7 @@ class _CurrentPaygrade extends StatelessWidget {
         Center(
           child: AppTextView.title1(
             step.payRateDisplay,
-            color: AppColors.textPrimary,
+            color: _paygradeDisplayColor(step.payRateDisplay),
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -203,7 +214,7 @@ class _TargetPaygrade extends StatelessWidget {
               const SizedBox(height: 10),
               AppTextView.title1(
                 currentStep.payRateDisplay,
-                color: AppColors.textPrimary,
+                color: _paygradeDisplayColor(currentStep.payRateDisplay),
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -228,7 +239,7 @@ class _TargetPaygrade extends StatelessWidget {
               const SizedBox(height: 10),
               AppTextView.title1(
                 targetStep.payRateDisplay,
-                color: AppColors.textPrimary,
+                color: _paygradeDisplayColor(targetStep.payRateDisplay),
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
