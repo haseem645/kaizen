@@ -89,12 +89,7 @@ const List<Map<String, Object>> _flutterIconsList = <Map<String, Object>>[
     'label': 'Accountability',
     'icon': Icons.check_circle_outline_outlined,
     'color': AppColors.hex2ea8ff,
-    'keywords': <String>[
-      'check_circle',
-      'accountability',
-      'ownership',
-      'responsibility',
-    ],
+    'keywords': <String>['check_circle', 'accountability', 'ownership', 'responsibility'],
   },
 ];
 
@@ -102,27 +97,19 @@ bool _isUnavailablePaygradeDisplay(String value) =>
     value.trim() == AppStrings.paygradesUnavailableDisplay;
 
 class PerformanceReportScreen extends StatelessWidget {
-  const PerformanceReportScreen({
-    super.key,
-    required this.profile,
-    this.isMyReport = false,
-  });
+  const PerformanceReportScreen({super.key, required this.profile, this.isMyReport = false});
   final AuditProfile profile;
   final bool isMyReport;
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(
-          create: (_) => createAuditRemoteDataSource(),
-        ),
+        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) =>
-              createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
           create: (context) => AuditController(
@@ -156,9 +143,7 @@ class _CoreValueVisualSpec {
   final Color color;
 }
 
-_CoreValueVisualSpec _resolveCoreValueVisualSpec({
-  required PerformanceReportCoreValue coreValue,
-}) {
+_CoreValueVisualSpec _resolveCoreValueVisualSpec({required PerformanceReportCoreValue coreValue}) {
   final normalizedTitle = coreValue.title.trim().toLowerCase();
   final normalizedIconKey = coreValue.iconKey?.trim().toLowerCase() ?? '';
   final accentColor = _resolveCoreValueAccentColor(coreValue);
@@ -168,8 +153,7 @@ _CoreValueVisualSpec _resolveCoreValueVisualSpec({
     final label = (iconMap['label'] as String?)?.toLowerCase() ?? '';
     final keywords = iconMap['keywords'] as List<String>? ?? const <String>[];
     final matchesExplicitIcon =
-        normalizedIconKey.isNotEmpty &&
-        (normalizedIconKey == key || normalizedIconKey == label);
+        normalizedIconKey.isNotEmpty && (normalizedIconKey == key || normalizedIconKey == label);
     final matchesTitle =
         normalizedTitle.contains(key) ||
         normalizedTitle.contains(label) ||
@@ -201,8 +185,7 @@ _CoreValueVisualSpec _coreValueVisualSpecFromMap(
 }) {
   final iconData = iconMap['icon'];
   final color = iconMap['color'];
-  final resolvedColor =
-      accentColor ?? (color is Color ? color : AppColors.secondaryColor);
+  final resolvedColor = accentColor ?? (color is Color ? color : AppColors.secondaryColor);
 
   return _CoreValueVisualSpec(
     key: iconMap['key'] as String? ?? '',
@@ -277,10 +260,7 @@ int _stableCoreValueIconIndex(String title) {
     return 0;
   }
 
-  final seed = normalizedTitle.runes.fold<int>(
-    0,
-    (currentValue, rune) => currentValue + rune,
-  );
+  final seed = normalizedTitle.runes.fold<int>(0, (currentValue, rune) => currentValue + rune);
   return seed % _flutterIconsList.length;
 }
 
@@ -299,10 +279,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
   String _lastSyncedCommitment = '';
   bool _canGenerateRemarks = false;
 
-  static const List<String> _timeRanges = <String>[
-    'This Quarter',
-    'Custom Date Range',
-  ];
+  static const List<String> _timeRanges = <String>['This Quarter', 'Custom Date Range'];
 
   @override
   void initState() {
@@ -351,9 +328,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
 
         _commentsController.value = TextEditingValue(
           text: _lastSyncedCommitment,
-          selection: TextSelection.collapsed(
-            offset: _lastSyncedCommitment.length,
-          ),
+          selection: TextSelection.collapsed(offset: _lastSyncedCommitment.length),
         );
       });
     }
@@ -394,26 +369,19 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                     categorySelectionKey: categorySelectionKey,
                     maxCategoryIndex: maxCategoryIndex,
                   );
-                  final selectedProfilePayload =
-                      report.reportSnapshot['selected_profile'];
+                  final selectedProfilePayload = report.reportSnapshot['selected_profile'];
                   final rawCategories = report.reportSnapshot['categories'];
-                  final reportMessage = report.reportSnapshot['message']
-                      ?.toString()
-                      .trim();
-                  final hasSelectedProfile =
-                      selectedProfilePayload is Map<String, dynamic>
+                  final reportMessage = report.reportSnapshot['message']?.toString().trim();
+                  final hasSelectedProfile = selectedProfilePayload is Map<String, dynamic>
                       ? selectedProfilePayload.isNotEmpty
                       : selectedProfilePayload != null;
-                  final isOpenSeatView =
-                      !hasSelectedProfile && report.profile.profiles.isEmpty;
-                  final hasCategories =
-                      rawCategories is List && rawCategories.isNotEmpty;
-                  final shouldShowCompleteReportUi =
-                      hasSelectedProfile && hasCategories;
-                  final shouldShowMessageOnly =
-                      hasSelectedProfile && !hasCategories;
-                  final currentPaygradeIndex = report.paygradePipeline
-                      .indexWhere((step) => step.isCurrent);
+                  final isOpenSeatView = !hasSelectedProfile && report.profile.profiles.isEmpty;
+                  final hasCategories = rawCategories is List && rawCategories.isNotEmpty;
+                  final shouldShowCompleteReportUi = hasSelectedProfile && hasCategories;
+                  final shouldShowMessageOnly = hasSelectedProfile && !hasCategories;
+                  final currentPaygradeIndex = report.paygradePipeline.indexWhere(
+                    (step) => step.isCurrent,
+                  );
                   final currentPaygradeStep = currentPaygradeIndex >= 0
                       ? report.paygradePipeline[currentPaygradeIndex]
                       : null;
@@ -428,11 +396,8 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                             report: report,
                             showNoProfileChip: false,
                             isLoading: state.isPerformanceReportLoading,
-                            onProfileTap: (profile) => _handleProfileChipTap(
-                              controller,
-                              report,
-                              profile,
-                            ),
+                            onProfileTap: (profile) =>
+                                _handleProfileChipTap(controller, report, profile),
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -443,58 +408,45 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                             value: state.performanceReportTimeRange,
                             options: _timeRanges,
                             customRangeLabel:
-                                state.performanceReportTimeRange ==
-                                        'Custom Date Range' &&
+                                state.performanceReportTimeRange == 'Custom Date Range' &&
                                     state.performanceReportStartDate != null &&
                                     state.performanceReportEndDate != null
                                 ? '${_formatDate(state.performanceReportStartDate!)} - ${_formatDate(state.performanceReportEndDate!)}'
                                 : null,
-                            onChanged: (value) => _handleTimeRangeChanged(
-                              context,
-                              controller,
-                              value,
-                            ),
+                            onChanged: (value) =>
+                                _handleTimeRangeChanged(context, controller, value),
                           ),
                           const SizedBox(height: 12),
                           if (state.certifiedReportOptions.isNotEmpty) ...[
                             _CertifiedReportsSelector(
                               value: state.selectedCertifiedReportUuid,
                               options: state.certifiedReportOptions,
-                              isDownloading:
-                                  controller.isCertifiedReportPdfDownloading,
+                              isDownloading: controller.isCertifiedReportPdfDownloading,
                               onChanged: controller.selectCertifiedReport,
                               onDownload: (option) =>
-                                  _downloadCertifiedReportPdf(
-                                    context,
-                                    controller,
-                                    option,
-                                  ),
+                                  _downloadCertifiedReportPdf(context, controller, option),
                             ),
                             const SizedBox(height: 16),
                           ],
-                          if (report.hasPersonalityData) ...[
-                            _PersonaCard(
-                              report: report,
-                              showPersonaHeader: state.isOwner,
-                              showGenerateRemarksAction: _canGenerateRemarks,
-                              isGeneratingRemarks:
-                                  state.isGeneratingPerformanceReportRemarks,
-                              onGenerateRemarks: () async {
-                                await controller
-                                    .generatePerformanceReportRemarks();
-                              },
-                              onDescriptionGo: (row) =>
-                                  _openFinalReport(context, report, row),
-                              selectedCategoryIndex: selectedCategoryIndex,
-                              onCategorySelected: (index) {
-                                _localStateNotifier.value = localState.copyWith(
-                                  selectedCategoryIndex: index,
-                                  categorySelectionKey: categorySelectionKey,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+
+                          _PersonaCard(
+                            report: report,
+                            showPersonaHeader: state.isOwner,
+                            showGenerateRemarksAction: _canGenerateRemarks,
+                            isGeneratingRemarks: state.isGeneratingPerformanceReportRemarks,
+                            onGenerateRemarks: () async {
+                              await controller.generatePerformanceReportRemarks();
+                            },
+                            onDescriptionGo: (row) => _openFinalReport(context, report, row),
+                            selectedCategoryIndex: selectedCategoryIndex,
+                            onCategorySelected: (index) {
+                              _localStateNotifier.value = localState.copyWith(
+                                selectedCategoryIndex: index,
+                                categorySelectionKey: categorySelectionKey,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
                           _PaygradePipelineCard(
                             report: report,
                             onStepTap: (step) => showPaygradeDetailDialog(
@@ -513,25 +465,17 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                               controller: _commentsController,
                               isReadOnly: report.isCertified,
                               certifiedAt: report.certifiedAt,
-                              employeeSignatureUrl:
-                                  report.selectedProfileSignatureUrl,
-                              employeeName:
-                                  report.employeeSignatureName ??
-                                  report.profile.name,
-                              employeeSignatureBytes:
-                                  state.employeeSignatureBytes,
-                              facilitatorSignatureUrl:
-                                  report.facilitatorSignatureUrl,
+                              employeeSignatureUrl: report.selectedProfileSignatureUrl,
+                              employeeName: report.employeeSignatureName ?? report.profile.name,
+                              employeeSignatureBytes: state.employeeSignatureBytes,
+                              facilitatorSignatureUrl: report.facilitatorSignatureUrl,
                               facilitatorName: report.facilitatorName,
-                              facilitatorSignatureBytes:
-                                  state.facilitatorSignatureBytes,
-                              onChanged:
-                                  controller.updatePerformanceReportCommitment,
+                              facilitatorSignatureBytes: state.facilitatorSignatureBytes,
+                              onChanged: controller.updatePerformanceReportCommitment,
                               onAddEmployeeSignature: () => _openSignaturePad(
                                 context,
                                 title: 'Employee Signature',
-                                existingSignatureUrl:
-                                    report.selectedProfileSignatureUrl,
+                                existingSignatureUrl: report.selectedProfileSignatureUrl,
                                 onSaved: controller.saveEmployeeSignature,
                               ),
                               onAddFacilitatorSignature: () async {
@@ -546,10 +490,8 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                                   onSaved: controller.saveFacilitatorSignature,
                                 );
                               },
-                              onClearEmployeeSignature:
-                                  controller.clearEmployeeSignature,
-                              onClearFacilitatorSignature:
-                                  controller.clearFacilitatorSignature,
+                              onClearEmployeeSignature: controller.clearEmployeeSignature,
+                              onClearFacilitatorSignature: controller.clearFacilitatorSignature,
                             ),
                             if (!report.isCertified) ...[
                               const SizedBox(height: 16),
@@ -560,14 +502,11 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                                       state.isAuditActionLoading ||
                                           state.isFacilitatorSignatureUploading
                                       ? null
-                                      : () =>
-                                            _handleCertify(context, controller),
+                                      : () => _handleCertify(context, controller),
                                   style: FilledButton.styleFrom(
                                     backgroundColor: AppColors.secondaryColor,
                                     foregroundColor: AppColors.textPrimary,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -580,10 +519,9 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                                           height: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2.2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  AppColors.textPrimary,
-                                                ),
+                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                              AppColors.textPrimary,
+                                            ),
                                           ),
                                         )
                                       : const Text(AppStrings.certify),
@@ -621,8 +559,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     required int maxCategoryIndex,
   }) {
     // A report identity change invalidates any previously selected local tab.
-    final hasMatchingKey =
-        localState.categorySelectionKey == categorySelectionKey;
+    final hasMatchingKey = localState.categorySelectionKey == categorySelectionKey;
     if (!hasMatchingKey) {
       return 0;
     }
@@ -648,10 +585,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
 
     _localStateNotifier.value = const _PerformanceReportLocalState();
     await controller.initializePerformanceReport(
-      _buildSelectedReportProfile(
-        currentProfile: report.profile,
-        selectedProfile: selectedProfile,
-      ),
+      _buildSelectedReportProfile(currentProfile: report.profile, selectedProfile: selectedProfile),
     );
   }
 
@@ -753,9 +687,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     return DateTime(value.year, value.month, value.day);
   }
 
-  DateTime? _resolveParsedPerformanceReportCreatedAt(
-    PerformanceReport? report,
-  ) {
+  DateTime? _resolveParsedPerformanceReportCreatedAt(PerformanceReport? report) {
     final candidates = <String?>[
       report?.createdAt,
       report?.reportSnapshot['createdAt']?.toString(),
@@ -788,16 +720,10 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     final parsedDateTime = DateTime.tryParse(normalizedValue);
     if (parsedDateTime != null) {
       final localDateTime = parsedDateTime.toLocal();
-      return DateTime(
-        localDateTime.year,
-        localDateTime.month,
-        localDateTime.day,
-      );
+      return DateTime(localDateTime.year, localDateTime.month, localDateTime.day);
     }
 
-    final isoDateMatch = RegExp(
-      r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})',
-    ).firstMatch(normalizedValue);
+    final isoDateMatch = RegExp(r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})').firstMatch(normalizedValue);
     if (isoDateMatch != null) {
       final year = int.tryParse(isoDateMatch.group(1)!);
       final month = int.tryParse(isoDateMatch.group(2)!);
@@ -841,8 +767,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     if (dayMonthYearMatch != null) {
       final day = int.tryParse(dayMonthYearMatch.group(1)!);
       final month = monthNames[dayMonthYearMatch.group(2)!.toLowerCase()];
-      final year =
-          int.tryParse(dayMonthYearMatch.group(3) ?? '') ?? DateTime.now().year;
+      final year = int.tryParse(dayMonthYearMatch.group(3) ?? '') ?? DateTime.now().year;
       final resolved = _safeDate(year, month, day);
       if (resolved != null) {
         return resolved;
@@ -855,8 +780,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     if (monthDayYearMatch != null) {
       final month = monthNames[monthDayYearMatch.group(1)!.toLowerCase()];
       final day = int.tryParse(monthDayYearMatch.group(2)!);
-      final year =
-          int.tryParse(monthDayYearMatch.group(3) ?? '') ?? DateTime.now().year;
+      final year = int.tryParse(monthDayYearMatch.group(3) ?? '') ?? DateTime.now().year;
       final resolved = _safeDate(year, month, day);
       if (resolved != null) {
         return resolved;
@@ -906,19 +830,14 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     return value;
   }
 
-  Future<void> _handleCertify(
-    BuildContext context,
-    AuditController controller,
-  ) async {
+  Future<void> _handleCertify(BuildContext context, AuditController controller) async {
     final message = await controller.certifyPerformanceReport();
     if (!context.mounted) {
       return;
     }
 
     if (message != 'Performance report certified successfully.') {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -970,10 +889,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
 }
 
 class _PerformanceReportLocalState {
-  const _PerformanceReportLocalState({
-    this.selectedCategoryIndex = 0,
-    this.categorySelectionKey,
-  });
+  const _PerformanceReportLocalState({this.selectedCategoryIndex = 0, this.categorySelectionKey});
 
   final int selectedCategoryIndex;
   final String? categorySelectionKey;
@@ -983,8 +899,7 @@ class _PerformanceReportLocalState {
     String? categorySelectionKey,
   }) {
     return _PerformanceReportLocalState(
-      selectedCategoryIndex:
-          selectedCategoryIndex ?? this.selectedCategoryIndex,
+      selectedCategoryIndex: selectedCategoryIndex ?? this.selectedCategoryIndex,
       categorySelectionKey: categorySelectionKey ?? this.categorySelectionKey,
     );
   }
@@ -997,9 +912,7 @@ class _ProfileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUnavailablePaygrade = _isUnavailablePaygradeDisplay(
-      report.currentPaygrade,
-    );
+    final isUnavailablePaygrade = _isUnavailablePaygradeDisplay(report.currentPaygrade);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1014,8 +927,7 @@ class _ProfileSummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ProfileSummaryAvatar(
-                  imageUrl:
-                      report.profile.imageUrl ?? report.profile.avatarImageUrl,
+                  imageUrl: report.profile.imageUrl ?? report.profile.avatarImageUrl,
                   name: report.profile.name,
                 ),
                 const SizedBox(height: 12),
@@ -1105,11 +1017,7 @@ class _OpenSeatEmptyView extends StatelessWidget {
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          const Icon(
-            Icons.person_off_outlined,
-            color: AppColors.secondaryColor,
-            size: 34,
-          ),
+          const Icon(Icons.person_off_outlined, color: AppColors.secondaryColor, size: 34),
           const SizedBox(height: 12),
           AppTextView.body1(
             'No Profile Assigned',
@@ -1154,8 +1062,7 @@ class _ProfileSummaryAvatar extends StatelessWidget {
         child: Image.network(
           resolvedImageUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              _ProfileSummaryAvatarFallback(name: name),
+          errorBuilder: (_, __, ___) => _ProfileSummaryAvatarFallback(name: name),
         ),
       ),
     );
@@ -1170,18 +1077,13 @@ class _ProfileSummaryAvatarFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trimmedName = name.trim();
-    final initial = trimmedName.isEmpty
-        ? '?'
-        : trimmedName.substring(0, 1).toUpperCase();
+    final initial = trimmedName.isEmpty ? '?' : trimmedName.substring(0, 1).toUpperCase();
 
     return Container(
       width: 65,
       height: 65,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.grey2,
-      ),
+      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.grey2),
       child: AppTextView.title1(
         initial,
         color: AppColors.textPrimary,
@@ -1193,11 +1095,7 @@ class _ProfileSummaryAvatarFallback extends StatelessWidget {
 }
 
 class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.value,
-    required this.label,
-    required this.valueColor,
-  });
+  const _MetricCard({required this.value, required this.label, required this.valueColor});
 
   final String value;
   final String label;
@@ -1215,18 +1113,9 @@ class _MetricCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppTextView.title1(
-            value,
-            color: valueColor,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
+          AppTextView.title1(value, color: valueColor, fontSize: 20, fontWeight: FontWeight.w700),
           const SizedBox(height: 4),
-          AppTextView.body4(
-            label,
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w500,
-          ),
+          AppTextView.body4(label, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
         ],
       ),
     );
@@ -1263,10 +1152,7 @@ class _TimeRangeSelector extends StatelessWidget {
           isExpanded: true,
           dropdownColor: AppColors.surfaceDark3,
           borderRadius: BorderRadius.circular(12),
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: AppColors.textPrimary,
-          ),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textPrimary),
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 12,
@@ -1314,9 +1200,7 @@ class _CertifiedReportsSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedValue = options.any((item) => item.uuid == value)
-        ? value
-        : null;
+    final selectedValue = options.any((item) => item.uuid == value) ? value : null;
     String? selectedLabel;
     for (final option in options) {
       if (option.uuid == selectedValue) {
@@ -1342,19 +1226,14 @@ class _CertifiedReportsSelector extends StatelessWidget {
               child: Text(
                 selectedLabel ?? 'Select Certified Report',
                 style: TextStyle(
-                  color: selectedLabel == null
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
+                  color: selectedLabel == null ? AppColors.textSecondary : AppColors.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: AppColors.textPrimary,
-            ),
+            const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textPrimary),
           ],
         ),
       ),
@@ -1419,94 +1298,86 @@ class _PersonaCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          if (showPersonaHeader) ...[
-            Image.asset(
-              report.personalityAvatarImagePath!,
-              width: 160,
-              height: 160,
-            ),
-            SizedBox(height: 1),
-            AppTextView.body2(
-              report.archetypeTitle,
-              color: AppColors.lightPurple1,
-              fontWeight: FontWeight.w600,
-            ),
-            AppTextView.body1(
-              _displayArchetypeSubtitle,
-              color: AppColors.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-            ),
-            const SizedBox(height: 12),
-            AppTextView.body1(
-              report.archetypeSummary,
-              color: AppColors.secondaryColor,
-              textAlign: TextAlign.center,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              height: 1.4,
-            ),
-            const SizedBox(height: 16),
-            for (final paragraph in report.guidanceParagraphs) ...[
-              AppTextView.body(
-                paragraph,
+          if (report.hasPersonalityData) ...[
+            if (showPersonaHeader) ...[
+              Image.asset(report.personalityAvatarImagePath!, width: 160, height: 160),
+              SizedBox(height: 1),
+              AppTextView.body2(
+                report.archetypeTitle,
+                color: AppColors.lightPurple1,
+                fontWeight: FontWeight.w600,
+              ),
+              AppTextView.body1(
+                _displayArchetypeSubtitle,
                 color: AppColors.textPrimary,
-                fontSize: 13,
-                height: 1.45,
-                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 12),
+              AppTextView.body1(
+                report.archetypeSummary,
+                color: AppColors.secondaryColor,
+                textAlign: TextAlign.center,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
               ),
               const SizedBox(height: 16),
-            ],
-            if (showGenerateRemarksAction) ...[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: SizedBox(
-                  height: 32,
-                  child: OutlinedButton(
-                    onPressed: isGeneratingRemarks ? null : onGenerateRemarks,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.secondaryColor,
-                      side: const BorderSide(color: AppColors.secondaryColor),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
+              for (final paragraph in report.guidanceParagraphs) ...[
+                AppTextView.body(
+                  paragraph,
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  height: 1.45,
+                  fontWeight: FontWeight.w700,
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (showGenerateRemarksAction) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    height: 32,
+                    child: OutlinedButton(
+                      onPressed: isGeneratingRemarks ? null : onGenerateRemarks,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.secondaryColor,
+                        side: const BorderSide(color: AppColors.secondaryColor),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          isGeneratingRemarks
-                              ? 'Generating...'
-                              : 'Generate Remarks',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.secondaryColor,
-                          ),
-                        ),
-                        if (isGeneratingRemarks) ...[
-                          const SizedBox(width: 8),
-                          const SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.secondaryColor,
-                              ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isGeneratingRemarks ? 'Generating...' : 'Generate Remarks',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.secondaryColor,
                             ),
                           ),
+                          if (isGeneratingRemarks) ...[
+                            const SizedBox(width: 8),
+                            const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryColor),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
+              const SizedBox(height: 16),
             ],
-            const SizedBox(height: 16),
           ],
           _RatingsTable(
             rows: report.categoryTabs.isEmpty
@@ -1558,9 +1429,7 @@ class _ProfileChipsRow extends StatelessWidget {
                       isSelected:
                           profiles[index].uuid == report.profile.uuid ||
                           profiles[index].uuid == report.profile.profileUuid,
-                      onTap: isLoading
-                          ? null
-                          : () => onProfileTap(profiles[index]),
+                      onTap: isLoading ? null : () => onProfileTap(profiles[index]),
                     ),
                     if (index != profiles.length - 1) const SizedBox(width: 8),
                   ],
@@ -1572,11 +1441,7 @@ class _ProfileChipsRow extends StatelessWidget {
 }
 
 class _ProfileNameChip extends StatelessWidget {
-  const _ProfileNameChip({
-    required this.label,
-    required this.isSelected,
-    this.onTap,
-  });
+  const _ProfileNameChip({required this.label, required this.isSelected, this.onTap});
 
   final String label;
   final bool isSelected;
@@ -1593,10 +1458,7 @@ class _ProfileNameChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? AppColors.purple2 : AppColors.grey2,
-              width: 1,
-            ),
+            border: Border.all(color: isSelected ? AppColors.purple2 : AppColors.grey2, width: 1),
           ),
           child: AppTextView.body3(
             label,
@@ -1644,15 +1506,11 @@ class _RatingsTable extends StatelessWidget {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: List<Widget>.generate(categoryTabs.length, (
-                      index,
-                    ) {
+                    children: List<Widget>.generate(categoryTabs.length, (index) {
                       final category = categoryTabs[index];
                       final isSelected = index == selectedCategoryIndex;
                       return Padding(
-                        padding: EdgeInsets.only(
-                          right: index == categoryTabs.length - 1 ? 0 : 10,
-                        ),
+                        padding: EdgeInsets.only(right: index == categoryTabs.length - 1 ? 0 : 10),
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
@@ -1660,18 +1518,11 @@ class _RatingsTable extends StatelessWidget {
                             onTap: () => onCategorySelected(index),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.secondaryColor
-                                    : Colors.transparent,
+                                color: isSelected ? AppColors.secondaryColor : Colors.transparent,
                                 borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: AppColors.secondaryColor,
-                                ),
+                                border: Border.all(color: AppColors.secondaryColor),
                               ),
                               child: AppTextView.body2(
                                 '${category.label} (${category.score.toStringAsFixed(1)})',
@@ -1700,9 +1551,7 @@ class _RatingsTable extends StatelessWidget {
             Column(
               children: List<Widget>.generate(rows.length, (index) {
                 return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index == rows.length - 1 ? 0 : 12,
-                  ),
+                  padding: EdgeInsets.only(bottom: index == rows.length - 1 ? 0 : 12),
                   child: _DescriptionRatingCard(
                     row: rows[index],
                     onGo: () => onDescriptionGo(rows[index]),
@@ -1734,9 +1583,7 @@ class _DescriptionRatingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1835,15 +1682,8 @@ class _RatingBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: AppTextView.body4(
-        '$value',
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w700,
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+      child: AppTextView.body4('$value', color: AppColors.textPrimary, fontWeight: FontWeight.w700),
     );
   }
 }
@@ -1900,34 +1740,22 @@ class _PaygradePipelineCard extends StatelessWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 final itemCount = report.paygradePipeline.length;
-                final contentWidth =
-                    (itemCount * _stepWidth) +
-                    ((itemCount - 1) * _connectorWidth);
-                final pipelineChildren = List<Widget>.generate(
-                  itemCount * 2 - 1,
-                  (index) {
-                    if (index.isOdd) {
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                          top: _connectorTopOffset,
-                        ),
-                        child: Container(
-                          width: _connectorWidth,
-                          height: _connectorThickness,
-                          color: AppColors.secondaryColor.withValues(
-                            alpha: 0.45,
-                          ),
-                        ),
-                      );
-                    }
-
-                    final step = report.paygradePipeline[index ~/ 2];
-                    return _PipelineStep(
-                      step: step,
-                      onTap: () => onStepTap(step),
+                final contentWidth = (itemCount * _stepWidth) + ((itemCount - 1) * _connectorWidth);
+                final pipelineChildren = List<Widget>.generate(itemCount * 2 - 1, (index) {
+                  if (index.isOdd) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: _connectorTopOffset),
+                      child: Container(
+                        width: _connectorWidth,
+                        height: _connectorThickness,
+                        color: AppColors.secondaryColor.withValues(alpha: 0.45),
+                      ),
                     );
-                  },
-                );
+                  }
+
+                  final step = report.paygradePipeline[index ~/ 2];
+                  return _PipelineStep(step: step, onTap: () => onStepTap(step));
+                });
                 final pipelineRow = Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1985,18 +1813,13 @@ class _PipelineStep extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: AppColors.secondaryColor,
                             borderRadius: BorderRadius.circular(999),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.secondaryColor.withValues(
-                                  alpha: 0.35,
-                                ),
+                                color: AppColors.secondaryColor.withValues(alpha: 0.35),
                                 blurRadius: 10,
                               ),
                             ],
@@ -2035,9 +1858,7 @@ class _PipelineStep extends StatelessWidget {
                 boxShadow: step.isCurrent
                     ? [
                         BoxShadow(
-                          color: AppColors.secondaryColor.withValues(
-                            alpha: 0.6,
-                          ),
+                          color: AppColors.secondaryColor.withValues(alpha: 0.6),
                           blurRadius: 18,
                         ),
                       ]
@@ -2053,9 +1874,7 @@ class _PipelineStep extends StatelessWidget {
             const SizedBox(height: 10),
             AppTextView.body4(
               step.caption,
-              color: isUnavailablePaygrade
-                  ? AppColors.secondaryColor
-                  : AppColors.textSecondary,
+              color: isUnavailablePaygrade ? AppColors.secondaryColor : AppColors.textSecondary,
               textAlign: TextAlign.center,
             ),
           ],
@@ -2093,14 +1912,10 @@ class _CoreValuesCard extends StatelessWidget {
             child: Row(
               children: List<Widget>.generate(values.length, (index) {
                 final value = values[index];
-                final visualSpec = _resolveCoreValueVisualSpec(
-                  coreValue: value,
-                );
+                final visualSpec = _resolveCoreValueVisualSpec(coreValue: value);
 
                 return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == values.length - 1 ? 0 : 12,
-                  ),
+                  padding: EdgeInsets.only(right: index == values.length - 1 ? 0 : 12),
                   child: _CoreValuePill(
                     coreValue: value,
                     visualSpec: visualSpec,
@@ -2122,11 +1937,7 @@ class _CoreValuesCard extends StatelessWidget {
 }
 
 class _CoreValuePill extends StatelessWidget {
-  const _CoreValuePill({
-    required this.coreValue,
-    required this.visualSpec,
-    required this.onTap,
-  });
+  const _CoreValuePill({required this.coreValue, required this.visualSpec, required this.onTap});
 
   final PerformanceReportCoreValue coreValue;
   final _CoreValueVisualSpec visualSpec;
@@ -2144,27 +1955,15 @@ class _CoreValuePill extends StatelessWidget {
           color: AppColors.surfaceDark2,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: visualSpec.color, width: 1.3),
-          boxShadow: [
-            BoxShadow(
-              color: visualSpec.color.withValues(alpha: 0.12),
-              blurRadius: 12,
-            ),
-          ],
+          boxShadow: [BoxShadow(color: visualSpec.color.withValues(alpha: 0.12), blurRadius: 12)],
         ),
         child: Row(
           children: [
             Container(
               width: 38,
               height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: visualSpec.color,
-              ),
-              child: Icon(
-                visualSpec.icon,
-                color: AppColors.textPrimary,
-                size: 20,
-              ),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: visualSpec.color),
+              child: Icon(visualSpec.icon, color: AppColors.textPrimary, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -2268,11 +2067,7 @@ class _CommitmentCard extends StatelessWidget {
               children: [
                 Row(
                   children: const [
-                    Icon(
-                      Icons.comment_bank_outlined,
-                      color: AppColors.secondaryColor,
-                      size: 18,
-                    ),
+                    Icon(Icons.comment_bank_outlined, color: AppColors.secondaryColor, size: 18),
                     SizedBox(width: 10),
                     AppTextView.body1(
                       'Comments',
@@ -2298,17 +2093,12 @@ class _CommitmentCard extends StatelessWidget {
                   cursorHeight: 14,
                   decoration: InputDecoration(
                     hintText: 'Enter Comments',
-                    hintStyle: const TextStyle(
-                      color: AppColors.grey1,
-                      fontSize: 13,
-                    ),
+                    hintStyle: const TextStyle(color: AppColors.grey1, fontSize: 13),
                     filled: true,
                     fillColor: AppColors.surfaceDark,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(
-                        color: AppColors.fieldBorder.withValues(alpha: 0.4),
-                      ),
+                      borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.4)),
                     ),
                     focusedBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(6)),
@@ -2319,10 +2109,7 @@ class _CommitmentCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: AppTextView.body4(
-                    '$currentLength/2000',
-                    color: AppColors.textSecondary,
-                  ),
+                  child: AppTextView.body4('$currentLength/2000', color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -2337,10 +2124,7 @@ class _CommitmentCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.gesture_outlined,
-                      color: AppColors.secondaryColor,
-                    ),
+                    const Icon(Icons.gesture_outlined, color: AppColors.secondaryColor),
                     const SizedBox(width: 8),
                     AppTextView.body1(
                       "Signature",
@@ -2445,8 +2229,7 @@ class _SignatureSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolvedSignatureUrl = signatureUrl?.trim();
-    final hasSignatureUrl =
-        resolvedSignatureUrl != null && resolvedSignatureUrl.isNotEmpty;
+    final hasSignatureUrl = resolvedSignatureUrl != null && resolvedSignatureUrl.isNotEmpty;
     final hasSignature = signatureBytes != null || hasSignatureUrl;
 
     return Column(
@@ -2465,10 +2248,7 @@ class _SignatureSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.15),
-              width: 1.8,
-            ),
+            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.15), width: 1.8),
           ),
           child: Column(
             children: [
@@ -2480,10 +2260,7 @@ class _SignatureSection extends StatelessWidget {
                     color: AppColors.secondaryColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.gesture_outlined,
-                    color: AppColors.secondaryColor,
-                  ),
+                  child: const Icon(Icons.gesture_outlined, color: AppColors.secondaryColor),
                 ),
                 const SizedBox(height: 14),
                 const AppTextView.body2(
@@ -2492,10 +2269,7 @@ class _SignatureSection extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
                 const SizedBox(height: 4),
-                const AppTextView.body3(
-                  'Add signature to confirm',
-                  color: AppColors.textSecondary,
-                ),
+                const AppTextView.body3('Add signature to confirm', color: AppColors.textSecondary),
               ] else ...[
                 Container(
                   width: double.infinity,
@@ -2507,10 +2281,7 @@ class _SignatureSection extends StatelessWidget {
                   ),
                   child: signatureBytes != null
                       ? Image.memory(signatureBytes!, fit: BoxFit.contain)
-                      : Image.network(
-                          resolvedSignatureUrl!,
-                          fit: BoxFit.contain,
-                        ),
+                      : Image.network(resolvedSignatureUrl!, fit: BoxFit.contain),
                 ),
               ],
               if (signerName != null && signerName!.trim().isNotEmpty) ...[
@@ -2531,12 +2302,8 @@ class _SignatureSection extends StatelessWidget {
                         onPressed: onClearSignature,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.textSecondary,
-                          side: BorderSide(
-                            color: AppColors.fieldBorder.withValues(alpha: 0.4),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          side: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.4)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         child: const Text('Clear'),
                       ),
@@ -2547,21 +2314,13 @@ class _SignatureSection extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.secondaryColor,
                         side: const BorderSide(color: AppColors.secondaryColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: Icon(
-                        signatureBytes == null
-                            ? Icons.edit_outlined
-                            : Icons.refresh_rounded,
+                        signatureBytes == null ? Icons.edit_outlined : Icons.refresh_rounded,
                         size: 16,
                       ),
-                      label: Text(
-                        signatureBytes == null
-                            ? 'Add Signature'
-                            : 'Retake Signature',
-                      ),
+                      label: Text(signatureBytes == null ? 'Add Signature' : 'Retake Signature'),
                     ),
                   ],
                 ),
