@@ -4,12 +4,14 @@ class SeatDescriptionTrainingModule {
     required this.actualId,
     required this.title,
     required this.thumbnailLink,
+    required this.isPubliclyAvailable,
   });
 
   final String uuid;
   final String actualId;
   final String title;
   final String? thumbnailLink;
+  final bool isPubliclyAvailable;
 
   String get resolvedParentModuleId {
     final resolvedActualId = actualId.trim();
@@ -28,6 +30,8 @@ class SeatDescriptionTrainingModuleDetail {
     required this.title,
     required this.thumbnails,
     required this.description,
+    required this.assignmentTitle,
+    required this.assignmentInstructions,
     required this.questions,
     required this.thumbnailLink,
     required this.trainingVideo,
@@ -40,6 +44,8 @@ class SeatDescriptionTrainingModuleDetail {
   final String title;
   final List<String> thumbnails;
   final String? description;
+  final String? assignmentTitle;
+  final String? assignmentInstructions;
   final List<SeatDescriptionTrainingQuestion> questions;
   final String? thumbnailLink;
   final SeatDescriptionTrainingVideo? trainingVideo;
@@ -63,6 +69,12 @@ class SeatDescriptionTrainingModuleDetail {
       return null;
     }
     return thumbnails.first;
+  }
+
+  bool get hasAssignmentContent {
+    final resolvedTitle = assignmentTitle?.trim() ?? '';
+    final resolvedInstructions = assignmentInstructions?.trim() ?? '';
+    return resolvedTitle.isNotEmpty || resolvedInstructions.isNotEmpty;
   }
 }
 
@@ -116,4 +128,22 @@ class SeatDescriptionTrainingDocument {
 
   final String uuid;
   final String? text;
+}
+
+class SeatDescriptionTrainingAssignment {
+  const SeatDescriptionTrainingAssignment({
+    required this.uuid,
+    required this.title,
+    required this.instructions,
+  });
+
+  final String uuid;
+  final String? title;
+  final String? instructions;
+
+  bool get hasContent {
+    final resolvedTitle = title?.trim() ?? '';
+    final resolvedInstructions = instructions?.trim() ?? '';
+    return resolvedTitle.isNotEmpty || resolvedInstructions.isNotEmpty;
+  }
 }

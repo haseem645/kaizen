@@ -369,6 +369,21 @@ class _TrainingLibraryResultArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (controller.isInlineLoading && controller.items.isEmpty) {
+      return ListView(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: Center(
+              child: FastCircularProgressIndicator(width: 28, height: 28),
+            ),
+          ),
+        ],
+      );
+    }
+
     if (controller.errorMessage != null && controller.items.isEmpty) {
       return ListView(
         controller: scrollController,

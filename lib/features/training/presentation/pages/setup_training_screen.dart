@@ -16,7 +16,6 @@ import '../../domain/entities/seat_description_training_route.dart';
 import '../controllers/training_setup_controller.dart';
 import 'edit_training_screen.dart';
 
-//
 class SetupTrainingScreen extends StatelessWidget {
   const SetupTrainingScreen({
     super.key,

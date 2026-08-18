@@ -89,8 +89,13 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
       return;
     }
 
-    if (_selectedTabIndex == 2 && controller.canManageTraining) {
+    if (_selectedTabIndex == 2) {
       controller.loadQuestionsForSelectedModule();
+      return;
+    }
+
+    if (_selectedTabIndex == 3) {
+      controller.loadAssignmentForSelectedModule();
     }
   }
 
@@ -111,7 +116,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
             const SizedBox(height: 18),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 child: _buildBody(controller),
               ),
             ),
@@ -248,15 +253,15 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     if (_selectedTabIndex == 2) {
       return _QuizTabContent(
         isLoading: controller.isQuestionsLoading,
-        errorMessage: controller.canManageTraining
-            ? controller.questionsErrorMessage
-            : null,
+        errorMessage: controller.questionsErrorMessage,
         questions: controller.selectedModuleQuestions,
       );
     }
 
-    return const _ContentMessage(
-      message: AppStrings.trainingNoAssignmentAvailable,
+    return _AssignmentTabContent(
+      isLoading: controller.isAssignmentLoading,
+      errorMessage: controller.assignmentErrorMessage,
+      assignment: controller.selectedModuleAssignment,
     );
   }
 
@@ -267,11 +272,12 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     }
 
     if (_selectedTabIndex == 2) {
-      if (!controller.canManageTraining) {
-        return;
-      }
-
       await controller.loadQuestionsForSelectedModule();
+      return;
+    }
+
+    if (_selectedTabIndex == 3) {
+      await controller.loadAssignmentForSelectedModule();
     }
   }
 }
@@ -617,6 +623,121 @@ class _QuizTabContent extends StatelessWidget {
   }
 }
 
+class _AssignmentTabContent extends StatelessWidget {
+  const _AssignmentTabContent({
+    required this.isLoading,
+    required this.errorMessage,
+    required this.assignment,
+  });
+
+  final bool isLoading;
+  final String? errorMessage;
+  final SeatDescriptionTrainingAssignment? assignment;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 36),
+        child: Center(child: FastCircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage != null) {
+      return _ContentMessage(message: errorMessage!);
+    }
+
+    final title = assignment?.title?.trim();
+    final instructions = assignment?.instructions?.trim();
+    final hasTitle = title != null && title.isNotEmpty;
+    final hasInstructions = instructions != null && instructions.isNotEmpty;
+    if (!hasTitle && !hasInstructions) {
+      return const _ContentMessage(
+        message: AppStrings.trainingNoAssignmentAvailable,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasTitle) ...[
+          const AppTextView.body3(
+            AppStrings.trainingLessonTitle,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.mainBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
+            ),
+            child: AppTextView.body2(
+              title,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              height: 1.45,
+            ),
+          ),
+        ],
+        if (hasTitle && hasInstructions) const SizedBox(height: 18),
+        if (hasInstructions) ...[
+          const AppTextView.body3(
+            AppStrings.trainingAssignmentDescriptionLabel,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.mainBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Html(
+              data: instructions,
+              shrinkWrap: true,
+              style: {
+                'body': Style(
+                  margin: Margins.zero,
+                  padding: HtmlPaddings.zero,
+                  color: AppColors.textPrimary,
+                  fontSize: FontSize(13),
+                  fontWeight: FontWeight.w400,
+                  lineHeight: const LineHeight(1.65),
+                ),
+                'p': Style(
+                  margin: Margins.only(bottom: 12),
+                  lineHeight: const LineHeight(1.65),
+                ),
+                'ul': Style(margin: Margins.only(bottom: 12)),
+                'ol': Style(margin: Margins.only(bottom: 12)),
+                'li': Style(margin: Margins.only(bottom: 6)),
+                'h1': _htmlHeadingStyle(20),
+                'h2': _htmlHeadingStyle(18),
+                'h3': _htmlHeadingStyle(16),
+                'h4': _htmlHeadingStyle(15),
+                'h5': _htmlHeadingStyle(14),
+                'h6': _htmlHeadingStyle(14),
+                'a': Style(color: AppColors.secondaryColor),
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _QuizQuestionCard extends StatelessWidget {
   const _QuizQuestionCard({required this.number, required this.question});
 
@@ -727,6 +848,14 @@ class _QuizOptionTile extends StatelessWidget {
     );
   }
 }
+
+Style _htmlHeadingStyle(double fontSize) => Style(
+  margin: Margins.only(bottom: 10),
+  color: AppColors.textPrimary,
+  fontSize: FontSize(fontSize),
+  fontWeight: FontWeight.w700,
+  lineHeight: const LineHeight(1.35),
+);
 
 class _ContentMessage extends StatelessWidget {
   const _ContentMessage({required this.message});

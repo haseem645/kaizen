@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -48,7 +47,10 @@ class EditTrainingScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: _buildHeader(context),
+            ),
             const SizedBox(height: 18),
             Expanded(
               child: Padding(
@@ -84,7 +86,10 @@ class EditTrainingScreen extends StatelessWidget {
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -123,17 +128,20 @@ class EditTrainingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final routeBasedTrainingAccess = AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
-      seatProfileId: trainingRoute.job,
-    );
+    final routeBasedTrainingAccess = AppManager.instance
+        .canCurrentUserManageTrainingForSeatProfile(
+          seatProfileId: trainingRoute.job,
+        );
     final resolvedCanManageTraining =
-        (canManageTraining ?? routeBasedTrainingAccess) && routeBasedTrainingAccess;
+        (canManageTraining ?? routeBasedTrainingAccess) &&
+        routeBasedTrainingAccess;
 
     return MultiProvider(
       providers: [
         Provider<AuditRemoteDataSource>(create: (_) => AuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => AuditRepositoryImpl(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              AuditRepositoryImpl(remoteDataSource),
         ),
         ChangeNotifierProvider<TrainingModuleController>(
           create: (context) =>
@@ -151,7 +159,8 @@ class EditTrainingSection extends StatelessWidget {
         initialModuleId: initialModuleId,
         trainingDescriptionId: trainingRoute.description,
         isEmbedded: isEmbedded,
-        skipResumeSessionRefreshOnMediaPicker: skipResumeSessionRefreshOnMediaPicker,
+        skipResumeSessionRefreshOnMediaPicker:
+            skipResumeSessionRefreshOnMediaPicker,
         showOnlyApiErrorSnackBars: showOnlyApiErrorSnackBars,
         useNonBlockingVideoUpload: useNonBlockingVideoUpload,
       ),
@@ -177,7 +186,8 @@ class _EditTrainingSectionView extends StatefulWidget {
   final bool useNonBlockingVideoUpload;
 
   @override
-  State<_EditTrainingSectionView> createState() => _EditTrainingSectionViewState();
+  State<_EditTrainingSectionView> createState() =>
+      _EditTrainingSectionViewState();
 }
 
 class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
@@ -188,11 +198,16 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   final FocusNode _newLessonTitleFocusNode = FocusNode();
   final GlobalKey _newLessonTitleFieldKey = GlobalKey();
   final ValueNotifier<int> _selectedTabIndexNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<bool> _isPickingVideoNotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> _isFinalizingVideoSetupNotifier = ValueNotifier<bool>(false);
-  bool _didAutoScrollToInitialModule = false;
+  final ValueNotifier<bool> _isPickingVideoNotifier = ValueNotifier<bool>(
+    false,
+  );
+  final ValueNotifier<bool> _isFinalizingVideoSetupNotifier =
+      ValueNotifier<bool>(false);
+  String? _lastAutoScrolledModuleId;
+  String? _pendingAutoScrolledModuleId;
   TrainingModuleController? _trainingController;
   String? _lastDocumentErrorMessage;
+  String? _lastAssignmentErrorMessage;
   String? _lastQuestionsErrorMessage;
   int _lastHandledSummarySnackBarSequence = 0;
   int _lastHandledGlobalVideoUploadEventSequence = 0;
@@ -212,14 +227,17 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       _selectedTabIndexNotifier,
       _isPickingVideoNotifier,
       _isFinalizingVideoSetupNotifier,
-      if (widget.useNonBlockingVideoUpload) TrainingVideoUploadController.instance,
+      if (widget.useNonBlockingVideoUpload)
+        TrainingVideoUploadController.instance,
     ]);
     if (widget.useNonBlockingVideoUpload) {
       _lastHandledGlobalVideoUploadEventSequence =
           TrainingVideoUploadController.instance.latestTerminalEventSequence;
       _lastHandledGlobalVideoSummaryEventSequence =
           TrainingVideoUploadController.instance.latestSummaryEventSequence;
-      TrainingVideoUploadController.instance.addListener(_handleGlobalVideoUploadChanged);
+      TrainingVideoUploadController.instance.addListener(
+        _handleGlobalVideoUploadChanged,
+      );
     }
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChanged);
@@ -237,8 +255,15 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
 
     _trainingController?.removeListener(_handleTrainingControllerChanged);
     _trainingController = controller;
-    _lastDocumentErrorMessage = _normalizeSnackBarMessage(controller.documentErrorMessage);
-    _lastQuestionsErrorMessage = _normalizeSnackBarMessage(controller.questionsErrorMessage);
+    _lastDocumentErrorMessage = _normalizeSnackBarMessage(
+      controller.documentErrorMessage,
+    );
+    _lastAssignmentErrorMessage = _normalizeSnackBarMessage(
+      controller.assignmentErrorMessage,
+    );
+    _lastQuestionsErrorMessage = _normalizeSnackBarMessage(
+      controller.questionsErrorMessage,
+    );
     _lastHandledSummarySnackBarSequence = controller.summarySnackBarSequence;
     _trainingController?.addListener(_handleTrainingControllerChanged);
   }
@@ -247,7 +272,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   void dispose() {
     _trainingController?.removeListener(_handleTrainingControllerChanged);
     if (widget.useNonBlockingVideoUpload) {
-      TrainingVideoUploadController.instance.removeListener(_handleGlobalVideoUploadChanged);
+      TrainingVideoUploadController.instance.removeListener(
+        _handleGlobalVideoUploadChanged,
+      );
     }
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
@@ -260,7 +287,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   }
 
   void _handleTabChanged() {
-    if (_tabController.indexIsChanging || _selectedTabIndex == _tabController.index) {
+    if (_tabController.indexIsChanging ||
+        _selectedTabIndex == _tabController.index) {
       return;
     }
 
@@ -278,6 +306,11 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
 
     if (_selectedTabIndex == 2) {
       controller.loadQuestionsForSelectedModule();
+      return;
+    }
+
+    if (_selectedTabIndex == 3) {
+      controller.loadAssignmentForSelectedModule();
     }
   }
 
@@ -291,23 +324,41 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return;
     }
 
-    final currentDocumentError = _normalizeSnackBarMessage(controller.documentErrorMessage);
-    final currentQuestionsError = _normalizeSnackBarMessage(controller.questionsErrorMessage);
+    final currentDocumentError = _normalizeSnackBarMessage(
+      controller.documentErrorMessage,
+    );
+    final currentAssignmentError = _normalizeSnackBarMessage(
+      controller.assignmentErrorMessage,
+    );
+    final currentQuestionsError = _normalizeSnackBarMessage(
+      controller.questionsErrorMessage,
+    );
 
-    if (currentDocumentError != null && currentDocumentError != _lastDocumentErrorMessage) {
+    if (currentDocumentError != null &&
+        currentDocumentError != _lastDocumentErrorMessage) {
       _showApiErrorSnackBar(currentDocumentError);
     }
 
-    if (currentQuestionsError != null && currentQuestionsError != _lastQuestionsErrorMessage) {
+    if (currentQuestionsError != null &&
+        currentQuestionsError != _lastQuestionsErrorMessage) {
       _showApiErrorSnackBar(currentQuestionsError);
     }
 
+    if (currentAssignmentError != null &&
+        currentAssignmentError != _lastAssignmentErrorMessage) {
+      _showApiErrorSnackBar(currentAssignmentError);
+    }
+
     _lastDocumentErrorMessage = currentDocumentError;
+    _lastAssignmentErrorMessage = currentAssignmentError;
     _lastQuestionsErrorMessage = currentQuestionsError;
 
-    if (controller.summarySnackBarSequence > _lastHandledSummarySnackBarSequence) {
+    if (controller.summarySnackBarSequence >
+        _lastHandledSummarySnackBarSequence) {
       _lastHandledSummarySnackBarSequence = controller.summarySnackBarSequence;
-      final summaryMessage = _normalizeSnackBarMessage(controller.summarySnackBarMessage);
+      final summaryMessage = _normalizeSnackBarMessage(
+        controller.summarySnackBarMessage,
+      );
       if (summaryMessage != null) {
         _showApiErrorSnackBar(summaryMessage);
       }
@@ -329,7 +380,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
 
     if (terminalTasks.isNotEmpty) {
-      _lastHandledGlobalVideoUploadEventSequence = terminalTasks.last.terminalEventSequence;
+      _lastHandledGlobalVideoUploadEventSequence =
+          terminalTasks.last.terminalEventSequence;
 
       for (final task in terminalTasks) {
         if (task.descriptionId != widget.trainingDescriptionId) {
@@ -371,7 +423,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return;
     }
 
-    _lastHandledGlobalVideoSummaryEventSequence = summaryEvents.last.eventSequence;
+    _lastHandledGlobalVideoSummaryEventSequence =
+        summaryEvents.last.eventSequence;
 
     for (final event in summaryEvents) {
       if (event.descriptionId != widget.trainingDescriptionId ||
@@ -391,7 +444,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<bool> _startNonBlockingVideoUpload(TrainingModuleController controller, File videoFile) {
+  Future<bool> _startNonBlockingVideoUpload(
+    TrainingModuleController controller,
+    File videoFile,
+  ) {
     return TrainingVideoUploadController.instance.startUploadForTrainingModule(
       descriptionId: widget.trainingDescriptionId,
       moduleId: controller.selectedModuleId,
@@ -400,7 +456,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     );
   }
 
-  bool _ensureNoModuleVideoUploadInProgress(TrainingModuleController controller) {
+  bool _ensureNoModuleVideoUploadInProgress(
+    TrainingModuleController controller,
+  ) {
     if (!widget.useNonBlockingVideoUpload ||
         !TrainingVideoUploadController.instance.isUploadActiveForModule(
           descriptionId: widget.trainingDescriptionId,
@@ -409,7 +467,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return true;
     }
 
-    _showApiErrorSnackBar(AppStrings.trainingModuleVideoUploadAlreadyInProgress);
+    _showApiErrorSnackBar(
+      AppStrings.trainingModuleVideoUploadAlreadyInProgress,
+    );
     return false;
   }
 
@@ -438,7 +498,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       }
 
       if (widget.useNonBlockingVideoUpload) {
-        final didStart = await _startNonBlockingVideoUpload(controller, selectedFile);
+        final didStart = await _startNonBlockingVideoUpload(
+          controller,
+          selectedFile,
+        );
         _setPickingVideo(false);
         _setFinalizingVideoSetup(false);
 
@@ -447,7 +510,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         }
 
         if (didStart != true) {
-          final message = TrainingVideoUploadController.instance.startErrorMessage?.trim();
+          final message = TrainingVideoUploadController
+              .instance
+              .startErrorMessage
+              ?.trim();
           if (message != null && message.isNotEmpty) {
             _showApiErrorSnackBar(message);
           }
@@ -455,7 +521,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         return;
       }
 
-      final uploadFuture = controller.uploadVideoForSelectedModule(selectedFile);
+      final uploadFuture = controller.uploadVideoForSelectedModule(
+        selectedFile,
+      );
       _setPickingVideo(false);
 
       final didUpload = await uploadFuture;
@@ -517,7 +585,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return Center(child: FastCircularProgressIndicator());
     }
 
-    _scheduleInitialModuleScroll(controller);
+    _scheduleSelectedModuleScroll(controller);
 
     final showModuleSelector =
         controller.canManageTraining ||
@@ -554,7 +622,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     ];
 
     if (widget.isEmbedded) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: contentChildren);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: contentChildren,
+      );
     }
 
     return ListView(children: contentChildren);
@@ -622,6 +693,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         isUploadingVideo: false,
         isDeletingVideo: false,
         isUploadingThumbnail: false,
+        canEditSummary: false,
+        isEditingSummary: false,
+        isSavingSummary: false,
+        summaryController: controller.summaryController,
       );
     }
 
@@ -642,7 +717,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       );
     }
 
-    if (controller.errorMessage != null && controller.selectedModuleDetail == null) {
+    if (controller.errorMessage != null &&
+        controller.selectedModuleDetail == null) {
       return _ContentMessage(message: controller.errorMessage!);
     }
 
@@ -651,26 +727,45 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         detail: controller.selectedModuleDetail,
         localVideoPath: controller.selectedModuleLocalVideoPath,
         isReadOnly: !controller.canManageTraining,
-        isUploadEnabled: controller.canUploadSelectedModuleVideo && !isBackgroundVideoUploadActive,
+        isUploadEnabled:
+            controller.canUploadSelectedModuleVideo &&
+            !isBackgroundVideoUploadActive,
         isPickingVideo: _isPickingVideo,
         isFinalizingVideoSetup: _isFinalizingVideoSetup,
-        isUploadingVideo: controller.isUploadingVideo || isBackgroundVideoUploadActive,
+        isUploadingVideo:
+            controller.isUploadingVideo || isBackgroundVideoUploadActive,
         isDeletingVideo: controller.isDeletingVideo,
         isUploadingThumbnail: controller.isUploadingThumbnail,
+        canEditSummary: controller.canEditSelectedModuleSummary,
+        isEditingSummary: controller.isEditingSummary,
+        isSavingSummary: controller.isSavingSummary,
+        summaryController: controller.summaryController,
         onUploadVideoTap: () => _selectVideoSourceAndUpload(controller),
         onDeleteVideoTap: () => _showDeleteVideoDialog(controller),
         onUpdateThumbnailTap: () => _pickAndUploadThumbnail(controller),
+        onEditSummaryTap: controller.startEditingSummary,
+        onCancelSummaryTap: controller.cancelEditingSummary,
+        onSaveSummaryTap: () => controller.saveSummaryForSelectedModule(),
       );
     }
 
     if (_selectedTabIndex == 1) {
       return _SopTabContent(
         isLoading: controller.isDocumentLoading,
-        document: controller.selectedModuleDocument,
         canManageGeneration: controller.canManageTraining,
         canGenerate: controller.canGenerateSopForSelectedModule,
         isGeneratingSop: controller.isGeneratingSop,
+        canEditDocument: controller.canEditSelectedModuleDocument,
+        isSavingDocument: controller.isSavingDocument,
+        documentController: controller.documentController,
         onGenerateSopTap: () => _handleGenerateSopTap(controller),
+        onBoldTap: controller.applyDocumentBoldFormatting,
+        onItalicTap: controller.applyDocumentItalicFormatting,
+        onUnderlineTap: controller.applyDocumentUnderlineFormatting,
+        onBulletListTap: controller.applyDocumentBulletListFormatting,
+        onNumberedListTap: controller.applyDocumentNumberedListFormatting,
+        onQuoteTap: controller.applyDocumentQuoteFormatting,
+        onHeadingTap: controller.applyDocumentHeadingFormatting,
       );
     }
 
@@ -683,16 +778,46 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         canGenerateQuiz: controller.canGenerateQuizForSelectedModule,
         isGeneratingQuiz: controller.isGeneratingQuiz,
         isAddingQuestion: controller.isAddingQuestion,
-        deletingQuestionOptionKey: controller.deletingQuestionOptionKey,
+        savingQuestionId: controller.savingQuestionId,
+        deletingQuestionId: controller.deletingQuestionId,
         onAddQuestionTap: () => _showAddQuestionDialog(controller),
         onGenerateQuizTap: () => _showGenerateQuizDialog(controller),
-        onDeleteOptionTap: (questionId, optionId) async {
-          await controller.deleteQuestionOption(questionId: questionId, optionId: optionId);
+        onDeleteQuestionTap: (question) => _showDeleteQuestionDialog(
+          controller: controller,
+          question: question,
+        ),
+        onSaveQuestionTap: (questionId, options, correctOptionUuid) async {
+          return controller.saveQuestion(
+            questionId: questionId,
+            options: options,
+            correctOptionUuid: correctOptionUuid,
+          );
         },
       );
     }
 
-    return const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
+    if (_selectedTabIndex == 3) {
+      return _AssignmentTabContent(
+        isLoading: controller.isAssignmentLoading,
+        canEditAssignment: controller.canEditSelectedModuleAssignment,
+        isSavingAssignment: controller.isSavingAssignment,
+        hasSavedAssignment: controller.hasPersistedSelectedModuleAssignment,
+        titleController: controller.assignmentTitleController,
+        descriptionController: controller.assignmentDescriptionController,
+        onSaveTap: () => controller.saveAssignmentForSelectedModule(),
+        onBoldTap: controller.applyAssignmentBoldFormatting,
+        onItalicTap: controller.applyAssignmentItalicFormatting,
+        onUnderlineTap: controller.applyAssignmentUnderlineFormatting,
+        onBulletListTap: controller.applyAssignmentBulletListFormatting,
+        onNumberedListTap: controller.applyAssignmentNumberedListFormatting,
+        onQuoteTap: controller.applyAssignmentQuoteFormatting,
+        onHeadingTap: controller.applyAssignmentHeadingFormatting,
+      );
+    }
+
+    return const _ContentMessage(
+      message: AppStrings.trainingNoAssignmentAvailable,
+    );
   }
 
   Future<void> _syncSelectedTabData(TrainingModuleController controller) async {
@@ -707,6 +832,11 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
 
     if (_selectedTabIndex == 2) {
       await controller.loadQuestionsForSelectedModule();
+      return;
+    }
+
+    if (_selectedTabIndex == 3) {
+      await controller.loadAssignmentForSelectedModule();
     }
   }
 
@@ -737,7 +867,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     });
   }
 
-  Future<void> _createModuleFromDraft(TrainingModuleController controller) async {
+  Future<void> _createModuleFromDraft(
+    TrainingModuleController controller,
+  ) async {
     final didCreate = await controller.createModuleFromDraft();
     if (!mounted) {
       return;
@@ -751,62 +883,74 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return;
     }
 
-    _scrollModuleSelectorToEnd();
     _showNonApiSnackBar(AppStrings.trainingLessonCreatedSuccess);
   }
 
-  void _scrollModuleSelectorToEnd() {
+  void _scheduleSelectedModuleScroll(TrainingModuleController controller) {
+    final scrollKey = controller.isCreatingNewLessonDraft
+        ? '__draft__'
+        : controller.selectedModuleId.trim();
+    if (scrollKey.isEmpty || controller.modules.isEmpty) {
+      return;
+    }
+
+    if (_lastAutoScrolledModuleId == scrollKey ||
+        _pendingAutoScrolledModuleId == scrollKey) {
+      return;
+    }
+
+    final selectedIndex = controller.isCreatingNewLessonDraft
+        ? -1
+        : controller.modules.indexWhere(
+            (module) => module.uuid == controller.selectedModuleId,
+          );
+    if (!controller.isCreatingNewLessonDraft && selectedIndex < 0) {
+      return;
+    }
+
+    _pendingAutoScrolledModuleId = scrollKey;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingAutoScrolledModuleId = null;
       if (!mounted || !_moduleSelectorScrollController.hasClients) {
         return;
       }
 
-      final maxExtent = _moduleSelectorScrollController.position.maxScrollExtent;
-      _moduleSelectorScrollController.animateTo(
-        maxExtent,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-    });
-  }
-
-  void _scheduleInitialModuleScroll(TrainingModuleController controller) {
-    final resolvedInitialModuleId = widget.initialModuleId?.trim() ?? '';
-    if (_didAutoScrollToInitialModule ||
-        resolvedInitialModuleId.isEmpty ||
-        controller.modules.isEmpty) {
-      return;
-    }
-
-    final selectedIndex = controller.modules.indexWhere(
-      (module) => module.uuid == resolvedInitialModuleId,
-    );
-    _didAutoScrollToInitialModule = true;
-    if (selectedIndex <= 0) {
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_moduleSelectorScrollController.hasClients) {
+      final targetOffset = controller.isCreatingNewLessonDraft
+          ? 0.0
+          : _resolveSelectedModuleScrollOffset(
+              selectedIndex: selectedIndex,
+              canManageTraining: controller.canManageTraining,
+              maxExtent:
+                  _moduleSelectorScrollController.position.maxScrollExtent,
+            );
+      final currentOffset = _moduleSelectorScrollController.offset;
+      _lastAutoScrolledModuleId = scrollKey;
+      if ((currentOffset - targetOffset).abs() < 1) {
         return;
       }
 
-      final leadingOffset = controller.canManageTraining
-          ? _trainingAddNewLessonCardWidth +
-                _trainingModuleSelectorSpacing +
-                (controller.modules.isNotEmpty ? _trainingModuleSelectorDividerBlockWidth : 0.0)
-          : 0.0;
-      final rawOffset =
-          leadingOffset +
-          (selectedIndex * (_trainingModuleSelectorCardWidth + _trainingModuleSelectorSpacing));
-      final maxExtent = _moduleSelectorScrollController.position.maxScrollExtent;
-      final targetOffset = rawOffset.clamp(0.0, maxExtent);
       _moduleSelectorScrollController.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  double _resolveSelectedModuleScrollOffset({
+    required int selectedIndex,
+    required bool canManageTraining,
+    required double maxExtent,
+  }) {
+    final leadingOffset = canManageTraining
+        ? _trainingAddNewLessonCardWidth + _trainingModuleSelectorSpacing
+        : 0.0;
+    final rawOffset =
+        leadingOffset +
+        (selectedIndex *
+            (_trainingModuleSelectorCardWidth +
+                _trainingModuleSelectorSpacing));
+    return rawOffset.clamp(0.0, maxExtent);
   }
 
   void _prepareForExternalMediaPicker() {
@@ -833,7 +977,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     _isPickingVideoNotifier.value = value;
   }
 
-  Future<void> _selectVideoSourceAndUpload(TrainingModuleController controller) async {
+  Future<void> _selectVideoSourceAndUpload(
+    TrainingModuleController controller,
+  ) async {
     if (!controller.canUploadSelectedModuleVideo ||
         _isPickingVideo ||
         !_ensureNoModuleVideoUploadInProgress(controller)) {
@@ -850,6 +996,11 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return;
     }
 
+    if (selection.usesSystemGalleryPicker) {
+      await _pickAndUploadVideo(controller, ImageSource.gallery);
+      return;
+    }
+
     final asset = selection.asset;
     if (asset == null) {
       return;
@@ -863,11 +1014,16 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const _TrainingVideoGalleryPickerSheet(),
+      builder: (_) => Platform.isAndroid
+          ? const _TrainingVideoSystemPickerSheet()
+          : const _TrainingVideoGalleryPickerSheet(),
     );
   }
 
-  Future<void> _pickAndUploadVideo(TrainingModuleController controller, ImageSource source) async {
+  Future<void> _pickAndUploadVideo(
+    TrainingModuleController controller,
+    ImageSource source,
+  ) async {
     if (!controller.canUploadSelectedModuleVideo ||
         _isPickingVideo ||
         !_ensureNoModuleVideoUploadInProgress(controller)) {
@@ -887,12 +1043,16 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         return;
       }
 
-      if (source == ImageSource.camera && !selectedVideo.isSavedDirectlyToGallery) {
+      if (source == ImageSource.camera &&
+          !selectedVideo.isSavedDirectlyToGallery) {
         await _persistCapturedVideoToGallery(selectedVideo.file);
       }
 
       if (widget.useNonBlockingVideoUpload) {
-        final didStart = await _startNonBlockingVideoUpload(controller, selectedVideo.file);
+        final didStart = await _startNonBlockingVideoUpload(
+          controller,
+          selectedVideo.file,
+        );
         _setPickingVideo(false);
         _setFinalizingVideoSetup(false);
 
@@ -901,7 +1061,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         }
 
         if (didStart != true) {
-          final message = TrainingVideoUploadController.instance.startErrorMessage?.trim();
+          final message = TrainingVideoUploadController
+              .instance
+              .startErrorMessage
+              ?.trim();
           if (message != null && message.isNotEmpty) {
             _showApiErrorSnackBar(message);
           }
@@ -909,7 +1072,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         return;
       }
 
-      final uploadFuture = controller.uploadVideoForSelectedModule(selectedVideo.file);
+      final uploadFuture = controller.uploadVideoForSelectedModule(
+        selectedVideo.file,
+      );
       _setPickingVideo(false);
 
       final didUpload = await uploadFuture;
@@ -939,7 +1104,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         return;
       }
       _showNonApiSnackBar(
-        source == ImageSource.camera ? AppStrings.auditRecordVideoError : AppStrings.pickVideoError,
+        source == ImageSource.camera
+            ? AppStrings.auditRecordVideoError
+            : AppStrings.pickVideoError,
       );
     } finally {
       if (mounted && _isPickingVideo) {
@@ -954,7 +1121,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         final capturedFile = await TrainingVideoCaptureBridge.instance
             .captureVideoWithSystemCamera();
         if (capturedFile != null) {
-          return _PickedTrainingVideo(file: capturedFile, isSavedDirectlyToGallery: true);
+          return _PickedTrainingVideo(
+            file: capturedFile,
+            isSavedDirectlyToGallery: true,
+          );
         }
       } on PlatformException catch (error) {
         if (!_shouldFallbackToDefaultAndroidCamera(error)) {
@@ -968,7 +1138,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return null;
     }
 
-    return _PickedTrainingVideo(file: File(pickedFile.path), isSavedDirectlyToGallery: false);
+    return _PickedTrainingVideo(
+      file: File(pickedFile.path),
+      isSavedDirectlyToGallery: false,
+    );
   }
 
   bool _shouldFallbackToDefaultAndroidCamera(PlatformException error) {
@@ -1005,7 +1178,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       }
 
       final restoredFile =
-          response.file ?? (response.files?.isNotEmpty == true ? response.files!.first : null);
+          response.file ??
+          (response.files?.isNotEmpty == true ? response.files!.first : null);
       if (restoredFile == null || !_isRecoveredVideo(response, restoredFile)) {
         return;
       }
@@ -1033,6 +1207,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   }
 
   Future<void> _persistCapturedVideoToGallery(File mediaFile) async {
+    if (Platform.isAndroid) {
+      return;
+    }
+
     if (!await mediaFile.exists()) {
       if (mounted) {
         _showNonApiSnackBar(AppStrings.auditRecordedVideoMissing);
@@ -1044,7 +1222,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       final permissionState = await PhotoManager.requestPermissionExtend(
         requestOption: const PermissionRequestOption(
           iosAccessLevel: IosAccessLevel.addOnly,
-          androidPermission: AndroidPermission(type: RequestType.video, mediaLocation: false),
+          androidPermission: AndroidPermission(
+            type: RequestType.video,
+            mediaLocation: false,
+          ),
         ),
       );
       if (!mounted) {
@@ -1058,7 +1239,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
 
       await PhotoManager.editor.saveVideo(
         mediaFile,
-        title: CustomFunctions.fileNameFromPath(mediaFile.path, fallback: 'training-video.mp4'),
+        title: CustomFunctions.fileNameFromPath(
+          mediaFile.path,
+          fallback: 'training-video.mp4',
+        ),
       );
     } catch (error) {
       debugPrint('Unable to save training video to gallery: $error');
@@ -1068,13 +1252,17 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<void> _showDeleteVideoDialog(TrainingModuleController controller) async {
+  Future<void> _showDeleteVideoDialog(
+    TrainingModuleController controller,
+  ) async {
     final didDelete = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.56),
       builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
         value: controller,
-        child: _DeleteTrainingVideoDialog(moduleTitle: controller.selectedModuleTitle),
+        child: _DeleteTrainingVideoDialog(
+          moduleTitle: controller.selectedModuleTitle,
+        ),
       ),
     );
 
@@ -1094,7 +1282,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<void> _handleVideoUploadSuccess(TrainingModuleController controller) async {
+  Future<void> _handleVideoUploadSuccess(
+    TrainingModuleController controller,
+  ) async {
     try {
       final didUploadThumbnail = await _showThumbnailPickerDialog(controller);
       if (!mounted) {
@@ -1111,27 +1301,33 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<bool> _showThumbnailPickerDialog(TrainingModuleController controller) async {
+  Future<bool> _showThumbnailPickerDialog(
+    TrainingModuleController controller,
+  ) async {
     final didUploadThumbnail = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: 0.56),
-      builder: (dialogContext) => ChangeNotifierProvider<TrainingModuleController>.value(
-        value: controller,
-        child: _TrainingThumbnailPickerDialog(
-          onSelectThumbnailTap: () async {
-            final didUpload = await _pickAndUploadThumbnail(controller, showSuccessSnackBar: false);
-            if (didUpload == true && dialogContext.mounted) {
-              Navigator.of(dialogContext).pop(true);
-            }
-          },
-          onSkipTap: () {
-            if (!controller.isUploadingThumbnail && dialogContext.mounted) {
-              Navigator.of(dialogContext).pop(false);
-            }
-          },
-        ),
-      ),
+      builder: (dialogContext) =>
+          ChangeNotifierProvider<TrainingModuleController>.value(
+            value: controller,
+            child: _TrainingThumbnailPickerDialog(
+              onSelectThumbnailTap: () async {
+                final didUpload = await _pickAndUploadThumbnail(
+                  controller,
+                  showSuccessSnackBar: false,
+                );
+                if (didUpload == true && dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(true);
+                }
+              },
+              onSkipTap: () {
+                if (!controller.isUploadingThumbnail && dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(false);
+                }
+              },
+            ),
+          ),
     );
 
     return didUploadThumbnail == true;
@@ -1155,7 +1351,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         return null;
       }
 
-      final didUpload = await controller.uploadThumbnailForSelectedModule(File(pickedFile.path));
+      final didUpload = await controller.uploadThumbnailForSelectedModule(
+        File(pickedFile.path),
+      );
       if (!mounted) {
         return false;
       }
@@ -1206,7 +1404,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return AppStrings.auditPhotoLibraryPermissionVideo;
     }
 
-    return isCamera ? AppStrings.auditRecordVideoError : AppStrings.pickVideoError;
+    return isCamera
+        ? AppStrings.auditRecordVideoError
+        : AppStrings.pickVideoError;
   }
 
   String _buildImageErrorMessage(PlatformException error) {
@@ -1236,7 +1436,12 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.surfaceDark3));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppColors.surfaceDark3,
+        ),
+      );
   }
 
   Future<void> _showDeleteModuleDialog({
@@ -1270,7 +1475,39 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<void> _showGenerateQuizDialog(TrainingModuleController controller) async {
+  Future<void> _showDeleteQuestionDialog({
+    required TrainingModuleController controller,
+    required SeatDescriptionTrainingQuestion question,
+  }) async {
+    final didDelete = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.56),
+      builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
+        value: controller,
+        child: _DeleteQuestionDialog(question: question),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (didDelete == true) {
+      _showNonApiSnackBar(AppStrings.trainingQuestionDeletedSuccess);
+      return;
+    }
+
+    if (didDelete == false) {
+      final message = controller.questionsErrorMessage?.trim();
+      if (message != null && message.isNotEmpty) {
+        _showApiErrorSnackBar(message);
+      }
+    }
+  }
+
+  Future<void> _showGenerateQuizDialog(
+    TrainingModuleController controller,
+  ) async {
     if (!controller.canGenerateQuizForSelectedModule) {
       return;
     }
@@ -1291,7 +1528,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<void> _showAddQuestionDialog(TrainingModuleController controller) async {
+  Future<void> _showAddQuestionDialog(
+    TrainingModuleController controller,
+  ) async {
     if (!controller.canAddQuestionToSelectedModule) {
       return;
     }
@@ -1310,23 +1549,26 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
-  Future<void> _handleGenerateSopTap(TrainingModuleController controller) async {
-    if (!controller.canGenerateSopForSelectedModule || controller.isDocumentLoading) {
-      return;
-    }
-
-    if (!controller.hasSelectedModuleDocumentText) {
-      await _generateSop(controller);
+  Future<void> _handleGenerateSopTap(
+    TrainingModuleController controller,
+  ) async {
+    if (!controller.canGenerateSopForSelectedModule ||
+        controller.isDocumentLoading) {
       return;
     }
 
     await _showGenerateSopDialog(controller);
   }
 
-  Future<void> _showGenerateSopDialog(TrainingModuleController controller) async {
-    final didGenerate = await showDialog<bool>(
+  Future<void> _showGenerateSopDialog(
+    TrainingModuleController controller,
+  ) async {
+    final didGenerate = await showModalBottomSheet<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.62),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
         value: controller,
         child: const _GenerateSopDialog(),
@@ -1337,17 +1579,13 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return;
     }
   }
-
-  Future<void> _generateSop(TrainingModuleController controller) async {
-    final didGenerate = await controller.generateSopForSelectedModule();
-    if (!mounted || didGenerate != true) {
-      return;
-    }
-  }
 }
 
 class _TrainingTabs extends StatelessWidget {
-  const _TrainingTabs({required this.tabController, required this.areExtraTabsEnabled});
+  const _TrainingTabs({
+    required this.tabController,
+    required this.areExtraTabsEnabled,
+  });
 
   final TabController tabController;
   final bool areExtraTabsEnabled;
@@ -1373,9 +1611,18 @@ class _TrainingTabs extends StatelessWidget {
       dividerColor: AppColors.fieldBorder.withValues(alpha: 0.22),
       tabs: <Widget>[
         const _TrainingTabLabel(label: AppStrings.trainingVideoTab),
-        _TrainingTabLabel(label: AppStrings.trainingSopTab, isEnabled: areExtraTabsEnabled),
-        _TrainingTabLabel(label: AppStrings.trainingQuizTab, isEnabled: areExtraTabsEnabled),
-        _TrainingTabLabel(label: AppStrings.trainingAssignmentTab, isEnabled: areExtraTabsEnabled),
+        _TrainingTabLabel(
+          label: AppStrings.trainingSopTab,
+          isEnabled: areExtraTabsEnabled,
+        ),
+        _TrainingTabLabel(
+          label: AppStrings.trainingQuizTab,
+          isEnabled: areExtraTabsEnabled,
+        ),
+        _TrainingTabLabel(
+          label: AppStrings.trainingAssignmentTab,
+          isEnabled: areExtraTabsEnabled,
+        ),
       ],
     );
   }
@@ -1408,7 +1655,6 @@ const double _trainingModuleSelectorCardWidth = 132;
 const double _trainingAddNewLessonCardWidth = 180;
 const double _trainingModuleSelectorCardHeight = 148;
 const double _trainingModuleSelectorSpacing = 12;
-const double _trainingModuleSelectorDividerBlockWidth = 25;
 const double _trainingModuleThumbnailHeight = 84;
 
 class _EditModuleSelector extends StatelessWidget {
@@ -1432,7 +1678,8 @@ class _EditModuleSelector extends StatelessWidget {
   final bool canManageTraining;
   final VoidCallback onAddNewLessonTap;
   final Future<void> Function(String moduleId) onModuleSelected;
-  final Future<void> Function(SeatDescriptionTrainingModule module) onDeleteModuleTap;
+  final Future<void> Function(SeatDescriptionTrainingModule module)
+  onDeleteModuleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1447,7 +1694,10 @@ class _EditModuleSelector extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (canManageTraining) ...[
-                _AddNewLessonCard(isSelected: isCreatingNewLessonDraft, onTap: onAddNewLessonTap),
+                _AddNewLessonCard(
+                  isSelected: isCreatingNewLessonDraft,
+                  onTap: onAddNewLessonTap,
+                ),
                 const SizedBox(width: _trainingModuleSelectorSpacing),
               ],
               // if (canManageTraining && modules.isNotEmpty) ...[
@@ -1492,7 +1742,10 @@ class _AddNewLessonCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: CustomPaint(
-          painter: _DottedRoundedBorderPainter(color: AppColors.secondaryColor, radius: 10),
+          painter: _DottedRoundedBorderPainter(
+            color: AppColors.secondaryColor,
+            radius: 10,
+          ),
           child: SizedBox(
             width: _trainingAddNewLessonCardWidth,
             height: _trainingModuleThumbnailHeight,
@@ -1501,7 +1754,11 @@ class _AddNewLessonCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_circle_outline_rounded, color: AppColors.secondaryColor, size: 18),
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: AppColors.secondaryColor,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: AppTextView.body2(
@@ -1540,7 +1797,9 @@ class _ModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedThumbnail = CustomFunctions.resolveImageUrl(module.thumbnailLink);
+    final resolvedThumbnail = CustomFunctions.resolveImageUrl(
+      module.thumbnailLink,
+    );
 
     return SizedBox(
       width: _trainingModuleSelectorCardWidth,
@@ -1554,7 +1813,9 @@ class _ModuleCard extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1564,7 +1825,9 @@ class _ModuleCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSelected ? Colors.white : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.secondaryColor
+                              : Colors.transparent,
                           width: 2,
                         ),
                       ),
@@ -1578,8 +1841,10 @@ class _ModuleCard extends StatelessWidget {
                               : CachedNetworkImage(
                                   imageUrl: resolvedThumbnail,
                                   fit: BoxFit.cover,
-                                  placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
-                                  errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
+                                  placeholder: (_, _) =>
+                                      const _ModuleThumbnailPlaceholder(),
+                                  errorWidget: (_, _, _) =>
+                                      const _ModuleThumbnailPlaceholder(),
                                 ),
                         ),
                       ),
@@ -1619,7 +1884,11 @@ class _ModuleCard extends StatelessWidget {
                     child: Center(
                       child: isDeleting
                           ? FastCircularProgressIndicator(width: 12, height: 12)
-                          : const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.white),
+                          : const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
                     ),
                   ),
                 ),
@@ -1652,7 +1921,9 @@ class _DeleteModuleDialog extends StatelessWidget {
         }
       },
       onConfirmCallback: () async {
-        final didDelete = await context.read<TrainingModuleController>().deleteModule(module.uuid);
+        final didDelete = await context
+            .read<TrainingModuleController>()
+            .deleteModule(module.uuid);
         if (!context.mounted) {
           return;
         }
@@ -1697,6 +1968,40 @@ class _DeleteTrainingVideoDialog extends StatelessWidget {
   }
 }
 
+class _DeleteQuestionDialog extends StatelessWidget {
+  const _DeleteQuestionDialog({required this.question});
+
+  final SeatDescriptionTrainingQuestion question;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<TrainingModuleController>();
+
+    return AppConfirmationDialog(
+      title: AppStrings.trainingDeleteQuestionTitle,
+      description: AppStrings.trainingDeleteQuestionDescription,
+      confirmText: AppStrings.trainingDeleteQuestionAction,
+      cancelText: AppStrings.trainingCancel,
+      isConfirmLoading: controller.isDeletingQuestion(question.uuid),
+      onCancelCallback: () async {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      onConfirmCallback: () async {
+        final didDelete = await context
+            .read<TrainingModuleController>()
+            .deleteQuestion(questionId: question.uuid);
+        if (!context.mounted) {
+          return;
+        }
+
+        Navigator.of(context).pop(didDelete);
+      },
+    );
+  }
+}
+
 class _TrainingThumbnailPickerDialog extends StatelessWidget {
   const _TrainingThumbnailPickerDialog({
     required this.onSelectThumbnailTap,
@@ -1731,15 +2036,22 @@ class _TrainingThumbnailPickerDialog extends StatelessWidget {
           Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: controller.isUploadingThumbnail ? null : onSelectThumbnailTap,
+              onTap: controller.isUploadingThumbnail
+                  ? null
+                  : onSelectThumbnailTap,
               borderRadius: BorderRadius.circular(14),
               child: Ink(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 20,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.mainBg,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.28)),
+                  border: Border.all(
+                    color: AppColors.secondaryColor.withValues(alpha: 0.28),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1753,7 +2065,10 @@ class _TrainingThumbnailPickerDialog extends StatelessWidget {
                       ),
                       child: Center(
                         child: controller.isUploadingThumbnail
-                            ? FastCircularProgressIndicator(width: 18, height: 18)
+                            ? FastCircularProgressIndicator(
+                                width: 18,
+                                height: 18,
+                              )
                             : const Icon(
                                 Icons.add_photo_alternate_outlined,
                                 color: AppColors.textPrimary,
@@ -1824,9 +2139,16 @@ class _VideoTabContent extends StatelessWidget {
     required this.isUploadingVideo,
     required this.isDeletingVideo,
     required this.isUploadingThumbnail,
+    required this.canEditSummary,
+    required this.isEditingSummary,
+    required this.isSavingSummary,
+    required this.summaryController,
     this.onUploadVideoTap,
     this.onDeleteVideoTap,
     this.onUpdateThumbnailTap,
+    this.onEditSummaryTap,
+    this.onCancelSummaryTap,
+    this.onSaveSummaryTap,
   });
 
   final SeatDescriptionTrainingModuleDetail? detail;
@@ -1838,9 +2160,16 @@ class _VideoTabContent extends StatelessWidget {
   final bool isUploadingVideo;
   final bool isDeletingVideo;
   final bool isUploadingThumbnail;
+  final bool canEditSummary;
+  final bool isEditingSummary;
+  final bool isSavingSummary;
+  final TextEditingController summaryController;
   final VoidCallback? onUploadVideoTap;
   final VoidCallback? onDeleteVideoTap;
   final VoidCallback? onUpdateThumbnailTap;
+  final VoidCallback? onEditSummaryTap;
+  final VoidCallback? onCancelSummaryTap;
+  final Future<bool> Function()? onSaveSummaryTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1853,23 +2182,6 @@ class _VideoTabContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (canRevealVideo && !isReadOnly) ...[
-          Align(
-            alignment: Alignment.centerRight,
-            child: _TrainingVideoActionMenu(
-              isLoading: isDeletingVideo || isUploadingThumbnail,
-              onSelected: (action) {
-                if (action == _TrainingVideoMenuAction.delete) {
-                  onDeleteVideoTap?.call();
-                  return;
-                }
-
-                onUpdateThumbnailTap?.call();
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
         if (canRevealVideo)
           ComplianceVideoPlayer(
             key: ValueKey<String>(videoUrl),
@@ -1878,6 +2190,21 @@ class _VideoTabContent extends StatelessWidget {
             title: detail?.title ?? '',
             thumbnailLink: detail?.previewThumbnailLink,
             fillBounds: true,
+            topRightActions: !isReadOnly
+                ? [
+                    _TrainingVideoActionMenu(
+                      isLoading: isDeletingVideo || isUploadingThumbnail,
+                      onSelected: (action) {
+                        if (action == _TrainingVideoMenuAction.delete) {
+                          onDeleteVideoTap?.call();
+                          return;
+                        }
+
+                        onUpdateThumbnailTap?.call();
+                      },
+                    ),
+                  ]
+                : const <Widget>[],
           )
         else if (isReadOnly)
           const _ContentMessage(message: AppStrings.trainingNoVideoAvailable)
@@ -1888,25 +2215,17 @@ class _VideoTabContent extends StatelessWidget {
             isUploading: isUploadingVideo,
             isFinalizingSetup: isFinalizingVideoSetup,
             isLoading:
-                isUploadingVideo || isDeletingVideo || isPickingVideo || isFinalizingVideoSetup,
+                isUploadingVideo ||
+                isDeletingVideo ||
+                isPickingVideo ||
+                isFinalizingVideoSetup,
             onTap: onUploadVideoTap,
           ),
         if (canRevealVideo) ...[
           const SizedBox(height: 16),
-          const AppTextView.body3(
-            AppStrings.trainingSummaryLabel,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w700,
-          ),
+          const _TrainingSectionHeader(title: AppStrings.trainingSummaryLabel),
           const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
-            ),
+          _TrainingDisplayCard(
             child: AppTextView.body3(
               summary != null && summary.isNotEmpty
                   ? CustomFunctions.stripHtmlTags(summary)
@@ -1922,18 +2241,31 @@ class _VideoTabContent extends StatelessWidget {
 }
 
 class _TrainingVideoPickerSelection {
-  const _TrainingVideoPickerSelection.camera() : asset = null, usesCamera = true;
+  const _TrainingVideoPickerSelection.camera()
+    : asset = null,
+      usesCamera = true,
+      usesSystemGalleryPicker = false;
+
+  const _TrainingVideoPickerSelection.systemGallery()
+    : asset = null,
+      usesCamera = false,
+      usesSystemGalleryPicker = true;
 
   const _TrainingVideoPickerSelection.asset(AssetEntity selectedAsset)
     : asset = selectedAsset,
-      usesCamera = false;
+      usesCamera = false,
+      usesSystemGalleryPicker = false;
 
   final AssetEntity? asset;
   final bool usesCamera;
+  final bool usesSystemGalleryPicker;
 }
 
 class _PickedTrainingVideo {
-  const _PickedTrainingVideo({required this.file, required this.isSavedDirectlyToGallery});
+  const _PickedTrainingVideo({
+    required this.file,
+    required this.isSavedDirectlyToGallery,
+  });
 
   final File file;
   final bool isSavedDirectlyToGallery;
@@ -2017,10 +2349,12 @@ class _TrainingVideoGalleryPickerSheet extends StatefulWidget {
   const _TrainingVideoGalleryPickerSheet();
 
   @override
-  State<_TrainingVideoGalleryPickerSheet> createState() => _TrainingVideoGalleryPickerSheetState();
+  State<_TrainingVideoGalleryPickerSheet> createState() =>
+      _TrainingVideoGalleryPickerSheetState();
 }
 
-class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryPickerSheet>
+class _TrainingVideoGalleryPickerSheetState
+    extends State<_TrainingVideoGalleryPickerSheet>
     with WidgetsBindingObserver {
   static const int _pageSize = 24;
 
@@ -2028,7 +2362,8 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
   final _TrainingVideoGalleryPickerStateController _galleryState =
       _TrainingVideoGalleryPickerStateController();
 
-  bool get _isGalleryAccessLimited => _galleryState.permissionState == PermissionState.limited;
+  bool get _isGalleryAccessLimited =>
+      _galleryState.permissionState == PermissionState.limited;
 
   @override
   void initState() {
@@ -2076,7 +2411,10 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
     try {
       final permissionState = await PhotoManager.requestPermissionExtend(
         requestOption: const PermissionRequestOption(
-          androidPermission: AndroidPermission(type: RequestType.video, mediaLocation: false),
+          androidPermission: AndroidPermission(
+            type: RequestType.video,
+            mediaLocation: false,
+          ),
         ),
       );
       if (!mounted) {
@@ -2088,7 +2426,10 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
         return;
       }
 
-      final albums = await PhotoManager.getAssetPathList(onlyAll: true, type: RequestType.video);
+      final albums = await PhotoManager.getAssetPathList(
+        onlyAll: true,
+        type: RequestType.video,
+      );
       if (!mounted) {
         return;
       }
@@ -2096,7 +2437,11 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
       final videoAlbum = albums.isNotEmpty ? albums.first : null;
       final videos = videoAlbum == null
           ? <AssetEntity>[]
-          : await videoAlbum.getAssetListPaged(page: 0, size: _pageSize, type: RequestType.video);
+          : await videoAlbum.getAssetListPaged(
+              page: 0,
+              size: _pageSize,
+              type: RequestType.video,
+            );
       if (!mounted) {
         return;
       }
@@ -2246,20 +2591,23 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
                           child: GridView.builder(
                             controller: _scrollController,
                             physics: const BouncingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              mainAxisExtent: 118,
-                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  mainAxisExtent: 118,
+                                ),
                             itemCount:
-                                _galleryState.videos.length + 1 + (_isGalleryAccessLimited ? 1 : 0),
+                                _galleryState.videos.length +
+                                1 +
+                                (_isGalleryAccessLimited ? 1 : 0),
                             itemBuilder: (context, index) {
                               if (index == 0) {
                                 return _TrainingVideoCameraTile(
-                                  onTap: () => Navigator.of(
-                                    context,
-                                  ).pop(const _TrainingVideoPickerSelection.camera()),
+                                  onTap: () => Navigator.of(context).pop(
+                                    const _TrainingVideoPickerSelection.camera(),
+                                  ),
                                 );
                               }
 
@@ -2269,13 +2617,14 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
                                 );
                               }
 
-                              final assetIndex = index - (_isGalleryAccessLimited ? 2 : 1);
+                              final assetIndex =
+                                  index - (_isGalleryAccessLimited ? 2 : 1);
                               final asset = _galleryState.videos[assetIndex];
                               return _TrainingVideoGalleryTile(
                                 asset: asset,
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pop(_TrainingVideoPickerSelection.asset(asset)),
+                                onTap: () => Navigator.of(context).pop(
+                                  _TrainingVideoPickerSelection.asset(asset),
+                                ),
                               );
                             },
                           ),
@@ -2289,6 +2638,99 @@ class _TrainingVideoGalleryPickerSheetState extends State<_TrainingVideoGalleryP
           ),
         );
       },
+    );
+  }
+}
+
+class _TrainingVideoSystemPickerSheet extends StatelessWidget {
+  const _TrainingVideoSystemPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      heightFactor: 0.46,
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.fieldBorder.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppTextView.body1(
+                          AppStrings.trainingSelectVideoSource,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        SizedBox(height: 8),
+                        AppTextView.body2(
+                          AppStrings.trainingSelectVideoSourceHint,
+                          color: AppColors.textSecondary,
+                          height: 1.45,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: AppColors.textSecondary,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _TrainingVideoSystemPickerOptionTile(
+                icon: Icons.videocam_rounded,
+                title: AppStrings.trainingRecordVideo,
+                subtitle: AppStrings.trainingRecordVideoHint,
+                accentColor: AppColors.secondaryColor,
+                onTap: () => Navigator.of(
+                  context,
+                ).pop(const _TrainingVideoPickerSelection.camera()),
+              ),
+              const SizedBox(height: 12),
+              _TrainingVideoSystemPickerOptionTile(
+                icon: Icons.video_library_outlined,
+                title: AppStrings.trainingUploadVideo,
+                subtitle: AppStrings.trainingUploadVideoHint,
+                onTap: () => Navigator.of(
+                  context,
+                ).pop(const _TrainingVideoPickerSelection.systemGallery()),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2307,20 +2749,96 @@ class _TrainingVideoCameraTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceDark2,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.4)),
+          border: Border.all(
+            color: AppColors.secondaryColor.withValues(alpha: 0.4),
+          ),
         ),
         child: const Padding(
           padding: EdgeInsets.all(12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.videocam_rounded, color: AppColors.secondaryColor, size: 32),
+              Icon(
+                Icons.videocam_rounded,
+                color: AppColors.secondaryColor,
+                size: 32,
+              ),
               SizedBox(height: 10),
               AppTextView.body3(
                 AppStrings.trainingRecordVideo,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
                 textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingVideoSystemPickerOptionTile extends StatelessWidget {
+  const _TrainingVideoSystemPickerOptionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.accentColor = AppColors.textPrimary,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceDark2,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: accentColor, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppTextView.body3(
+                      title,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextView.body4(
+                      subtitle,
+                      color: AppColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+                size: 22,
               ),
             ],
           ),
@@ -2344,14 +2862,20 @@ class _TrainingVideoManageAccessTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceDark2,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.34)),
+          border: Border.all(
+            color: AppColors.fieldBorder.withValues(alpha: 0.34),
+          ),
         ),
         child: const Padding(
           padding: EdgeInsets.all(12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.library_add_outlined, color: AppColors.textPrimary, size: 30),
+              Icon(
+                Icons.library_add_outlined,
+                color: AppColors.textPrimary,
+                size: 30,
+              ),
               SizedBox(height: 10),
               AppTextView.body3(
                 AppStrings.trainingManageGalleryAccess,
@@ -2389,11 +2913,17 @@ class _TrainingVideoGalleryTile extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               FutureBuilder<Uint8List?>(
-                future: asset.thumbnailDataWithSize(const ThumbnailSize.square(420)),
+                future: asset.thumbnailDataWithSize(
+                  const ThumbnailSize.square(420),
+                ),
                 builder: (context, snapshot) {
                   final thumbnail = snapshot.data;
                   if (thumbnail != null) {
-                    return Image.memory(thumbnail, fit: BoxFit.cover, gaplessPlayback: true);
+                    return Image.memory(
+                      thumbnail,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    );
                   }
 
                   return Container(
@@ -2428,7 +2958,11 @@ class _TrainingVideoGalleryTile extends StatelessWidget {
                 bottom: 10,
                 child: Row(
                   children: [
-                    const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.play_circle_fill_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -2495,7 +3029,9 @@ class _NewLessonTitleField extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.mainBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.5),
+            ),
           ),
           child: Row(
             children: [
@@ -2545,7 +3081,9 @@ class _NewLessonTitleField extends StatelessWidget {
                         ? FastCircularProgressIndicator(width: 14, height: 14)
                         : Icon(
                             Icons.check_rounded,
-                            color: canSubmit ? AppColors.textPrimary : AppColors.textSecondary,
+                            color: canSubmit
+                                ? AppColors.textPrimary
+                                : AppColors.textSecondary,
                             size: 18,
                           ),
                   ),
@@ -2562,7 +3100,10 @@ class _NewLessonTitleField extends StatelessWidget {
 enum _TrainingVideoMenuAction { delete, thumbnail }
 
 class _TrainingVideoActionMenu extends StatelessWidget {
-  const _TrainingVideoActionMenu({required this.isLoading, required this.onSelected});
+  const _TrainingVideoActionMenu({
+    required this.isLoading,
+    required this.onSelected,
+  });
 
   final bool isLoading;
   final ValueChanged<_TrainingVideoMenuAction> onSelected;
@@ -2573,7 +3114,9 @@ class _TrainingVideoActionMenu extends StatelessWidget {
       return SizedBox(
         width: 34,
         height: 34,
-        child: Center(child: FastCircularProgressIndicator(width: 14, height: 14)),
+        child: Center(
+          child: FastCircularProgressIndicator(width: 14, height: 14),
+        ),
       );
     }
 
@@ -2607,9 +3150,15 @@ class _TrainingVideoActionMenu extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.mainBg,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.25)),
+          border: Border.all(
+            color: AppColors.fieldBorder.withValues(alpha: 0.25),
+          ),
         ),
-        child: const Icon(Icons.more_vert_rounded, color: AppColors.textPrimary, size: 18),
+        child: const Icon(
+          Icons.more_vert_rounded,
+          color: AppColors.textPrimary,
+          size: 18,
+        ),
       ),
     );
   }
@@ -2724,8 +3273,12 @@ class _TrainingVideoEmptyState extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
                         minHeight: 6,
-                        backgroundColor: AppColors.secondaryColor.withValues(alpha: 0.18),
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+                        backgroundColor: AppColors.secondaryColor.withValues(
+                          alpha: 0.18,
+                        ),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.textPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -2742,92 +3295,286 @@ class _TrainingVideoEmptyState extends StatelessWidget {
 class _SopTabContent extends StatelessWidget {
   const _SopTabContent({
     required this.isLoading,
-    required this.document,
     required this.canManageGeneration,
     required this.canGenerate,
     required this.isGeneratingSop,
+    required this.canEditDocument,
+    required this.isSavingDocument,
+    required this.documentController,
     required this.onGenerateSopTap,
+    this.onBoldTap,
+    this.onItalicTap,
+    this.onUnderlineTap,
+    this.onBulletListTap,
+    this.onNumberedListTap,
+    this.onQuoteTap,
+    this.onHeadingTap,
   });
 
   final bool isLoading;
-  final SeatDescriptionTrainingDocument? document;
   final bool canManageGeneration;
   final bool canGenerate;
   final bool isGeneratingSop;
+  final bool canEditDocument;
+  final bool isSavingDocument;
+  final TrainingRichTextEditingController documentController;
   final VoidCallback onGenerateSopTap;
+  final VoidCallback? onBoldTap;
+  final VoidCallback? onItalicTap;
+  final VoidCallback? onUnderlineTap;
+  final VoidCallback? onBulletListTap;
+  final VoidCallback? onNumberedListTap;
+  final VoidCallback? onQuoteTap;
+  final VoidCallback? onHeadingTap;
 
   @override
   Widget build(BuildContext context) {
-    final html = document?.text?.trim();
+    final hasEditorContent = documentController.text.trim().isNotEmpty;
+    final sopContent = isLoading && !hasEditorContent
+        ? SizedBox(
+            height: 180,
+            child: Center(child: FastCircularProgressIndicator()),
+          )
+        : _TrainingEditableTextCard(
+            controller: documentController,
+            hintText: AppStrings.trainingSopHint,
+            minLines: 10,
+            maxLines: 18,
+            readOnly: !canEditDocument || isSavingDocument,
+            wrapWithCard: !canEditDocument,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (canManageGeneration) ...[
-          Align(
-            alignment: Alignment.centerRight,
-            child: _AiGenerateButton(
-              label: AppStrings.trainingGenerateSop,
-              isEnabled: canGenerate,
-              isLoading: isGeneratingSop,
-              onTap: canGenerate ? onGenerateSopTap : null,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Expanded(
+              child: AppTextView.body3(
+                AppStrings.trainingCreateSop,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (isLoading)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 36),
-            child: Center(child: FastCircularProgressIndicator()),
-          )
-        else if (html == null || html.isEmpty)
-          const _ContentMessage(message: AppStrings.trainingNoSopAvailable)
-        else
+            if (canManageGeneration)
+              _AiGenerateButton(
+                label: AppStrings.trainingGenerateWithAi,
+                isEnabled: canGenerate,
+                isLoading: isGeneratingSop,
+                verticalPadding: 8,
+                onTap: canGenerate ? onGenerateSopTap : null,
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (canEditDocument)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
             ),
-            child: Html(
-              data: html,
-              shrinkWrap: true,
-              style: {
-                'body': Style(
-                  margin: Margins.zero,
-                  padding: HtmlPaddings.zero,
-                  color: AppColors.textPrimary,
-                  fontSize: FontSize(13),
-                  fontWeight: FontWeight.w400,
-                  lineHeight: const LineHeight(1.65),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TrainingFormattingToolbar(
+                  controller: documentController,
+                  isSaving: isSavingDocument,
+                  onBoldTap: onBoldTap,
+                  onItalicTap: onItalicTap,
+                  onUnderlineTap: onUnderlineTap,
+                  onBulletListTap: onBulletListTap,
+                  onNumberedListTap: onNumberedListTap,
+                  onQuoteTap: onQuoteTap,
+                  onHeadingTap: onHeadingTap,
                 ),
-                'p': Style(margin: Margins.only(bottom: 12), lineHeight: const LineHeight(1.65)),
-                'ul': Style(margin: Margins.only(bottom: 12)),
-                'ol': Style(margin: Margins.only(bottom: 12)),
-                'li': Style(margin: Margins.only(bottom: 6)),
-                'h1': _headingStyle(20),
-                'h2': _headingStyle(18),
-                'h3': _headingStyle(16),
-                'h4': _headingStyle(15),
-                'h5': _headingStyle(14),
-                'h6': _headingStyle(14),
-                'a': Style(color: AppColors.secondaryColor),
-              },
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(bottom: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainBg,
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(14),
+                    ),
+                  ),
+                  child: sopContent,
+                ),
+              ],
             ),
-          ),
+          )
+        else
+          sopContent,
       ],
     );
   }
+}
 
-  Style _headingStyle(double fontSize) => Style(
-    margin: Margins.only(bottom: 10),
-    color: AppColors.textPrimary,
-    fontSize: FontSize(fontSize),
-    fontWeight: FontWeight.w700,
-    lineHeight: const LineHeight(1.35),
-  );
+class _AssignmentTabContent extends StatelessWidget {
+  const _AssignmentTabContent({
+    required this.isLoading,
+    required this.canEditAssignment,
+    required this.isSavingAssignment,
+    required this.hasSavedAssignment,
+    required this.titleController,
+    required this.descriptionController,
+    required this.onSaveTap,
+    this.onBoldTap,
+    this.onItalicTap,
+    this.onUnderlineTap,
+    this.onBulletListTap,
+    this.onNumberedListTap,
+    this.onQuoteTap,
+    this.onHeadingTap,
+  });
+
+  final bool isLoading;
+  final bool canEditAssignment;
+  final bool isSavingAssignment;
+  final bool hasSavedAssignment;
+  final TextEditingController titleController;
+  final TrainingRichTextEditingController descriptionController;
+  final Future<bool> Function() onSaveTap;
+  final VoidCallback? onBoldTap;
+  final VoidCallback? onItalicTap;
+  final VoidCallback? onUnderlineTap;
+  final VoidCallback? onBulletListTap;
+  final VoidCallback? onNumberedListTap;
+  final VoidCallback? onQuoteTap;
+  final VoidCallback? onHeadingTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasTitleContent = titleController.text.trim().isNotEmpty;
+    final hasDescriptionContent = descriptionController.text.trim().isNotEmpty;
+    final hasVisibleContent = hasTitleContent || hasDescriptionContent;
+    final actionHeader = hasSavedAssignment
+        ? AppStrings.trainingEditAction
+        : AppStrings.trainingLibraryCreate;
+    final actionLabel = hasSavedAssignment
+        ? AppStrings.trainingSaveAction
+        : AppStrings.trainingCreateAssignment;
+    final actionIcon = hasSavedAssignment
+        ? Icons.save_rounded
+        : Icons.assignment_rounded;
+    final descriptionContent = isLoading && !hasDescriptionContent
+        ? SizedBox(
+            height: 180,
+            child: Center(child: FastCircularProgressIndicator()),
+          )
+        : _TrainingEditableTextCard(
+            controller: descriptionController,
+            hintText: AppStrings.trainingAssignmentDescriptionHint,
+            minLines: 10,
+            maxLines: 18,
+            readOnly: !canEditAssignment || isSavingAssignment,
+            wrapWithCard: !canEditAssignment,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+          );
+
+    if (!canEditAssignment && !hasVisibleContent) {
+      if (isLoading) {
+        return SizedBox(
+          height: 180,
+          child: Center(child: FastCircularProgressIndicator()),
+        );
+      }
+
+      return const _ContentMessage(
+        message: AppStrings.trainingNoAssignmentAvailable,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (canEditAssignment) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: AppTextView.body3(
+                  actionHeader,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              _GradientTrainingActionButton(
+                label: actionLabel,
+                icon: actionIcon,
+                isEnabled: !isLoading,
+                isLoading: isSavingAssignment,
+                showLoaderInIconSlot: true,
+                verticalPadding: 8,
+                onTap: !isLoading
+                    ? () {
+                        unawaited(onSaveTap());
+                      }
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+        const _TrainingSectionHeader(title: AppStrings.trainingLessonTitle),
+        const SizedBox(height: 8),
+        _TrainingSingleLineInputCard(
+          controller: titleController,
+          hintText: AppStrings.trainingAssignmentTitleHint,
+          readOnly: !canEditAssignment || isSavingAssignment,
+        ),
+        const SizedBox(height: 18),
+        const _TrainingSectionHeader(
+          title: AppStrings.trainingAssignmentDescriptionLabel,
+        ),
+        const SizedBox(height: 8),
+        if (canEditAssignment)
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.mainBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TrainingFormattingToolbar(
+                  controller: descriptionController,
+                  isSaving: isSavingAssignment,
+                  onBoldTap: onBoldTap,
+                  onItalicTap: onItalicTap,
+                  onUnderlineTap: onUnderlineTap,
+                  onBulletListTap: onBulletListTap,
+                  onNumberedListTap: onNumberedListTap,
+                  onQuoteTap: onQuoteTap,
+                  onHeadingTap: onHeadingTap,
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(bottom: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainBg,
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(14),
+                    ),
+                  ),
+                  child: descriptionContent,
+                ),
+              ],
+            ),
+          )
+        else
+          descriptionContent,
+      ],
+    );
+  }
 }
 
 class _QuizTabContent extends StatelessWidget {
@@ -2839,10 +3586,12 @@ class _QuizTabContent extends StatelessWidget {
     required this.canGenerateQuiz,
     required this.isGeneratingQuiz,
     required this.isAddingQuestion,
-    required this.deletingQuestionOptionKey,
+    required this.savingQuestionId,
+    required this.deletingQuestionId,
     required this.onAddQuestionTap,
     required this.onGenerateQuizTap,
-    required this.onDeleteOptionTap,
+    required this.onDeleteQuestionTap,
+    required this.onSaveQuestionTap,
   });
 
   final bool isLoading;
@@ -2852,10 +3601,18 @@ class _QuizTabContent extends StatelessWidget {
   final bool canGenerateQuiz;
   final bool isGeneratingQuiz;
   final bool isAddingQuestion;
-  final String? deletingQuestionOptionKey;
+  final String? savingQuestionId;
+  final String? deletingQuestionId;
   final VoidCallback onAddQuestionTap;
   final VoidCallback onGenerateQuizTap;
-  final Future<void> Function(String questionId, String optionId) onDeleteOptionTap;
+  final Future<void> Function(SeatDescriptionTrainingQuestion question)
+  onDeleteQuestionTap;
+  final Future<bool> Function(
+    String questionId,
+    List<SeatDescriptionTrainingQuestionOption> options,
+    String? correctOptionUuid,
+  )
+  onSaveQuestionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2876,6 +3633,18 @@ class _QuizTabContent extends StatelessWidget {
                   icon: Icons.add_rounded,
                   isEnabled: canAddQuestion,
                   isLoading: isAddingQuestion,
+                  isDottedBorder: true,
+                  horizontalPadding: 16,
+                  verticalPadding: 10,
+                  borderRadius: 14,
+                  backgroundColor: AppColors.secondaryColor.withValues(
+                    alpha: 0.05,
+                  ),
+                  activeBorderColor: AppColors.secondaryColor.withValues(
+                    alpha: 0.58,
+                  ),
+                  activeTextColor: AppColors.secondaryColor,
+                  activeIconColor: AppColors.secondaryColor,
                   onTap: canAddQuestion ? onAddQuestionTap : null,
                 ),
                 _AiGenerateButton(
@@ -2895,15 +3664,19 @@ class _QuizTabContent extends StatelessWidget {
             child: Center(child: FastCircularProgressIndicator()),
           )
         else if (questions.isEmpty)
-          const _ContentMessage(message: AppStrings.trainingNoQuizQuestionsAvailable)
+          const _ContentMessage(
+            message: AppStrings.trainingNoQuizQuestionsAvailable,
+          )
         else
           for (var index = 0; index < questions.length; index++) ...[
             _QuizQuestionCard(
               number: index + 1,
               question: questions[index],
-              canDeleteOptions: canManageQuestions,
-              deletingQuestionOptionKey: deletingQuestionOptionKey,
-              onDeleteOptionTap: onDeleteOptionTap,
+              canManageQuestions: canManageQuestions,
+              isSaving: savingQuestionId == questions[index].uuid,
+              isDeleting: deletingQuestionId == questions[index].uuid,
+              onDeleteQuestionTap: onDeleteQuestionTap,
+              onSaveQuestionTap: onSaveQuestionTap,
             ),
             if (index != questions.length - 1) const SizedBox(height: 14),
           ],
@@ -2918,16 +3691,51 @@ class _AiGenerateButton extends StatelessWidget {
     required this.onTap,
     this.isEnabled = true,
     this.isLoading = false,
+    this.verticalPadding = 11,
   });
 
   final String label;
   final bool isEnabled;
   final bool isLoading;
   final VoidCallback? onTap;
+  final double verticalPadding;
 
   @override
   Widget build(BuildContext context) {
-    final isInteractive = isEnabled && !isLoading && onTap != null;
+    return _GradientTrainingActionButton(
+      label: label,
+      icon: Icons.auto_awesome_rounded,
+      isEnabled: isEnabled,
+      isLoading: isLoading,
+      verticalPadding: verticalPadding,
+      onTap: onTap,
+    );
+  }
+}
+
+class _GradientTrainingActionButton extends StatelessWidget {
+  const _GradientTrainingActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.isEnabled = true,
+    this.isLoading = false,
+    this.showLoaderInIconSlot = false,
+    this.verticalPadding = 11,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isEnabled;
+  final bool isLoading;
+  final bool showLoaderInIconSlot;
+  final VoidCallback? onTap;
+  final double verticalPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabledAppearance = isEnabled && onTap != null;
+    final isInteractive = isEnabledAppearance && !isLoading;
 
     return Material(
       color: Colors.transparent,
@@ -2935,23 +3743,26 @@ class _AiGenerateButton extends StatelessWidget {
         onTap: isInteractive ? onTap : null,
         borderRadius: BorderRadius.circular(14),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: verticalPadding,
+          ),
           decoration: BoxDecoration(
-            gradient: isInteractive
+            gradient: isEnabledAppearance
                 ? const LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [AppColors.purple1, AppColors.secondaryColor],
                   )
                 : null,
-            color: isInteractive ? null : AppColors.surfaceDark,
+            color: isEnabledAppearance ? null : AppColors.surfaceDark,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isInteractive
+              color: isEnabledAppearance
                   ? AppColors.lightPurple1.withValues(alpha: 0.35)
                   : AppColors.fieldBorder.withValues(alpha: 0.22),
             ),
-            boxShadow: isInteractive
+            boxShadow: isEnabledAppearance
                 ? [
                     BoxShadow(
                       color: AppColors.purple1.withValues(alpha: 0.36),
@@ -2971,20 +3782,25 @@ class _AiGenerateButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.auto_awesome_rounded,
-                size: 16,
-                color: isInteractive
-                    ? Colors.white.withValues(alpha: 0.96)
-                    : AppColors.textSecondary,
-              ),
+              if (showLoaderInIconSlot && isLoading)
+                FastCircularProgressIndicator(width: 16, height: 16)
+              else
+                Icon(
+                  icon,
+                  size: 16,
+                  color: isEnabledAppearance
+                      ? Colors.white.withValues(alpha: 0.96)
+                      : AppColors.textSecondary,
+                ),
               const SizedBox(width: 8),
               AppTextView.body2(
                 label,
-                color: isInteractive ? AppColors.textPrimary : AppColors.textSecondary,
+                color: isEnabledAppearance
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
                 fontWeight: FontWeight.w700,
               ),
-              if (isLoading) ...[
+              if (isLoading && !showLoaderInIconSlot) ...[
                 const SizedBox(width: 10),
                 FastCircularProgressIndicator(width: 14, height: 14),
               ],
@@ -2999,57 +3815,381 @@ class _AiGenerateButton extends StatelessWidget {
 class _SecondaryTrainingActionButton extends StatelessWidget {
   const _SecondaryTrainingActionButton({
     required this.label,
-    required this.icon,
+    this.icon,
     required this.onTap,
     this.isEnabled = true,
     this.isLoading = false,
+    this.isDottedBorder = false,
+    this.horizontalPadding = 14,
+    this.verticalPadding = 10,
+    this.borderRadius = 999,
+    this.backgroundColor,
+    this.activeBorderColor,
+    this.activeTextColor,
+    this.activeIconColor,
   });
 
   final String label;
-  final IconData icon;
+  final IconData? icon;
   final VoidCallback? onTap;
   final bool isEnabled;
   final bool isLoading;
+  final bool isDottedBorder;
+  final double horizontalPadding;
+  final double verticalPadding;
+  final double borderRadius;
+  final Color? backgroundColor;
+  final Color? activeBorderColor;
+  final Color? activeTextColor;
+  final Color? activeIconColor;
 
   @override
   Widget build(BuildContext context) {
     final isInteractive = isEnabled && !isLoading && onTap != null;
+    final borderColor = isInteractive
+        ? activeBorderColor ?? AppColors.fieldBorder.withValues(alpha: 0.22)
+        : AppColors.fieldBorder.withValues(alpha: 0.14);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: isInteractive ? onTap : null,
-        borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: isInteractive
-                  ? AppColors.fieldBorder.withValues(alpha: 0.22)
-                  : AppColors.fieldBorder.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: CustomPaint(
+          foregroundPainter: isDottedBorder
+              ? _DottedRoundedBorderPainter(
+                  color: borderColor,
+                  radius: borderRadius,
+                )
+              : null,
+          child: Ink(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            decoration: BoxDecoration(
+              color: backgroundColor ?? AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: isDottedBorder ? null : Border.all(color: borderColor),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: isInteractive
+                        ? activeIconColor ?? AppColors.secondaryColor
+                        : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                AppTextView.body2(
+                  label,
+                  color: isInteractive
+                      ? activeTextColor ?? AppColors.textPrimary
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+                if (isLoading) ...[
+                  const SizedBox(width: 10),
+                  FastCircularProgressIndicator(width: 14, height: 14),
+                ],
+              ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingSectionHeader extends StatelessWidget {
+  const _TrainingSectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextView.body3(
+      title,
+      color: AppColors.textSecondary,
+      fontWeight: FontWeight.w700,
+    );
+  }
+}
+
+class _TrainingDisplayCard extends StatelessWidget {
+  const _TrainingDisplayCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.mainBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _TrainingEditableTextCard extends StatelessWidget {
+  const _TrainingEditableTextCard({
+    required this.controller,
+    required this.hintText,
+    required this.minLines,
+    required this.maxLines,
+    this.readOnly = false,
+    this.wrapWithCard = true,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final int minLines;
+  final int maxLines;
+  final bool readOnly;
+  final bool wrapWithCard;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final textField = Padding(
+      padding: padding,
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        cursorColor: Colors.white,
+        minLines: minLines,
+        maxLines: maxLines,
+        keyboardType: TextInputType.multiline,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          height: 1.65,
+        ),
+        decoration: InputDecoration(
+          isCollapsed: true,
+          border: InputBorder.none,
+          hintText: hintText,
+          hintStyle: TextStyle(
+            color: AppColors.textSecondary.withValues(alpha: 0.74),
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+            height: 1.65,
+          ),
+        ),
+      ),
+    );
+
+    if (!wrapWithCard) {
+      return textField;
+    }
+
+    return _TrainingDisplayCard(child: textField);
+  }
+}
+
+class _TrainingSingleLineInputCard extends StatelessWidget {
+  const _TrainingSingleLineInputCard({
+    required this.controller,
+    required this.hintText,
+    this.readOnly = false,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool readOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TrainingDisplayCard(
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        cursorColor: Colors.white,
+        maxLines: 1,
+        textInputAction: TextInputAction.done,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          height: 1.4,
+        ),
+        decoration: InputDecoration(
+          isCollapsed: true,
+          border: InputBorder.none,
+          hintText: hintText,
+          hintStyle: TextStyle(
+            color: AppColors.textSecondary.withValues(alpha: 0.74),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingFormattingToolbar extends StatelessWidget {
+  const _TrainingFormattingToolbar({
+    required this.controller,
+    required this.isSaving,
+    this.onBoldTap,
+    this.onItalicTap,
+    this.onUnderlineTap,
+    this.onBulletListTap,
+    this.onNumberedListTap,
+    this.onQuoteTap,
+    this.onHeadingTap,
+  });
+
+  final TrainingRichTextEditingController controller;
+  final bool isSaving;
+  final VoidCallback? onBoldTap;
+  final VoidCallback? onItalicTap;
+  final VoidCallback? onUnderlineTap;
+  final VoidCallback? onBulletListTap;
+  final VoidCallback? onNumberedListTap;
+  final VoidCallback? onQuoteTap;
+  final VoidCallback? onHeadingTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isInteractive ? AppColors.secondaryColor : AppColors.textSecondary,
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingBoldAction,
+                icon: Icons.format_bold_rounded,
+                isActive: controller.isFormatActive(
+                  TrainingDocumentFormatKind.bold,
+                ),
+                onTap: isSaving ? null : onBoldTap,
               ),
               const SizedBox(width: 8),
-              AppTextView.body2(
-                label,
-                color: isInteractive ? AppColors.textPrimary : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingItalicAction,
+                icon: Icons.format_italic_rounded,
+                isActive: controller.isFormatActive(
+                  TrainingDocumentFormatKind.italic,
+                ),
+                onTap: isSaving ? null : onItalicTap,
               ),
-              if (isLoading) ...[
-                const SizedBox(width: 10),
-                FastCircularProgressIndicator(width: 14, height: 14),
-              ],
+              const SizedBox(width: 8),
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingUnderlineAction,
+                icon: Icons.format_underline_rounded,
+                isActive: controller.isFormatActive(
+                  TrainingDocumentFormatKind.underline,
+                ),
+                onTap: isSaving ? null : onUnderlineTap,
+              ),
+              const SizedBox(width: 8),
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingBulletListAction,
+                icon: Icons.format_list_bulleted_rounded,
+                isActive: controller.isBulletListActive,
+                onTap: isSaving ? null : onBulletListTap,
+              ),
+              const SizedBox(width: 8),
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingNumberedListAction,
+                icon: Icons.format_list_numbered_rounded,
+                isActive: controller.isNumberedListActive,
+                onTap: isSaving ? null : onNumberedListTap,
+              ),
+              const SizedBox(width: 8),
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingQuoteAction,
+                icon: Icons.format_quote_rounded,
+                isActive: controller.isFormatActive(
+                  TrainingDocumentFormatKind.quote,
+                ),
+                onTap: isSaving ? null : onQuoteTap,
+              ),
+              const SizedBox(width: 8),
+              _TrainingFormattingButton(
+                tooltip: AppStrings.trainingHeadingAction,
+                icon: Icons.title_rounded,
+                isActive: controller.isFormatActive(
+                  TrainingDocumentFormatKind.heading,
+                ),
+                onTap: isSaving ? null : onHeadingTap,
+              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingFormattingButton extends StatelessWidget {
+  const _TrainingFormattingButton({
+    required this.tooltip,
+    required this.icon,
+    this.isActive = false,
+    this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isInteractive = onTap != null;
+    final borderColor = isActive
+        ? AppColors.secondaryColor.withValues(alpha: 0.64)
+        : AppColors.fieldBorder.withValues(alpha: isInteractive ? 0.22 : 0.12);
+    final backgroundColor = isActive
+        ? AppColors.secondaryColor.withValues(alpha: 0.22)
+        : Colors.white.withValues(alpha: isInteractive ? 0.08 : 0.04);
+    final iconColor = isActive
+        ? AppColors.secondaryColor
+        : isInteractive
+        ? AppColors.textPrimary
+        : AppColors.textSecondary.withValues(alpha: 0.58);
+
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Ink(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: borderColor),
+            ),
+            child: Icon(icon, color: iconColor, size: 16),
           ),
         ),
       ),
@@ -3145,7 +4285,8 @@ class _GenerateQuizDialog extends StatelessWidget {
                       disabledForegroundColor: AppColors.textPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: AppColors.secondaryColor,
-                      disabledBackgroundColor: AppColors.secondaryColor.withValues(alpha: 0.55),
+                      disabledBackgroundColor: AppColors.secondaryColor
+                          .withValues(alpha: 0.55),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
                         side: const BorderSide(color: AppColors.secondaryColor),
@@ -3190,7 +4331,8 @@ class _AddQuestionDialogFormController extends ChangeNotifier {
   }
 
   final TextEditingController questionController = TextEditingController();
-  final List<TextEditingController> optionControllers = <TextEditingController>[];
+  final List<TextEditingController> optionControllers =
+      <TextEditingController>[];
   int selectedCorrectOptionIndex = 0;
   String? validationMessage;
 
@@ -3199,7 +4341,8 @@ class _AddQuestionDialogFormController extends ChangeNotifier {
   }
 
   void addOptionField() {
-    if (optionControllers.length >= TrainingModuleController.maxQuizOptionsPerQuestion) {
+    if (optionControllers.length >=
+        TrainingModuleController.maxQuizOptionsPerQuestion) {
       return;
     }
 
@@ -3261,12 +4404,15 @@ class _AddQuestionDialogFormController extends ChangeNotifier {
       return AppStrings.trainingQuestionMinOptionsRequired;
     }
 
-    final hasEmptyOption = optionControllers.any((controller) => controller.text.trim().isEmpty);
+    final hasEmptyOption = optionControllers.any(
+      (controller) => controller.text.trim().isEmpty,
+    );
     if (hasEmptyOption) {
       return AppStrings.trainingQuestionOptionsRequired;
     }
 
-    if (selectedCorrectOptionIndex < 0 || selectedCorrectOptionIndex >= optionControllers.length) {
+    if (selectedCorrectOptionIndex < 0 ||
+        selectedCorrectOptionIndex >= optionControllers.length) {
       return AppStrings.trainingQuestionCorrectOptionRequired;
     }
 
@@ -3293,7 +4439,9 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
   @override
   void initState() {
     super.initState();
-    _formController = _AddQuestionDialogFormController(initialOptionCount: _initialOptionCount);
+    _formController = _AddQuestionDialogFormController(
+      initialOptionCount: _initialOptionCount,
+    );
   }
 
   @override
@@ -3303,19 +4451,23 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
   }
 
   Future<void> _submit() async {
-    final validationMessage = _formController.validate(minOptionCount: _minOptionCount);
+    final validationMessage = _formController.validate(
+      minOptionCount: _minOptionCount,
+    );
     if (validationMessage != null) {
       _formController.setValidationMessage(validationMessage);
       return;
     }
 
-    final didAdd = await context.read<TrainingModuleController>().addQuestionToSelectedModule(
-      questionText: _formController.questionController.text.trim(),
-      optionTexts: _formController.optionControllers
-          .map((controller) => controller.text.trim())
-          .toList(growable: false),
-      correctOptionIndex: _formController.selectedCorrectOptionIndex,
-    );
+    final didAdd = await context
+        .read<TrainingModuleController>()
+        .addQuestionToSelectedModule(
+          questionText: _formController.questionController.text.trim(),
+          optionTexts: _formController.optionControllers
+              .map((controller) => controller.text.trim())
+              .toList(growable: false),
+          correctOptionIndex: _formController.selectedCorrectOptionIndex,
+        );
     if (!mounted || !didAdd) {
       return;
     }
@@ -3354,7 +4506,9 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    _DialogCloseButton(onTap: () => Navigator.of(context).pop()),
+                    _DialogCloseButton(
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -3400,15 +4554,22 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
                   height: 1.45,
                 ),
                 const SizedBox(height: 14),
-                for (var index = 0; index < _formController.optionControllers.length; index++) ...[
+                for (
+                  var index = 0;
+                  index < _formController.optionControllers.length;
+                  index++
+                ) ...[
                   _QuizOptionEditorCard(
                     label: AppStrings.trainingQuestionOptionLabel(index + 1),
                     hintText: AppStrings.trainingQuestionOptionHint(index + 1),
                     controller: _formController.optionControllers[index],
-                    isSelected: _formController.selectedCorrectOptionIndex == index,
+                    isSelected:
+                        _formController.selectedCorrectOptionIndex == index,
                     onSelect: () => _formController.selectCorrectOption(index),
                     onChanged: _formController.clearValidationMessage,
-                    onRemove: _formController.optionControllers.length > _minOptionCount
+                    onRemove:
+                        _formController.optionControllers.length >
+                            _minOptionCount
                         ? () => _formController.removeOptionField(
                             index,
                             minOptionCount: _minOptionCount,
@@ -3434,7 +4595,9 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
                     decoration: BoxDecoration(
                       color: AppColors.red.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.red.withValues(alpha: 0.22)),
+                      border: Border.all(
+                        color: AppColors.red.withValues(alpha: 0.22),
+                      ),
                     ),
                     child: AppTextView.body3(
                       _formController.validationMessage!,
@@ -3454,10 +4617,13 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
                         disabledForegroundColor: AppColors.textPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         backgroundColor: AppColors.secondaryColor,
-                        disabledBackgroundColor: AppColors.secondaryColor.withValues(alpha: 0.55),
+                        disabledBackgroundColor: AppColors.secondaryColor
+                            .withValues(alpha: 0.55),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
-                          side: const BorderSide(color: AppColors.secondaryColor),
+                          side: const BorderSide(
+                            color: AppColors.secondaryColor,
+                          ),
                         ),
                       ),
                       icon: controller.isAddingQuestion
@@ -3509,7 +4675,11 @@ class _QuizDialogField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body3(label, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        AppTextView.body3(
+          label,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -3517,6 +4687,7 @@ class _QuizDialogField extends StatelessWidget {
           minLines: minLines,
           maxLines: maxLines,
           textCapitalization: textCapitalization,
+          cursorColor: Colors.white,
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 14,
@@ -3531,14 +4702,21 @@ class _QuizDialogField extends StatelessWidget {
             ),
             filled: true,
             fillColor: AppColors.mainBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+              borderSide: BorderSide(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+              borderSide: BorderSide(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -3599,7 +4777,9 @@ class _QuizOptionEditorCard extends StatelessWidget {
                       isSelected
                           ? Icons.radio_button_checked_rounded
                           : Icons.radio_button_off_rounded,
-                      color: isSelected ? AppColors.secondaryColor : AppColors.textSecondary,
+                      color: isSelected
+                          ? AppColors.secondaryColor
+                          : AppColors.textSecondary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -3626,6 +4806,7 @@ class _QuizOptionEditorCard extends StatelessWidget {
             controller: controller,
             onChanged: (_) => onChanged(),
             textCapitalization: TextCapitalization.sentences,
+            cursorColor: Colors.white,
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14,
@@ -3640,14 +4821,21 @@ class _QuizOptionEditorCard extends StatelessWidget {
               ),
               filled: true,
               fillColor: AppColors.surfaceDark2,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+                borderSide: BorderSide(
+                  color: AppColors.fieldBorder.withValues(alpha: 0.18),
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+                borderSide: BorderSide(
+                  color: AppColors.fieldBorder.withValues(alpha: 0.18),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -3717,7 +4905,9 @@ class _QuizSettingsCard extends StatelessWidget {
                 AppColors.surfaceDark.withValues(alpha: 0.98),
               ],
             ),
-            border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.18)),
+            border: Border.all(
+              color: AppColors.secondaryColor.withValues(alpha: 0.18),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3730,7 +4920,9 @@ class _QuizSettingsCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.secondaryColor.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.28),
+                      ),
                     ),
                     child: const Icon(
                       Icons.auto_awesome_rounded,
@@ -3789,23 +4981,29 @@ class _QuizSettingsCard extends StatelessWidget {
                   _QuizDifficultyChip(
                     label: AppStrings.trainingQuizDifficultyEasy,
                     isSelected:
-                        controller.quizGenerationDifficulty == QuizGenerationDifficulty.easy,
-                    onTap: () =>
-                        controller.setQuizGenerationDifficulty(QuizGenerationDifficulty.easy),
+                        controller.quizGenerationDifficulty ==
+                        QuizGenerationDifficulty.easy,
+                    onTap: () => controller.setQuizGenerationDifficulty(
+                      QuizGenerationDifficulty.easy,
+                    ),
                   ),
                   _QuizDifficultyChip(
                     label: AppStrings.trainingQuizDifficultyMedium,
                     isSelected:
-                        controller.quizGenerationDifficulty == QuizGenerationDifficulty.medium,
-                    onTap: () =>
-                        controller.setQuizGenerationDifficulty(QuizGenerationDifficulty.medium),
+                        controller.quizGenerationDifficulty ==
+                        QuizGenerationDifficulty.medium,
+                    onTap: () => controller.setQuizGenerationDifficulty(
+                      QuizGenerationDifficulty.medium,
+                    ),
                   ),
                   _QuizDifficultyChip(
                     label: AppStrings.trainingQuizDifficultyHard,
                     isSelected:
-                        controller.quizGenerationDifficulty == QuizGenerationDifficulty.hard,
-                    onTap: () =>
-                        controller.setQuizGenerationDifficulty(QuizGenerationDifficulty.hard),
+                        controller.quizGenerationDifficulty ==
+                        QuizGenerationDifficulty.hard,
+                    onTap: () => controller.setQuizGenerationDifficulty(
+                      QuizGenerationDifficulty.hard,
+                    ),
                   ),
                 ],
               ),
@@ -3866,127 +5064,189 @@ class _GenerateSopDialogState extends State<_GenerateSopDialog> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
+    final hasExistingSop = controller.hasSelectedModuleDocumentText;
 
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: _confirmationController,
-      builder: (context, _, __) => Dialog(
-        backgroundColor: AppColors.surfaceDark,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      builder: (context, _, __) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 620),
+              decoration: const BoxDecoration(
+                color: AppColors.mainBg,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Expanded(
-                      child: AppTextView.body1(
-                        AppStrings.trainingGenerateSopsWithAi,
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    _DialogCloseButton(onTap: () => Navigator.of(context).pop()),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                Row(
-                  children: [
-                    _DividerDot(),
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        color: AppColors.fieldBorder.withValues(alpha: 0.34),
-                      ),
+                    const SizedBox(height: 18),
+                    const AppTextView.body1(
+                      AppStrings.trainingGenerateWithAi,
+                      color: AppColors.secondaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      textAlign: TextAlign.center,
                     ),
-                    _DividerDot(),
-                  ],
-                ),
-                const SizedBox(height: 26),
-                const Center(
-                  child: AppTextView.body(
-                    AppStrings.trainingGenerateSopsWithAi,
-                    color: AppColors.hexd9deff,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Center(
-                  child: AppTextView.body2(
-                    AppStrings.trainingGenerateSopSubtitle,
-                    color: AppColors.lightPurple1,
-                    fontSize: 13,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                _SopAlertCard(confirmationController: _confirmationController),
-                const SizedBox(height: 22),
-                Center(
-                  child: SizedBox(
-                    width: 210,
-                    child: TextButton.icon(
-                      onPressed: !_canRegenerate || controller.isGeneratingSop
-                          ? null
-                          : () async {
-                              final didGenerate = await context
-                                  .read<TrainingModuleController>()
-                                  .generateSopForSelectedModule();
-                              if (!context.mounted || !didGenerate) {
-                                return;
-                              }
-
-                              Navigator.of(context).pop(true);
-                            },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textPrimary,
-                        disabledForegroundColor: AppColors.textSecondary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: _canRegenerate && !controller.isGeneratingSop
-                            ? AppColors.secondaryColor
-                            : AppColors.surfaceDark3,
-                        disabledBackgroundColor: AppColors.surfaceDark3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                          side: BorderSide(
-                            color: _canRegenerate && !controller.isGeneratingSop
-                                ? AppColors.secondaryColor
-                                : AppColors.fieldBorder.withValues(alpha: 0.12),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        _DividerDot(),
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: AppColors.fieldBorder.withValues(
+                              alpha: 0.24,
+                            ),
+                          ),
+                        ),
+                        _DividerDot(),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.secondaryColor.withValues(alpha: 0.08),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 28,
+                          color: AppColors.secondaryColor.withValues(
+                            alpha: 0.96,
                           ),
                         ),
                       ),
-                      icon: controller.isGeneratingSop
-                          ? FastCircularProgressIndicator(width: 16, height: 16)
-                          : Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 16,
-                              color: _canRegenerate
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(height: 24),
+                    AppTextView.body1(
+                      hasExistingSop
+                          ? AppStrings.trainingRegenerate
+                          : AppStrings.trainingGenerateSop,
+                      color: AppColors.hexd9deff,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    AppTextView.body(
+                      hasExistingSop
+                          ? AppStrings.trainingGenerateSopAlertDescription
+                          : AppStrings.trainingGenerateSopSubtitle,
+                      color: AppColors.lightPurple1,
+                      fontSize: 13,
+                      height: 1.45,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (hasExistingSop) ...[
+                      const SizedBox(height: 18),
+                      _SopAlertCard(
+                        confirmationController: _confirmationController,
+                      ),
+                    ],
+                    const SizedBox(height: 22),
+                    Row(
+                      children: [
+                        _DividerDot(),
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: AppColors.fieldBorder.withValues(
+                              alpha: 0.24,
                             ),
-                      label: AppTextView.body(
-                        AppStrings.trainingRegenerate,
-                        fontSize: 15,
-                        color: _canRegenerate && !controller.isGeneratingSop
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary.withValues(alpha: 0.7),
-                        fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        _DividerDot(),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        onPressed:
+                            (controller.isGeneratingSop ||
+                                (hasExistingSop && !_canRegenerate))
+                            ? null
+                            : () async {
+                                final didGenerate = await context
+                                    .read<TrainingModuleController>()
+                                    .generateSopForSelectedModule();
+                                if (!context.mounted || !didGenerate) {
+                                  return;
+                                }
+
+                                Navigator.of(context).pop(true);
+                              },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textPrimary,
+                          disabledForegroundColor: AppColors.textSecondary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor:
+                              (controller.isGeneratingSop ||
+                                  (hasExistingSop && !_canRegenerate))
+                              ? AppColors.surfaceDark3
+                              : AppColors.secondaryColor,
+                          disabledBackgroundColor: AppColors.surfaceDark3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color:
+                                  (controller.isGeneratingSop ||
+                                      (hasExistingSop && !_canRegenerate))
+                                  ? AppColors.fieldBorder.withValues(
+                                      alpha: 0.12,
+                                    )
+                                  : AppColors.secondaryColor,
+                            ),
+                          ),
+                        ),
+                        icon: controller.isGeneratingSop
+                            ? FastCircularProgressIndicator(
+                                width: 14,
+                                height: 14,
+                              )
+                            : const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                        label: AppTextView.body(
+                          hasExistingSop
+                              ? AppStrings.trainingRegenerate
+                              : AppStrings.trainingGenerateWithAi,
+                          fontSize: 14,
+                          color:
+                              (controller.isGeneratingSop ||
+                                  (hasExistingSop && !_canRegenerate))
+                              ? AppColors.textSecondary.withValues(alpha: 0.7)
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -4006,9 +5266,16 @@ class _DialogCloseButton extends StatelessWidget {
         height: 30,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.78), width: 1),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.78),
+            width: 1,
+          ),
         ),
-        child: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 16),
+        child: const Icon(
+          Icons.close_rounded,
+          color: AppColors.textPrimary,
+          size: 16,
+        ),
       ),
     );
   }
@@ -4039,7 +5306,9 @@ class _QuizGenerationStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         children: [
@@ -4065,7 +5334,10 @@ class _QuizGenerationStepper extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          _StepperActionButton(icon: Icons.add_rounded, onTap: canIncrement ? onIncrement : null),
+          _StepperActionButton(
+            icon: Icons.add_rounded,
+            onTap: canIncrement ? onIncrement : null,
+          ),
         ],
       ),
     );
@@ -4110,7 +5382,11 @@ class _StepperActionButton extends StatelessWidget {
 }
 
 class _QuizDifficultyChip extends StatelessWidget {
-  const _QuizDifficultyChip({required this.label, required this.isSelected, required this.onTap});
+  const _QuizDifficultyChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final String label;
   final bool isSelected;
@@ -4124,7 +5400,9 @@ class _QuizDifficultyChip extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.secondaryColor.withValues(alpha: 0.16) : AppColors.mainBg,
+          color: isSelected
+              ? AppColors.secondaryColor.withValues(alpha: 0.16)
+              : AppColors.mainBg,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isSelected
@@ -4135,7 +5413,9 @@ class _QuizDifficultyChip extends StatelessWidget {
         child: AppTextView.body2(
           label,
           fontSize: 13,
-          color: isSelected ? AppColors.secondaryColor : AppColors.textSecondary,
+          color: isSelected
+              ? AppColors.secondaryColor
+              : AppColors.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -4157,7 +5437,9 @@ class _QuizReplaceToggle extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         children: [
@@ -4170,7 +5452,9 @@ class _QuizReplaceToggle extends StatelessWidget {
             ),
           ),
           AppTextView.body4(
-            value ? AppStrings.trainingQuizEnabled : AppStrings.trainingQuizDisabled,
+            value
+                ? AppStrings.trainingQuizEnabled
+                : AppStrings.trainingQuizDisabled,
             color: value ? AppColors.secondaryColor : AppColors.textSecondary,
             fontWeight: FontWeight.w700,
           ),
@@ -4196,7 +5480,10 @@ class _DividerDot extends StatelessWidget {
       width: 10,
       height: 10,
       margin: const EdgeInsets.symmetric(horizontal: 2),
-      decoration: const BoxDecoration(color: AppColors.hex51597a, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        color: AppColors.hex51597a,
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
@@ -4208,121 +5495,89 @@ class _SopAlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [AppColors.hex5a3038, AppColors.surfaceDark.withValues(alpha: 0.98)],
-            ),
-            border: Border.all(color: AppColors.red.withValues(alpha: 0.16)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.red.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.red.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-                    ),
-                    child: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: AppColors.textPrimary,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: AppTextView.body1(
-                      AppStrings.trainingGenerateSopAlertTitle,
-                      color: AppColors.textPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const AppTextView.body(
-                AppStrings.trainingGenerateSopAlertDescription,
-                color: AppColors.hexf3cdd0,
-                fontSize: 14,
-                height: 1.5,
-              ),
-              const SizedBox(height: 16),
-              const AppTextView.body(
-                AppStrings.trainingGenerateSopAlertInstruction,
-                color: AppColors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.5,
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: confirmationController,
-                textCapitalization: TextCapitalization.characters,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.4,
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.red.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                decoration: InputDecoration(
-                  hintText: AppStrings.trainingGenerateSopConfirmation,
-                  hintStyle: TextStyle(
-                    color: AppColors.textSecondary.withValues(alpha: 0.72),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.4,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.surfaceDark2,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: AppColors.secondaryColor, width: 1.8),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: AppColors.secondaryColor, width: 2.2),
-                  ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.textPrimary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: AppTextView.body1(
+                  AppStrings.trainingGenerateSopAlertTitle,
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-        ),
-        Positioned(
-          top: -4,
-          right: -2,
-          child: IgnorePointer(
-            child: Container(
-              width: 136,
-              height: 136,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.red.withValues(alpha: 0.28),
-                    blurRadius: 70,
-                    spreadRadius: 6,
-                  ),
-                ],
+          const SizedBox(height: 14),
+          const AppTextView.body(
+            AppStrings.trainingGenerateSopAlertInstruction,
+            color: AppColors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            height: 1.45,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: confirmationController,
+            textCapitalization: TextCapitalization.characters,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.1,
+            ),
+            decoration: InputDecoration(
+              hintText: AppStrings.trainingGenerateSopConfirmation,
+              hintStyle: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.72),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.1,
+              ),
+              filled: true,
+              fillColor: AppColors.surfaceDark2,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.red),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -4331,156 +5586,1065 @@ class _QuizQuestionCard extends StatelessWidget {
   const _QuizQuestionCard({
     required this.number,
     required this.question,
-    required this.canDeleteOptions,
-    required this.deletingQuestionOptionKey,
-    required this.onDeleteOptionTap,
+    required this.canManageQuestions,
+    required this.isSaving,
+    required this.isDeleting,
+    required this.onDeleteQuestionTap,
+    required this.onSaveQuestionTap,
   });
 
   final int number;
   final SeatDescriptionTrainingQuestion question;
-  final bool canDeleteOptions;
-  final String? deletingQuestionOptionKey;
-  final Future<void> Function(String questionId, String optionId) onDeleteOptionTap;
+  final bool canManageQuestions;
+  final bool isSaving;
+  final bool isDeleting;
+  final Future<void> Function(SeatDescriptionTrainingQuestion question)
+  onDeleteQuestionTap;
+  final Future<bool> Function(
+    String questionId,
+    List<SeatDescriptionTrainingQuestionOption> options,
+    String? correctOptionUuid,
+  )
+  onSaveQuestionTap;
 
   @override
   Widget build(BuildContext context) {
-    final resolvedImageUrl = CustomFunctions.resolveImageUrl(question.imageUrl);
+    return _EditableQuizQuestionCard(
+      number: number,
+      question: question,
+      canManageQuestions: canManageQuestions,
+      isSaving: isSaving,
+      isDeleting: isDeleting,
+      onDeleteQuestionTap: onDeleteQuestionTap,
+      onSaveQuestionTap: onSaveQuestionTap,
+    );
+  }
+}
+
+class _EditableQuizQuestionCard extends StatefulWidget {
+  const _EditableQuizQuestionCard({
+    required this.number,
+    required this.question,
+    required this.canManageQuestions,
+    required this.isSaving,
+    required this.isDeleting,
+    required this.onDeleteQuestionTap,
+    required this.onSaveQuestionTap,
+  });
+
+  final int number;
+  final SeatDescriptionTrainingQuestion question;
+  final bool canManageQuestions;
+  final bool isSaving;
+  final bool isDeleting;
+  final Future<void> Function(SeatDescriptionTrainingQuestion question)
+  onDeleteQuestionTap;
+  final Future<bool> Function(
+    String questionId,
+    List<SeatDescriptionTrainingQuestionOption> options,
+    String? correctOptionUuid,
+  )
+  onSaveQuestionTap;
+
+  @override
+  State<_EditableQuizQuestionCard> createState() =>
+      _EditableQuizQuestionCardState();
+}
+
+class _EditableQuizQuestionCardState extends State<_EditableQuizQuestionCard> {
+  late final _QuizQuestionEditorController _editorController;
+
+  @override
+  void initState() {
+    super.initState();
+    _editorController = _QuizQuestionEditorController(
+      question: widget.question,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _EditableQuizQuestionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _editorController.syncWithQuestion(widget.question);
+  }
+
+  @override
+  void dispose() {
+    _editorController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveQuestion() async {
+    if (widget.isSaving || widget.isDeleting) {
+      return;
+    }
+
+    final validationMessage = _editorController.validate(widget.question);
+    if (validationMessage != null) {
+      _editorController.setValidationMessage(validationMessage);
+      return;
+    }
+
+    await widget.onSaveQuestionTap(
+      widget.question.uuid,
+      _editorController.buildOptions(widget.question),
+      _editorController.selectedCorrectOptionUuid,
+    );
+  }
+
+  Future<void> _deleteQuestion() async {
+    if (widget.isSaving || widget.isDeleting) {
+      return;
+    }
+
+    await widget.onDeleteQuestionTap(widget.question);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedImageUrl = CustomFunctions.resolveImageUrl(
+      widget.question.imageUrl,
+    );
+
+    return AnimatedBuilder(
+      animation: _editorController,
+      builder: (context, _) {
+        final isBusy = widget.isSaving || widget.isDeleting;
+        final visibleOptions = _editorController.visibleExistingOptions(
+          widget.question,
+        );
+        final correctOptionChoices = [
+          for (var index = 0; index < visibleOptions.length; index++)
+            _QuizCorrectOptionChoice(
+              uuid: visibleOptions[index].uuid,
+              label: AppStrings.trainingQuestionChoiceLabel(index + 1),
+            ),
+          if (_editorController.showsDraftOption)
+            _QuizCorrectOptionChoice(
+              uuid: _editorController.draftOptionUuid,
+              label: AppStrings.trainingQuestionChoiceLabel(
+                visibleOptions.length + 1,
+              ),
+            ),
+        ];
+        final canAddOption =
+            widget.canManageQuestions &&
+            _editorController.canAddOption() &&
+            !isBusy;
+        final canSaveQuestion =
+            widget.canManageQuestions &&
+            !isBusy &&
+            _editorController.canSave(question: widget.question);
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          decoration: BoxDecoration(
+            color: AppColors.mainBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.24),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: AppTextView.body3(
+                      '${widget.number}. ${widget.question.question}',
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+              if (resolvedImageUrl != null) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: resolvedImageUrl,
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ],
+              if (visibleOptions.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                for (var index = 0; index < visibleOptions.length; index++) ...[
+                  _QuizOptionTile(
+                    controller: _editorController.optionControllerFor(
+                      visibleOptions[index],
+                    ),
+                    hintText: AppStrings.trainingQuestionOptionHint(index + 1),
+                    isSelected: _editorController.isOptionSelected(
+                      visibleOptions[index].uuid,
+                    ),
+                    isEditable: widget.canManageQuestions && !isBusy,
+                    canDelete: widget.canManageQuestions,
+                    onTap:
+                        widget.canManageQuestions &&
+                            !isBusy &&
+                            !_editorController.showsDraftOption
+                        ? () => _editorController.selectOption(
+                            visibleOptions[index].uuid,
+                          )
+                        : null,
+                    onDeleteTap: isBusy
+                        ? null
+                        : () => _editorController.removeExistingOption(
+                            visibleOptions[index].uuid,
+                          ),
+                  ),
+                  if (index != visibleOptions.length - 1)
+                    const SizedBox(height: 10),
+                ],
+              ],
+              if (_editorController.showsDraftOption) ...[
+                const SizedBox(height: 10),
+                _DraftQuizOptionTile(
+                  controller: _editorController.draftOptionController,
+                  hintText: AppStrings.trainingQuestionOptionHint(
+                    visibleOptions.length + 1,
+                  ),
+                  isSelected: false,
+                  onSelect: null,
+                  onDeleteTap: isBusy
+                      ? null
+                      : () => _editorController.removeDraftOption(
+                          widget.question,
+                        ),
+                ),
+              ],
+              if (canAddOption) ...[
+                const SizedBox(height: 12),
+                _InlineTextAction(
+                  label: AppStrings.trainingQuestionAddOption,
+                  icon: Icons.add_rounded,
+                  onTap: () =>
+                      _editorController.showDraftOption(widget.question),
+                ),
+              ],
+              if (_editorController.validationMessage != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.red.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: AppTextView.body3(
+                    _editorController.validationMessage!,
+                    color: AppColors.textPrimary,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+              if (widget.canManageQuestions) ...[
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: _QuizCorrectOptionDropdown(
+                        value: _editorController.selectedCorrectOptionUuid,
+                        options: correctOptionChoices,
+                        onChanged: isBusy
+                            ? null
+                            : _editorController.selectCorrectOption,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      flex: 5,
+                      child: SizedBox(
+                        height: 44,
+                        child: TextButton(
+                          onPressed: canSaveQuestion ? _saveQuestion : null,
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            disabledForegroundColor: AppColors.textPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                            backgroundColor: AppColors.secondaryColor,
+                            disabledBackgroundColor: AppColors.secondaryColor
+                                .withValues(alpha: 0.42),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: const BorderSide(
+                                color: AppColors.secondaryColor,
+                              ),
+                            ),
+                          ),
+                          child: widget.isSaving
+                              ? FastCircularProgressIndicator(
+                                  width: 16,
+                                  height: 16,
+                                )
+                              : const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: AppTextView.body(
+                                    AppStrings.trainingQuestionSaveAction,
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: AppStrings.trainingDeleteQuestionAction,
+                      child: InkWell(
+                        onTap: isBusy ? null : _deleteQuestion,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Ink(
+                          width: 38,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.red.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.red.withValues(alpha: 0.32),
+                            ),
+                          ),
+                          child: Center(
+                            child: widget.isDeleting
+                                ? FastCircularProgressIndicator(
+                                    width: 14,
+                                    height: 14,
+                                  )
+                                : const Icon(
+                                    Icons.delete_forever_rounded,
+                                    color: AppColors.red,
+                                    size: 20,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _QuizQuestionEditorController extends ChangeNotifier {
+  _QuizQuestionEditorController({
+    required SeatDescriptionTrainingQuestion question,
+  }) : draftOptionController = TextEditingController() {
+    draftOptionController.addListener(_handleDraftOptionChanged);
+    syncWithQuestion(question, force: true);
+  }
+
+  final TextEditingController draftOptionController;
+  final Map<String, TextEditingController> _optionControllers =
+      <String, TextEditingController>{};
+  final List<String> _activeOptionUuids = <String>[];
+
+  String _questionSignature = '';
+  String _selectedOptionUuid = '';
+  String _initialSelectedOptionUuid = '';
+  String _draftOptionUuid = '';
+  String _draftCorrectOptionUuid = '';
+  bool _showsDraftOption = false;
+  String? _validationMessage;
+  bool _isSyncingDraftText = false;
+
+  String get selectedOptionUuid => _selectedOptionUuid;
+  String get selectedCorrectOptionUuid =>
+      _showsDraftOption ? _draftCorrectOptionUuid : _selectedOptionUuid;
+  String get draftOptionUuid => _draftOptionUuid;
+  bool get showsDraftOption => _showsDraftOption;
+  String? get validationMessage => _validationMessage;
+
+  bool isOptionSelected(String optionUuid) => _selectedOptionUuid == optionUuid;
+
+  TextEditingController optionControllerFor(
+    SeatDescriptionTrainingQuestionOption option,
+  ) {
+    return _optionControllers.putIfAbsent(
+      option.uuid,
+      () =>
+          TextEditingController(text: option.text)
+            ..addListener(_handleExistingOptionChanged),
+    );
+  }
+
+  bool canAddOption() => !_showsDraftOption;
+
+  List<SeatDescriptionTrainingQuestionOption> visibleExistingOptions(
+    SeatDescriptionTrainingQuestion question,
+  ) {
+    final originalOptionsByUuid =
+        <String, SeatDescriptionTrainingQuestionOption>{
+          for (final option in question.options) option.uuid: option,
+        };
+
+    return _activeOptionUuids
+        .map((uuid) => originalOptionsByUuid[uuid])
+        .whereType<SeatDescriptionTrainingQuestionOption>()
+        .toList(growable: false);
+  }
+
+  bool canSave({required SeatDescriptionTrainingQuestion question}) {
+    final hasCorrectSelectionChange =
+        selectedCorrectOptionUuid != _initialSelectedOptionUuid;
+    final hasDraftChange =
+        _showsDraftOption && draftOptionController.text.trim().isNotEmpty;
+    final hasExistingOptionStructureChanges =
+        _hasExistingOptionStructureChanges(question);
+    final hasExistingOptionChanges = _hasExistingOptionTextChanges(question);
+    if (!hasCorrectSelectionChange &&
+        !hasDraftChange &&
+        !hasExistingOptionStructureChanges &&
+        !hasExistingOptionChanges) {
+      return false;
+    }
+
+    if (_hasEmptyExistingOptionText(question) ||
+        (_showsDraftOption && draftOptionController.text.trim().isEmpty)) {
+      return false;
+    }
+
+    final options = buildOptions(question);
+    if (options.length < TrainingModuleController.minQuizOptionsPerQuestion) {
+      return false;
+    }
+
+    return options.any((option) => option.uuid == selectedCorrectOptionUuid);
+  }
+
+  void syncWithQuestion(
+    SeatDescriptionTrainingQuestion question, {
+    bool force = false,
+  }) {
+    final nextSignature = _buildQuestionSignature(question);
+    if (!force && nextSignature == _questionSignature) {
+      return;
+    }
+
+    _questionSignature = nextSignature;
+    _initialSelectedOptionUuid = _resolveSelectedOptionUuid(question);
+    _selectedOptionUuid = _initialSelectedOptionUuid;
+    _showsDraftOption = false;
+    _draftOptionUuid = '';
+    _draftCorrectOptionUuid = '';
+    _validationMessage = null;
+    _syncOptionControllers(question);
+    _activeOptionUuids
+      ..clear()
+      ..addAll(question.options.map((option) => option.uuid));
+    _setDraftText('');
+    notifyListeners();
+  }
+
+  void showDraftOption(SeatDescriptionTrainingQuestion question) {
+    if (!canAddOption()) {
+      return;
+    }
+
+    _showsDraftOption = true;
+    _draftOptionUuid = TrainingModuleController.generateClientUuid();
+    _draftCorrectOptionUuid = _selectedOptionUuid;
+    _validationMessage = null;
+    notifyListeners();
+  }
+
+  void removeDraftOption(SeatDescriptionTrainingQuestion question) {
+    if (!_showsDraftOption) {
+      return;
+    }
+
+    _showsDraftOption = false;
+    _draftOptionUuid = '';
+    _draftCorrectOptionUuid = '';
+    _validationMessage = null;
+    _setDraftText('');
+    if (_selectedOptionUuid.isEmpty) {
+      _selectedOptionUuid = _firstActiveOptionUuid();
+    }
+    notifyListeners();
+  }
+
+  void selectOption(String optionUuid) {
+    if (_showsDraftOption) {
+      return;
+    }
+
+    final resolvedOptionUuid = optionUuid.trim();
+    if (resolvedOptionUuid.isEmpty) {
+      return;
+    }
+
+    if (_selectedOptionUuid == resolvedOptionUuid &&
+        _validationMessage == null) {
+      return;
+    }
+
+    _selectedOptionUuid = resolvedOptionUuid;
+    _validationMessage = null;
+    notifyListeners();
+  }
+
+  void selectCorrectOption(String? optionUuid) {
+    final resolvedOptionUuid = optionUuid?.trim() ?? '';
+    if (resolvedOptionUuid.isEmpty) {
+      return;
+    }
+
+    if (_showsDraftOption) {
+      if (_draftCorrectOptionUuid == resolvedOptionUuid &&
+          _validationMessage == null) {
+        return;
+      }
+
+      _draftCorrectOptionUuid = resolvedOptionUuid;
+    } else {
+      if (_selectedOptionUuid == resolvedOptionUuid &&
+          _validationMessage == null) {
+        return;
+      }
+
+      _selectedOptionUuid = resolvedOptionUuid;
+    }
+
+    _validationMessage = null;
+    notifyListeners();
+  }
+
+  void removeExistingOption(String optionUuid) {
+    final resolvedOptionUuid = optionUuid.trim();
+    if (resolvedOptionUuid.isEmpty ||
+        !_activeOptionUuids.remove(resolvedOptionUuid)) {
+      return;
+    }
+
+    final removedController = _optionControllers.remove(resolvedOptionUuid);
+    removedController
+      ?..removeListener(_handleExistingOptionChanged)
+      ..dispose();
+
+    if (_selectedOptionUuid == resolvedOptionUuid) {
+      _selectedOptionUuid = _firstActiveOptionUuid();
+    }
+
+    if (_draftCorrectOptionUuid == resolvedOptionUuid) {
+      _draftCorrectOptionUuid = _resolveDraftCorrectOptionUuid();
+    }
+
+    _validationMessage = null;
+    notifyListeners();
+  }
+
+  void setValidationMessage(String message) {
+    _validationMessage = message;
+    notifyListeners();
+  }
+
+  String? validate(SeatDescriptionTrainingQuestion question) {
+    if (_hasEmptyExistingOptionText(question) ||
+        (_showsDraftOption && draftOptionController.text.trim().isEmpty)) {
+      return AppStrings.trainingQuestionOptionsRequired;
+    }
+
+    final options = buildOptions(question);
+    if (options.length < TrainingModuleController.minQuizOptionsPerQuestion) {
+      return AppStrings.trainingQuestionMinOptionsRequired;
+    }
+
+    final resolvedCorrectOptionUuid = selectedCorrectOptionUuid.trim();
+    if (resolvedCorrectOptionUuid.isEmpty ||
+        !options.any((option) => option.uuid == resolvedCorrectOptionUuid)) {
+      return AppStrings.trainingQuestionCorrectOptionRequired;
+    }
+
+    return null;
+  }
+
+  List<SeatDescriptionTrainingQuestionOption> buildOptions(
+    SeatDescriptionTrainingQuestion question,
+  ) {
+    final originalOptionsByUuid =
+        <String, SeatDescriptionTrainingQuestionOption>{
+          for (final option in question.options) option.uuid: option,
+        };
+    final options = _activeOptionUuids
+        .map((uuid) => originalOptionsByUuid[uuid])
+        .whereType<SeatDescriptionTrainingQuestionOption>()
+        .map(
+          (option) => SeatDescriptionTrainingQuestionOption(
+            uuid: option.uuid,
+            text: optionControllerFor(option).text.trim(),
+          ),
+        )
+        .toList(growable: true);
+    final draftText = draftOptionController.text.trim();
+    if (_showsDraftOption &&
+        draftText.isNotEmpty &&
+        _draftOptionUuid.isNotEmpty) {
+      options.add(
+        SeatDescriptionTrainingQuestionOption(
+          uuid: _draftOptionUuid,
+          text: draftText,
+        ),
+      );
+    }
+    return options;
+  }
+
+  void _handleExistingOptionChanged() {
+    _validationMessage = null;
+    notifyListeners();
+  }
+
+  void _handleDraftOptionChanged() {
+    if (_isSyncingDraftText) {
+      return;
+    }
+
+    _validationMessage = null;
+    notifyListeners();
+  }
+
+  void _syncOptionControllers(SeatDescriptionTrainingQuestion question) {
+    final retainedControllers = <String, TextEditingController>{};
+
+    for (final option in question.options) {
+      final controller =
+          _optionControllers.remove(option.uuid) ??
+          (TextEditingController(text: option.text)
+            ..addListener(_handleExistingOptionChanged));
+      if (controller.text != option.text) {
+        controller.value = controller.value.copyWith(
+          text: option.text,
+          selection: TextSelection.collapsed(offset: option.text.length),
+          composing: TextRange.empty,
+        );
+      }
+      retainedControllers[option.uuid] = controller;
+    }
+
+    for (final controller in _optionControllers.values) {
+      controller
+        ..removeListener(_handleExistingOptionChanged)
+        ..dispose();
+    }
+
+    _optionControllers
+      ..clear()
+      ..addAll(retainedControllers);
+  }
+
+  bool _hasEmptyExistingOptionText(SeatDescriptionTrainingQuestion question) {
+    return visibleExistingOptions(
+      question,
+    ).any((option) => optionControllerFor(option).text.trim().isEmpty);
+  }
+
+  bool _hasExistingOptionTextChanges(SeatDescriptionTrainingQuestion question) {
+    return visibleExistingOptions(question).any(
+      (option) => optionControllerFor(option).text.trim() != option.text.trim(),
+    );
+  }
+
+  bool _hasExistingOptionStructureChanges(
+    SeatDescriptionTrainingQuestion question,
+  ) {
+    if (question.options.length != _activeOptionUuids.length) {
+      return true;
+    }
+
+    for (var index = 0; index < question.options.length; index++) {
+      if (question.options[index].uuid != _activeOptionUuids[index]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void _setDraftText(String value) {
+    _isSyncingDraftText = true;
+    draftOptionController.value = draftOptionController.value.copyWith(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+      composing: TextRange.empty,
+    );
+    _isSyncingDraftText = false;
+  }
+
+  String _resolveSelectedOptionUuid(SeatDescriptionTrainingQuestion question) {
+    final currentSelectedOptionUuid = question.selectedOptionUuid?.trim() ?? '';
+    final hasCurrentSelection = question.options.any(
+      (option) => option.uuid == currentSelectedOptionUuid,
+    );
+    if (hasCurrentSelection) {
+      return currentSelectedOptionUuid;
+    }
+
+    return question.options.isNotEmpty ? question.options.first.uuid : '';
+  }
+
+  String _firstActiveOptionUuid() {
+    if (_activeOptionUuids.isNotEmpty) {
+      return _activeOptionUuids.first;
+    }
+
+    return '';
+  }
+
+  String _resolveDraftCorrectOptionUuid() {
+    final selectedOptionUuid = _selectedOptionUuid.trim();
+    if (selectedOptionUuid.isNotEmpty &&
+        _activeOptionUuids.contains(selectedOptionUuid)) {
+      return selectedOptionUuid;
+    }
+
+    return _firstActiveOptionUuid();
+  }
+
+  String _buildQuestionSignature(SeatDescriptionTrainingQuestion question) {
+    final optionsSignature = question.options
+        .map((option) => '${option.uuid}:${option.text}')
+        .join('|');
+    return [
+      question.uuid,
+      question.question,
+      question.selectedOptionUuid ?? '',
+      question.imageUrl ?? '',
+      optionsSignature,
+    ].join('::');
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _optionControllers.values) {
+      controller
+        ..removeListener(_handleExistingOptionChanged)
+        ..dispose();
+    }
+    draftOptionController.removeListener(_handleDraftOptionChanged);
+    draftOptionController.dispose();
+    super.dispose();
+  }
+}
+
+class _DraftQuizOptionTile extends StatelessWidget {
+  const _DraftQuizOptionTile({
+    required this.controller,
+    required this.hintText,
+    required this.isSelected,
+    this.onSelect,
+    this.onDeleteTap,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool isSelected;
+  final VoidCallback? onSelect;
+  final VoidCallback? onDeleteTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isTextEditable = onDeleteTap != null;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        color: AppColors.surfaceDark2.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.24),
+        ),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextView.body3(
-            '$number. ${question.question}',
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
-            height: 1.45,
-          ),
-          if (resolvedImageUrl != null) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: CachedNetworkImage(
-                imageUrl: resolvedImageUrl,
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
+          InkWell(
+            onTap: onSelect,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 10, top: 2, bottom: 2),
+              child: Icon(
+                isSelected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: isSelected
+                    ? AppColors.secondaryColor
+                    : AppColors.textSecondary,
+                size: 18,
               ),
             ),
-          ],
-          if (question.options.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            for (var index = 0; index < question.options.length; index++) ...[
-              _QuizOptionTile(
-                questionId: question.uuid,
-                optionId: question.options[index].uuid,
-                text: question.options[index].text,
-                isSelected: question.selectedOptionUuid == question.options[index].uuid,
-                canDelete: canDeleteOptions,
-                isDeleting:
-                    deletingQuestionOptionKey ==
-                    '${question.uuid}::${question.options[index].uuid}',
-                onDeleteTap: () => onDeleteOptionTap(question.uuid, question.options[index].uuid),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: isTextEditable,
+              keyboardType: TextInputType.multiline,
+              minLines: 1,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              cursorColor: Colors.white,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
-              if (index != question.options.length - 1) const SizedBox(height: 10),
-            ],
-          ],
+              decoration: InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.72),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          InkWell(
+            onTap: onDeleteTap,
+            borderRadius: BorderRadius.circular(999),
+            child: Ink(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.fieldBorder.withValues(alpha: 0.22),
+                ),
+              ),
+              child: const Icon(
+                Icons.remove_circle_outline_rounded,
+                color: AppColors.red,
+                size: 15,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _QuizOptionTile extends StatelessWidget {
-  const _QuizOptionTile({
-    required this.questionId,
-    required this.optionId,
-    required this.text,
-    required this.isSelected,
-    required this.canDelete,
-    required this.isDeleting,
-    required this.onDeleteTap,
+class _QuizCorrectOptionChoice {
+  const _QuizCorrectOptionChoice({required this.uuid, required this.label});
+
+  final String uuid;
+  final String label;
+}
+
+class _QuizCorrectOptionDropdown extends StatelessWidget {
+  const _QuizCorrectOptionDropdown({
+    required this.value,
+    required this.options,
+    this.onChanged,
   });
 
-  final String questionId;
-  final String optionId;
-  final String text;
-  final bool isSelected;
-  final bool canDelete;
-  final bool isDeleting;
-  final VoidCallback onDeleteTap;
+  final String value;
+  final List<_QuizCorrectOptionChoice> options;
+  final ValueChanged<String?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final hasValue = options.any((option) => option.uuid == value);
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 14,
-          height: 14,
-          margin: const EdgeInsets.only(top: 3, right: 8),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSelected ? AppColors.secondaryColor : AppColors.textSecondary,
-              width: 1.4,
+        const AppTextView.body3(
+          AppStrings.trainingQuestionCorrectAnswerLabel,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          key: ValueKey<String>(value),
+          initialValue: hasValue ? value : null,
+          onChanged: onChanged,
+          isExpanded: true,
+          dropdownColor: AppColors.surfaceDark,
+          iconEnabledColor: AppColors.textPrimary,
+          iconSize: 18,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.surfaceDark2.withValues(alpha: 0.32),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 10,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: AppColors.fieldBorder.withValues(alpha: 0.24),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: AppColors.fieldBorder.withValues(alpha: 0.24),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.secondaryColor),
             ),
           ),
-          child: isSelected
-              ? Center(
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: AppColors.secondaryColor,
-                      shape: BoxShape.circle,
+          items: options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option.uuid,
+                  child: Text(
+                    option.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                )
-              : null,
+                ),
+              )
+              .toList(growable: false),
         ),
-        Expanded(
-          child: AppTextView.body3(
-            text,
-            color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
-            height: 1.4,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          ),
+      ],
+    );
+  }
+}
+
+class _QuizOptionTile extends StatelessWidget {
+  const _QuizOptionTile({
+    required this.controller,
+    required this.hintText,
+    required this.isSelected,
+    required this.isEditable,
+    this.onTap,
+    this.canDelete = false,
+    this.onDeleteTap,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool isSelected;
+  final bool isEditable;
+  final VoidCallback? onTap;
+  final bool canDelete;
+  final VoidCallback? onDeleteTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark2.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.24),
         ),
-        if (canDelete) ...[
-          const SizedBox(width: 8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           InkWell(
-            onTap: isDeleting ? null : onDeleteTap,
+            onTap: onTap,
             borderRadius: BorderRadius.circular(999),
-            child: Ink(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2, right: 10, bottom: 2),
+              child: Icon(
+                isSelected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: isSelected
+                    ? AppColors.secondaryColor
+                    : AppColors.textSecondary,
+                size: 18,
               ),
-              child: isDeleting
-                  ? FastCircularProgressIndicator(width: 12, height: 12)
-                  : Tooltip(
-                      message: AppStrings.trainingDeleteOption,
-                      child: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.textSecondary,
-                        size: 14,
-                      ),
-                    ),
             ),
           ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: isEditable,
+              keyboardType: TextInputType.multiline,
+              minLines: 1,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              cursorColor: Colors.white,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                height: 1.45,
+              ),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.72),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          if (canDelete) ...[
+            const SizedBox(width: 10),
+            InkWell(
+              onTap: onDeleteTap,
+              borderRadius: BorderRadius.circular(999),
+              child: Ink(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.fieldBorder.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: Tooltip(
+                  message: AppStrings.trainingDeleteOption,
+                  child: const Icon(
+                    Icons.remove_circle_outline_rounded,
+                    color: AppColors.red,
+                    size: 15,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -4496,7 +6660,9 @@ class _TrainingReadOnlyBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.22),
+        ),
       ),
       child: const AppTextView.body3(
         AppStrings.trainingReadOnlyAccessMessage,
@@ -4520,7 +6686,9 @@ class _ContentMessage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: AppTextView.body3(
         message,
@@ -4532,7 +6700,10 @@ class _ContentMessage extends StatelessWidget {
 }
 
 class _DottedRoundedBorderPainter extends CustomPainter {
-  const _DottedRoundedBorderPainter({required this.color, required this.radius});
+  const _DottedRoundedBorderPainter({
+    required this.color,
+    required this.radius,
+  });
 
   final Color color;
   final double radius;
@@ -4545,7 +6716,9 @@ class _DottedRoundedBorderPainter extends CustomPainter {
       ..strokeWidth = 1.2;
 
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)));
+      ..addRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
+      );
 
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;

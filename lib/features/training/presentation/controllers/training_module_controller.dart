@@ -3,8 +3,10 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/services/file_uploader.dart';
@@ -22,6 +24,838 @@ enum QuizGenerationDifficulty {
   final String apiValue;
 }
 
+enum TrainingDocumentFormatKind { bold, italic, underline, heading, quote }
+
+class TrainingDocumentFormatRange {
+  const TrainingDocumentFormatRange({
+    required this.kind,
+    required this.start,
+    required this.end,
+  });
+
+  final TrainingDocumentFormatKind kind;
+  final int start;
+  final int end;
+
+  bool get isValid => end > start;
+
+  TrainingDocumentFormatRange copyWith({
+    TrainingDocumentFormatKind? kind,
+    int? start,
+    int? end,
+  }) {
+    return TrainingDocumentFormatRange(
+      kind: kind ?? this.kind,
+      start: start ?? this.start,
+      end: end ?? this.end,
+    );
+  }
+}
+
+class _TrainingParsedDocument {
+  const _TrainingParsedDocument({required this.text, required this.formats});
+
+  final String text;
+  final List<TrainingDocumentFormatRange> formats;
+}
+
+class TrainingRichTextEditingController extends TextEditingController {
+  TrainingRichTextEditingController({super.text}) {
+    _lastText = text;
+    addListener(_handleTextChanged);
+  }
+
+  static final RegExp _numberedListPrefixPattern = RegExp(r'^\d+\.\s');
+
+  List<TrainingDocumentFormatRange> _formats =
+      const <TrainingDocumentFormatRange>[];
+  bool _isProgrammaticChange = false;
+  String _lastText = '';
+
+  void loadFromHtml(String? html) {
+    final parsed = _parseHtmlDocument(html);
+    _isProgrammaticChange = true;
+    _formats = _mergeFormatRanges(parsed.formats);
+    value = value.copyWith(
+      text: parsed.text,
+      selection: TextSelection.collapsed(offset: parsed.text.length),
+      composing: TextRange.empty,
+    );
+    _lastText = parsed.text;
+    _isProgrammaticChange = false;
+    notifyListeners();
+  }
+
+  String toHtml() {
+    return _serializeHtmlDocument(text, _formats);
+  }
+
+  void applyBold() {
+    _applyInlineFormat(TrainingDocumentFormatKind.bold);
+  }
+
+  void applyItalic() {
+    _applyInlineFormat(TrainingDocumentFormatKind.italic);
+  }
+
+  void applyUnderline() {
+    _applyInlineFormat(TrainingDocumentFormatKind.underline);
+  }
+
+  void applyHeading() {
+    _applyInlineFormat(TrainingDocumentFormatKind.heading);
+  }
+
+  void applyQuote() {
+    _applyInlineFormat(TrainingDocumentFormatKind.quote);
+  }
+
+  void applyBulletList() {
+    _toggleListPrefix(_ListFormatKind.bullet);
+  }
+
+  void applyNumberedList() {
+    _toggleListPrefix(_ListFormatKind.numbered);
+  }
+
+  bool isFormatActive(TrainingDocumentFormatKind kind) {
+    final resolvedSelection = _normalizedSelection(allowCollapsed: true);
+    if (resolvedSelection == null) {
+      return false;
+    }
+
+    final start = min(resolvedSelection.start, resolvedSelection.end);
+    final end = max(resolvedSelection.start, resolvedSelection.end);
+    if (start == end) {
+      if (text.isEmpty) {
+        return false;
+      }
+
+      final caretIndex = start.clamp(0, text.length);
+      final probeStart = caretIndex == text.length && caretIndex > 0
+          ? caretIndex - 1
+          : caretIndex;
+      final probeEnd = min(probeStart + 1, text.length);
+      if (probeEnd <= probeStart) {
+        return false;
+      }
+
+      return _hasFormatCoverage(kind: kind, start: probeStart, end: probeEnd);
+    }
+
+    return _hasFormatCoverage(kind: kind, start: start, end: end);
+  }
+
+  bool get isBulletListActive {
+    final selectedBlock = _selectedBlockRange();
+    if (selectedBlock == null) {
+      return false;
+    }
+
+    final nonEmptyLines = _nonEmptyLines(selectedBlock.text.split('\n'));
+    if (nonEmptyLines.isEmpty) {
+      return false;
+    }
+
+    return nonEmptyLines.every(_isBulletedLine);
+  }
+
+  bool get isNumberedListActive {
+    final selectedBlock = _selectedBlockRange();
+    if (selectedBlock == null) {
+      return false;
+    }
+
+    final nonEmptyLines = _nonEmptyLines(selectedBlock.text.split('\n'));
+    if (nonEmptyLines.isEmpty) {
+      return false;
+    }
+
+    return nonEmptyLines.every(_isNumberedLine);
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final resolvedStyle = style ?? const TextStyle();
+    final resolvedText = text;
+    if (resolvedText.isEmpty || _formats.isEmpty) {
+      return TextSpan(text: resolvedText, style: resolvedStyle);
+    }
+
+    final boundaries = <int>{0, resolvedText.length};
+    for (final format in _formats) {
+      final safeStart = format.start.clamp(0, resolvedText.length);
+      final safeEnd = format.end.clamp(0, resolvedText.length);
+      if (safeEnd <= safeStart) {
+        continue;
+      }
+      boundaries.add(safeStart);
+      boundaries.add(safeEnd);
+    }
+
+    final sortedBoundaries = boundaries.toList()..sort();
+    final spans = <InlineSpan>[];
+    for (var index = 0; index < sortedBoundaries.length - 1; index++) {
+      final start = sortedBoundaries[index];
+      final end = sortedBoundaries[index + 1];
+      if (end <= start) {
+        continue;
+      }
+
+      final segmentText = resolvedText.substring(start, end);
+      final activeKinds = _formats
+          .where((format) => format.start <= start && format.end >= end)
+          .map((format) => format.kind)
+          .toSet();
+      spans.add(
+        TextSpan(
+          text: segmentText,
+          style: _styleForKinds(resolvedStyle, activeKinds),
+        ),
+      );
+    }
+
+    return TextSpan(style: resolvedStyle, children: spans);
+  }
+
+  void _applyInlineFormat(TrainingDocumentFormatKind kind) {
+    final resolvedSelection = _normalizedSelection();
+    if (resolvedSelection == null) {
+      return;
+    }
+
+    final start = min(resolvedSelection.start, resolvedSelection.end);
+    final end = max(resolvedSelection.start, resolvedSelection.end);
+    if (_hasFormatCoverage(kind: kind, start: start, end: end)) {
+      _formats = _removeFormatCoverage(kind: kind, start: start, end: end);
+    } else {
+      _formats = _mergeFormatRanges(<TrainingDocumentFormatRange>[
+        ..._formats,
+        TrainingDocumentFormatRange(kind: kind, start: start, end: end),
+      ]);
+    }
+    notifyListeners();
+  }
+
+  void _toggleListPrefix(_ListFormatKind kind) {
+    final selectedBlock = _selectedBlockRange();
+    if (selectedBlock == null) {
+      return;
+    }
+
+    final lines = selectedBlock.text.split('\n');
+    final nonEmptyLines = _nonEmptyLines(lines);
+    final shouldRemove = switch (kind) {
+      _ListFormatKind.bullet =>
+        nonEmptyLines.isNotEmpty && nonEmptyLines.every(_isBulletedLine),
+      _ListFormatKind.numbered =>
+        nonEmptyLines.isNotEmpty && nonEmptyLines.every(_isNumberedLine),
+    };
+
+    var numberedLineIndex = 0;
+    final transformedBlock = lines
+        .map((line) {
+          if (line.trim().isEmpty) {
+            return line;
+          }
+
+          if (shouldRemove) {
+            return _stripListPrefix(line);
+          }
+
+          final plainLine = _stripListPrefix(line);
+          return switch (kind) {
+            _ListFormatKind.bullet => '• $plainLine',
+            _ListFormatKind.numbered => '${++numberedLineIndex}. $plainLine',
+          };
+        })
+        .join('\n');
+
+    _replaceTextRange(
+      start: selectedBlock.start,
+      end: selectedBlock.end,
+      replacement: transformedBlock,
+      selectionStart: selectedBlock.start,
+      selectionEnd: selectedBlock.start + transformedBlock.length,
+    );
+  }
+
+  void _replaceTextRange({
+    required int start,
+    required int end,
+    required String replacement,
+    required int selectionStart,
+    required int selectionEnd,
+  }) {
+    final currentText = text;
+    final safeStart = start.clamp(0, currentText.length);
+    final safeEnd = end.clamp(safeStart, currentText.length);
+    final updatedText = currentText.replaceRange(
+      safeStart,
+      safeEnd,
+      replacement,
+    );
+    final removedLength = safeEnd - safeStart;
+    final insertedLength = replacement.length;
+    _formats = _adjustFormatRangesForTextChange(
+      _formats,
+      changedStart: safeStart,
+      removedLength: removedLength,
+      insertedLength: insertedLength,
+    );
+
+    _isProgrammaticChange = true;
+    value = value.copyWith(
+      text: updatedText,
+      selection: TextSelection(
+        baseOffset: selectionStart,
+        extentOffset: selectionEnd,
+      ),
+      composing: TextRange.empty,
+    );
+    _lastText = updatedText;
+    _isProgrammaticChange = false;
+    notifyListeners();
+  }
+
+  TextSelection? _normalizedSelection({bool allowCollapsed = false}) {
+    final selection = value.selection;
+    if (!selection.isValid || selection.start < 0 || selection.end < 0) {
+      return null;
+    }
+
+    final start = min(selection.start, selection.end);
+    final end = max(selection.start, selection.end);
+    if (!allowCollapsed && start == end) {
+      return null;
+    }
+
+    return TextSelection(baseOffset: start, extentOffset: end);
+  }
+
+  bool _hasFormatCoverage({
+    required TrainingDocumentFormatKind kind,
+    required int start,
+    required int end,
+  }) {
+    return _formats.any(
+      (format) =>
+          format.kind == kind && format.start <= start && format.end >= end,
+    );
+  }
+
+  List<TrainingDocumentFormatRange> _removeFormatCoverage({
+    required TrainingDocumentFormatKind kind,
+    required int start,
+    required int end,
+  }) {
+    final updatedRanges = <TrainingDocumentFormatRange>[];
+
+    for (final format in _formats) {
+      if (format.kind != kind || format.end <= start || format.start >= end) {
+        updatedRanges.add(format);
+        continue;
+      }
+
+      if (format.start < start) {
+        updatedRanges.add(format.copyWith(end: start));
+      }
+      if (format.end > end) {
+        updatedRanges.add(format.copyWith(start: end));
+      }
+    }
+
+    return _mergeFormatRanges(updatedRanges);
+  }
+
+  ({int start, int end, String text})? _selectedBlockRange() {
+    final resolvedSelection = _normalizedSelection();
+    if (resolvedSelection == null) {
+      return null;
+    }
+
+    final currentText = text;
+    final start = min(resolvedSelection.start, resolvedSelection.end);
+    final end = max(resolvedSelection.start, resolvedSelection.end);
+    final blockStart = currentText.lastIndexOf('\n', start - 1) + 1;
+    final blockEndCandidate = currentText.indexOf('\n', end);
+    final blockEnd = blockEndCandidate == -1
+        ? currentText.length
+        : blockEndCandidate;
+    return (
+      start: blockStart,
+      end: blockEnd,
+      text: currentText.substring(blockStart, blockEnd),
+    );
+  }
+
+  Iterable<String> _nonEmptyLines(List<String> lines) {
+    return lines.where((line) => line.trim().isNotEmpty);
+  }
+
+  bool _isBulletedLine(String line) {
+    return line.startsWith('• ');
+  }
+
+  bool _isNumberedLine(String line) {
+    return _numberedListPrefixPattern.hasMatch(line);
+  }
+
+  String _stripListPrefix(String line) {
+    if (_isBulletedLine(line)) {
+      return line.substring(2);
+    }
+
+    return line.replaceFirst(_numberedListPrefixPattern, '');
+  }
+
+  void _handleTextChanged() {
+    if (_isProgrammaticChange) {
+      return;
+    }
+
+    if (_lastText == text) {
+      return;
+    }
+
+    final diff = _resolveTextDiff(_lastText, text);
+    _formats = _adjustFormatRangesForTextChange(
+      _formats,
+      changedStart: diff.start,
+      removedLength: diff.removedLength,
+      insertedLength: diff.insertedLength,
+    );
+    _lastText = text;
+    notifyListeners();
+  }
+
+  TextStyle _styleForKinds(
+    TextStyle baseStyle,
+    Set<TrainingDocumentFormatKind> kinds,
+  ) {
+    var resolvedStyle = baseStyle;
+    if (kinds.contains(TrainingDocumentFormatKind.bold)) {
+      resolvedStyle = resolvedStyle.copyWith(fontWeight: FontWeight.w700);
+    }
+    if (kinds.contains(TrainingDocumentFormatKind.italic)) {
+      resolvedStyle = resolvedStyle.copyWith(fontStyle: FontStyle.italic);
+    }
+    if (kinds.contains(TrainingDocumentFormatKind.underline)) {
+      resolvedStyle = resolvedStyle.copyWith(
+        decoration: TextDecoration.underline,
+      );
+    }
+    if (kinds.contains(TrainingDocumentFormatKind.heading)) {
+      resolvedStyle = resolvedStyle.copyWith(
+        fontWeight: FontWeight.w700,
+        fontSize: (resolvedStyle.fontSize ?? 13) + 3,
+        height: 1.45,
+      );
+    }
+    if (kinds.contains(TrainingDocumentFormatKind.quote)) {
+      resolvedStyle = resolvedStyle.copyWith(
+        fontStyle: FontStyle.italic,
+        color: AppColors.hexd9deff,
+      );
+    }
+
+    return resolvedStyle;
+  }
+
+  @override
+  void dispose() {
+    removeListener(_handleTextChanged);
+    super.dispose();
+  }
+}
+
+enum _ListFormatKind { bullet, numbered }
+
+({int start, int removedLength, int insertedLength}) _resolveTextDiff(
+  String previousText,
+  String nextText,
+) {
+  var prefixLength = 0;
+  while (prefixLength < previousText.length &&
+      prefixLength < nextText.length &&
+      previousText.codeUnitAt(prefixLength) ==
+          nextText.codeUnitAt(prefixLength)) {
+    prefixLength++;
+  }
+
+  var previousSuffixIndex = previousText.length - 1;
+  var nextSuffixIndex = nextText.length - 1;
+  while (previousSuffixIndex >= prefixLength &&
+      nextSuffixIndex >= prefixLength &&
+      previousText.codeUnitAt(previousSuffixIndex) ==
+          nextText.codeUnitAt(nextSuffixIndex)) {
+    previousSuffixIndex--;
+    nextSuffixIndex--;
+  }
+
+  final removedLength = previousSuffixIndex < prefixLength
+      ? 0
+      : previousSuffixIndex - prefixLength + 1;
+  final insertedLength = nextSuffixIndex < prefixLength
+      ? 0
+      : nextSuffixIndex - prefixLength + 1;
+
+  return (
+    start: prefixLength,
+    removedLength: removedLength,
+    insertedLength: insertedLength,
+  );
+}
+
+List<TrainingDocumentFormatRange> _adjustFormatRangesForTextChange(
+  List<TrainingDocumentFormatRange> formats, {
+  required int changedStart,
+  required int removedLength,
+  required int insertedLength,
+}) {
+  final changedEnd = changedStart + removedLength;
+  final delta = insertedLength - removedLength;
+  final adjustedRanges = <TrainingDocumentFormatRange>[];
+
+  for (final format in formats) {
+    var start = format.start;
+    var end = format.end;
+
+    if (end <= changedStart) {
+      adjustedRanges.add(format);
+      continue;
+    }
+
+    if (start >= changedEnd) {
+      adjustedRanges.add(
+        format.copyWith(start: start + delta, end: end + delta),
+      );
+      continue;
+    }
+
+    if (start < changedStart && end > changedEnd) {
+      adjustedRanges.add(format.copyWith(end: end + delta));
+      continue;
+    }
+
+    if (start < changedStart && end > changedStart && end <= changedEnd) {
+      adjustedRanges.add(format.copyWith(end: changedStart));
+      continue;
+    }
+
+    if (start >= changedStart && start < changedEnd && end > changedEnd) {
+      adjustedRanges.add(
+        format.copyWith(start: changedStart + insertedLength, end: end + delta),
+      );
+    }
+  }
+
+  return _mergeFormatRanges(adjustedRanges);
+}
+
+List<TrainingDocumentFormatRange> _mergeFormatRanges(
+  List<TrainingDocumentFormatRange> ranges,
+) {
+  final sortedRanges =
+      ranges
+          .where((range) => range.isValid)
+          .map(
+            (range) => TrainingDocumentFormatRange(
+              kind: range.kind,
+              start: min(range.start, range.end),
+              end: max(range.start, range.end),
+            ),
+          )
+          .toList()
+        ..sort((left, right) {
+          final kindComparison = left.kind.index.compareTo(right.kind.index);
+          if (kindComparison != 0) {
+            return kindComparison;
+          }
+          final startComparison = left.start.compareTo(right.start);
+          if (startComparison != 0) {
+            return startComparison;
+          }
+          return left.end.compareTo(right.end);
+        });
+
+  final mergedRanges = <TrainingDocumentFormatRange>[];
+  for (final range in sortedRanges) {
+    if (mergedRanges.isEmpty) {
+      mergedRanges.add(range);
+      continue;
+    }
+
+    final previous = mergedRanges.last;
+    if (previous.kind == range.kind && previous.end >= range.start) {
+      mergedRanges[mergedRanges.length - 1] = previous.copyWith(
+        end: max(previous.end, range.end),
+      );
+      continue;
+    }
+
+    mergedRanges.add(range);
+  }
+
+  return mergedRanges;
+}
+
+_TrainingParsedDocument _parseHtmlDocument(String? html) {
+  final source = html?.trim() ?? '';
+  if (source.isEmpty) {
+    return const _TrainingParsedDocument(
+      text: '',
+      formats: <TrainingDocumentFormatRange>[],
+    );
+  }
+
+  final buffer = StringBuffer();
+  final formats = <TrainingDocumentFormatRange>[];
+  final tokens = RegExp(r'<[^>]+>|[^<]+').allMatches(source);
+  final tagStack = <TrainingDocumentFormatKind, List<int>>{
+    for (final kind in TrainingDocumentFormatKind.values) kind: <int>[],
+  };
+
+  var insideOrderedList = false;
+  var orderedListIndex = 0;
+
+  void appendText(String value) {
+    if (value.isEmpty) {
+      return;
+    }
+    buffer.write(
+      value
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>'),
+    );
+  }
+
+  void appendNewLine({int count = 1}) {
+    final existing = buffer.toString();
+    final trailingNewLines =
+        RegExp(r'\n*$').firstMatch(existing)?.group(0)?.length ?? 0;
+    final needed = max(0, count - trailingNewLines);
+    if (needed > 0) {
+      buffer.write('\n' * needed);
+    }
+  }
+
+  void openStyle(TrainingDocumentFormatKind kind) {
+    tagStack[kind]!.add(buffer.length);
+  }
+
+  void closeStyle(TrainingDocumentFormatKind kind) {
+    final positions = tagStack[kind]!;
+    if (positions.isEmpty) {
+      return;
+    }
+    final start = positions.removeLast();
+    final end = buffer.length;
+    if (end > start) {
+      formats.add(
+        TrainingDocumentFormatRange(kind: kind, start: start, end: end),
+      );
+    }
+  }
+
+  for (final match in tokens) {
+    final token = match.group(0) ?? '';
+    if (token.startsWith('<')) {
+      final normalized = token.toLowerCase();
+      if (normalized.startsWith('<br')) {
+        appendNewLine();
+        continue;
+      }
+
+      if (normalized == '<p>' || normalized == '<div>') {
+        continue;
+      }
+
+      if (normalized == '</p>' || normalized == '</div>') {
+        appendNewLine(count: 2);
+        continue;
+      }
+
+      if (normalized == '<strong>' || normalized == '<b>') {
+        openStyle(TrainingDocumentFormatKind.bold);
+        continue;
+      }
+
+      if (normalized == '</strong>' || normalized == '</b>') {
+        closeStyle(TrainingDocumentFormatKind.bold);
+        continue;
+      }
+
+      if (normalized == '<em>' || normalized == '<i>') {
+        openStyle(TrainingDocumentFormatKind.italic);
+        continue;
+      }
+
+      if (normalized == '</em>' || normalized == '</i>') {
+        closeStyle(TrainingDocumentFormatKind.italic);
+        continue;
+      }
+
+      if (normalized == '<u>') {
+        openStyle(TrainingDocumentFormatKind.underline);
+        continue;
+      }
+
+      if (normalized == '</u>') {
+        closeStyle(TrainingDocumentFormatKind.underline);
+        continue;
+      }
+
+      if (normalized == '<blockquote>') {
+        openStyle(TrainingDocumentFormatKind.quote);
+        continue;
+      }
+
+      if (normalized == '</blockquote>') {
+        closeStyle(TrainingDocumentFormatKind.quote);
+        appendNewLine(count: 2);
+        continue;
+      }
+
+      if (RegExp(r'<h[1-6]>').hasMatch(normalized)) {
+        openStyle(TrainingDocumentFormatKind.heading);
+        continue;
+      }
+
+      if (RegExp(r'</h[1-6]>').hasMatch(normalized)) {
+        closeStyle(TrainingDocumentFormatKind.heading);
+        appendNewLine(count: 2);
+        continue;
+      }
+
+      if (normalized == '<ul>') {
+        insideOrderedList = false;
+        continue;
+      }
+
+      if (normalized == '<ol>') {
+        insideOrderedList = true;
+        orderedListIndex = 0;
+        continue;
+      }
+
+      if (normalized == '<li>') {
+        appendText(insideOrderedList ? '${++orderedListIndex}. ' : '\u2022 ');
+        continue;
+      }
+
+      if (normalized == '</li>') {
+        appendNewLine();
+        continue;
+      }
+
+      continue;
+    }
+
+    appendText(token);
+  }
+
+  for (final kind in TrainingDocumentFormatKind.values) {
+    while (tagStack[kind]!.isNotEmpty) {
+      closeStyle(kind);
+    }
+  }
+
+  final resolvedText = buffer
+      .toString()
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trimRight();
+  final trimmedFormats = formats
+      .map(
+        (range) => TrainingDocumentFormatRange(
+          kind: range.kind,
+          start: min(range.start, resolvedText.length),
+          end: min(range.end, resolvedText.length),
+        ),
+      )
+      .where((range) => range.isValid)
+      .toList(growable: false);
+
+  return _TrainingParsedDocument(
+    text: resolvedText,
+    formats: _mergeFormatRanges(trimmedFormats),
+  );
+}
+
+String _serializeHtmlDocument(
+  String source,
+  List<TrainingDocumentFormatRange> formats,
+) {
+  final resolvedText = source.trim();
+  if (resolvedText.isEmpty) {
+    return '';
+  }
+
+  final safeFormats = _mergeFormatRanges(
+    formats,
+  ).where((range) => range.end <= resolvedText.length).toList(growable: false);
+  final openTags = <int, List<String>>{};
+  final closeTags = <int, List<String>>{};
+
+  String tagNameFor(TrainingDocumentFormatKind kind) {
+    return switch (kind) {
+      TrainingDocumentFormatKind.bold => 'strong',
+      TrainingDocumentFormatKind.italic => 'em',
+      TrainingDocumentFormatKind.underline => 'u',
+      TrainingDocumentFormatKind.heading => 'h3',
+      TrainingDocumentFormatKind.quote => 'blockquote',
+    };
+  }
+
+  for (final range in safeFormats) {
+    final tagName = tagNameFor(range.kind);
+    openTags.putIfAbsent(range.start, () => <String>[]).add(tagName);
+    closeTags.putIfAbsent(range.end, () => <String>[]).add(tagName);
+  }
+
+  final buffer = StringBuffer();
+  for (var index = 0; index <= resolvedText.length; index++) {
+    final closing = closeTags[index];
+    if (closing != null) {
+      for (final tagName in closing.reversed) {
+        buffer.write('</$tagName>');
+      }
+    }
+
+    final opening = openTags[index];
+    if (opening != null) {
+      for (final tagName in opening) {
+        buffer.write('<$tagName>');
+      }
+    }
+
+    if (index == resolvedText.length) {
+      continue;
+    }
+
+    final character = resolvedText[index];
+    if (character == '\n') {
+      buffer.write('<br>');
+      continue;
+    }
+
+    buffer.write(
+      character
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;'),
+    );
+  }
+
+  return buffer.toString();
+}
+
 class TrainingModuleController extends ChangeNotifier {
   TrainingModuleController(
     this._auditRepository, {
@@ -30,6 +864,7 @@ class TrainingModuleController extends ChangeNotifier {
   }) : _fileUploader = fileUploader ?? const FileUploader(),
        _canManageTraining = canManageTraining {
     newLessonTitleController.addListener(_handleNewLessonTitleChanged);
+    documentController.addListener(_handleDocumentChanged);
   }
 
   static const int minQuizQuestionCount = 1;
@@ -37,17 +872,27 @@ class TrainingModuleController extends ChangeNotifier {
   static const int minQuizOptionsPerQuestion = 2;
   static const int maxQuizOptionsPerQuestion = 4;
   static const int maxTrainingVideoTitleLength = 128;
-  static final Random _uuidRandom = Random.secure();
+  static final Uuid _uuidGenerator = const Uuid();
+
+  static String generateClientUuid() => _uuidGenerator.v1();
 
   final AuditRepository _auditRepository;
   final FileUploader _fileUploader;
   final bool _canManageTraining;
   final TextEditingController newLessonTitleController =
       TextEditingController();
+  final TextEditingController summaryController = TextEditingController();
+  final TextEditingController assignmentTitleController =
+      TextEditingController();
+  final TrainingRichTextEditingController documentController =
+      TrainingRichTextEditingController();
+  final TrainingRichTextEditingController assignmentDescriptionController =
+      TrainingRichTextEditingController();
   final Map<String, String> _moduleLocalVideoPaths = <String, String>{};
 
   bool _isLoading = false;
   bool _isDocumentLoading = false;
+  bool _isAssignmentLoading = false;
   bool _isQuestionsLoading = false;
   bool _isCreatingNewLessonDraft = false;
   bool _isCreatingModule = false;
@@ -56,15 +901,18 @@ class TrainingModuleController extends ChangeNotifier {
   bool _isUploadingThumbnail = false;
   String? _errorMessage;
   String? _documentErrorMessage;
+  String? _assignmentErrorMessage;
   String? _questionsErrorMessage;
   String? _summarySnackBarMessage;
   List<SeatDescriptionTrainingModule> _modules =
       const <SeatDescriptionTrainingModule>[];
   SeatDescriptionTrainingModuleDetail? _selectedModuleDetail;
   SeatDescriptionTrainingDocument? _selectedModuleDocument;
+  SeatDescriptionTrainingAssignment? _selectedModuleAssignment;
   List<SeatDescriptionTrainingQuestion> _selectedModuleQuestions =
       const <SeatDescriptionTrainingQuestion>[];
   String _selectedModuleId = '';
+  bool _hasResolvedAssignment = false;
   bool _hasResolvedQuestions = false;
   int _quizGenerationQuestionCount = 3;
   int _quizGenerationOptionsPerQuestion = 4;
@@ -74,14 +922,26 @@ class TrainingModuleController extends ChangeNotifier {
   bool _isGeneratingQuiz = false;
   bool _isGeneratingSop = false;
   bool _isAddingQuestion = false;
+  bool _isEditingSummary = false;
+  bool _isSavingSummary = false;
+  bool? _editingSummaryVisibility;
+  bool _isSavingDocument = false;
+  bool _isSavingAssignment = false;
+  bool _isSyncingDocumentController = false;
+  String? _savingQuestionId;
+  String? _deletingQuestionId;
   String? _deletingQuestionOptionKey;
   String? _deletingModuleId;
+  String? _updatingModuleVisibilityId;
   String _jobId = '';
   String _descriptionId = '';
   int _summarySnackBarSequence = 0;
+  String _lastSavedDocumentHtml = '';
+  Timer? _documentAutoSaveDebounce;
 
   bool get isLoading => _isLoading;
   bool get isDocumentLoading => _isDocumentLoading;
+  bool get isAssignmentLoading => _isAssignmentLoading;
   bool get isQuestionsLoading => _isQuestionsLoading;
   bool get isCreatingNewLessonDraft => _isCreatingNewLessonDraft;
   bool get isCreatingModule => _isCreatingModule;
@@ -91,6 +951,7 @@ class TrainingModuleController extends ChangeNotifier {
   bool get isUpdatingVideoActions => _isDeletingVideo || _isUploadingThumbnail;
   String? get errorMessage => _errorMessage;
   String? get documentErrorMessage => _documentErrorMessage;
+  String? get assignmentErrorMessage => _assignmentErrorMessage;
   String? get questionsErrorMessage => _questionsErrorMessage;
   String? get summarySnackBarMessage => _summarySnackBarMessage;
   List<SeatDescriptionTrainingModule> get modules => _modules;
@@ -114,6 +975,8 @@ class TrainingModuleController extends ChangeNotifier {
       _selectedModuleDetail;
   SeatDescriptionTrainingDocument? get selectedModuleDocument =>
       _selectedModuleDocument;
+  SeatDescriptionTrainingAssignment? get selectedModuleAssignment =>
+      _selectedModuleAssignment;
   List<SeatDescriptionTrainingQuestion> get selectedModuleQuestions =>
       _selectedModuleQuestions;
   int get quizGenerationQuestionCount => _quizGenerationQuestionCount;
@@ -124,8 +987,19 @@ class TrainingModuleController extends ChangeNotifier {
   bool get isGeneratingQuiz => _isGeneratingQuiz;
   bool get isGeneratingSop => _isGeneratingSop;
   bool get isAddingQuestion => _isAddingQuestion;
+  bool get isEditingSummary => _isEditingSummary;
+  bool get isSavingSummary => _isSavingSummary;
+  bool get summaryVisibilityValue =>
+      _editingSummaryVisibility ??
+      _selectedModuleDetail?.isPubliclyAvailable ??
+      false;
+  bool get isSavingDocument => _isSavingDocument;
+  bool get isSavingAssignment => _isSavingAssignment;
+  String? get savingQuestionId => _savingQuestionId;
+  String? get deletingQuestionId => _deletingQuestionId;
   String? get deletingQuestionOptionKey => _deletingQuestionOptionKey;
   String? get deletingModuleId => _deletingModuleId;
+  String? get updatingModuleVisibilityId => _updatingModuleVisibilityId;
   bool get canManageTraining => _canManageTraining;
   bool get canSubmitNewLessonTitle =>
       _canManageTraining &&
@@ -167,13 +1041,33 @@ class TrainingModuleController extends ChangeNotifier {
       hasSelectedModule &&
       hasSelectedModuleVideo &&
       !_isAddingQuestion;
+  bool get canEditSelectedModuleSummary =>
+      _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
+  bool get canEditSelectedModuleDocument =>
+      _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
+  bool get canEditSelectedModuleAssignment =>
+      _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
   bool get hasSelectedModuleDocumentText {
     final text = _selectedModuleDocument?.text?.trim();
     return text != null && text.isNotEmpty;
   }
 
+  bool get hasSelectedModuleAssignmentContent =>
+      _selectedModuleAssignment?.hasContent ??
+      _selectedModuleDetail?.hasAssignmentContent ??
+      false;
+  bool get hasPersistedSelectedModuleAssignment =>
+      _selectedModuleAssignment?.uuid.trim().isNotEmpty ?? false;
+
   bool isDeletingModule(String moduleId) =>
       _deletingModuleId == moduleId.trim();
+  bool isUpdatingModuleVisibility(String moduleId) =>
+      _updatingModuleVisibilityId == moduleId.trim();
+  bool isSavingQuestion(String questionId) =>
+      _savingQuestionId == questionId.trim();
+
+  bool isDeletingQuestion(String questionId) =>
+      _deletingQuestionId == questionId.trim();
   int get summarySnackBarSequence => _summarySnackBarSequence;
 
   String get selectedModuleTitle {
@@ -212,8 +1106,6 @@ class TrainingModuleController extends ChangeNotifier {
     _descriptionId = resolvedDescriptionId;
     _isLoading = true;
     _errorMessage = null;
-    _documentErrorMessage = null;
-    _questionsErrorMessage = null;
     _isCreatingNewLessonDraft = false;
     _isCreatingModule = false;
     _isUploadingVideo = false;
@@ -221,9 +1113,9 @@ class TrainingModuleController extends ChangeNotifier {
     _modules = const <SeatDescriptionTrainingModule>[];
     _selectedModuleId = '';
     _selectedModuleDetail = null;
-    _selectedModuleDocument = null;
-    _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
-    _hasResolvedQuestions = false;
+    _updatingModuleVisibilityId = null;
+    _resetSelectedModuleExtras();
+    _resetEditors();
     newLessonTitleController.clear();
     notifyListeners();
 
@@ -272,11 +1164,8 @@ class TrainingModuleController extends ChangeNotifier {
     _isCreatingNewLessonDraft = false;
     _selectedModuleId = resolvedModuleId;
     _selectedModuleDetail = null;
-    _selectedModuleDocument = null;
-    _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
-    _documentErrorMessage = null;
-    _questionsErrorMessage = null;
-    _hasResolvedQuestions = false;
+    _resetSelectedModuleExtras();
+    _resetEditors();
     await _loadSelectedModuleDetail();
   }
 
@@ -287,13 +1176,11 @@ class TrainingModuleController extends ChangeNotifier {
 
     _isCreatingNewLessonDraft = true;
     _errorMessage = null;
-    _documentErrorMessage = null;
-    _questionsErrorMessage = null;
     _selectedModuleId = '';
     _selectedModuleDetail = null;
-    _selectedModuleDocument = null;
-    _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
-    _hasResolvedQuestions = false;
+    _updatingModuleVisibilityId = null;
+    _resetSelectedModuleExtras();
+    _resetEditors();
     newLessonTitleController.clear();
     notifyListeners();
   }
@@ -333,11 +1220,9 @@ class TrainingModuleController extends ChangeNotifier {
       _isCreatingNewLessonDraft = false;
       _selectedModuleId = selectedModule.uuid;
       _selectedModuleDetail = _buildModuleDetailFromModule(selectedModule);
-      _selectedModuleDocument = null;
-      _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
-      _documentErrorMessage = null;
-      _questionsErrorMessage = null;
-      _hasResolvedQuestions = false;
+      _updatingModuleVisibilityId = null;
+      _resetSelectedModuleExtras();
+      _resetEditors();
       newLessonTitleController.clear();
       notifyListeners();
       unawaited(_loadSelectedModuleDetail());
@@ -377,11 +1262,73 @@ class TrainingModuleController extends ChangeNotifier {
           .getSeatDescriptionTrainingModuleDocument(
             moduleId: _selectedModuleId,
           );
+      _syncDocumentEditorText();
     } catch (error) {
       _documentErrorMessage = error.toString();
       rethrow;
     } finally {
       _isDocumentLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadAssignmentForSelectedModule() async {
+    if (_selectedModuleId.isEmpty ||
+        _isAssignmentLoading ||
+        _hasResolvedAssignment) {
+      return;
+    }
+
+    try {
+      await refreshAssignmentForSelectedModule();
+    } catch (_) {
+      // Error state is already stored for the UI by refreshAssignmentForSelectedModule.
+    }
+  }
+
+  Future<void> refreshAssignmentForSelectedModule() async {
+    if (_selectedModuleId.isEmpty || _isAssignmentLoading) {
+      return;
+    }
+
+    _isAssignmentLoading = true;
+    _assignmentErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final assignment = await _auditRepository
+          .getSeatDescriptionTrainingModuleAssignment(
+            moduleId: _selectedModuleId,
+          );
+      _selectedModuleAssignment = assignment;
+      _hasResolvedAssignment = true;
+      _applySelectedModuleAssignment(
+        title: assignment.title,
+        instructions: assignment.instructions,
+        notifyListenersAfterUpdate: false,
+      );
+      _syncAssignmentEditorText();
+    } catch (error) {
+      if (error is ApiError && error.statusCode == 404) {
+        _selectedModuleAssignment = const SeatDescriptionTrainingAssignment(
+          uuid: '',
+          title: null,
+          instructions: null,
+        );
+        _hasResolvedAssignment = true;
+        _applySelectedModuleAssignment(
+          title: null,
+          instructions: null,
+          notifyListenersAfterUpdate: false,
+        );
+        _syncAssignmentEditorText();
+        return;
+      }
+
+      _assignmentErrorMessage = error.toString();
+      rethrow;
+    } finally {
+      _isAssignmentLoading = false;
       notifyListeners();
     }
   }
@@ -451,7 +1398,7 @@ class TrainingModuleController extends ChangeNotifier {
     final options = resolvedOptionTexts
         .map(
           (text) => SeatDescriptionTrainingQuestionOption(
-            uuid: _generateClientUuid(),
+            uuid: generateClientUuid(),
             text: text,
           ),
         )
@@ -602,6 +1549,265 @@ class TrainingModuleController extends ChangeNotifier {
     }
   }
 
+  void startEditingSummary() {
+    if (!canEditSelectedModuleSummary) {
+      return;
+    }
+
+    _isEditingSummary = true;
+    _editingSummaryVisibility =
+        _selectedModuleDetail?.isPubliclyAvailable ?? false;
+    _summaryTextToController();
+    notifyListeners();
+  }
+
+  void cancelEditingSummary() {
+    if (!_isEditingSummary) {
+      return;
+    }
+
+    _isEditingSummary = false;
+    _editingSummaryVisibility = null;
+    _summaryTextToController();
+    notifyListeners();
+  }
+
+  void setEditingSummaryVisibility(bool value) {
+    if (!canEditSelectedModuleSummary ||
+        !_isEditingSummary ||
+        _editingSummaryVisibility == value) {
+      return;
+    }
+
+    _editingSummaryVisibility = value;
+    notifyListeners();
+  }
+
+  Future<bool> saveSummaryForSelectedModule() async {
+    final resolvedModuleId = _selectedModuleId.trim();
+    if (!canEditSelectedModuleSummary ||
+        resolvedModuleId.isEmpty ||
+        _isSavingSummary) {
+      return false;
+    }
+
+    _isSavingSummary = true;
+    notifyListeners();
+
+    try {
+      final description = summaryController.text.trim();
+      final isPubliclyAvailable = summaryVisibilityValue;
+      await _auditRepository.updateSeatDescriptionTrainingModuleSummary(
+        moduleId: resolvedModuleId,
+        description: description,
+        isPubliclyAvailable: isPubliclyAvailable,
+      );
+      _isEditingSummary = false;
+      _editingSummaryVisibility = null;
+      _applySelectedModuleDescription(
+        description.isEmpty ? null : description,
+        notifyListenersAfterUpdate: false,
+      );
+      _applySelectedModuleVisibility(
+        isPubliclyAvailable,
+        notifyListenersAfterUpdate: false,
+      );
+      _emitSummarySnackBar(AppStrings.trainingModuleDetailsSavedSuccess);
+      return true;
+    } catch (error) {
+      _emitSummarySnackBar(error.toString());
+      return false;
+    } finally {
+      _isSavingSummary = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateModuleVisibility({
+    required String moduleId,
+    required bool isPubliclyAvailable,
+  }) async {
+    final resolvedModuleId = moduleId.trim();
+    if (!_canManageTraining || resolvedModuleId.isEmpty) {
+      return false;
+    }
+
+    final targetModule = _findModuleById(resolvedModuleId);
+    if (targetModule == null ||
+        _updatingModuleVisibilityId == resolvedModuleId ||
+        _deletingModuleId == resolvedModuleId) {
+      return false;
+    }
+
+    if (targetModule.isPubliclyAvailable == isPubliclyAvailable) {
+      return true;
+    }
+
+    _updatingModuleVisibilityId = resolvedModuleId;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _auditRepository.updateSeatDescriptionTrainingModuleVisibility(
+        moduleId: targetModule.resolvedParentModuleId,
+        isPubliclyAvailable: isPubliclyAvailable,
+      );
+      _applyModuleVisibilityInList(
+        moduleId: resolvedModuleId,
+        isPubliclyAvailable: isPubliclyAvailable,
+      );
+      if (_selectedModuleId == resolvedModuleId) {
+        if (_isEditingSummary) {
+          _editingSummaryVisibility = isPubliclyAvailable;
+        }
+        _applySelectedModuleVisibility(
+          isPubliclyAvailable,
+          notifyListenersAfterUpdate: false,
+        );
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _updatingModuleVisibilityId = null;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> saveDocumentForSelectedModule() async {
+    final resolvedModuleId = _selectedModuleId.trim();
+    if (!canEditSelectedModuleDocument ||
+        resolvedModuleId.isEmpty ||
+        _isSavingDocument) {
+      return false;
+    }
+
+    _isSavingDocument = true;
+    _documentErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final text = documentController.toHtml().trim();
+      await _auditRepository.updateSeatDescriptionTrainingModuleDocument(
+        moduleId: resolvedModuleId,
+        documentId: _selectedModuleDocument?.uuid ?? '',
+        text: text,
+      );
+      _selectedModuleDocument = SeatDescriptionTrainingDocument(
+        uuid: _selectedModuleDocument?.uuid ?? '',
+        text: text.isEmpty ? null : text,
+      );
+      _lastSavedDocumentHtml = text;
+      return true;
+    } catch (error) {
+      _documentErrorMessage = error.toString();
+      return false;
+    } finally {
+      _isSavingDocument = false;
+      notifyListeners();
+      _scheduleDocumentAutoSaveIfNeeded();
+    }
+  }
+
+  Future<bool> saveAssignmentForSelectedModule() async {
+    final resolvedModuleId = _selectedModuleId.trim();
+    final title = assignmentTitleController.text.trim();
+    final instructionsText = assignmentDescriptionController.text.trim();
+    if (!canEditSelectedModuleAssignment ||
+        resolvedModuleId.isEmpty ||
+        _isSavingAssignment) {
+      return false;
+    }
+
+    if (title.isEmpty || instructionsText.isEmpty) {
+      _emitSummarySnackBar(AppStrings.trainingAssignmentContentRequired);
+      return false;
+    }
+
+    _isSavingAssignment = true;
+    _assignmentErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final instructions = assignmentDescriptionController.toHtml().trim();
+      final assignmentId = _selectedModuleAssignment?.uuid.trim();
+      await _auditRepository.updateSeatDescriptionTrainingModuleAssignment(
+        moduleId: resolvedModuleId,
+        assignmentId: assignmentId?.isNotEmpty == true ? assignmentId : null,
+        title: title,
+        instructions: instructions,
+      );
+      await refreshAssignmentForSelectedModule();
+      _hasResolvedAssignment = true;
+      _emitSummarySnackBar(AppStrings.trainingAssignmentSavedSuccess);
+      return true;
+    } catch (error) {
+      _assignmentErrorMessage = error.toString();
+      _emitSummarySnackBar(error.toString());
+      return false;
+    } finally {
+      _isSavingAssignment = false;
+      notifyListeners();
+    }
+  }
+
+  void applyDocumentBoldFormatting() {
+    documentController.applyBold();
+  }
+
+  void applyDocumentItalicFormatting() {
+    documentController.applyItalic();
+  }
+
+  void applyDocumentUnderlineFormatting() {
+    documentController.applyUnderline();
+  }
+
+  void applyDocumentBulletListFormatting() {
+    documentController.applyBulletList();
+  }
+
+  void applyDocumentNumberedListFormatting() {
+    documentController.applyNumberedList();
+  }
+
+  void applyDocumentQuoteFormatting() {
+    documentController.applyQuote();
+  }
+
+  void applyDocumentHeadingFormatting() {
+    documentController.applyHeading();
+  }
+
+  void applyAssignmentBoldFormatting() {
+    assignmentDescriptionController.applyBold();
+  }
+
+  void applyAssignmentItalicFormatting() {
+    assignmentDescriptionController.applyItalic();
+  }
+
+  void applyAssignmentUnderlineFormatting() {
+    assignmentDescriptionController.applyUnderline();
+  }
+
+  void applyAssignmentBulletListFormatting() {
+    assignmentDescriptionController.applyBulletList();
+  }
+
+  void applyAssignmentNumberedListFormatting() {
+    assignmentDescriptionController.applyNumberedList();
+  }
+
+  void applyAssignmentQuoteFormatting() {
+    assignmentDescriptionController.applyQuote();
+  }
+
+  void applyAssignmentHeadingFormatting() {
+    assignmentDescriptionController.applyHeading();
+  }
+
   Future<bool> uploadVideoForSelectedModule(File videoFile) async {
     final resolvedModuleId = _selectedModuleId.trim();
     if (!canUploadSelectedModuleVideo || resolvedModuleId.isEmpty) {
@@ -637,7 +1843,7 @@ class TrainingModuleController extends ChangeNotifier {
       final uploadedVideo = await _auditRepository
           .addSeatDescriptionTrainingModuleVideo(
             moduleId: resolvedModuleId,
-            videoUuid: _generateClientUuid(),
+            videoUuid: generateClientUuid(),
             title: videoTitle,
             videoUrl: videoUrl,
             duration: videoDurationInSeconds,
@@ -812,11 +2018,8 @@ class TrainingModuleController extends ChangeNotifier {
       if (refreshedModules.isEmpty) {
         _selectedModuleId = '';
         _selectedModuleDetail = null;
-        _selectedModuleDocument = null;
-        _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
-        _documentErrorMessage = null;
-        _questionsErrorMessage = null;
-        _hasResolvedQuestions = false;
+        _resetSelectedModuleExtras();
+        _resetEditors();
         notifyListeners();
         return true;
       }
@@ -837,11 +2040,8 @@ class TrainingModuleController extends ChangeNotifier {
 
       _selectedModuleId = refreshedModules.first.uuid;
       _selectedModuleDetail = null;
-      _selectedModuleDocument = null;
-      _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
-      _documentErrorMessage = null;
-      _questionsErrorMessage = null;
-      _hasResolvedQuestions = false;
+      _resetSelectedModuleExtras();
+      _resetEditors();
       await _loadSelectedModuleDetail();
       return true;
     } catch (error) {
@@ -871,7 +2071,9 @@ class TrainingModuleController extends ChangeNotifier {
     }
 
     final deleteKey = '$resolvedQuestionId::$resolvedOptionId';
-    if (_deletingQuestionOptionKey == deleteKey) {
+    if (_deletingQuestionOptionKey == deleteKey ||
+        _savingQuestionId == resolvedQuestionId ||
+        _deletingQuestionId == resolvedQuestionId) {
       return false;
     }
 
@@ -909,6 +2111,106 @@ class TrainingModuleController extends ChangeNotifier {
     }
   }
 
+  Future<bool> saveQuestion({
+    required String questionId,
+    required List<SeatDescriptionTrainingQuestionOption> options,
+    String? correctOptionUuid,
+  }) async {
+    final resolvedQuestionId = questionId.trim();
+    if (!_canManageTraining || resolvedQuestionId.isEmpty) {
+      return false;
+    }
+
+    final targetQuestion = _findQuestionById(resolvedQuestionId);
+    if (targetQuestion == null ||
+        _savingQuestionId == resolvedQuestionId ||
+        _deletingQuestionId == resolvedQuestionId) {
+      return false;
+    }
+
+    final resolvedOptions = options
+        .map(
+          (option) => SeatDescriptionTrainingQuestionOption(
+            uuid: option.uuid.trim().isEmpty
+                ? generateClientUuid()
+                : option.uuid.trim(),
+            text: option.text.trim(),
+          ),
+        )
+        .where((option) => option.text.isNotEmpty)
+        .toList(growable: false);
+    if (resolvedOptions.length < minQuizOptionsPerQuestion) {
+      _questionsErrorMessage = AppStrings.trainingQuestionMinOptionsRequired;
+      notifyListeners();
+      return false;
+    }
+
+    final resolvedCorrectOptionUuid = correctOptionUuid?.trim() ?? '';
+    final hasResolvedCorrectOption = resolvedOptions.any(
+      (option) => option.uuid == resolvedCorrectOptionUuid,
+    );
+    final safeCorrectOptionUuid = hasResolvedCorrectOption
+        ? resolvedCorrectOptionUuid
+        : resolvedOptions.first.uuid;
+
+    _savingQuestionId = resolvedQuestionId;
+    _questionsErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final updatedQuestion = await _auditRepository
+          .updateSeatDescriptionTrainingQuestion(
+            questionId: resolvedQuestionId,
+            questionText: targetQuestion.question,
+            options: resolvedOptions,
+            correctOptionUuid: safeCorrectOptionUuid,
+          );
+      _replaceSelectedQuestion(updatedQuestion);
+      return true;
+    } catch (error) {
+      _questionsErrorMessage = error.toString();
+      return false;
+    } finally {
+      _savingQuestionId = null;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteQuestion({required String questionId}) async {
+    final resolvedQuestionId = questionId.trim();
+    if (!_canManageTraining || resolvedQuestionId.isEmpty) {
+      return false;
+    }
+
+    final targetQuestion = _findQuestionById(resolvedQuestionId);
+    if (targetQuestion == null ||
+        _savingQuestionId == resolvedQuestionId ||
+        _deletingQuestionId == resolvedQuestionId) {
+      return false;
+    }
+
+    _deletingQuestionId = resolvedQuestionId;
+    _questionsErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _auditRepository.deleteSeatDescriptionTrainingQuestion(
+        questionId: resolvedQuestionId,
+      );
+      final updatedQuestions = _selectedModuleQuestions
+          .where((question) => question.uuid != targetQuestion.uuid)
+          .toList(growable: false);
+      _updateSelectedModuleQuestions(updatedQuestions);
+      return true;
+    } catch (error) {
+      _questionsErrorMessage = error.toString();
+      return false;
+    } finally {
+      _deletingQuestionId = null;
+      notifyListeners();
+    }
+  }
+
   Future<void> _loadSelectedModuleDetail() async {
     if (_selectedModuleId.isEmpty) {
       _isLoading = false;
@@ -926,6 +2228,8 @@ class TrainingModuleController extends ChangeNotifier {
       if (_selectedModuleDetail?.trainingVideo == null) {
         _moduleLocalVideoPaths.remove(_selectedModuleId.trim());
       }
+      _syncSummaryEditorText();
+      _syncAssignmentEditorText();
       _updateSelectedModuleQuestions(
         _selectedModuleDetail?.questions ??
             const <SeatDescriptionTrainingQuestion>[],
@@ -959,6 +2263,8 @@ class TrainingModuleController extends ChangeNotifier {
       title: detail.title,
       thumbnails: List<String>.from(detail.thumbnails, growable: false),
       description: detail.description,
+      assignmentTitle: detail.assignmentTitle,
+      assignmentInstructions: detail.assignmentInstructions,
       questions: _selectedModuleQuestions,
       thumbnailLink: detail.thumbnailLink,
       trainingVideo: detail.trainingVideo,
@@ -998,6 +2304,16 @@ class TrainingModuleController extends ChangeNotifier {
     return null;
   }
 
+  SeatDescriptionTrainingModule? _findModuleById(String moduleId) {
+    for (final module in _modules) {
+      if (module.uuid == moduleId) {
+        return module;
+      }
+    }
+
+    return null;
+  }
+
   SeatDescriptionTrainingModuleDetail _buildModuleDetailFromModule(
     SeatDescriptionTrainingModule module,
   ) {
@@ -1007,10 +2323,12 @@ class TrainingModuleController extends ChangeNotifier {
       title: module.title,
       thumbnails: const <String>[],
       description: null,
+      assignmentTitle: null,
+      assignmentInstructions: null,
       questions: const <SeatDescriptionTrainingQuestion>[],
       thumbnailLink: module.thumbnailLink,
       trainingVideo: null,
-      isPubliclyAvailable: false,
+      isPubliclyAvailable: module.isPubliclyAvailable,
       learningTrackCount: 0,
     );
   }
@@ -1026,6 +2344,7 @@ class TrainingModuleController extends ChangeNotifier {
       actualId: detail.actualId,
       title: detail.title,
       thumbnailLink: detail.previewThumbnailLink,
+      isPubliclyAvailable: detail.isPubliclyAvailable,
     );
     _modules = _modules
         .map(
@@ -1035,7 +2354,10 @@ class TrainingModuleController extends ChangeNotifier {
         .toList(growable: false);
   }
 
-  void _applySelectedModuleDescription(String? description) {
+  void _applySelectedModuleDescription(
+    String? description, {
+    bool notifyListenersAfterUpdate = true,
+  }) {
     final detail = _selectedModuleDetail;
     if (detail == null) {
       return;
@@ -1047,6 +2369,8 @@ class TrainingModuleController extends ChangeNotifier {
       title: detail.title,
       thumbnails: List<String>.from(detail.thumbnails, growable: false),
       description: description?.trim(),
+      assignmentTitle: detail.assignmentTitle,
+      assignmentInstructions: detail.assignmentInstructions,
       questions: List<SeatDescriptionTrainingQuestion>.from(
         detail.questions,
         growable: false,
@@ -1056,7 +2380,105 @@ class TrainingModuleController extends ChangeNotifier {
       isPubliclyAvailable: detail.isPubliclyAvailable,
       learningTrackCount: detail.learningTrackCount,
     );
-    notifyListeners();
+    _syncSummaryEditorText();
+    if (notifyListenersAfterUpdate) {
+      notifyListeners();
+    }
+  }
+
+  void _applySelectedModuleAssignment({
+    String? title,
+    String? instructions,
+    bool notifyListenersAfterUpdate = true,
+  }) {
+    final detail = _selectedModuleDetail;
+    final resolvedTitle = title?.trim();
+    final resolvedInstructions = instructions?.trim();
+    _selectedModuleAssignment = SeatDescriptionTrainingAssignment(
+      uuid: _selectedModuleAssignment?.uuid ?? '',
+      title: resolvedTitle?.isNotEmpty == true ? resolvedTitle : null,
+      instructions: resolvedInstructions?.isNotEmpty == true
+          ? resolvedInstructions
+          : null,
+    );
+
+    if (detail != null) {
+      _selectedModuleDetail = SeatDescriptionTrainingModuleDetail(
+        uuid: detail.uuid,
+        actualId: detail.actualId,
+        title: detail.title,
+        thumbnails: List<String>.from(detail.thumbnails, growable: false),
+        description: detail.description,
+        assignmentTitle: _selectedModuleAssignment?.title,
+        assignmentInstructions: _selectedModuleAssignment?.instructions,
+        questions: List<SeatDescriptionTrainingQuestion>.from(
+          detail.questions,
+          growable: false,
+        ),
+        thumbnailLink: detail.thumbnailLink,
+        trainingVideo: detail.trainingVideo,
+        isPubliclyAvailable: detail.isPubliclyAvailable,
+        learningTrackCount: detail.learningTrackCount,
+      );
+    }
+
+    if (notifyListenersAfterUpdate) {
+      notifyListeners();
+    }
+  }
+
+  void _applySelectedModuleVisibility(
+    bool isPubliclyAvailable, {
+    bool notifyListenersAfterUpdate = true,
+  }) {
+    final detail = _selectedModuleDetail;
+    if (detail == null) {
+      return;
+    }
+
+    _selectedModuleDetail = SeatDescriptionTrainingModuleDetail(
+      uuid: detail.uuid,
+      actualId: detail.actualId,
+      title: detail.title,
+      thumbnails: List<String>.from(detail.thumbnails, growable: false),
+      description: detail.description,
+      assignmentTitle: detail.assignmentTitle,
+      assignmentInstructions: detail.assignmentInstructions,
+      questions: List<SeatDescriptionTrainingQuestion>.from(
+        detail.questions,
+        growable: false,
+      ),
+      thumbnailLink: detail.thumbnailLink,
+      trainingVideo: detail.trainingVideo,
+      isPubliclyAvailable: isPubliclyAvailable,
+      learningTrackCount: detail.learningTrackCount,
+    );
+    _applyModuleVisibilityInList(
+      moduleId: detail.uuid,
+      isPubliclyAvailable: isPubliclyAvailable,
+    );
+    if (notifyListenersAfterUpdate) {
+      notifyListeners();
+    }
+  }
+
+  void _applyModuleVisibilityInList({
+    required String moduleId,
+    required bool isPubliclyAvailable,
+  }) {
+    _modules = _modules
+        .map(
+          (module) => module.uuid == moduleId
+              ? SeatDescriptionTrainingModule(
+                  uuid: module.uuid,
+                  actualId: module.actualId,
+                  title: module.title,
+                  thumbnailLink: module.thumbnailLink,
+                  isPubliclyAvailable: isPubliclyAvailable,
+                )
+              : module,
+        )
+        .toList(growable: false);
   }
 
   void applyGeneratedSummaryForModule({
@@ -1083,6 +2505,8 @@ class TrainingModuleController extends ChangeNotifier {
       title: detail.title,
       thumbnails: List<String>.from(detail.thumbnails, growable: false),
       description: detail.description,
+      assignmentTitle: detail.assignmentTitle,
+      assignmentInstructions: detail.assignmentInstructions,
       questions: List<SeatDescriptionTrainingQuestion>.from(
         detail.questions,
         growable: false,
@@ -1107,6 +2531,8 @@ class TrainingModuleController extends ChangeNotifier {
       title: detail.title,
       thumbnails: List<String>.from(detail.thumbnails, growable: false),
       description: detail.description,
+      assignmentTitle: detail.assignmentTitle,
+      assignmentInstructions: detail.assignmentInstructions,
       questions: List<SeatDescriptionTrainingQuestion>.from(
         detail.questions,
         growable: false,
@@ -1132,6 +2558,8 @@ class TrainingModuleController extends ChangeNotifier {
       title: detail.title,
       thumbnails: <String>[resolvedThumbnailUrl],
       description: detail.description,
+      assignmentTitle: detail.assignmentTitle,
+      assignmentInstructions: detail.assignmentInstructions,
       questions: List<SeatDescriptionTrainingQuestion>.from(
         detail.questions,
         growable: false,
@@ -1215,34 +2643,123 @@ class TrainingModuleController extends ChangeNotifier {
     return AppStrings.trainingVideoUploadFailed;
   }
 
-  String _generateClientUuid() {
-    final bytes = List<int>.generate(
-      16,
-      (_) => _uuidRandom.nextInt(256),
-      growable: false,
-    );
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex = bytes
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join();
-    return '${hex.substring(0, 8)}-'
-        '${hex.substring(8, 12)}-'
-        '${hex.substring(12, 16)}-'
-        '${hex.substring(16, 20)}-'
-        '${hex.substring(20, 32)}';
-  }
-
   void _handleNewLessonTitleChanged() {
     if (_isCreatingNewLessonDraft) {
       notifyListeners();
     }
   }
 
+  void _handleDocumentChanged() {
+    _scheduleDocumentAutoSaveIfNeeded();
+  }
+
+  void _resetEditors() {
+    _documentAutoSaveDebounce?.cancel();
+    _isEditingSummary = false;
+    _isSavingSummary = false;
+    _editingSummaryVisibility = null;
+    _isSavingDocument = false;
+    _isSavingAssignment = false;
+    _lastSavedDocumentHtml = '';
+    summaryController.clear();
+    assignmentTitleController.clear();
+    _isSyncingDocumentController = true;
+    documentController.clear();
+    _isSyncingDocumentController = false;
+    assignmentDescriptionController.clear();
+  }
+
+  void _resetSelectedModuleExtras() {
+    _selectedModuleDocument = null;
+    _selectedModuleAssignment = null;
+    _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
+    _documentErrorMessage = null;
+    _assignmentErrorMessage = null;
+    _questionsErrorMessage = null;
+    _isAssignmentLoading = false;
+    _hasResolvedAssignment = false;
+    _hasResolvedQuestions = false;
+  }
+
+  void _syncSummaryEditorText() {
+    if (_isEditingSummary) {
+      return;
+    }
+
+    _summaryTextToController();
+  }
+
+  void _syncDocumentEditorText() {
+    _documentTextToController();
+  }
+
+  void _syncAssignmentEditorText() {
+    _assignmentTextToController();
+  }
+
+  void _summaryTextToController() {
+    final summaryText = CustomFunctions.stripHtmlTags(
+      _selectedModuleDetail?.description?.trim() ?? '',
+    );
+    summaryController.value = summaryController.value.copyWith(
+      text: summaryText,
+      selection: TextSelection.collapsed(offset: summaryText.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  void _documentTextToController() {
+    final documentText = _selectedModuleDocument?.text?.trim() ?? '';
+    _isSyncingDocumentController = true;
+    documentController.loadFromHtml(documentText);
+    _lastSavedDocumentHtml = documentController.toHtml().trim();
+    _isSyncingDocumentController = false;
+  }
+
+  void _assignmentTextToController() {
+    final selectedAssignment = _selectedModuleAssignment;
+    final assignmentTitle = selectedAssignment != null
+        ? selectedAssignment.title?.trim() ?? ''
+        : _selectedModuleDetail?.assignmentTitle?.trim() ?? '';
+    final assignmentInstructions = selectedAssignment != null
+        ? selectedAssignment.instructions?.trim() ?? ''
+        : _selectedModuleDetail?.assignmentInstructions?.trim() ?? '';
+    assignmentTitleController.value = assignmentTitleController.value.copyWith(
+      text: assignmentTitle,
+      selection: TextSelection.collapsed(offset: assignmentTitle.length),
+      composing: TextRange.empty,
+    );
+    assignmentDescriptionController.loadFromHtml(assignmentInstructions);
+  }
+
+  void _scheduleDocumentAutoSaveIfNeeded() {
+    if (_isSyncingDocumentController || !canEditSelectedModuleDocument) {
+      return;
+    }
+
+    final currentText = documentController.toHtml().trim();
+    final savedText = _lastSavedDocumentHtml;
+    if (currentText == savedText) {
+      _documentAutoSaveDebounce?.cancel();
+      return;
+    }
+
+    _documentAutoSaveDebounce?.cancel();
+    _documentAutoSaveDebounce = Timer(const Duration(milliseconds: 700), () {
+      unawaited(saveDocumentForSelectedModule());
+    });
+  }
+
   @override
   void dispose() {
     newLessonTitleController.removeListener(_handleNewLessonTitleChanged);
+    documentController.removeListener(_handleDocumentChanged);
+    _documentAutoSaveDebounce?.cancel();
     newLessonTitleController.dispose();
+    summaryController.dispose();
+    assignmentTitleController.dispose();
+    documentController.dispose();
+    assignmentDescriptionController.dispose();
     super.dispose();
   }
 

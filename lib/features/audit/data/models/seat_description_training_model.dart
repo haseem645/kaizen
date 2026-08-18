@@ -6,6 +6,7 @@ class SeatDescriptionTrainingModuleModel extends SeatDescriptionTrainingModule {
     required super.actualId,
     required super.title,
     required super.thumbnailLink,
+    required super.isPubliclyAvailable,
   });
 
   factory SeatDescriptionTrainingModuleModel.fromApiJson(
@@ -16,6 +17,7 @@ class SeatDescriptionTrainingModuleModel extends SeatDescriptionTrainingModule {
       actualId: _readString(json['actual_id']) ?? '',
       title: _readString(json['title']) ?? '',
       thumbnailLink: _readString(json['thumbnail_link']),
+      isPubliclyAvailable: _readBool(json['is_publicly_available']) ?? false,
     );
   }
 }
@@ -28,6 +30,8 @@ class SeatDescriptionTrainingModuleDetailModel
     required super.title,
     required super.thumbnails,
     required super.description,
+    required super.assignmentTitle,
+    required super.assignmentInstructions,
     required super.questions,
     required super.thumbnailLink,
     required super.trainingVideo,
@@ -39,6 +43,7 @@ class SeatDescriptionTrainingModuleDetailModel
     Map<String, dynamic> json,
   ) {
     final trainingVideo = _readMap(json['training_video']);
+    final assignment = _readMap(json['assignment']);
 
     return SeatDescriptionTrainingModuleDetailModel(
       uuid: _readString(json['uuid']) ?? '',
@@ -46,6 +51,20 @@ class SeatDescriptionTrainingModuleDetailModel
       title: _readString(json['title']) ?? '',
       thumbnails: _readStringList(json['thumbnails']),
       description: _readString(json['description']),
+      assignmentTitle:
+          _readFirstString(assignment, const ['title', 'name']) ??
+          _readFirstString(json, const ['assignment_title', 'assignment_name']),
+      assignmentInstructions:
+          _readFirstString(assignment, const [
+            'instructions',
+            'description',
+            'text',
+          ]) ??
+          _readFirstString(json, const [
+            'assignment_instructions',
+            'assignment_description',
+            'instructions',
+          ]),
       questions: _readQuestionList(json['questions']),
       thumbnailLink: _readString(json['thumbnail_link']),
       trainingVideo: trainingVideo == null
@@ -92,6 +111,25 @@ class SeatDescriptionTrainingDocumentModel
     return SeatDescriptionTrainingDocumentModel(
       uuid: _readString(json['uuid']) ?? '',
       text: _readString(json['text']),
+    );
+  }
+}
+
+class SeatDescriptionTrainingAssignmentModel
+    extends SeatDescriptionTrainingAssignment {
+  const SeatDescriptionTrainingAssignmentModel({
+    required super.uuid,
+    required super.title,
+    required super.instructions,
+  });
+
+  factory SeatDescriptionTrainingAssignmentModel.fromApiJson(
+    Map<String, dynamic> json,
+  ) {
+    return SeatDescriptionTrainingAssignmentModel(
+      uuid: _readString(json['uuid']) ?? '',
+      title: _readString(json['title']),
+      instructions: _readString(json['instructions']),
     );
   }
 }
@@ -148,6 +186,21 @@ String? _readString(dynamic value) {
     return null;
   }
   return resolved;
+}
+
+String? _readFirstString(Map<String, dynamic>? json, List<String> keys) {
+  if (json == null) {
+    return null;
+  }
+
+  for (final key in keys) {
+    final value = _readString(json[key]);
+    if (value != null) {
+      return value;
+    }
+  }
+
+  return null;
 }
 
 int? _readInt(dynamic value) {
