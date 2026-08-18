@@ -473,6 +473,10 @@ class _DescriptionMediaCommentBottomSheetState
   }
 
   Future<void> _persistCapturedVideoToGallery(File mediaFile) async {
+    if (Platform.isAndroid) {
+      return;
+    }
+
     if (!await mediaFile.exists()) {
       if (mounted) {
         _showSnackBar(AppStrings.auditRecordedVideoMissing);

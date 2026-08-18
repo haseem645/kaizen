@@ -150,6 +150,9 @@ abstract class AuditRepository {
   Future<SeatDescriptionTrainingDocument>
   getSeatDescriptionTrainingModuleDocument({required String moduleId});
 
+  Future<SeatDescriptionTrainingAssignment>
+  getSeatDescriptionTrainingModuleAssignment({required String moduleId});
+
   Future<List<SeatDescriptionTrainingQuestion>>
   getSeatDescriptionTrainingModuleQuestions({required String moduleId});
 
@@ -174,6 +177,30 @@ abstract class AuditRepository {
 
   Future<String?> generateSeatDescriptionTrainingModuleSummary({
     required String moduleId,
+  });
+
+  Future<void> updateSeatDescriptionTrainingModuleSummary({
+    required String moduleId,
+    required String description,
+    required bool isPubliclyAvailable,
+  });
+
+  Future<void> updateSeatDescriptionTrainingModuleVisibility({
+    required String moduleId,
+    required bool isPubliclyAvailable,
+  });
+
+  Future<void> updateSeatDescriptionTrainingModuleDocument({
+    required String moduleId,
+    required String documentId,
+    required String text,
+  });
+
+  Future<void> updateSeatDescriptionTrainingModuleAssignment({
+    required String moduleId,
+    String? assignmentId,
+    required String title,
+    required String instructions,
   });
 
   Future<String> generateSeatDescriptionTrainingModuleVideoUploadUrl({
@@ -212,6 +239,10 @@ abstract class AuditRepository {
     required String questionText,
     required List<SeatDescriptionTrainingQuestionOption> options,
     String? correctOptionUuid,
+  });
+
+  Future<void> deleteSeatDescriptionTrainingQuestion({
+    required String questionId,
   });
 
   Future<QuarterlyAudit> getQuarterlyAudit({

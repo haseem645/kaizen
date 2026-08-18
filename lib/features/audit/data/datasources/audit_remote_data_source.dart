@@ -737,6 +737,44 @@ class AuditRemoteDataSource {
     );
   }
 
+  Future<SeatDescriptionTrainingAssignment>
+  getSeatDescriptionTrainingModuleAssignment({required String moduleId}) {
+    return _apiCallExecutor.processApi<SeatDescriptionTrainingAssignment>(
+      apiCallType: ApiCallType.get,
+      endpoint: ApiEndPoints.trainingModuleAssignment(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (json) {
+        if (json == null) {
+          return const SeatDescriptionTrainingAssignmentModel(
+            uuid: '',
+            title: null,
+            instructions: null,
+          );
+        }
+
+        if (json is Map<String, dynamic>) {
+          return SeatDescriptionTrainingAssignmentModel.fromApiJson(json);
+        }
+
+        if (json is Map) {
+          return SeatDescriptionTrainingAssignmentModel.fromApiJson(
+            Map<String, dynamic>.from(json),
+          );
+        }
+
+        if (json is List && json.isEmpty) {
+          return const SeatDescriptionTrainingAssignmentModel(
+            uuid: '',
+            title: null,
+            instructions: null,
+          );
+        }
+
+        throw const ApiError.invalidResponse();
+      },
+    );
+  }
+
   Future<List<SeatDescriptionTrainingQuestion>>
   getSeatDescriptionTrainingModuleQuestions({required String moduleId}) {
     return _apiCallExecutor.processApi<List<SeatDescriptionTrainingQuestion>>(
@@ -850,6 +888,71 @@ class AuditRemoteDataSource {
 
         throw const ApiError.invalidResponse();
       },
+    );
+  }
+
+  Future<void> updateSeatDescriptionTrainingModuleSummary({
+    required String moduleId,
+    required String description,
+    required bool isPubliclyAvailable,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.patch,
+      endpoint: ApiEndPoints.trainingModuleDetail(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      parameters: {
+        'description': description.trim(),
+        'is_publicly_available': isPubliclyAvailable,
+      },
+      decoder: (_) {},
+    );
+  }
+
+  Future<void> updateSeatDescriptionTrainingModuleVisibility({
+    required String moduleId,
+    required bool isPubliclyAvailable,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.patch,
+      endpoint: ApiEndPoints.trainingModuleDetail(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      parameters: {'is_publicly_available': isPubliclyAvailable},
+      decoder: (_) {},
+    );
+  }
+
+  Future<void> updateSeatDescriptionTrainingModuleDocument({
+    required String moduleId,
+    required String documentId,
+    required String text,
+  }) {
+    final resolvedDocumentId = documentId.trim();
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.patch,
+      endpoint: ApiEndPoints.trainingDocument(resolvedDocumentId),
+      authToken: AppPreference.getAuthToken(),
+      parameters: {'uuid': resolvedDocumentId, 'text': text.trim()},
+      decoder: (_) {},
+    );
+  }
+
+  Future<void> updateSeatDescriptionTrainingModuleAssignment({
+    required String moduleId,
+    String? assignmentId,
+    required String title,
+    required String instructions,
+  }) {
+    final resolvedAssignmentId = assignmentId?.trim() ?? '';
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: resolvedAssignmentId.isNotEmpty
+          ? ApiCallType.patch
+          : ApiCallType.put,
+      endpoint: resolvedAssignmentId.isNotEmpty
+          ? ApiEndPoints.trainingAssignment(resolvedAssignmentId)
+          : ApiEndPoints.addTrainingModuleAssignment(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      parameters: {'title': title.trim(), 'instructions': instructions.trim()},
+      decoder: (_) {},
     );
   }
 
@@ -981,6 +1084,7 @@ class AuditRemoteDataSource {
       endpoint: ApiEndPoints.updateQuestion(questionId),
       authToken: AppPreference.getAuthToken(),
       parameters: {
+        'uuid': questionId,
         'question': questionText,
         'options': options
             .map((option) => {'uuid': option.uuid, 'text': option.text})
@@ -994,6 +1098,17 @@ class AuditRemoteDataSource {
 
         return SeatDescriptionTrainingQuestionModel.fromApiJson(json);
       },
+    );
+  }
+
+  Future<void> deleteSeatDescriptionTrainingQuestion({
+    required String questionId,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.delete,
+      endpoint: ApiEndPoints.updateQuestion(questionId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (_) {},
     );
   }
 

@@ -382,6 +382,8 @@ class AppStrings {
   static const String trainingQuizTab = 'Quiz';
   static const String trainingAssignmentTab = 'Assignment';
   static const String trainingNoAssignmentAvailable = 'No assignment available.';
+  static const String trainingCreateAssignment = 'Create Assignment';
+  static const String trainingEditAssignment = 'Edit';
   static const String trainingGenerateQuiz = 'Generate Quiz';
   static const String trainingAddQuestion = 'Add Question';
   static const String trainingAddQuestionDialogTitle = 'Add Quiz Question';
@@ -404,6 +406,8 @@ class AppStrings {
   static const String trainingCancel = 'Cancel';
   static const String trainingGenerateSop = 'Generate SOP';
   static const String trainingGenerateSopsWithAi = 'Generate SOPs with AI';
+  static const String trainingGenerateWithAi = 'Generate With AI';
+  static const String trainingCreateSop = 'Create SOP';
   static const String trainingGenerateSopSubtitle =
       'AI will generate SOP content for this training module.';
   static const String trainingGenerateSopAlertTitle = 'Alert';
@@ -414,6 +418,11 @@ class AppStrings {
   static const String trainingGenerateSopConfirmation = 'REGENERATE';
   static const String trainingRegenerate = 'Re-Generate';
   static const String trainingDeleteOption = 'Delete option';
+  static const String trainingDeleteQuestionTitle = 'Delete Question';
+  static const String trainingDeleteQuestionAction = 'Delete';
+  static const String trainingDeleteQuestionDescription =
+      'Delete this question and all of its options? This action cannot be undone.';
+  static const String trainingQuestionDeletedSuccess = 'Question deleted successfully.';
   static const String trainingRemoveOption = 'Remove option';
   static const String trainingAddNewLesson = 'Add New Lesson';
   static const String trainingNewLesson = 'New Lesson';
@@ -467,6 +476,7 @@ class AppStrings {
   static const String trainingDeleteVideoTitle = 'Delete Video';
   static const String trainingDeleteVideoAction = 'Delete';
   static const String trainingVideoMoreActions = 'Video actions';
+  static const String trainingExpandVideoAction = 'Expand video';
   static const String trainingThumbnailAction = 'Thumbnail';
   static const String trainingAddThumbnailTitle = 'Add Video Thumbnail';
   static const String trainingAddThumbnailDescription =
@@ -533,11 +543,14 @@ class AppStrings {
   static const String trainingProgressLabel = 'Progress';
   static const String trainingTrackModules = 'Track Modules';
   static const String trainingTakeQuiz = 'Take Quiz';
-  static const String trainingEditAction = 'Edit';
+  static const String trainingEditAction = 'Edit Assignment';
   static const String trainingSubmitQuiz = 'Submit Quiz';
   static const String trainingNoModulesAvailable = 'No training modules available.';
   static const String trainingLibraryTitle = 'LMS';
   static const String trainingLibraryAllFilter = 'All';
+  static const String trainingLibraryAllVideoLesson = 'All Video Lesson';
+  static const String trainingLibraryAllVisibility = 'All Visibility';
+  static const String trainingLibraryRestrictedVisibility = 'Upline Visibility';
   static const String trainingLibraryLessonsSection = 'Training Modules';
   static const String trainingLibraryDepartment = 'Department';
   static const String trainingLibrarySeat = 'Seat';
@@ -574,12 +587,42 @@ class AppStrings {
   static const String trainingNoTranscriptAvailable = 'No transcript available.';
   static const String trainingNoSummaryAvailable = 'No summary available.';
   static const String trainingNoSummaryAvailableSnackBar = 'No Summary Available';
+  static const String trainingModuleDetailsSavedSuccess = 'Training module updated successfully.';
   static const String trainingSummaryLabel = 'Summary';
+  static const String trainingSummaryHint = 'Write a short summary for this lesson.';
+  static const String trainingSummarySavedSuccess = 'Summary updated successfully.';
+  static const String trainingSaveAction = 'Save';
+  static const String trainingVisibilityLabel = 'Visibility';
+  static const String trainingVisibilityAllDescription =
+      'Learning module access to everyone company-wide (good for full company transparency)';
+  static const String trainingVisibilityUplineDescription =
+      'Learning module access to only seat functions with this seat profile and their upline leaders (good for protecting sensitive company protocols)';
+  static const String trainingSopLabel = 'SOP';
+  static const String trainingSopHint = 'Write SOP content for this lesson.';
+  static const String trainingSopSavedSuccess = 'SOP updated successfully.';
+  static const String trainingAssignmentDescriptionLabel = 'Description';
+  static const String trainingAssignmentTitleHint = 'Enter assignment title';
+  static const String trainingAssignmentDescriptionHint =
+      'Write assignment instructions for this lesson.';
+  static const String trainingAssignmentContentRequired =
+      'Add both assignment title and description before saving.';
+  static const String trainingAssignmentSavedSuccess = 'Assignment updated successfully.';
+  static const String trainingFormattingLabel = 'Basic Editing';
+  static const String trainingBoldAction = 'Bold';
+  static const String trainingItalicAction = 'Italic';
+  static const String trainingUnderlineAction = 'Underline';
+  static const String trainingBulletListAction = 'Bullet list';
+  static const String trainingNumberedListAction = 'Numbered list';
+  static const String trainingQuoteAction = 'Quote';
+  static const String trainingHeadingAction = 'Heading';
+  static const String trainingListItemPlaceholder = 'List item';
+  static const String trainingTextPlaceholder = 'Text';
   static String trainingLibraryLessonsCount(int count) =>
       '$count ${count == 1 ? 'Lesson' : 'Lessons'}';
   static String trainingLibrarySearchHint(String filterLabel) => 'Search by $filterLabel';
   static String trainingQuestionOptionLabel(int number) => 'Option $number';
   static String trainingQuestionOptionHint(int number) => 'Enter option $number';
+  static String trainingQuestionChoiceLabel(int number) => 'Choice $number';
   static String trainingDeleteModuleDescription(String moduleTitle) =>
       'Delete "$moduleTitle"? This action cannot be undone.';
   static String trainingDeleteVideoDescription(String moduleTitle) =>

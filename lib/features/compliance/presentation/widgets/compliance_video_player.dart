@@ -24,6 +24,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
     this.showSeekBar = true,
     this.showDuration = true,
     this.fillBounds = false,
+    this.topRightActions = const <Widget>[],
   });
 
   final String videoUrl;
@@ -35,6 +36,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
   final bool showSeekBar;
   final bool showDuration;
   final bool fillBounds;
+  final List<Widget> topRightActions;
 
   @override
   State<ComplianceVideoPlayer> createState() => _ComplianceVideoPlayerState();
@@ -586,22 +588,31 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
         Positioned(
           top: 10,
           right: 10,
-          child: GestureDetector(
-            onTap: _openFullScreenVideo,
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
-                shape: BoxShape.circle,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _openFullScreenVideo,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    '${AppStrings.imagePath}expand.svg',
+                    width: 35,
+                    height: 35,
+                  ),
+                ),
               ),
-              child: SvgPicture.asset(
-                '${AppStrings.imagePath}expand.svg',
-                width: 35,
-                height: 35,
-              ),
-            ),
+              for (final action in widget.topRightActions) ...[
+                const SizedBox(width: 8),
+                action,
+              ],
+            ],
           ),
         ),
         Positioned(
