@@ -7,7 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
 import '../../../../core/utils/custom_functions.dart';
-import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
@@ -29,24 +29,16 @@ class TrainingLibraryScreen extends StatelessWidget {
         Provider<TrainingLibraryRemoteDataSource>(
           create: (_) => createTrainingLibraryRemoteDataSource(),
         ),
-        ProxyProvider<
-          TrainingLibraryRemoteDataSource,
-          TrainingLibraryRepositoryImpl
-        >(
-          update: (_, remoteDataSource, __) =>
-              createTrainingLibraryRepository(remoteDataSource),
+        ProxyProvider<TrainingLibraryRemoteDataSource, TrainingLibraryRepositoryImpl>(
+          update: (_, remoteDataSource, __) => createTrainingLibraryRepository(remoteDataSource),
         ),
-        ProxyProvider<
-          TrainingLibraryRepositoryImpl,
-          GetTrainingLibraryModulesUseCase
-        >(
-          update: (_, repository, __) =>
-              createGetTrainingLibraryModulesUseCase(repository),
+        ProxyProvider<TrainingLibraryRepositoryImpl, GetTrainingLibraryModulesUseCase>(
+          update: (_, repository, __) => createGetTrainingLibraryModulesUseCase(repository),
         ),
         ChangeNotifierProvider<TrainingLibraryController>(
-          create: (context) => TrainingLibraryController(
-            context.read<GetTrainingLibraryModulesUseCase>(),
-          )..initialize(),
+          create: (context) =>
+              TrainingLibraryController(context.read<GetTrainingLibraryModulesUseCase>())
+                ..initialize(),
         ),
       ],
       child: const _TrainingLibraryScreenView(),
@@ -58,12 +50,10 @@ class _TrainingLibraryScreenView extends StatefulWidget {
   const _TrainingLibraryScreenView();
 
   @override
-  State<_TrainingLibraryScreenView> createState() =>
-      _TrainingLibraryScreenViewState();
+  State<_TrainingLibraryScreenView> createState() => _TrainingLibraryScreenViewState();
 }
 
-class _TrainingLibraryScreenViewState
-    extends State<_TrainingLibraryScreenView> {
+class _TrainingLibraryScreenViewState extends State<_TrainingLibraryScreenView> {
   late final ScrollController _scrollController;
   late final TrainingLibraryController _controller;
 
@@ -83,8 +73,7 @@ class _TrainingLibraryScreenViewState
   }
 
   void _handleScroll() {
-    if (!_scrollController.hasClients ||
-        _scrollController.position.extentAfter > 360) {
+    if (!_scrollController.hasClients || _scrollController.position.extentAfter > 360) {
       return;
     }
 
@@ -121,10 +110,7 @@ class _TrainingLibraryScreenViewState
 }
 
 class _TrainingLibraryContent extends StatelessWidget {
-  const _TrainingLibraryContent({
-    required this.controller,
-    required this.scrollController,
-  });
+  const _TrainingLibraryContent({required this.controller, required this.scrollController});
 
   final TrainingLibraryController controller;
   final ScrollController scrollController;
@@ -181,17 +167,11 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.35),
-            ),
+            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.search_rounded,
-                color: AppColors.textSecondary,
-                size: 20,
-              ),
+              const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
@@ -205,9 +185,7 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
-                    hintText: AppStrings.trainingLibrarySearchHint(
-                      selectedFilterLabel,
-                    ),
+                    hintText: AppStrings.trainingLibrarySearchHint(selectedFilterLabel),
                     hintStyle: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 15,
@@ -243,25 +221,17 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
                     .toList(growable: false),
                 child: Container(
                   width: filterWidth,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: AppColors.purple1.withValues(alpha: 0.26),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.secondaryColor.withValues(alpha: 0.34),
-                    ),
+                    border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.34)),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: AppTextView.body3(
-                          _searchFilterChipLabel(
-                            controller.searchFilter,
-                            compact: isCompact,
-                          ),
+                          _searchFilterChipLabel(controller.searchFilter, compact: isCompact),
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                           maxLines: 1,
@@ -294,10 +264,7 @@ class _DepartmentFilterStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <TrainingLibraryDepartment>[
-      const TrainingLibraryDepartment(
-        id: 'all',
-        name: AppStrings.trainingLibraryAllFilter,
-      ),
+      const TrainingLibraryDepartment(id: 'all', name: AppStrings.trainingLibraryAllFilter),
       ...controller.departments,
     ];
 
@@ -329,9 +296,7 @@ class _DepartmentFilterStrip extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.secondaryColor
-                    : AppColors.surfaceDark3,
+                color: isSelected ? AppColors.secondaryColor : AppColors.surfaceDark3,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                   color: isSelected
@@ -342,9 +307,7 @@ class _DepartmentFilterStrip extends StatelessWidget {
               child: Center(
                 child: AppTextView.body3(
                   item.name,
-                  color: isSelected
-                      ? AppColors.textPrimary
-                      : AppColors.textPrimary,
+                  color: isSelected ? AppColors.textPrimary : AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -376,9 +339,7 @@ class _TrainingLibraryResultArea extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Center(
-              child: FastCircularProgressIndicator(width: 28, height: 28),
-            ),
+            child: Center(child: FastCircularProgressIndicator(width: 28, height: 28)),
           ),
         ],
       );
@@ -402,11 +363,7 @@ class _TrainingLibraryResultArea extends StatelessWidget {
       return ListView(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          _LibraryStatusState(
-            message: AppStrings.trainingLibraryNoModulesFound,
-          ),
-        ],
+        children: const [_LibraryStatusState(message: AppStrings.trainingLibraryNoModulesFound)],
       );
     }
 
@@ -522,9 +479,7 @@ class _TrainingLibraryGridCard extends StatelessWidget {
                 thumbnailLink: module.thumbnailLink,
                 height: imageHeight,
                 emptyIcon: Icons.video_library_rounded,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -648,9 +603,7 @@ class _TrainingLibraryCardShell extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark3,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.16),
-              ),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.16)),
             ),
             child: child,
           ),
@@ -703,12 +656,10 @@ class _ImagePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'lib/assets/images/fallback_image.png',
+      'lib/assets/images/fallback.png',
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) {
-        return Center(
-          child: Icon(icon, color: AppColors.textSecondary, size: 30),
-        );
+        return Center(child: Icon(icon, color: AppColors.textSecondary, size: 30));
       },
     );
   }
@@ -750,20 +701,13 @@ class _MetaDot extends StatelessWidget {
     return Container(
       width: 4,
       height: 4,
-      decoration: const BoxDecoration(
-        color: AppColors.textSecondary,
-        shape: BoxShape.circle,
-      ),
+      decoration: const BoxDecoration(color: AppColors.textSecondary, shape: BoxShape.circle),
     );
   }
 }
 
 class _CardFieldLine extends StatelessWidget {
-  const _CardFieldLine({
-    required this.label,
-    required this.value,
-    this.maxLines = 2,
-  });
+  const _CardFieldLine({required this.label, required this.value, this.maxLines = 2});
 
   final String label;
   final String value;
@@ -774,11 +718,7 @@ class _CardFieldLine extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body4(
-          label,
-          color: AppColors.purple1,
-          fontWeight: FontWeight.w700,
-        ),
+        AppTextView.body4(label, color: AppColors.purple1, fontWeight: FontWeight.w700),
         const SizedBox(height: 2),
         AppTextView.body3(
           value,
@@ -793,11 +733,7 @@ class _CardFieldLine extends StatelessWidget {
 }
 
 class _LibraryStatusState extends StatelessWidget {
-  const _LibraryStatusState({
-    required this.message,
-    this.actionLabel,
-    this.onActionTap,
-  });
+  const _LibraryStatusState({required this.message, this.actionLabel, this.onActionTap});
 
   final String message;
   final String? actionLabel;
@@ -815,11 +751,7 @@ class _LibraryStatusState extends StatelessWidget {
         ),
         child: Column(
           children: [
-            AppTextView.body(
-              message,
-              color: AppColors.textSecondary,
-              textAlign: TextAlign.center,
-            ),
+            AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
             if (actionLabel != null && onActionTap != null) ...[
               const SizedBox(height: 16),
               OutlinedButton(
@@ -851,7 +783,7 @@ class _TrainingLibraryCreateAction extends StatelessWidget {
         }
 
         return Container(
-          height: 100,
+          height: 70,
           decoration: BoxDecoration(
             color: AppColors.mainBg,
             boxShadow: <BoxShadow>[
@@ -863,15 +795,21 @@ class _TrainingLibraryCreateAction extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+          padding: const EdgeInsets.fromLTRB(32, 12, 32, 0),
           child: Align(
             alignment: Alignment.topCenter,
-            child: AppButton(
-              text: AppStrings.trainingLibraryCreate,
-              minimumHeight: 40,
-              onPressed: () => AppRouter.pushNamed(
-                context,
-                AppRouter.seatProfileTrainingSetup,
+            child: SizedBox(
+              width: double.infinity,
+              child: AppGradientActionButton(
+                label: AppStrings.trainingLibraryCreate,
+                icon: Icons.add_rounded,
+                iconSize: 16,
+                textSize: 14,
+                minHeight: 40,
+                borderRadius: 10,
+                iconSpacing: 8,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                onTap: () => AppRouter.pushNamed(context, AppRouter.seatProfileTrainingSetup),
               ),
             ),
           ),
@@ -884,16 +822,12 @@ class _TrainingLibraryCreateAction extends StatelessWidget {
 String _searchFilterLabel(TrainingLibrarySearchFilter filter) {
   return switch (filter) {
     TrainingLibrarySearchFilter.category => AppStrings.trainingLibraryCategory,
-    TrainingLibrarySearchFilter.department =>
-      AppStrings.trainingLibraryDepartment,
+    TrainingLibrarySearchFilter.department => AppStrings.trainingLibraryDepartment,
     TrainingLibrarySearchFilter.seat => AppStrings.trainingLibrarySeat,
   };
 }
 
-String _searchFilterChipLabel(
-  TrainingLibrarySearchFilter filter, {
-  required bool compact,
-}) {
+String _searchFilterChipLabel(TrainingLibrarySearchFilter filter, {required bool compact}) {
   if (!compact) {
     return _searchFilterLabel(filter);
   }
@@ -905,14 +839,9 @@ String _searchFilterChipLabel(
   };
 }
 
-Future<void> _openLibraryDetail(
-  BuildContext context,
-  TrainingLibraryModule module,
-) async {
+Future<void> _openLibraryDetail(BuildContext context, TrainingLibraryModule module) async {
   final shouldRefresh = await Navigator.of(context).push<bool>(
-    MaterialPageRoute<bool>(
-      builder: (_) => TrainingLibraryDetailScreen(module: module),
-    ),
+    MaterialPageRoute<bool>(builder: (_) => TrainingLibraryDetailScreen(module: module)),
   );
   if (shouldRefresh != true || !context.mounted) {
     return;

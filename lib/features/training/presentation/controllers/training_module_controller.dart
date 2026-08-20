@@ -864,6 +864,8 @@ class TrainingModuleController extends ChangeNotifier {
   }) : _fileUploader = fileUploader ?? const FileUploader(),
        _canManageTraining = canManageTraining {
     newLessonTitleController.addListener(_handleNewLessonTitleChanged);
+    moduleTitleController.addListener(_handleModuleTitleChanged);
+    summaryController.addListener(_handleSummaryChanged);
     documentController.addListener(_handleDocumentChanged);
   }
 
@@ -881,6 +883,7 @@ class TrainingModuleController extends ChangeNotifier {
   final bool _canManageTraining;
   final TextEditingController newLessonTitleController =
       TextEditingController();
+  final TextEditingController moduleTitleController = TextEditingController();
   final TextEditingController summaryController = TextEditingController();
   final TextEditingController assignmentTitleController =
       TextEditingController();
@@ -923,10 +926,13 @@ class TrainingModuleController extends ChangeNotifier {
   bool _isGeneratingSop = false;
   bool _isAddingQuestion = false;
   bool _isEditingSummary = false;
+  bool _isSavingModuleTitle = false;
   bool _isSavingSummary = false;
   bool? _editingSummaryVisibility;
   bool _isSavingDocument = false;
   bool _isSavingAssignment = false;
+  bool _isSyncingModuleTitleController = false;
+  bool _isSyncingSummaryController = false;
   bool _isSyncingDocumentController = false;
   String? _savingQuestionId;
   String? _deletingQuestionId;
@@ -936,7 +942,11 @@ class TrainingModuleController extends ChangeNotifier {
   String _jobId = '';
   String _descriptionId = '';
   int _summarySnackBarSequence = 0;
+  String _lastSavedModuleTitle = '';
+  String _lastSavedSummaryText = '';
   String _lastSavedDocumentHtml = '';
+  Timer? _moduleTitleAutoSaveDebounce;
+  Timer? _summaryAutoSaveDebounce;
   Timer? _documentAutoSaveDebounce;
 
   bool get isLoading => _isLoading;
@@ -988,6 +998,7 @@ class TrainingModuleController extends ChangeNotifier {
   bool get isGeneratingSop => _isGeneratingSop;
   bool get isAddingQuestion => _isAddingQuestion;
   bool get isEditingSummary => _isEditingSummary;
+  bool get isSavingModuleTitle => _isSavingModuleTitle;
   bool get isSavingSummary => _isSavingSummary;
   bool get summaryVisibilityValue =>
       _editingSummaryVisibility ??
@@ -1041,6 +1052,8 @@ class TrainingModuleController extends ChangeNotifier {
       hasSelectedModule &&
       hasSelectedModuleVideo &&
       !_isAddingQuestion;
+  bool get canEditSelectedModuleTitle =>
+      _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
   bool get canEditSelectedModuleSummary =>
       _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
   bool get canEditSelectedModuleDocument =>
@@ -1056,6 +1069,7 @@ class TrainingModuleController extends ChangeNotifier {
       _selectedModuleAssignment?.hasContent ??
       _selectedModuleDetail?.hasAssignmentContent ??
       false;
+  bool get hasResolvedSelectedModuleAssignment => _hasResolvedAssignment;
   bool get hasPersistedSelectedModuleAssignment =>
       _selectedModuleAssignment?.uuid.trim().isNotEmpty ?? false;
 
@@ -1140,6 +1154,7 @@ class TrainingModuleController extends ChangeNotifier {
         }
       }
       _selectedModuleId = selectedModuleId;
+      _syncTitleEditorText();
       notifyListeners();
       await _loadSelectedModuleDetail();
     } catch (error) {
@@ -1166,6 +1181,7 @@ class TrainingModuleController extends ChangeNotifier {
     _selectedModuleDetail = null;
     _resetSelectedModuleExtras();
     _resetEditors();
+    _syncTitleEditorText();
     await _loadSelectedModuleDetail();
   }
 
@@ -1223,6 +1239,8 @@ class TrainingModuleController extends ChangeNotifier {
       _updatingModuleVisibilityId = null;
       _resetSelectedModuleExtras();
       _resetEditors();
+      _syncTitleEditorText();
+      _syncSummaryEditorText();
       newLessonTitleController.clear();
       notifyListeners();
       unawaited(_loadSelectedModuleDetail());
@@ -1546,6 +1564,85 @@ class TrainingModuleController extends ChangeNotifier {
     } finally {
       _isGeneratingSop = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> _saveSelectedModuleTitleForSelectedModule() async {
+    final resolvedModuleId = _selectedModuleUpdateId;
+    final title = moduleTitleController.text.trim();
+    if (!canEditSelectedModuleTitle ||
+        resolvedModuleId.isEmpty ||
+        _isSavingModuleTitle ||
+        title.isEmpty) {
+      return false;
+    }
+
+    _isSavingModuleTitle = true;
+    notifyListeners();
+
+    try {
+      await _auditRepository.updateSeatDescriptionTrainingModule(
+        moduleId: resolvedModuleId,
+        title: title,
+      );
+      _applySelectedModuleTitle(title, notifyListenersAfterUpdate: false);
+      return true;
+    } catch (error) {
+      _emitSummarySnackBar(error.toString());
+      return false;
+    } finally {
+      _isSavingModuleTitle = false;
+      notifyListeners();
+      _scheduleModuleTitleAutoSaveIfNeeded();
+    }
+  }
+
+  Future<bool> saveSelectedModuleTitleForSelectedModule(String title) async {
+    final resolvedTitle = title.trim();
+    if (!canEditSelectedModuleTitle || resolvedTitle.isEmpty) {
+      return false;
+    }
+
+    _moduleTitleAutoSaveDebounce?.cancel();
+    _isSyncingModuleTitleController = true;
+    moduleTitleController.value = moduleTitleController.value.copyWith(
+      text: resolvedTitle,
+      selection: TextSelection.collapsed(offset: resolvedTitle.length),
+      composing: TextRange.empty,
+    );
+    _isSyncingModuleTitleController = false;
+    return _saveSelectedModuleTitleForSelectedModule();
+  }
+
+  Future<bool> _saveSelectedModuleSummaryTextForSelectedModule() async {
+    final resolvedModuleId = _selectedModuleUpdateId;
+    if (!canEditSelectedModuleSummary ||
+        resolvedModuleId.isEmpty ||
+        _isSavingSummary) {
+      return false;
+    }
+
+    _isSavingSummary = true;
+    notifyListeners();
+
+    try {
+      final description = summaryController.text.trim();
+      await _auditRepository.updateSeatDescriptionTrainingModule(
+        moduleId: resolvedModuleId,
+        description: description,
+      );
+      _applySelectedModuleDescription(
+        description.isEmpty ? null : description,
+        notifyListenersAfterUpdate: false,
+      );
+      return true;
+    } catch (error) {
+      _emitSummarySnackBar(error.toString());
+      return false;
+    } finally {
+      _isSavingSummary = false;
+      notifyListeners();
+      _scheduleSummaryAutoSaveIfNeeded();
     }
   }
 
@@ -2228,6 +2325,7 @@ class TrainingModuleController extends ChangeNotifier {
       if (_selectedModuleDetail?.trainingVideo == null) {
         _moduleLocalVideoPaths.remove(_selectedModuleId.trim());
       }
+      _syncTitleEditorText();
       _syncSummaryEditorText();
       _syncAssignmentEditorText();
       _updateSelectedModuleQuestions(
@@ -2381,6 +2479,52 @@ class TrainingModuleController extends ChangeNotifier {
       learningTrackCount: detail.learningTrackCount,
     );
     _syncSummaryEditorText();
+    if (notifyListenersAfterUpdate) {
+      notifyListeners();
+    }
+  }
+
+  void _applySelectedModuleTitle(
+    String title, {
+    bool notifyListenersAfterUpdate = true,
+  }) {
+    final detail = _selectedModuleDetail;
+    final resolvedTitle = title.trim();
+
+    if (detail != null) {
+      _selectedModuleDetail = SeatDescriptionTrainingModuleDetail(
+        uuid: detail.uuid,
+        actualId: detail.actualId,
+        title: resolvedTitle,
+        thumbnails: List<String>.from(detail.thumbnails, growable: false),
+        description: detail.description,
+        assignmentTitle: detail.assignmentTitle,
+        assignmentInstructions: detail.assignmentInstructions,
+        questions: List<SeatDescriptionTrainingQuestion>.from(
+          detail.questions,
+          growable: false,
+        ),
+        thumbnailLink: detail.thumbnailLink,
+        trainingVideo: detail.trainingVideo,
+        isPubliclyAvailable: detail.isPubliclyAvailable,
+        learningTrackCount: detail.learningTrackCount,
+      );
+    }
+
+    _modules = _modules
+        .map(
+          (module) => module.uuid == _selectedModuleId
+              ? SeatDescriptionTrainingModule(
+                  uuid: module.uuid,
+                  actualId: module.actualId,
+                  title: resolvedTitle,
+                  thumbnailLink: module.thumbnailLink,
+                  isPubliclyAvailable: module.isPubliclyAvailable,
+                )
+              : module,
+        )
+        .toList(growable: false);
+    _syncTitleEditorText();
     if (notifyListenersAfterUpdate) {
       notifyListeners();
     }
@@ -2649,19 +2793,52 @@ class TrainingModuleController extends ChangeNotifier {
     }
   }
 
+  void _handleModuleTitleChanged() {
+    _scheduleModuleTitleAutoSaveIfNeeded();
+  }
+
+  void _handleSummaryChanged() {
+    _scheduleSummaryAutoSaveIfNeeded();
+  }
+
   void _handleDocumentChanged() {
     _scheduleDocumentAutoSaveIfNeeded();
   }
 
+  String get _selectedModuleUpdateId {
+    final detail = _selectedModuleDetail;
+    if (detail != null) {
+      return detail.resolvedParentModuleId;
+    }
+
+    for (final module in _modules) {
+      if (module.uuid == _selectedModuleId) {
+        return module.resolvedParentModuleId;
+      }
+    }
+
+    return _selectedModuleId.trim();
+  }
+
   void _resetEditors() {
+    _moduleTitleAutoSaveDebounce?.cancel();
+    _summaryAutoSaveDebounce?.cancel();
     _documentAutoSaveDebounce?.cancel();
     _isEditingSummary = false;
+    _isSavingModuleTitle = false;
     _isSavingSummary = false;
     _editingSummaryVisibility = null;
     _isSavingDocument = false;
     _isSavingAssignment = false;
+    _lastSavedModuleTitle = '';
+    _lastSavedSummaryText = '';
     _lastSavedDocumentHtml = '';
+    _isSyncingModuleTitleController = true;
+    moduleTitleController.clear();
+    _isSyncingModuleTitleController = false;
+    _isSyncingSummaryController = true;
     summaryController.clear();
+    _isSyncingSummaryController = false;
     assignmentTitleController.clear();
     _isSyncingDocumentController = true;
     documentController.clear();
@@ -2689,6 +2866,10 @@ class TrainingModuleController extends ChangeNotifier {
     _summaryTextToController();
   }
 
+  void _syncTitleEditorText() {
+    _titleTextToController();
+  }
+
   void _syncDocumentEditorText() {
     _documentTextToController();
   }
@@ -2701,11 +2882,34 @@ class TrainingModuleController extends ChangeNotifier {
     final summaryText = CustomFunctions.stripHtmlTags(
       _selectedModuleDetail?.description?.trim() ?? '',
     );
+    _lastSavedSummaryText = summaryText;
+    if (summaryController.text == summaryText) {
+      return;
+    }
+
+    _isSyncingSummaryController = true;
     summaryController.value = summaryController.value.copyWith(
       text: summaryText,
       selection: TextSelection.collapsed(offset: summaryText.length),
       composing: TextRange.empty,
     );
+    _isSyncingSummaryController = false;
+  }
+
+  void _titleTextToController() {
+    final titleText = selectedModuleTitle;
+    _lastSavedModuleTitle = titleText;
+    if (moduleTitleController.text == titleText) {
+      return;
+    }
+
+    _isSyncingModuleTitleController = true;
+    moduleTitleController.value = moduleTitleController.value.copyWith(
+      text: titleText,
+      selection: TextSelection.collapsed(offset: titleText.length),
+      composing: TextRange.empty,
+    );
+    _isSyncingModuleTitleController = false;
   }
 
   void _documentTextToController() {
@@ -2732,6 +2936,40 @@ class TrainingModuleController extends ChangeNotifier {
     assignmentDescriptionController.loadFromHtml(assignmentInstructions);
   }
 
+  void _scheduleModuleTitleAutoSaveIfNeeded() {
+    if (_isSyncingModuleTitleController || !canEditSelectedModuleTitle) {
+      return;
+    }
+
+    final currentTitle = moduleTitleController.text.trim();
+    if (currentTitle == _lastSavedModuleTitle || currentTitle.isEmpty) {
+      _moduleTitleAutoSaveDebounce?.cancel();
+      return;
+    }
+
+    _moduleTitleAutoSaveDebounce?.cancel();
+    _moduleTitleAutoSaveDebounce = Timer(const Duration(milliseconds: 700), () {
+      unawaited(_saveSelectedModuleTitleForSelectedModule());
+    });
+  }
+
+  void _scheduleSummaryAutoSaveIfNeeded() {
+    if (_isSyncingSummaryController || !canEditSelectedModuleSummary) {
+      return;
+    }
+
+    final currentSummary = summaryController.text.trim();
+    if (currentSummary == _lastSavedSummaryText) {
+      _summaryAutoSaveDebounce?.cancel();
+      return;
+    }
+
+    _summaryAutoSaveDebounce?.cancel();
+    _summaryAutoSaveDebounce = Timer(const Duration(milliseconds: 700), () {
+      unawaited(_saveSelectedModuleSummaryTextForSelectedModule());
+    });
+  }
+
   void _scheduleDocumentAutoSaveIfNeeded() {
     if (_isSyncingDocumentController || !canEditSelectedModuleDocument) {
       return;
@@ -2753,9 +2991,14 @@ class TrainingModuleController extends ChangeNotifier {
   @override
   void dispose() {
     newLessonTitleController.removeListener(_handleNewLessonTitleChanged);
+    moduleTitleController.removeListener(_handleModuleTitleChanged);
+    summaryController.removeListener(_handleSummaryChanged);
     documentController.removeListener(_handleDocumentChanged);
+    _moduleTitleAutoSaveDebounce?.cancel();
+    _summaryAutoSaveDebounce?.cancel();
     _documentAutoSaveDebounce?.cancel();
     newLessonTitleController.dispose();
+    moduleTitleController.dispose();
     summaryController.dispose();
     assignmentTitleController.dispose();
     documentController.dispose();

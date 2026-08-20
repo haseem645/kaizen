@@ -26,20 +26,15 @@ class SeatProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<SeatProfileRemoteDataSource>(
-          create: (_) => createSeatProfileRemoteDataSource(),
-        ),
+        Provider<SeatProfileRemoteDataSource>(create: (_) => createSeatProfileRemoteDataSource()),
         ProxyProvider<SeatProfileRemoteDataSource, SeatProfileRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createSeatProfileRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createSeatProfileRepository(remoteDataSource),
         ),
         ProxyProvider<SeatProfileRepositoryImpl, GetSeatProfilesUseCase>(
-          update: (_, repository, __) =>
-              createGetSeatProfilesUseCase(repository),
+          update: (_, repository, __) => createGetSeatProfilesUseCase(repository),
         ),
         ChangeNotifierProvider<SeatProfileController>(
-          create: (context) =>
-              SeatProfileController(context.read<GetSeatProfilesUseCase>()),
+          create: (context) => SeatProfileController(context.read<GetSeatProfilesUseCase>()),
         ),
       ],
       child: const _SeatProfileScreenView(),
@@ -82,8 +77,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   }
 
   void _handleScroll() {
-    if (!_scrollController.hasClients ||
-        _scrollController.position.extentAfter > 360) {
+    if (!_scrollController.hasClients || _scrollController.position.extentAfter > 360) {
       return;
     }
 
@@ -98,15 +92,19 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       title: AppStrings.seatProfileTitle,
       selectedMenu: AppMenuType.seatProfiles,
       centerTitle: true,
-      appBarActions: <Widget>[
-        _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
-      ],
       child: SafeArea(
         top: false,
         bottom: false,
-        child: controller.isInitialLoading
-            ? FastCircularProgressIndicator()
-            : _buildContent(context, controller),
+        child: Column(
+          children: [
+            Expanded(
+              child: controller.isInitialLoading
+                  ? Center(child: FastCircularProgressIndicator())
+                  : _buildContent(context, controller),
+            ),
+            _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
+          ],
+        ),
       ),
     );
   }
@@ -115,7 +113,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     final items = controller.visibleItems;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 1),
       child: Column(
         children: [
           SeatProfileSearchBar(
@@ -138,10 +136,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     );
   }
 
-  Widget _buildListArea(
-    SeatProfileController controller,
-    List<SeatProfile> items,
-  ) {
+  Widget _buildListArea(SeatProfileController controller, List<SeatProfile> items) {
     if (controller.isListLoading) {
       return ListView(
         controller: _scrollController,
@@ -189,8 +184,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     final items = <DepartmentOption>[
       const DepartmentOption(id: 'all', name: 'ALL'),
       ...controller.departments.map(
-        (department) =>
-            DepartmentOption(id: department.id, name: department.name),
+        (department) => DepartmentOption(id: department.id, name: department.name),
       ),
     ];
 
@@ -229,14 +223,9 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
                 borderRadius: BorderRadius.circular(999),
                 onTap: () => controller.selectDepartment(item.id),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.secondaryColor
-                        : AppColors.surfaceDark,
+                    color: isSelected ? AppColors.secondaryColor : AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: isSelected
@@ -290,10 +279,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          FilledButton(
-            onPressed: controller.refresh,
-            child: const Text('Retry'),
-          ),
+          FilledButton(onPressed: controller.refresh, child: const Text('Retry')),
         ],
       ),
     );
@@ -304,10 +290,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       return;
     }
 
-    final didCreate = await AppRouter.pushNamed(
-      context,
-      AppRouter.seatProfileCreate,
-    );
+    final didCreate = await AppRouter.pushNamed(context, AppRouter.seatProfileCreate);
     if (didCreate != true || !mounted) {
       return;
     }
@@ -315,15 +298,11 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     await _controller.refresh();
   }
 
-  Future<void> _openFilterSheet(
-    BuildContext context,
-    SeatProfileController controller,
-  ) async {
+  Future<void> _openFilterSheet(BuildContext context, SeatProfileController controller) async {
     final selectedFilter = await showModalBottomSheet<SeatProfileFilter>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          SeatProfileFilterSheet(selectedFilter: controller.selectedFilter),
+      builder: (_) => SeatProfileFilterSheet(selectedFilter: controller.selectedFilter),
     );
 
     if (selectedFilter == null) {
@@ -348,18 +327,36 @@ class _SeatProfileCreateAction extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        return Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: AppGradientActionButton(
-            label: AppStrings.seatProfileCreateAction,
-            icon: Icons.add_rounded,
-            iconSize: 14,
-            textSize: 12,
-            minHeight: 34,
-            borderRadius: 10,
-            iconSpacing: 6,
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            onTap: onTap,
+        return Container(
+          height: 70,
+          decoration: BoxDecoration(
+            color: AppColors.mainBg,
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                spreadRadius: 20,
+                blurRadius: 20,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(32, 12, 32, 0),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: double.infinity,
+              child: AppGradientActionButton(
+                label: AppStrings.seatProfileCreateAction,
+                icon: Icons.add_rounded,
+                iconSize: 16,
+                textSize: 14,
+                minHeight: 40,
+                borderRadius: 10,
+                iconSpacing: 8,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                onTap: onTap,
+              ),
+            ),
           ),
         );
       },
@@ -443,9 +440,7 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
                     AppRouter.pushNamed(
                       context,
                       AppRouter.seatProfileDetail,
-                      arguments: SeatProfileDetailRouteArgs(
-                        seatId: profile.resolvedDetailId,
-                      ),
+                      arguments: SeatProfileDetailRouteArgs(seatId: profile.resolvedDetailId),
                     );
                   },
                   borderRadius: BorderRadius.circular(999),
@@ -479,19 +474,14 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
 
     return Row(
       children: [
-        Expanded(
-          child: AppTextView.body2(label, color: AppColors.textSecondary),
-        ),
+        Expanded(child: AppTextView.body2(label, color: AppColors.textSecondary)),
         if (isStatus)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: (isPositive ? AppColors.lightGreen1 : AppColors.red1)
-                  .withValues(alpha: 0.14),
+              color: (isPositive ? AppColors.lightGreen1 : AppColors.red1).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: isPositive ? AppColors.lightGreen1 : AppColors.red1,
-              ),
+              border: Border.all(color: isPositive ? AppColors.lightGreen1 : AppColors.red1),
             ),
             child: AppTextView.body3(
               value,
@@ -529,9 +519,7 @@ class _CardForwardArrow extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.mainBg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.fieldBorder.withValues(alpha: 0.28),
-          ),
+          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
         ),
         child: const Icon(
           Icons.arrow_forward_ios_rounded,
