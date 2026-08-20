@@ -11,12 +11,14 @@ class GetAuditOverviewUseCase {
     required int quarter,
     int page = 1,
     int pageSize = 12,
+    String? search,
   }) {
     return _repository.getAuditMainList(
       page: page,
       pageSize: pageSize,
       year: year,
       quarter: quarter,
+      search: search,
     );
   }
 }

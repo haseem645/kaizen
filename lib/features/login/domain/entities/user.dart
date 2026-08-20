@@ -71,6 +71,7 @@ class User {
     final availableRoles = normalizedRoles.toSet();
     return hasOwnerOverrideAccess ||
         availableRoles.contains('dept_lead') ||
+        availableRoles.contains('supervisor') ||
         availableRoles.contains('team_lead');
   }
 

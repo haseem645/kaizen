@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -33,6 +34,10 @@ import 'audit_state.dart';
 
 class AuditController extends ChangeNotifier {
   static const Duration _certifiedReportPdfUrlCacheTtl = Duration(minutes: 10);
+  static const Duration _teamMembersSearchDebounceDuration = Duration(
+    milliseconds: 400,
+  );
+  static const int _teamMembersScreenPageSize = 10;
 
   AuditController(
     this._getAuditOverviewUseCase, [
@@ -58,6 +63,9 @@ class AuditController extends ChangeNotifier {
   AuditState _state = const AuditState();
   AuditMainList? _activeMainListCache;
   AuditMainList? _myCheckInMainListCache;
+  Timer? _teamMembersSearchDebounceTimer;
+  String _teamMembersSearchQuery = '';
+  bool _hasPendingTeamMembersSearchRefresh = false;
   final Map<String, _CachedCertifiedReportPdfUrl> _certifiedReportPdfUrlCache =
       <String, _CachedCertifiedReportPdfUrl>{};
 
@@ -70,8 +78,13 @@ class AuditController extends ChangeNotifier {
       _state.selectedAuditQuarter ??
       CustomFunctions.currentYearQuarter().quarter;
 
+  String? get selectedAuditDetailsProfileUuid =>
+      _normalizeProfileUuid(_state.selectedAuditDetailsProfileUuid);
+
   String get selectedAuditYearQuarterLabel =>
       '$selectedAuditYear - Q$selectedAuditQuarter';
+
+  String get teamMembersSearchQuery => _teamMembersSearchQuery;
 
   List<int> get auditYearOptions {
     final currentYear = CustomFunctions.currentYearQuarter().year;
@@ -152,6 +165,7 @@ class AuditController extends ChangeNotifier {
 
       _activeMainListCache = null;
       _myCheckInMainListCache = null;
+      _resetTeamMembersSearchState();
 
       _state = _state.copyWith(
         isLoading: true,
@@ -219,11 +233,50 @@ class AuditController extends ChangeNotifier {
     }
   }
 
+  Future<void> loadNextTeamMembersPage() async {
+    final currentList = _state.mainList;
+    if (_state.isLoading ||
+        _state.isLoadingMore ||
+        currentList == null ||
+        currentList.next == null) {
+      return;
+    }
+
+    _state = _state.copyWith(isLoadingMore: true);
+    notifyListeners();
+
+    try {
+      final nextPage = currentList.current + 1;
+      final nextList = await _loadTeamMembers(
+        page: nextPage,
+        pageSize: _teamMembersScreenPageSize,
+      );
+      final mergedList = AuditMainList(
+        count: nextList.count,
+        next: nextList.next,
+        previous: nextList.previous,
+        current: nextList.current,
+        results: [...currentList.results, ...nextList.results],
+      );
+
+      _cacheList(AuditMemberStatus.active, mergedList);
+      _state = _state.copyWith(isLoadingMore: false, mainList: mergedList);
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isLoadingMore: false);
+      notifyListeners();
+      _logRecoverableError('loadNextTeamMembersPage', error);
+    } finally {
+      _flushPendingTeamMembersSearchRefresh();
+    }
+  }
+
   Future<void> initializeDetails(
     String profileJobId, {
     int? year,
     int? quarter,
     bool clearEvaluationCharts = true,
+    String? profileUuid,
   }) async {
     try {
       final user = await AppPreference.getUser();
@@ -232,6 +285,7 @@ class AuditController extends ChangeNotifier {
       final currentYearQuarter = CustomFunctions.currentYearQuarter();
       final resolvedYear = year ?? currentYearQuarter.year;
       final resolvedQuarter = quarter ?? currentYearQuarter.quarter;
+      final normalizedSelectedProfileUuid = _normalizeProfileUuid(profileUuid);
       final selectedYearQuarterLabel =
           resolvedYear == currentYearQuarter.year &&
               resolvedQuarter == currentYearQuarter.quarter
@@ -246,6 +300,9 @@ class AuditController extends ChangeNotifier {
         selectedAuditQuarter: resolvedQuarter,
         selectedYearQuarter: selectedYearQuarterLabel,
         clearSelectedYearQuarter: selectedYearQuarterLabel == null,
+        selectedAuditDetailsProfileUuid: normalizedSelectedProfileUuid,
+        clearSelectedAuditDetailsProfileUuid:
+            normalizedSelectedProfileUuid == null,
         clearDetails: true,
         clearEvaluationCharts: clearEvaluationCharts,
       );
@@ -262,6 +319,7 @@ class AuditController extends ChangeNotifier {
         profileJobId: profileJobId,
         year: resolvedYear,
         quarter: resolvedQuarter,
+        profileUuid: profileUuid,
       );
       _state = _state.copyWith(isLoading: false, details: details);
       notifyListeners();
@@ -272,7 +330,10 @@ class AuditController extends ChangeNotifier {
     }
   }
 
-  Future<void> showEvaluationChart(String profileJobId) async {
+  Future<void> showEvaluationChart(
+    String profileJobId, {
+    String? profileUuid,
+  }) async {
     showGraph = true;
     if (_state.evaluationCharts.isNotEmpty ||
         _state.isEvaluationChartLoading ||
@@ -288,6 +349,7 @@ class AuditController extends ChangeNotifier {
     try {
       final evaluationCharts = await _getAuditEvaluationChartUseCase(
         profileJobId: profileJobId,
+        profileUuid: profileUuid,
       );
       _state = _state.copyWith(
         evaluationCharts: evaluationCharts,
@@ -301,7 +363,10 @@ class AuditController extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshEvaluationChart(String profileJobId) async {
+  Future<void> refreshEvaluationChart(
+    String profileJobId, {
+    String? profileUuid,
+  }) async {
     if (_state.isEvaluationChartLoading ||
         profileJobId.trim().isEmpty ||
         _getAuditEvaluationChartUseCase == null) {
@@ -314,6 +379,7 @@ class AuditController extends ChangeNotifier {
     try {
       final evaluationCharts = await _getAuditEvaluationChartUseCase(
         profileJobId: profileJobId,
+        profileUuid: profileUuid,
       );
       _state = _state.copyWith(
         evaluationCharts: evaluationCharts,
@@ -374,6 +440,10 @@ class AuditController extends ChangeNotifier {
           ? null
           : '$resolvedYear - Q$resolvedQuarter';
 
+      _activeMainListCache = null;
+      _myCheckInMainListCache = null;
+      _resetTeamMembersSearchState();
+
       _state = _state.copyWith(
         isLoading: true,
         isOwner: isOwner,
@@ -396,21 +466,32 @@ class AuditController extends ChangeNotifier {
         return;
       }
 
-      final teamMembersFuture = _getAuditTeamMembersUseCase?.call(
-        page: 1,
-        pageSize: 10,
-        year: resolvedYear,
-        quarter: resolvedQuarter,
-      );
+      final teamMembersFuture = isOwner
+          ? _loadTeamMembers(page: 1, pageSize: _teamMembersScreenPageSize)
+          : null;
       final quarterlyAudit = await getQuarterlyAuditUseCase(
         quarterlyAuditId: quarterlyAuditId,
         date: date,
       );
-      final teamMembers = await teamMembersFuture;
+      AuditMainList? teamMembers;
+
+      if (teamMembersFuture != null) {
+        try {
+          teamMembers = _sortedMainList(await teamMembersFuture);
+          if (teamMembers != null) {
+            _cacheList(_state.selectedStatus, teamMembers);
+          }
+        } catch (error) {
+          _logRecoverableError(
+            'initializeSingleAuditDetails.loadTeamMembers',
+            error,
+          );
+        }
+      }
 
       _state = _state.copyWith(
         isLoading: false,
-        mainList: _sortedMainList(teamMembers),
+        mainList: teamMembers,
         quarterlyAudit: quarterlyAudit,
         clearSelectedQuarterlyAuditDescription: true,
       );
@@ -689,11 +770,12 @@ class AuditController extends ChangeNotifier {
     final markFavoriteSubordinateUseCase = _markFavoriteSubordinateUseCase;
     final markUnfavoriteSubordinateUseCase = _markUnfavoriteSubordinateUseCase;
     final getAuditTeamMembersUseCase = _getAuditTeamMembersUseCase;
+    final auditRepository = _auditRepository;
     if (profileJobId.trim().isEmpty ||
-        getAuditTeamMembersUseCase == null ||
-        (isFavorite
-            ? markUnfavoriteSubordinateUseCase == null
-            : markFavoriteSubordinateUseCase == null)) {
+        ((isFavorite
+                ? markUnfavoriteSubordinateUseCase == null
+                : markFavoriteSubordinateUseCase == null) &&
+            auditRepository == null)) {
       return _state.mainList?.results ?? const <AuditProfile>[];
     }
 
@@ -704,17 +786,35 @@ class AuditController extends ChangeNotifier {
     _setFavoriteUpdating(profileJobId, true);
     try {
       if (isFavorite) {
-        await markUnfavoriteSubordinateUseCase!(profileJobId: profileJobId);
+        if (markUnfavoriteSubordinateUseCase != null) {
+          await markUnfavoriteSubordinateUseCase(profileJobId: profileJobId);
+        } else {
+          await auditRepository!.markUnfavoriteSubordinate(
+            profileJobId: profileJobId,
+          );
+        }
       } else {
-        await markFavoriteSubordinateUseCase!(profileJobId: profileJobId);
+        if (markFavoriteSubordinateUseCase != null) {
+          await markFavoriteSubordinateUseCase(profileJobId: profileJobId);
+        } else {
+          await auditRepository!.markFavoriteSubordinate(
+            profileJobId: profileJobId,
+          );
+        }
       }
 
-      final refreshedMembers = await getAuditTeamMembersUseCase(
-        page: 1,
-        pageSize: _resolvedTeamMembersPageSize(),
-        year: selectedAuditYear,
-        quarter: selectedAuditQuarter,
-      );
+      final refreshedMembers = getAuditTeamMembersUseCase != null
+          ? await getAuditTeamMembersUseCase(
+              page: 1,
+              pageSize: _resolvedTeamMembersPageSize(),
+              year: selectedAuditYear,
+              quarter: selectedAuditQuarter,
+              search: _teamMembersSearchQuery,
+            )
+          : await _loadTeamMembers(
+              page: 1,
+              pageSize: _resolvedTeamMembersPageSize(),
+            );
       final sortedMembers =
           _sortedMainList(refreshedMembers) ?? refreshedMembers;
       _state = _state.copyWith(mainList: sortedMembers);
@@ -788,6 +888,25 @@ class AuditController extends ChangeNotifier {
 
     _state = _state.copyWith(searchQuery: query);
     notifyListeners();
+  }
+
+  void updateTeamMembersSearchQuery(String query) {
+    if (_teamMembersSearchQuery == query) {
+      return;
+    }
+
+    _teamMembersSearchQuery = query;
+    _scheduleTeamMembersSearchRefresh();
+  }
+
+  Future<void> resetTeamMembersSearch({bool showLoader = false}) async {
+    _teamMembersSearchDebounceTimer?.cancel();
+    if (_teamMembersSearchQuery.trim().isEmpty) {
+      return;
+    }
+
+    _teamMembersSearchQuery = '';
+    await _refreshTeamMembersSearchResults(showLoader: showLoader);
   }
 
   Future<void> selectAuditYear(int year) async {
@@ -1668,6 +1787,80 @@ class AuditController extends ChangeNotifier {
     return currentCount > 0 ? currentCount : 10;
   }
 
+  void _scheduleTeamMembersSearchRefresh({bool immediate = false}) {
+    _teamMembersSearchDebounceTimer?.cancel();
+
+    if (immediate) {
+      unawaited(_runDebouncedTeamMembersSearchRefresh());
+      return;
+    }
+
+    _teamMembersSearchDebounceTimer = Timer(
+      _teamMembersSearchDebounceDuration,
+      () {
+        unawaited(_runDebouncedTeamMembersSearchRefresh());
+      },
+    );
+  }
+
+  Future<void> _runDebouncedTeamMembersSearchRefresh() async {
+    if (_state.isLoading || _state.isLoadingMore) {
+      _hasPendingTeamMembersSearchRefresh = true;
+      return;
+    }
+
+    _hasPendingTeamMembersSearchRefresh = false;
+    await _refreshTeamMembersSearchResults(showLoader: true);
+  }
+
+  Future<void> _refreshTeamMembersSearchResults({
+    required bool showLoader,
+  }) async {
+    _activeMainListCache = null;
+
+    _state = _state.copyWith(isLoading: showLoader, isLoadingMore: false);
+    notifyListeners();
+
+    try {
+      final mainList = await _loadTeamMembers(
+        page: 1,
+        pageSize: _teamMembersScreenPageSize,
+      );
+      final sortedMainList = _sortedMainList(mainList) ?? mainList;
+      _cacheList(AuditMemberStatus.active, sortedMainList);
+
+      _state = _state.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+        mainList: sortedMainList,
+      );
+      notifyListeners();
+    } catch (error) {
+      _state = _state.copyWith(isLoading: false, isLoadingMore: false);
+      notifyListeners();
+      _logRecoverableError('refreshTeamMembersSearchResults', error);
+    } finally {
+      _flushPendingTeamMembersSearchRefresh();
+    }
+  }
+
+  void _flushPendingTeamMembersSearchRefresh() {
+    if (!_hasPendingTeamMembersSearchRefresh ||
+        _state.isLoading ||
+        _state.isLoadingMore) {
+      return;
+    }
+
+    _hasPendingTeamMembersSearchRefresh = false;
+    _scheduleTeamMembersSearchRefresh(immediate: true);
+  }
+
+  void _resetTeamMembersSearchState() {
+    _teamMembersSearchDebounceTimer?.cancel();
+    _teamMembersSearchQuery = '';
+    _hasPendingTeamMembersSearchRefresh = false;
+  }
+
   Future<List<CertifiedReportOption>>
   _loadCertifiedReportsForPerformanceReport({
     required AuditRepository auditRepository,
@@ -1678,11 +1871,8 @@ class AuditController extends ChangeNotifier {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final trimmedProfileUuid = profile.profileUuid.trim();
-    final isInvalidProfileUuid =
-        trimmedProfileUuid.isEmpty ||
-        trimmedProfileUuid.toLowerCase() == 'null';
-    if (isInvalidProfileUuid ||
+    final normalizedProfileUuid = _normalizeProfileUuid(profile.profileUuid);
+    if (normalizedProfileUuid == null ||
         (report != null && _isOpenSeatPerformanceReport(report))) {
       return const <CertifiedReportOption>[];
     }
@@ -1701,6 +1891,17 @@ class AuditController extends ChangeNotifier {
       );
       return const <CertifiedReportOption>[];
     }
+  }
+
+  String? _normalizeProfileUuid(String? profileUuid) {
+    final trimmedProfileUuid = profileUuid?.trim();
+    if (trimmedProfileUuid == null ||
+        trimmedProfileUuid.isEmpty ||
+        trimmedProfileUuid.toLowerCase() == 'null') {
+      return null;
+    }
+
+    return trimmedProfileUuid;
   }
 
   bool _isOpenSeatPerformanceReport(PerformanceReport report) {
@@ -1726,7 +1927,7 @@ class AuditController extends ChangeNotifier {
       isFavorite: profile.isFavorite,
       lastAuditDates: profile.lastAuditDates,
       roleTitle: profile.roleTitle,
-      name: 'No Profile',
+      name: AppStrings.noProfile,
       lastAuditLabel: profile.lastAuditLabel,
       yearQuarter: profile.yearQuarter,
       seatProfile: 'Open Seat',
@@ -1812,6 +2013,7 @@ class AuditController extends ChangeNotifier {
       pageSize: pageSize,
       year: selectedAuditYear,
       quarter: selectedAuditQuarter,
+      search: _teamMembersSearchQuery,
     );
   }
 
@@ -1924,6 +2126,12 @@ class AuditController extends ChangeNotifier {
   bool _isActualOwner(User? user) {
     return user?.isOwner == true ||
         user?.normalizedRoles.contains('owner') == true;
+  }
+
+  @override
+  void dispose() {
+    _teamMembersSearchDebounceTimer?.cancel();
+    super.dispose();
   }
 }
 

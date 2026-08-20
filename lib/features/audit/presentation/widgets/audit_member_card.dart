@@ -13,121 +13,133 @@ class AuditMemberCard extends StatelessWidget {
     this.onAuditTap,
     this.actionLabel = AppStrings.checkInTitle,
     this.showLastCheckIn = true,
+    this.topRightAction,
   });
 
   final AuditMember member;
   final VoidCallback? onAuditTap;
   final String actionLabel;
   final bool showLastCheckIn;
+  final Widget? topRightAction;
 
   @override
   Widget build(BuildContext context) {
     final profileName = _resolveProfileName(member.name);
+    final hasTopRightAction = topRightAction != null;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
             children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppTextView.body(
-                        member.roleTitle,
-                        color: AppColors.secondaryColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                      AppTextView.body3(
-                        profileName,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                      if (showLastCheckIn) ...[
-                        const SizedBox(height: 10),
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 12),
-                            children: [
-                              TextSpan(
-                                text: 'Last Check-in: ',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary.withValues(
-                                    alpha: 0.75,
-                                  ),
-                                ),
-                              ),
-                              TextSpan(
-                                text: member.lastAuditLabel,
-                                style: const TextStyle(
-                                  color: AppColors.secondaryColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppTextView.body(
+                            member.roleTitle,
+                            color: AppColors.secondaryColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
                           ),
-                        ),
-                      ],
-                      if (member.profiles.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _ProfilesRow(profiles: member.profiles),
-                      ],
-                    ],
+                          AppTextView.body3(
+                            profileName,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                          if (showLastCheckIn) ...[
+                            const SizedBox(height: 10),
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(fontSize: 12),
+                                children: [
+                                  TextSpan(
+                                    text: 'Last Check-in: ',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: member.lastAuditLabel,
+                                    style: const TextStyle(
+                                      color: AppColors.secondaryColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          if (member.profiles.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _ProfilesRow(profiles: member.profiles),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Padding(
+                    padding: EdgeInsets.only(top: hasTopRightAction ? 24 : 0),
+                    child: _MemberAvatar(
+                      label: member.avatarLabel,
+                      name: member.name,
+                      imageUrl: member.avatarImageUrl,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              _MemberAvatar(
-                label: member.avatarLabel,
-                name: member.name,
-                imageUrl: member.avatarImageUrl,
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricTile(
+                      value: member.overallScore.toStringAsFixed(1),
+                      label: AppStrings.auditOverallScore,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MetricTile(
+                      value: '${member.confidenceLevel}%',
+                      label: AppStrings.auditConfidenceLevel,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _AuditActionButton(
+                      onTap: onAuditTap,
+                      label: actionLabel,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricTile(
-                  value: member.overallScore.toStringAsFixed(1),
-                  label: AppStrings.auditOverallScore,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MetricTile(
-                  value: '${member.confidenceLevel}%',
-                  label: AppStrings.auditConfidenceLevel,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _AuditActionButton(
-                  onTap: onAuditTap,
-                  label: actionLabel,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        if (hasTopRightAction)
+          Positioned(top: 8, right: 8, child: topRightAction!),
+      ],
     );
   }
 
   String _resolveProfileName(String value) {
     final trimmedValue = value.trim();
     if (trimmedValue.isEmpty) {
-      return 'No Profile Allocated';
+      return AppStrings.noProfile;
     }
 
     return trimmedValue;

@@ -17,6 +17,7 @@ abstract class AuditRepository {
     required int pageSize,
     required int year,
     required int quarter,
+    String? search,
   });
 
   Future<AuditMainList> getAuditTeamMembers({
@@ -24,6 +25,7 @@ abstract class AuditRepository {
     required int pageSize,
     int? year,
     int? quarter,
+    String? search,
   });
 
   Future<AuditMainList> getMyAudits({
@@ -85,10 +87,12 @@ abstract class AuditRepository {
     required String profileJobId,
     required int year,
     required int quarter,
+    String? profileUuid,
   });
 
   Future<List<AuditEvaluationChart>> getAuditEvaluationChart({
     required String profileJobId,
+    String? profileUuid,
   });
 
   Future<List<AuditList>> getAuditReport({
@@ -177,6 +181,12 @@ abstract class AuditRepository {
 
   Future<String?> generateSeatDescriptionTrainingModuleSummary({
     required String moduleId,
+  });
+
+  Future<void> updateSeatDescriptionTrainingModule({
+    required String moduleId,
+    String? title,
+    String? description,
   });
 
   Future<void> updateSeatDescriptionTrainingModuleSummary({

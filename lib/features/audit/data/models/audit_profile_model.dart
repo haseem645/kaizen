@@ -32,19 +32,17 @@ class AuditProfileModel extends AuditProfile {
   }) {
     final profile = _readMap(json['profile']);
     final profiles = _readProfiles(json['profiles']);
-    final firstProfile = profiles.isEmpty ? null : profiles.first;
     final job = _readMap(json['job']);
-    final name = _readString(profile?['name']) ?? firstProfile?.name ?? '';
-    final email = _readString(profile?['email']) ?? firstProfile?.email ?? '';
-    final imageUrl = _readString(profile?['image']) ?? firstProfile?.imageUrl;
+    final name = _readString(profile?['name']) ?? '';
+    final email = _readString(profile?['email']) ?? '';
+    final imageUrl = _readString(profile?['image']);
     final jobTitle = _readString(job?['title']) ?? '';
-    final onboarded =
-        _readBool(profile?['onboarded']) ?? firstProfile?.onboarded ?? true;
+    final onboarded = _readBool(profile?['onboarded']) ?? true;
 
     return AuditProfileModel(
       uuid: _readString(json['uuid']) ?? '',
       profileJob: _readString(json['profile_job']) ?? '',
-      profileUuid: _readString(profile?['uuid']) ?? firstProfile?.uuid ?? '',
+      profileUuid: _readString(profile?['uuid']) ?? '',
       email: email,
       imageUrl: imageUrl,
       isFavorite: _readBool(json['is_favorite']) ?? false,

@@ -16,6 +16,9 @@ class AppGradientActionButton extends StatelessWidget {
     this.borderRadius = 14,
     this.minHeight = 48,
     this.iconSpacing = 10,
+    this.gradientColors = const <Color>[AppColors.purple1, AppColors.secondaryColor],
+    this.borderColor,
+    this.boxShadows,
   });
 
   final String label;
@@ -28,11 +31,33 @@ class AppGradientActionButton extends StatelessWidget {
   final double borderRadius;
   final double minHeight;
   final double iconSpacing;
+  final List<Color> gradientColors;
+  final Color? borderColor;
+  final List<BoxShadow>? boxShadows;
 
   @override
   Widget build(BuildContext context) {
     final isEnabled = onTap != null;
     final resolvedBorderRadius = BorderRadius.circular(borderRadius);
+    final resolvedBorderColor = borderColor ?? AppColors.lightPurple1.withValues(alpha: 0.35);
+    final resolvedBoxShadows =
+        boxShadows ??
+        (isEnabled
+            ? <BoxShadow>[
+                BoxShadow(
+                  color: AppColors.purple1.withValues(alpha: 0.36),
+                  blurRadius: 10,
+                  offset: const Offset(-6, 0),
+                  spreadRadius: -1,
+                ),
+                BoxShadow(
+                  color: AppColors.secondaryColor.withValues(alpha: 0.42),
+                  blurRadius: 16,
+                  offset: const Offset(12, 0),
+                  spreadRadius: -2,
+                ),
+              ]
+            : const <BoxShadow>[]);
 
     return Opacity(
       opacity: isEnabled ? 1 : 0.58,
@@ -47,32 +72,13 @@ class AppGradientActionButton extends StatelessWidget {
               padding: padding,
               decoration: BoxDecoration(
                 borderRadius: resolvedBorderRadius,
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: <Color>[AppColors.purple1, AppColors.secondaryColor],
+                  colors: gradientColors,
                 ),
-                border: Border.all(
-                  color: AppColors.lightPurple1.withValues(alpha: 0.35),
-                ),
-                boxShadow: isEnabled
-                    ? <BoxShadow>[
-                        BoxShadow(
-                          color: AppColors.purple1.withValues(alpha: 0.36),
-                          blurRadius: 10,
-                          offset: const Offset(-6, 0),
-                          spreadRadius: -1,
-                        ),
-                        BoxShadow(
-                          color: AppColors.secondaryColor.withValues(
-                            alpha: 0.42,
-                          ),
-                          blurRadius: 16,
-                          offset: const Offset(12, 0),
-                          spreadRadius: -2,
-                        ),
-                      ]
-                    : const <BoxShadow>[],
+                border: Border.all(color: resolvedBorderColor),
+                boxShadow: resolvedBoxShadows,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

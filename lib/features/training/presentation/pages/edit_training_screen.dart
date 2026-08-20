@@ -14,6 +14,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../audit/data/datasources/audit_remote_data_source.dart';
@@ -191,20 +192,28 @@ class _EditTrainingSectionView extends StatefulWidget {
 }
 
 class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final TabController _tabController;
-  late final ScrollController _moduleSelectorScrollController;
+  late final AnimationController _tabSwipeResetController;
   final ImagePicker _imagePicker = ImagePicker();
   final FocusNode _newLessonTitleFocusNode = FocusNode();
   final GlobalKey _newLessonTitleFieldKey = GlobalKey();
   final ValueNotifier<int> _selectedTabIndexNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<double> _tabSwipeOffsetNotifier = ValueNotifier<double>(
+    0,
+  );
+  final ValueNotifier<int?> _tabSwipeTargetIndexNotifier = ValueNotifier<int?>(
+    null,
+  );
   final ValueNotifier<bool> _isPickingVideoNotifier = ValueNotifier<bool>(
     false,
   );
   final ValueNotifier<bool> _isFinalizingVideoSetupNotifier =
       ValueNotifier<bool>(false);
-  String? _lastAutoScrolledModuleId;
-  String? _pendingAutoScrolledModuleId;
+  int? _tabSwipePointerId;
+  Offset? _tabSwipeStartPosition;
+  bool _isTrackingTabSwipe = false;
+  Animation<double>? _tabSwipeResetAnimation;
   TrainingModuleController? _trainingController;
   String? _lastDocumentErrorMessage;
   String? _lastAssignmentErrorMessage;
@@ -225,6 +234,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     super.initState();
     _viewStateListenable = Listenable.merge([
       _selectedTabIndexNotifier,
+      _tabSwipeOffsetNotifier,
+      _tabSwipeTargetIndexNotifier,
       _isPickingVideoNotifier,
       _isFinalizingVideoSetupNotifier,
       if (widget.useNonBlockingVideoUpload)
@@ -241,7 +252,18 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChanged);
-    _moduleSelectorScrollController = ScrollController();
+    _tabSwipeResetController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 180),
+        )..addListener(() {
+          final animation = _tabSwipeResetAnimation;
+          if (animation == null) {
+            return;
+          }
+
+          _tabSwipeOffsetNotifier.value = animation.value;
+        });
     unawaited(_restoreLostTrainingVideoIfNeeded());
   }
 
@@ -276,11 +298,13 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         _handleGlobalVideoUploadChanged,
       );
     }
+    _tabSwipeResetController.dispose();
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
-    _moduleSelectorScrollController.dispose();
     _newLessonTitleFocusNode.dispose();
     _selectedTabIndexNotifier.dispose();
+    _tabSwipeOffsetNotifier.dispose();
+    _tabSwipeTargetIndexNotifier.dispose();
     _isPickingVideoNotifier.dispose();
     _isFinalizingVideoSetupNotifier.dispose();
     super.dispose();
@@ -293,6 +317,11 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
 
     _selectedTabIndexNotifier.value = _tabController.index;
+    if (_tabSwipeTargetIndexNotifier.value == _tabController.index &&
+        _tabSwipeOffsetNotifier.value != 0) {
+      _tabSwipeOffsetNotifier.value = 0;
+      _tabSwipeTargetIndexNotifier.value = null;
+    }
 
     final controller = context.read<TrainingModuleController>();
     if (!controller.canAccessSelectedModuleExtras) {
@@ -312,6 +341,177 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     if (_selectedTabIndex == 3) {
       controller.loadAssignmentForSelectedModule();
     }
+  }
+
+  int _maxAccessibleTabIndex(TrainingModuleController controller) {
+    return controller.canAccessSelectedModuleExtras ? 3 : 0;
+  }
+
+  void _stopTabSwipeResetAnimation() {
+    if (_tabSwipeResetController.isAnimating) {
+      _tabSwipeResetController.stop();
+    }
+    _tabSwipeResetAnimation = null;
+  }
+
+  Future<void> _animateTabSwipeOffsetTo(
+    double targetOffset, {
+    Duration duration = const Duration(milliseconds: 180),
+  }) async {
+    final begin = _tabSwipeOffsetNotifier.value;
+    if ((begin - targetOffset).abs() < 0.5) {
+      _tabSwipeOffsetNotifier.value = targetOffset;
+      return;
+    }
+
+    _stopTabSwipeResetAnimation();
+    _tabSwipeResetController.duration = duration;
+    _tabSwipeResetAnimation = Tween<double>(begin: begin, end: targetOffset)
+        .animate(
+          CurvedAnimation(
+            parent: _tabSwipeResetController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+    _tabSwipeResetController.reset();
+    await _tabSwipeResetController.forward().orCancel;
+    _tabSwipeResetAnimation = null;
+  }
+
+  void _resetTabSwipeTracking() {
+    _tabSwipePointerId = null;
+    _tabSwipeStartPosition = null;
+    _isTrackingTabSwipe = false;
+  }
+
+  void _handleTabContentPointerDown(PointerDownEvent event) {
+    _tabSwipePointerId = event.pointer;
+    _tabSwipeStartPosition = event.position;
+    _isTrackingTabSwipe = false;
+    _stopTabSwipeResetAnimation();
+  }
+
+  void _handleTabContentPointerMove(
+    PointerMoveEvent event,
+    TrainingModuleController controller,
+    double contentWidth,
+  ) {
+    if (_tabSwipePointerId != event.pointer || contentWidth <= 0) {
+      return;
+    }
+
+    final startPosition = _tabSwipeStartPosition;
+    if (startPosition == null) {
+      return;
+    }
+
+    final totalDelta = event.position - startPosition;
+    final horizontalDistance = totalDelta.dx.abs();
+    final verticalDistance = totalDelta.dy.abs();
+
+    if (!_isTrackingTabSwipe) {
+      if (horizontalDistance < 10) {
+        return;
+      }
+
+      if (horizontalDistance <= verticalDistance * 1.1) {
+        return;
+      }
+
+      _isTrackingTabSwipe = true;
+    }
+
+    _updateTabSwipeOffset(
+      rawOffset: totalDelta.dx,
+      controller: controller,
+      contentWidth: contentWidth,
+    );
+  }
+
+  void _updateTabSwipeOffset({
+    required double rawOffset,
+    required TrainingModuleController controller,
+    required double contentWidth,
+  }) {
+    if (contentWidth <= 0) {
+      return;
+    }
+
+    final maxTabIndex = _maxAccessibleTabIndex(controller);
+    if (maxTabIndex == 0) {
+      return;
+    }
+
+    if (rawOffset == 0) {
+      _tabSwipeOffsetNotifier.value = 0;
+      _tabSwipeTargetIndexNotifier.value = null;
+      return;
+    }
+
+    final candidateIndex = rawOffset.isNegative
+        ? _selectedTabIndex + 1
+        : _selectedTabIndex - 1;
+    final hasValidTarget = candidateIndex >= 0 && candidateIndex <= maxTabIndex;
+    final clampedOffset = rawOffset.clamp(
+      -contentWidth * 0.94,
+      contentWidth * 0.94,
+    );
+
+    _tabSwipeTargetIndexNotifier.value = hasValidTarget ? candidateIndex : null;
+    _tabSwipeOffsetNotifier.value = hasValidTarget
+        ? clampedOffset
+        : clampedOffset * 0.18;
+  }
+
+  Future<void> _handleTabContentPointerUp(
+    TrainingModuleController controller,
+    double contentWidth,
+  ) async {
+    _resetTabSwipeTracking();
+    if (contentWidth <= 0) {
+      return;
+    }
+
+    final currentOffset = _tabSwipeOffsetNotifier.value;
+    if (currentOffset == 0) {
+      _tabSwipeTargetIndexNotifier.value = null;
+      return;
+    }
+
+    final targetIndex = _tabSwipeTargetIndexNotifier.value;
+    final shouldAdvance =
+        targetIndex != null && currentOffset.abs() > contentWidth * 0.22;
+
+    if (!shouldAdvance) {
+      await _animateTabSwipeOffsetTo(0);
+      _tabSwipeTargetIndexNotifier.value = null;
+      return;
+    }
+
+    final exitOffset = currentOffset.isNegative ? -contentWidth : contentWidth;
+    await _animateTabSwipeOffsetTo(
+      exitOffset,
+      duration: const Duration(milliseconds: 120),
+    );
+    if (!mounted) {
+      return;
+    }
+
+    _tabController.animateTo(targetIndex);
+  }
+
+  Future<void> _handleTabContentPointerCancel(
+    TrainingModuleController controller,
+    double contentWidth,
+  ) async {
+    _resetTabSwipeTracking();
+    if (_tabSwipeOffsetNotifier.value == 0) {
+      _tabSwipeTargetIndexNotifier.value = null;
+      return;
+    }
+
+    await _animateTabSwipeOffsetTo(0);
+    _tabSwipeTargetIndexNotifier.value = null;
   }
 
   void _handleTrainingControllerChanged() {
@@ -585,38 +785,37 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return Center(child: FastCircularProgressIndicator());
     }
 
-    _scheduleSelectedModuleScroll(controller);
-
     final showModuleSelector =
         controller.canManageTraining ||
         controller.modules.isNotEmpty ||
         controller.isCreatingNewLessonDraft;
     final contentChildren = <Widget>[
       if (showModuleSelector) ...[
-        _EditModuleSelector(
-          scrollController: _moduleSelectorScrollController,
-          modules: controller.modules,
-          selectedModuleId: controller.selectedModuleId,
-          isCreatingNewLessonDraft: controller.isCreatingNewLessonDraft,
-          deletingModuleId: controller.deletingModuleId,
-          canManageTraining: controller.canManageTraining,
-          onAddNewLessonTap: () => _startNewLessonDraft(controller),
-          onModuleSelected: (moduleId) async {
-            if (moduleId == controller.selectedModuleId) {
-              await _syncSelectedTabData(controller);
-              return;
-            }
+        Padding(
+          padding: const EdgeInsets.only(bottom: 18),
+          child: _EditModuleSelector(
+            modules: controller.modules,
+            selectedModuleId: controller.selectedModuleId,
+            isCreatingNewLessonDraft: controller.isCreatingNewLessonDraft,
+            deletingModuleId: controller.deletingModuleId,
+            canManageTraining: controller.canManageTraining,
+            onAddNewLessonTap: () => _startNewLessonDraft(controller),
+            onModuleSelected: (moduleId) async {
+              if (moduleId == controller.selectedModuleId) {
+                await _syncSelectedTabData(controller);
+                return;
+              }
 
-            await controller.selectModule(moduleId);
-            if (!mounted) {
-              return;
-            }
-            await _syncSelectedTabData(controller);
-          },
-          onDeleteModuleTap: (module) =>
-              _showDeleteModuleDialog(controller: controller, module: module),
+              await controller.selectModule(moduleId);
+              if (!mounted) {
+                return;
+              }
+              await _syncSelectedTabData(controller);
+            },
+            onDeleteModuleTap: (module) =>
+                _showDeleteModuleDialog(controller: controller, module: module),
+          ),
         ),
-        const SizedBox(height: 1),
       ],
       _buildContentCard(controller),
     ];
@@ -628,21 +827,21 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       );
     }
 
-    return ListView(children: contentChildren);
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      physics: const BouncingScrollPhysics(),
+      children: contentChildren,
+    );
   }
 
   Widget _buildContentCard(TrainingModuleController controller) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (controller.isCreatingNewLessonDraft) ...[
-            _NewLessonTitleField(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (controller.isCreatingNewLessonDraft) ...[
+          Transform.translate(
+            offset: const Offset(0, -4),
+            child: _NewLessonTitleField(
               key: _newLessonTitleFieldKey,
               controller: controller.newLessonTitleController,
               focusNode: _newLessonTitleFocusNode,
@@ -650,27 +849,41 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
               canSubmit: controller.canSubmitNewLessonTitle,
               onSubmit: () => _createModuleFromDraft(controller),
             ),
-            const SizedBox(height: 14),
-          ] else if (controller.selectedModuleTitle.isNotEmpty) ...[
-            AppTextView.body1(
-              controller.selectedModuleTitle,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-            const SizedBox(height: 14),
-          ],
-          if (!controller.canManageTraining) ...[
-            const _TrainingReadOnlyBanner(),
-            const SizedBox(height: 14),
-          ],
-          _TrainingTabs(
-            tabController: _tabController,
-            areExtraTabsEnabled: controller.canAccessSelectedModuleExtras,
           ),
-          const SizedBox(height: 8),
-          _buildTabContent(controller),
+          const SizedBox(height: 10),
+        ] else if (controller.hasSelectedModule &&
+            controller.canEditSelectedModuleTitle) ...[
+          Transform.translate(
+            offset: const Offset(0, -10),
+            child: _TrainingTapEditField(
+              valueText: controller.selectedModuleTitle,
+              hintText: AppStrings.trainingLessonTitleHint,
+              onTap: controller.isSavingModuleTitle
+                  ? null
+                  : () => _showModuleTitleEditBottomSheet(controller),
+              isLoading: controller.isSavingModuleTitle,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ] else if (controller.selectedModuleTitle.isNotEmpty) ...[
+          AppTextView.body1(
+            controller.selectedModuleTitle,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 14),
         ],
-      ),
+        if (!controller.canManageTraining) ...[
+          const _TrainingReadOnlyBanner(),
+          const SizedBox(height: 16),
+        ],
+        _TrainingTabs(
+          tabController: _tabController,
+          areExtraTabsEnabled: controller.canAccessSelectedModuleExtras,
+        ),
+        const SizedBox(height: 18),
+        _buildTabContent(controller),
+      ],
     );
   }
 
@@ -681,7 +894,83 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
           descriptionId: widget.trainingDescriptionId,
           moduleId: controller.selectedModuleId,
         );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth =
+            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final swipeTargetIndex = _tabSwipeTargetIndexNotifier.value;
+        final swipeOffset = _tabSwipeOffsetNotifier.value;
+        final currentPage = KeyedSubtree(
+          key: ValueKey<int>(_selectedTabIndex),
+          child: _buildTabPageForIndex(
+            controller,
+            tabIndex: _selectedTabIndex,
+            isBackgroundVideoUploadActive: isBackgroundVideoUploadActive,
+          ),
+        );
 
+        Widget swipeBody = currentPage;
+        if (swipeTargetIndex != null &&
+            swipeTargetIndex != _selectedTabIndex &&
+            swipeOffset != 0) {
+          final previewStartOffset = swipeOffset.isNegative
+              ? contentWidth
+              : -contentWidth;
+          final swipeProgress = (swipeOffset.abs() / contentWidth).clamp(
+            0.0,
+            1.0,
+          );
+          swipeBody = ClipRect(
+            child: Stack(
+              alignment: Alignment.topLeft,
+              children: [
+                Transform.translate(
+                  offset: Offset(previewStartOffset + swipeOffset, 0),
+                  child: Opacity(
+                    opacity: 0.78 + (swipeProgress * 0.22),
+                    child: KeyedSubtree(
+                      key: ValueKey<int>(swipeTargetIndex),
+                      child: _buildTabPageForIndex(
+                        controller,
+                        tabIndex: swipeTargetIndex,
+                        isBackgroundVideoUploadActive:
+                            isBackgroundVideoUploadActive,
+                      ),
+                    ),
+                  ),
+                ),
+                Transform.translate(
+                  offset: Offset(swipeOffset, 0),
+                  child: currentPage,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: _handleTabContentPointerDown,
+          onPointerMove: (event) =>
+              _handleTabContentPointerMove(event, controller, contentWidth),
+          onPointerUp: (_) =>
+              unawaited(_handleTabContentPointerUp(controller, contentWidth)),
+          onPointerCancel: (_) => unawaited(
+            _handleTabContentPointerCancel(controller, contentWidth),
+          ),
+          child: swipeBody,
+        );
+      },
+    );
+  }
+
+  Widget _buildTabPageForIndex(
+    TrainingModuleController controller, {
+    required int tabIndex,
+    required bool isBackgroundVideoUploadActive,
+  }) {
     if (controller.isCreatingNewLessonDraft) {
       return _VideoTabContent(
         detail: null,
@@ -712,7 +1001,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
 
     if (controller.isLoading && controller.selectedModuleDetail == null) {
       return Padding(
-        padding: EdgeInsets.symmetric(vertical: 36),
+        padding: const EdgeInsets.symmetric(vertical: 36),
         child: Center(child: FastCircularProgressIndicator()),
       );
     }
@@ -722,7 +1011,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return _ContentMessage(message: controller.errorMessage!);
     }
 
-    if (_selectedTabIndex == 0) {
+    if (tabIndex == 0) {
       return _VideoTabContent(
         detail: controller.selectedModuleDetail,
         localVideoPath: controller.selectedModuleLocalVideoPath,
@@ -749,7 +1038,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       );
     }
 
-    if (_selectedTabIndex == 1) {
+    if (tabIndex == 1) {
       return _SopTabContent(
         isLoading: controller.isDocumentLoading,
         canManageGeneration: controller.canManageTraining,
@@ -769,7 +1058,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       );
     }
 
-    if (_selectedTabIndex == 2) {
+    if (tabIndex == 2) {
       return _QuizTabContent(
         isLoading: controller.isQuestionsLoading,
         questions: controller.selectedModuleQuestions,
@@ -796,9 +1085,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       );
     }
 
-    if (_selectedTabIndex == 3) {
+    if (tabIndex == 3) {
       return _AssignmentTabContent(
         isLoading: controller.isAssignmentLoading,
+        hasResolvedAssignment: controller.hasResolvedSelectedModuleAssignment,
         canEditAssignment: controller.canEditSelectedModuleAssignment,
         isSavingAssignment: controller.isSavingAssignment,
         hasSavedAssignment: controller.hasPersistedSelectedModuleAssignment,
@@ -884,73 +1174,6 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
 
     _showNonApiSnackBar(AppStrings.trainingLessonCreatedSuccess);
-  }
-
-  void _scheduleSelectedModuleScroll(TrainingModuleController controller) {
-    final scrollKey = controller.isCreatingNewLessonDraft
-        ? '__draft__'
-        : controller.selectedModuleId.trim();
-    if (scrollKey.isEmpty || controller.modules.isEmpty) {
-      return;
-    }
-
-    if (_lastAutoScrolledModuleId == scrollKey ||
-        _pendingAutoScrolledModuleId == scrollKey) {
-      return;
-    }
-
-    final selectedIndex = controller.isCreatingNewLessonDraft
-        ? -1
-        : controller.modules.indexWhere(
-            (module) => module.uuid == controller.selectedModuleId,
-          );
-    if (!controller.isCreatingNewLessonDraft && selectedIndex < 0) {
-      return;
-    }
-
-    _pendingAutoScrolledModuleId = scrollKey;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _pendingAutoScrolledModuleId = null;
-      if (!mounted || !_moduleSelectorScrollController.hasClients) {
-        return;
-      }
-
-      final targetOffset = controller.isCreatingNewLessonDraft
-          ? 0.0
-          : _resolveSelectedModuleScrollOffset(
-              selectedIndex: selectedIndex,
-              canManageTraining: controller.canManageTraining,
-              maxExtent:
-                  _moduleSelectorScrollController.position.maxScrollExtent,
-            );
-      final currentOffset = _moduleSelectorScrollController.offset;
-      _lastAutoScrolledModuleId = scrollKey;
-      if ((currentOffset - targetOffset).abs() < 1) {
-        return;
-      }
-
-      _moduleSelectorScrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-    });
-  }
-
-  double _resolveSelectedModuleScrollOffset({
-    required int selectedIndex,
-    required bool canManageTraining,
-    required double maxExtent,
-  }) {
-    final leadingOffset = canManageTraining
-        ? _trainingAddNewLessonCardWidth + _trainingModuleSelectorSpacing
-        : 0.0;
-    final rawOffset =
-        leadingOffset +
-        (selectedIndex *
-            (_trainingModuleSelectorCardWidth +
-                _trainingModuleSelectorSpacing));
-    return rawOffset.clamp(0.0, maxExtent);
   }
 
   void _prepareForExternalMediaPicker() {
@@ -1505,6 +1728,40 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
     }
   }
 
+  Future<void> _showModuleTitleEditBottomSheet(
+    TrainingModuleController controller,
+  ) async {
+    if (!controller.canEditSelectedModuleTitle) {
+      return;
+    }
+
+    await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.56),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (_) => _TrainingTextEditSheet(
+        sheetTitle: AppStrings.trainingEditFieldTitle(
+          AppStrings.trainingLessonTitle,
+        ),
+        sheetDescription: AppStrings.trainingEditTextSheetDescription,
+        fieldLabel: AppStrings.trainingLessonTitle,
+        hintText: AppStrings.trainingLessonTitleHint,
+        initialValue: controller.selectedModuleTitle,
+        minLines: 1,
+        maxLines: 2,
+        textInputAction: TextInputAction.done,
+        saveButtonLabel: AppStrings.trainingSaveChangesAction,
+        saveIcon: Icons.check_rounded,
+        validator: (value) =>
+            value.trim().isEmpty ? AppStrings.trainingFieldValueRequired : null,
+        onSave: controller.saveSelectedModuleTitleForSelectedModule,
+      ),
+    );
+  }
+
   Future<void> _showGenerateQuizDialog(
     TrainingModuleController controller,
   ) async {
@@ -1514,9 +1771,13 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
 
     controller.resetQuizGenerationForm();
 
-    final didGenerate = await showDialog<bool>(
+    final didGenerate = await showModalBottomSheet<bool>(
       context: context,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.56),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
         value: controller,
         child: const _GenerateQuizDialog(),
@@ -1535,9 +1796,13 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
       return;
     }
 
-    final didAdd = await showDialog<bool>(
+    final didAdd = await showModalBottomSheet<bool>(
       context: context,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.56),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
         value: controller,
         child: const _AddQuestionDialog(),
@@ -1592,58 +1857,92 @@ class _TrainingTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TabBar(
-      controller: tabController,
-      isScrollable: true,
-      tabAlignment: TabAlignment.start,
-      labelPadding: EdgeInsets.zero,
-      onTap: (index) {
-        if (index == 0 || areExtraTabsEnabled) {
-          return;
-        }
+    const labels = <String>[
+      AppStrings.trainingVideoTab,
+      AppStrings.trainingSopTab,
+      AppStrings.trainingQuizTab,
+      AppStrings.trainingAssignmentTab,
+    ];
 
-        tabController.animateTo(0);
-      },
-      indicatorSize: TabBarIndicatorSize.tab,
-      indicatorColor: AppColors.secondaryColor,
-      labelColor: AppColors.secondaryColor,
-      unselectedLabelColor: AppColors.textSecondary,
-      dividerColor: AppColors.fieldBorder.withValues(alpha: 0.22),
-      tabs: <Widget>[
-        const _TrainingTabLabel(label: AppStrings.trainingVideoTab),
-        _TrainingTabLabel(
-          label: AppStrings.trainingSopTab,
-          isEnabled: areExtraTabsEnabled,
+    return AnimatedBuilder(
+      animation: tabController,
+      builder: (context, _) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            for (var index = 0; index < labels.length; index++) ...[
+              _TrainingTabChip(
+                label: labels[index],
+                isSelected: tabController.index == index,
+                isEnabled: index == 0 || areExtraTabsEnabled,
+                onTap: () {
+                  if (index != 0 && !areExtraTabsEnabled) {
+                    tabController.animateTo(0);
+                    return;
+                  }
+
+                  if (tabController.index != index) {
+                    tabController.animateTo(index);
+                  }
+                },
+              ),
+              if (index != labels.length - 1) const SizedBox(width: 12),
+            ],
+          ],
         ),
-        _TrainingTabLabel(
-          label: AppStrings.trainingQuizTab,
-          isEnabled: areExtraTabsEnabled,
-        ),
-        _TrainingTabLabel(
-          label: AppStrings.trainingAssignmentTab,
-          isEnabled: areExtraTabsEnabled,
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _TrainingTabLabel extends StatelessWidget {
-  const _TrainingTabLabel({required this.label, this.isEnabled = true});
+class _TrainingTabChip extends StatelessWidget {
+  const _TrainingTabChip({
+    required this.label,
+    required this.isSelected,
+    required this.isEnabled,
+    required this.onTap,
+  });
 
   final String label;
+  final bool isSelected;
   final bool isEnabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 22),
-      child: Tab(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 22, right: 14),
-          child: Opacity(
-            opacity: isEnabled ? 1 : 0.42,
-            child: AppTextView.body2(label, fontWeight: FontWeight.w600),
+    final textColor = isSelected
+        ? AppColors.secondaryColor
+        : isEnabled
+        ? AppColors.textPrimary
+        : AppColors.textSecondary.withValues(alpha: 0.55);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minWidth: 98),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.secondaryColor.withValues(alpha: 0.05)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.secondaryColor
+                  : Colors.white.withValues(alpha: isEnabled ? 0.4 : 0.16),
+            ),
+          ),
+          child: Center(
+            child: AppTextView.body2(
+              label,
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -1651,15 +1950,11 @@ class _TrainingTabLabel extends StatelessWidget {
   }
 }
 
-const double _trainingModuleSelectorCardWidth = 132;
-const double _trainingAddNewLessonCardWidth = 180;
-const double _trainingModuleSelectorCardHeight = 148;
-const double _trainingModuleSelectorSpacing = 12;
-const double _trainingModuleThumbnailHeight = 84;
+const double _trainingModulePagerArrowSize = 42;
+const double _trainingModuleThumbnailHeight = 96;
 
 class _EditModuleSelector extends StatelessWidget {
   const _EditModuleSelector({
-    required this.scrollController,
     required this.modules,
     required this.selectedModuleId,
     required this.isCreatingNewLessonDraft,
@@ -1670,7 +1965,6 @@ class _EditModuleSelector extends StatelessWidget {
     required this.onDeleteModuleTap,
   });
 
-  final ScrollController scrollController;
   final List<SeatDescriptionTrainingModule> modules;
   final String selectedModuleId;
   final bool isCreatingNewLessonDraft;
@@ -1681,55 +1975,173 @@ class _EditModuleSelector extends StatelessWidget {
   final Future<void> Function(SeatDescriptionTrainingModule module)
   onDeleteModuleTap;
 
+  Future<void> _showModuleSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.56),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (_) => _ModuleSelectionSheet(
+        modules: modules,
+        selectedModuleId: selectedModuleId,
+        isCreatingNewLessonDraft: isCreatingNewLessonDraft,
+        deletingModuleId: deletingModuleId,
+        canManageTraining: canManageTraining,
+        onAddNewLessonTap: onAddNewLessonTap,
+        onModuleSelected: onModuleSelected,
+        onDeleteModuleTap: onDeleteModuleTap,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _trainingModuleSelectorCardHeight,
-      child: SingleChildScrollView(
-        controller: scrollController,
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final selectedIndex = modules.indexWhere(
+      (module) => module.uuid == selectedModuleId,
+    );
+    final hasSelectedModule = selectedIndex >= 0;
+    final selectedModule = hasSelectedModule ? modules[selectedIndex] : null;
+    final canGoPrevious = hasSelectedModule && selectedIndex > 0;
+    final canGoNext = hasSelectedModule
+        ? selectedIndex < modules.length - 1
+        : isCreatingNewLessonDraft && modules.isNotEmpty;
+    final showPager = isCreatingNewLessonDraft || selectedModule != null;
+    final canSwipeModules = canGoPrevious || canGoNext;
+
+    Future<void> goToPreviousModule() async {
+      if (!canGoPrevious) {
+        return;
+      }
+
+      await onModuleSelected(modules[selectedIndex - 1].uuid);
+    }
+
+    Future<void> goToNextModule() async {
+      if (!canGoNext) {
+        return;
+      }
+
+      await onModuleSelected(
+        hasSelectedModule
+            ? modules[selectedIndex + 1].uuid
+            : modules.first.uuid,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (canManageTraining) ...[
+          _AddNewLessonButton(
+            isSelected: isCreatingNewLessonDraft,
+            onTap: onAddNewLessonTap,
+          ),
+          if (showPager) const SizedBox(height: 12),
+        ],
+        if (showPager) ...[
+          Row(
             children: [
-              if (canManageTraining) ...[
-                _AddNewLessonCard(
-                  isSelected: isCreatingNewLessonDraft,
-                  onTap: onAddNewLessonTap,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppTextView.body4(
+                      isCreatingNewLessonDraft
+                          ? AppStrings.trainingNewLesson
+                          : AppStrings.trainingSelectedLesson,
+                      color: AppColors.purple1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    if (!isCreatingNewLessonDraft &&
+                        selectedModule != null) ...[
+                      const SizedBox(height: 4),
+                      AppTextView.body3(
+                        AppStrings.trainingLessonPosition(
+                          selectedIndex + 1,
+                          modules.length,
+                        ),
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(width: _trainingModuleSelectorSpacing),
-              ],
-              // if (canManageTraining && modules.isNotEmpty) ...[
-              //   Container(
-              //     width: 1,
-              //     height: _trainingModuleThumbnailHeight,
-              //     color: Colors.white.withValues(alpha: 0.24),
-              //   ),
-              //   const SizedBox(width: _trainingModuleSelectorSpacing),
-              // ],
-              for (var index = 0; index < modules.length; index++) ...[
-                _ModuleCard(
-                  module: modules[index],
-                  isSelected: modules[index].uuid == selectedModuleId,
-                  onTap: () => onModuleSelected(modules[index].uuid),
-                  isDeleting: deletingModuleId == modules[index].uuid,
-                  showDeleteAction: canManageTraining,
-                  onDeleteTap: () => onDeleteModuleTap(modules[index]),
+              ),
+              if (modules.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                _ModuleSelectorActionButton(
+                  label: AppStrings.trainingAllLessons,
+                  icon: Icons.view_list_rounded,
+                  onTap: () => unawaited(_showModuleSheet(context)),
                 ),
-                if (index != modules.length - 1)
-                  const SizedBox(width: _trainingModuleSelectorSpacing),
               ],
             ],
           ),
-        ),
-      ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _ModulePagerArrowButton(
+                icon: Icons.chevron_left_rounded,
+                isEnabled: canGoPrevious,
+                onTap: canGoPrevious
+                    ? () => unawaited(goToPreviousModule())
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onHorizontalDragEnd: canSwipeModules
+                      ? (details) {
+                          final velocity = details.primaryVelocity ?? 0;
+                          if (velocity <= -220) {
+                            unawaited(goToNextModule());
+                            return;
+                          }
+
+                          if (velocity >= 220) {
+                            unawaited(goToPreviousModule());
+                          }
+                        }
+                      : null,
+                  child: isCreatingNewLessonDraft
+                      ? _DraftModulePagerCard(
+                          canBrowseExistingLessons: modules.isNotEmpty,
+                          onBrowseTap: modules.isNotEmpty
+                              ? () => unawaited(_showModuleSheet(context))
+                              : null,
+                        )
+                      : _SelectedModulePagerCard(
+                          module: selectedModule!,
+                          onTap: () => unawaited(_showModuleSheet(context)),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _ModulePagerArrowButton(
+                icon: Icons.chevron_right_rounded,
+                isEnabled: canGoNext,
+                onTap: canGoNext ? () => unawaited(goToNextModule()) : null,
+              ),
+            ],
+          ),
+        ] else if (canManageTraining) ...[
+          const SizedBox(height: 2),
+          AppTextView.body3(
+            AppStrings.trainingAddLessonPrompt,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ],
     );
   }
 }
 
-class _AddNewLessonCard extends StatelessWidget {
-  const _AddNewLessonCard({required this.isSelected, required this.onTap});
+class _AddNewLessonButton extends StatelessWidget {
+  const _AddNewLessonButton({required this.isSelected, required this.onTap});
 
   final bool isSelected;
   final VoidCallback onTap;
@@ -1740,17 +2152,24 @@ class _AddNewLessonCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(18),
         child: CustomPaint(
           painter: _DottedRoundedBorderPainter(
-            color: AppColors.secondaryColor,
-            radius: 10,
+            color: isSelected
+                ? AppColors.secondaryColor
+                : AppColors.secondaryColor.withValues(alpha: 0.58),
+            radius: 18,
           ),
-          child: SizedBox(
-            width: _trainingAddNewLessonCardWidth,
-            height: _trainingModuleThumbnailHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
+          child: Ink(
+            height: 56,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.secondaryColor.withValues(alpha: 0.08)
+                  : AppColors.surfaceDark3.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1759,8 +2178,8 @@ class _AddNewLessonCard extends StatelessWidget {
                     color: AppColors.secondaryColor,
                     size: 18,
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  SizedBox(width: 8),
+                  Expanded(
                     child: AppTextView.body2(
                       AppStrings.trainingAddNewLesson,
                       maxLines: 1,
@@ -1778,21 +2197,381 @@ class _AddNewLessonCard extends StatelessWidget {
   }
 }
 
-class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({
+class _ModuleSelectorActionButton extends StatelessWidget {
+  const _ModuleSelectorActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.secondaryColor, size: 16),
+              const SizedBox(width: 8),
+              AppTextView.body3(
+                label,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModulePagerArrowButton extends StatelessWidget {
+  const _ModulePagerArrowButton({
+    required this.icon,
+    required this.isEnabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool isEnabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isEnabled ? onTap : null,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: isEnabled ? 1 : 0.35,
+        child: Ink(
+          width: _trainingModulePagerArrowSize,
+          height: _trainingModulePagerArrowSize,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Icon(icon, color: AppColors.textPrimary, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedModulePagerCard extends StatelessWidget {
+  const _SelectedModulePagerCard({required this.module, required this.onTap});
+
+  final SeatDescriptionTrainingModule module;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedThumbnail = CustomFunctions.resolveImageUrl(
+      module.thumbnailLink,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.secondaryColor, width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.secondaryColor.withValues(alpha: 0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+                spreadRadius: -12,
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: _trainingModuleThumbnailHeight,
+                    child: resolvedThumbnail == null
+                        ? const _ModuleThumbnailPlaceholder()
+                        : CachedNetworkImage(
+                            imageUrl: resolvedThumbnail,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) =>
+                                const _ModuleThumbnailPlaceholder(),
+                            errorWidget: (_, _, _) =>
+                                const _ModuleThumbnailPlaceholder(),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextView.body1(
+                        module.title,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.view_list_rounded,
+                      color: AppColors.textSecondary,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DraftModulePagerCard extends StatelessWidget {
+  const _DraftModulePagerCard({
+    required this.canBrowseExistingLessons,
+    this.onBrowseTap,
+  });
+
+  final bool canBrowseExistingLessons;
+  final VoidCallback? onBrowseTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DottedRoundedBorderPainter(
+        color: AppColors.secondaryColor.withValues(alpha: 0.62),
+        radius: 20,
+      ),
+      child: Ink(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark3.withValues(alpha: 0.78),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: AppColors.secondaryColor,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: AppTextView.body1(
+                      AppStrings.trainingNewLesson,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AppTextView.body3(
+                AppStrings.trainingAddLessonPrompt,
+                color: AppColors.textSecondary,
+                height: 1.45,
+              ),
+              if (canBrowseExistingLessons && onBrowseTap != null) ...[
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _ModuleSelectorActionButton(
+                    label: AppStrings.trainingAllLessons,
+                    icon: Icons.view_list_rounded,
+                    onTap: onBrowseTap!,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleSelectionSheet extends StatelessWidget {
+  const _ModuleSelectionSheet({
+    required this.modules,
+    required this.selectedModuleId,
+    required this.isCreatingNewLessonDraft,
+    required this.deletingModuleId,
+    required this.canManageTraining,
+    required this.onAddNewLessonTap,
+    required this.onModuleSelected,
+    required this.onDeleteModuleTap,
+  });
+
+  final List<SeatDescriptionTrainingModule> modules;
+  final String selectedModuleId;
+  final bool isCreatingNewLessonDraft;
+  final String? deletingModuleId;
+  final bool canManageTraining;
+  final VoidCallback onAddNewLessonTap;
+  final Future<void> Function(String moduleId) onModuleSelected;
+  final Future<void> Function(SeatDescriptionTrainingModule module)
+  onDeleteModuleTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 16,
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 620),
+          decoration: const BoxDecoration(
+            color: AppColors.mainBg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextView.body1(
+                          AppStrings.trainingChooseLesson,
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      _DialogCloseButton(
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  if (canManageTraining) ...[
+                    const SizedBox(height: 18),
+                    _AddNewLessonButton(
+                      isSelected: isCreatingNewLessonDraft,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        onAddNewLessonTap();
+                      },
+                    ),
+                  ],
+                  if (modules.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    for (var index = 0; index < modules.length; index++) ...[
+                      _ModuleSheetTile(
+                        module: modules[index],
+                        isSelected:
+                            !isCreatingNewLessonDraft &&
+                            modules[index].uuid == selectedModuleId,
+                        isDeleting: deletingModuleId == modules[index].uuid,
+                        showDeleteAction: canManageTraining,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          unawaited(onModuleSelected(modules[index].uuid));
+                        },
+                        onDeleteTap: () {
+                          Navigator.of(context).pop();
+                          unawaited(onDeleteModuleTap(modules[index]));
+                        },
+                      ),
+                      if (index != modules.length - 1)
+                        const SizedBox(height: 12),
+                    ],
+                  ] else if (!canManageTraining) ...[
+                    const SizedBox(height: 18),
+                    AppTextView.body3(
+                      AppStrings.trainingNoModulesAvailable,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleSheetTile extends StatelessWidget {
+  const _ModuleSheetTile({
     required this.module,
     required this.isSelected,
-    required this.onTap,
     required this.isDeleting,
     required this.showDeleteAction,
+    required this.onTap,
     required this.onDeleteTap,
   });
 
   final SeatDescriptionTrainingModule module;
   final bool isSelected;
-  final VoidCallback onTap;
   final bool isDeleting;
   final bool showDeleteAction;
+  final VoidCallback onTap;
   final VoidCallback onDeleteTap;
 
   @override
@@ -1801,100 +2580,95 @@ class _ModuleCard extends StatelessWidget {
       module.thumbnailLink,
     );
 
-    return SizedBox(
-      width: _trainingModuleSelectorCardWidth,
-      height: _trainingModuleSelectorCardHeight,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(10),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: EdgeInsets.all(isSelected ? 2 : 0),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.secondaryColor
-                              : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: _trainingModuleThumbnailHeight,
-                          child: resolvedThumbnail == null
-                              ? const _ModuleThumbnailPlaceholder()
-                              : CachedNetworkImage(
-                                  imageUrl: resolvedThumbnail,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, _) =>
-                                      const _ModuleThumbnailPlaceholder(),
-                                  errorWidget: (_, _, _) =>
-                                      const _ModuleThumbnailPlaceholder(),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: AppTextView.body2(
-                        module.title,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.secondaryColor.withValues(alpha: 0.1)
+                : AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.secondaryColor.withValues(alpha: 0.42)
+                  : AppColors.fieldBorder.withValues(alpha: 0.22),
             ),
           ),
-          if (showDeleteAction)
-            Positioned(
-              top: 0,
-              right: 6,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: isDeleting ? null : onDeleteTap,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Ink(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.88),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: isDeleting
-                          ? FastCircularProgressIndicator(width: 12, height: 12)
-                          : const Icon(
-                              Icons.delete_outline_rounded,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    width: 82,
+                    height: 60,
+                    child: resolvedThumbnail == null
+                        ? const _ModuleThumbnailPlaceholder()
+                        : CachedNetworkImage(
+                            imageUrl: resolvedThumbnail,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) =>
+                                const _ModuleThumbnailPlaceholder(),
+                            errorWidget: (_, _, _) =>
+                                const _ModuleThumbnailPlaceholder(),
+                          ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextView.body2(
+                    module.title,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (isSelected) ...[
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.secondaryColor,
+                    size: 20,
+                  ),
+                  if (showDeleteAction) const SizedBox(width: 10),
+                ],
+                if (showDeleteAction)
+                  InkWell(
+                    onTap: isDeleting ? null : onDeleteTap,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Ink(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.red.withValues(alpha: 0.34),
+                        ),
+                      ),
+                      child: Center(
+                        child: isDeleting
+                            ? FastCircularProgressIndicator(
+                                width: 12,
+                                height: 12,
+                              )
+                            : const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 16,
+                                color: AppColors.red,
+                              ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -2116,14 +2890,20 @@ class _ModuleThumbnailPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.mainBg,
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.play_circle_outline_rounded,
-        color: AppColors.textSecondary,
-        size: 24,
-      ),
+    return Image.asset(
+      '${AppStrings.imagePath}fallback.png',
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) {
+        return Container(
+          color: AppColors.mainBg,
+          alignment: Alignment.center,
+          child: const Icon(
+            Icons.play_circle_outline_rounded,
+            color: AppColors.textSecondary,
+            size: 24,
+          ),
+        );
+      },
     );
   }
 }
@@ -2223,17 +3003,48 @@ class _VideoTabContent extends StatelessWidget {
           ),
         if (canRevealVideo) ...[
           const SizedBox(height: 16),
-          const _TrainingSectionHeader(title: AppStrings.trainingSummaryLabel),
-          const SizedBox(height: 10),
-          _TrainingDisplayCard(
-            child: AppTextView.body3(
-              summary != null && summary.isNotEmpty
-                  ? CustomFunctions.stripHtmlTags(summary)
-                  : AppStrings.trainingNoSummaryAvailable,
-              color: AppColors.textPrimary,
-              height: 1.65,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Expanded(
+                child: _TrainingSectionHeader(
+                  title: AppStrings.trainingSummaryLabel,
+                ),
+              ),
+              if (canEditSummary && isSavingSummary)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: FastCircularProgressIndicator(width: 12, height: 12),
+                ),
+            ],
           ),
+          const SizedBox(height: 10),
+          canEditSummary
+              ? _TrainingOutlinedTextField(
+                  controller: summaryController,
+                  hintText: AppStrings.trainingSummaryHint,
+                  minLines: 4,
+                  maxLines: 8,
+                  textInputAction: TextInputAction.newline,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  textHeight: 1.65,
+                  hintFontWeight: FontWeight.w400,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                )
+              : _TrainingDisplayCard(
+                  child: AppTextView.body3(
+                    summary != null && summary.isNotEmpty
+                        ? CustomFunctions.stripHtmlTags(summary)
+                        : AppStrings.trainingNoSummaryAvailable,
+                    color: AppColors.textPrimary,
+                    height: 1.65,
+                  ),
+                ),
         ],
       ],
     );
@@ -3330,6 +4141,8 @@ class _SopTabContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasEditorContent = documentController.text.trim().isNotEmpty;
+    final showToolbarProgressIndicator =
+        isSavingDocument || (isLoading && hasEditorContent && !isGeneratingSop);
     final sopContent = isLoading && !hasEditorContent
         ? SizedBox(
             height: 180,
@@ -3385,6 +4198,7 @@ class _SopTabContent extends StatelessWidget {
                 _TrainingFormattingToolbar(
                   controller: documentController,
                   isSaving: isSavingDocument,
+                  showTrailingProgressIndicator: showToolbarProgressIndicator,
                   onBoldTap: onBoldTap,
                   onItalicTap: onItalicTap,
                   onUnderlineTap: onUnderlineTap,
@@ -3417,6 +4231,7 @@ class _SopTabContent extends StatelessWidget {
 class _AssignmentTabContent extends StatelessWidget {
   const _AssignmentTabContent({
     required this.isLoading,
+    required this.hasResolvedAssignment,
     required this.canEditAssignment,
     required this.isSavingAssignment,
     required this.hasSavedAssignment,
@@ -3433,6 +4248,7 @@ class _AssignmentTabContent extends StatelessWidget {
   });
 
   final bool isLoading;
+  final bool hasResolvedAssignment;
   final bool canEditAssignment;
   final bool isSavingAssignment;
   final bool hasSavedAssignment;
@@ -3452,6 +4268,8 @@ class _AssignmentTabContent extends StatelessWidget {
     final hasTitleContent = titleController.text.trim().isNotEmpty;
     final hasDescriptionContent = descriptionController.text.trim().isNotEmpty;
     final hasVisibleContent = hasTitleContent || hasDescriptionContent;
+    final isResolvingAssignmentState =
+        canEditAssignment && !hasResolvedAssignment;
     final actionHeader = hasSavedAssignment
         ? AppStrings.trainingEditAction
         : AppStrings.trainingLibraryCreate;
@@ -3503,19 +4321,26 @@ class _AssignmentTabContent extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              _GradientTrainingActionButton(
-                label: actionLabel,
-                icon: actionIcon,
-                isEnabled: !isLoading,
-                isLoading: isSavingAssignment,
-                showLoaderInIconSlot: true,
-                verticalPadding: 8,
-                onTap: !isLoading
-                    ? () {
-                        unawaited(onSaveTap());
-                      }
-                    : null,
-              ),
+              if (isResolvingAssignmentState)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: FastCircularProgressIndicator(width: 14, height: 14),
+                )
+              else
+                _GradientTrainingActionButton(
+                  label: actionLabel,
+                  icon: actionIcon,
+                  isEnabled: !isLoading,
+                  isLoading: isSavingAssignment,
+                  showLoaderInIconSlot: true,
+                  verticalPadding: 8,
+                  onTap: !isLoading
+                      ? () {
+                          unawaited(onSaveTap());
+                        }
+                      : null,
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -3525,14 +4350,17 @@ class _AssignmentTabContent extends StatelessWidget {
         _TrainingSingleLineInputCard(
           controller: titleController,
           hintText: AppStrings.trainingAssignmentTitleHint,
-          readOnly: !canEditAssignment || isSavingAssignment,
+          readOnly:
+              !canEditAssignment ||
+              isSavingAssignment ||
+              isResolvingAssignmentState,
         ),
         const SizedBox(height: 18),
         const _TrainingSectionHeader(
           title: AppStrings.trainingAssignmentDescriptionLabel,
         ),
         const SizedBox(height: 8),
-        if (canEditAssignment)
+        if (canEditAssignment && !isResolvingAssignmentState)
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -3569,6 +4397,11 @@ class _AssignmentTabContent extends StatelessWidget {
                 ),
               ],
             ),
+          )
+        else if (isResolvingAssignmentState)
+          SizedBox(
+            height: 180,
+            child: Center(child: FastCircularProgressIndicator()),
           )
         else
           descriptionContent,
@@ -3621,9 +4454,9 @@ class _QuizTabContent extends StatelessWidget {
       children: [
         if (canManageQuestions) ...[
           Align(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.centerLeft,
             child: Wrap(
-              alignment: WrapAlignment.end,
+              alignment: WrapAlignment.start,
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 10,
               runSpacing: 10,
@@ -3635,13 +4468,13 @@ class _QuizTabContent extends StatelessWidget {
                   isLoading: isAddingQuestion,
                   isDottedBorder: true,
                   horizontalPadding: 16,
-                  verticalPadding: 10,
-                  borderRadius: 14,
+                  verticalPadding: 12,
+                  borderRadius: 999,
                   backgroundColor: AppColors.secondaryColor.withValues(
-                    alpha: 0.05,
+                    alpha: 0.04,
                   ),
                   activeBorderColor: AppColors.secondaryColor.withValues(
-                    alpha: 0.58,
+                    alpha: 0.42,
                   ),
                   activeTextColor: AppColors.secondaryColor,
                   activeIconColor: AppColors.secondaryColor,
@@ -3931,10 +4764,10 @@ class _TrainingDisplayCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.surfaceDark2.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+          color: AppColors.fieldBorder.withValues(alpha: 0.16),
         ),
       ),
       child: child,
@@ -4042,10 +4875,451 @@ class _TrainingSingleLineInputCard extends StatelessWidget {
   }
 }
 
+class _TrainingTapEditField extends StatelessWidget {
+  const _TrainingTapEditField({
+    required this.valueText,
+    required this.hintText,
+    this.onTap,
+    this.isLoading = false,
+  });
+
+  final String valueText;
+  final String hintText;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = valueText.trim().isNotEmpty;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark2.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.16),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  hasValue ? valueText.trim() : hintText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: hasValue
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary.withValues(alpha: 0.74),
+                    fontSize: 16,
+                    fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (isLoading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: FastCircularProgressIndicator(width: 12, height: 12),
+                )
+              else
+                Icon(
+                  Icons.edit_outlined,
+                  color: onTap != null
+                      ? AppColors.secondaryColor
+                      : AppColors.textSecondary,
+                  size: 18,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingOutlinedTextField extends StatelessWidget {
+  const _TrainingOutlinedTextField({
+    required this.controller,
+    required this.hintText,
+    required this.minLines,
+    required this.maxLines,
+    this.textInputAction,
+    this.fontSize = 14,
+    this.fontWeight = FontWeight.w600,
+    this.textHeight = 1.4,
+    this.hintFontWeight = FontWeight.w500,
+    this.contentPadding = const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 14,
+    ),
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final int minLines;
+  final int maxLines;
+  final TextInputAction? textInputAction;
+  final double fontSize;
+  final FontWeight fontWeight;
+  final double textHeight;
+  final FontWeight hintFontWeight;
+  final EdgeInsetsGeometry contentPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      cursorColor: Colors.white,
+      minLines: minLines,
+      maxLines: maxLines,
+      textInputAction: textInputAction,
+      keyboardType: maxLines > 1 ? TextInputType.multiline : TextInputType.text,
+      style: TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        height: textHeight,
+      ),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: AppColors.textSecondary.withValues(alpha: 0.74),
+          fontSize: fontSize,
+          fontWeight: hintFontWeight,
+          height: textHeight,
+        ),
+        filled: true,
+        fillColor: AppColors.surfaceDark2.withValues(alpha: 0.42),
+        contentPadding: contentPadding,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: AppColors.fieldBorder.withValues(alpha: 0.16),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: AppColors.fieldBorder.withValues(alpha: 0.16),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.secondaryColor),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingTextEditSheet extends StatefulWidget {
+  const _TrainingTextEditSheet({
+    required this.sheetTitle,
+    required this.sheetDescription,
+    required this.fieldLabel,
+    required this.hintText,
+    required this.initialValue,
+    required this.saveButtonLabel,
+    required this.saveIcon,
+    required this.onSave,
+    this.validator,
+    this.minLines = 1,
+    this.maxLines = 1,
+    this.textInputAction = TextInputAction.done,
+  });
+
+  final String sheetTitle;
+  final String sheetDescription;
+  final String fieldLabel;
+  final String hintText;
+  final String initialValue;
+  final String saveButtonLabel;
+  final IconData saveIcon;
+  final Future<bool> Function(String value) onSave;
+  final String? Function(String value)? validator;
+  final int minLines;
+  final int maxLines;
+  final TextInputAction textInputAction;
+
+  @override
+  State<_TrainingTextEditSheet> createState() => _TrainingTextEditSheetState();
+}
+
+class _TrainingTextEditSheetState extends State<_TrainingTextEditSheet> {
+  late final TextEditingController _controller;
+  final ValueNotifier<bool> _isSavingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> _errorTextNotifier = ValueNotifier<String?>(
+    null,
+  );
+  late final Listenable _sheetListenable;
+
+  bool get _canSave =>
+      _controller.text.trim().isNotEmpty && !_isSavingNotifier.value;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue)
+      ..addListener(_handleTextChanged);
+    _sheetListenable = Listenable.merge([
+      _controller,
+      _isSavingNotifier,
+      _errorTextNotifier,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_handleTextChanged)
+      ..dispose();
+    _isSavingNotifier.dispose();
+    _errorTextNotifier.dispose();
+    super.dispose();
+  }
+
+  void _handleTextChanged() {
+    if (_errorTextNotifier.value != null) {
+      _errorTextNotifier.value = null;
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_isSavingNotifier.value) {
+      return;
+    }
+
+    final value = _controller.text.trim();
+    final validationMessage =
+        widget.validator?.call(value) ??
+        (value.isEmpty ? AppStrings.trainingFieldValueRequired : null);
+    if (validationMessage != null) {
+      _errorTextNotifier.value = validationMessage;
+      return;
+    }
+
+    _isSavingNotifier.value = true;
+    final didSave = await widget.onSave(value);
+    if (!mounted) {
+      return;
+    }
+
+    _isSavingNotifier.value = false;
+    if (didSave) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _sheetListenable,
+      builder: (context, _) {
+        final isSaving = _isSavingNotifier.value;
+
+        return Padding(
+          padding: EdgeInsets.only(
+            top: 16,
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 620),
+              decoration: const BoxDecoration(
+                color: AppColors.mainBg,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppTextView.body1(
+                            widget.sheetTitle,
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        _DialogCloseButton(
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    AppTextView.body3(
+                      widget.sheetDescription,
+                      color: AppColors.textSecondary,
+                      height: 1.45,
+                    ),
+                    const SizedBox(height: 18),
+                    AppTextView.body3(
+                      widget.fieldLabel,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      cursorColor: Colors.white,
+                      minLines: widget.minLines,
+                      maxLines: widget.maxLines,
+                      textInputAction: widget.textInputAction,
+                      keyboardType: widget.maxLines > 1
+                          ? TextInputType.multiline
+                          : TextInputType.text,
+                      textCapitalization: TextCapitalization.sentences,
+                      onSubmitted: widget.maxLines == 1
+                          ? (_) => _submit()
+                          : null,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        height: 1.45,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: widget.hintText,
+                        hintStyle: TextStyle(
+                          color: AppColors.textSecondary.withValues(
+                            alpha: 0.74,
+                          ),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          height: 1.45,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.surfaceDark2.withValues(
+                          alpha: 0.42,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide(
+                            color: AppColors.fieldBorder.withValues(
+                              alpha: 0.16,
+                            ),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide(
+                            color: AppColors.fieldBorder.withValues(
+                              alpha: 0.16,
+                            ),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: const BorderSide(
+                            color: AppColors.secondaryColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_errorTextNotifier.value != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.red.withValues(alpha: 0.22),
+                          ),
+                        ),
+                        child: AppTextView.body3(
+                          _errorTextNotifier.value!,
+                          color: AppColors.textPrimary,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 22),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IgnorePointer(
+                          ignoring: isSaving,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: AppGradientActionButton(
+                              label: widget.saveButtonLabel,
+                              icon: widget.saveIcon,
+                              onTap: isSaving
+                                  ? () {}
+                                  : _canSave
+                                  ? _submit
+                                  : null,
+                              minHeight: 52,
+                              borderRadius: 16,
+                              textSize: 15,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (isSaving)
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: FastCircularProgressIndicator(
+                              width: 14,
+                              height: 14,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _TrainingFormattingToolbar extends StatelessWidget {
   const _TrainingFormattingToolbar({
     required this.controller,
     required this.isSaving,
+    this.showTrailingProgressIndicator = false,
     this.onBoldTap,
     this.onItalicTap,
     this.onUnderlineTap,
@@ -4057,6 +5331,7 @@ class _TrainingFormattingToolbar extends StatelessWidget {
 
   final TrainingRichTextEditingController controller;
   final bool isSaving;
+  final bool showTrailingProgressIndicator;
   final VoidCallback? onBoldTap;
   final VoidCallback? onItalicTap;
   final VoidCallback? onUnderlineTap;
@@ -4076,70 +5351,83 @@ class _TrainingFormattingToolbar extends StatelessWidget {
       ),
       child: AnimatedBuilder(
         animation: controller,
-        builder: (context, _) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingBoldAction,
-                icon: Icons.format_bold_rounded,
-                isActive: controller.isFormatActive(
-                  TrainingDocumentFormatKind.bold,
+        builder: (context, _) => Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingBoldAction,
+                      icon: Icons.format_bold_rounded,
+                      isActive: controller.isFormatActive(
+                        TrainingDocumentFormatKind.bold,
+                      ),
+                      onTap: isSaving ? null : onBoldTap,
+                    ),
+                    const SizedBox(width: 8),
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingItalicAction,
+                      icon: Icons.format_italic_rounded,
+                      isActive: controller.isFormatActive(
+                        TrainingDocumentFormatKind.italic,
+                      ),
+                      onTap: isSaving ? null : onItalicTap,
+                    ),
+                    const SizedBox(width: 8),
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingUnderlineAction,
+                      icon: Icons.format_underline_rounded,
+                      isActive: controller.isFormatActive(
+                        TrainingDocumentFormatKind.underline,
+                      ),
+                      onTap: isSaving ? null : onUnderlineTap,
+                    ),
+                    const SizedBox(width: 8),
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingBulletListAction,
+                      icon: Icons.format_list_bulleted_rounded,
+                      isActive: controller.isBulletListActive,
+                      onTap: isSaving ? null : onBulletListTap,
+                    ),
+                    const SizedBox(width: 8),
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingNumberedListAction,
+                      icon: Icons.format_list_numbered_rounded,
+                      isActive: controller.isNumberedListActive,
+                      onTap: isSaving ? null : onNumberedListTap,
+                    ),
+                    const SizedBox(width: 8),
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingQuoteAction,
+                      icon: Icons.format_quote_rounded,
+                      isActive: controller.isFormatActive(
+                        TrainingDocumentFormatKind.quote,
+                      ),
+                      onTap: isSaving ? null : onQuoteTap,
+                    ),
+                    const SizedBox(width: 8),
+                    _TrainingFormattingButton(
+                      tooltip: AppStrings.trainingHeadingAction,
+                      icon: Icons.title_rounded,
+                      isActive: controller.isFormatActive(
+                        TrainingDocumentFormatKind.heading,
+                      ),
+                      onTap: isSaving ? null : onHeadingTap,
+                    ),
+                  ],
                 ),
-                onTap: isSaving ? null : onBoldTap,
               ),
-              const SizedBox(width: 8),
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingItalicAction,
-                icon: Icons.format_italic_rounded,
-                isActive: controller.isFormatActive(
-                  TrainingDocumentFormatKind.italic,
-                ),
-                onTap: isSaving ? null : onItalicTap,
+            ),
+            if (showTrailingProgressIndicator) const SizedBox(width: 12),
+            if (showTrailingProgressIndicator)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: FastCircularProgressIndicator(width: 14, height: 14),
               ),
-              const SizedBox(width: 8),
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingUnderlineAction,
-                icon: Icons.format_underline_rounded,
-                isActive: controller.isFormatActive(
-                  TrainingDocumentFormatKind.underline,
-                ),
-                onTap: isSaving ? null : onUnderlineTap,
-              ),
-              const SizedBox(width: 8),
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingBulletListAction,
-                icon: Icons.format_list_bulleted_rounded,
-                isActive: controller.isBulletListActive,
-                onTap: isSaving ? null : onBulletListTap,
-              ),
-              const SizedBox(width: 8),
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingNumberedListAction,
-                icon: Icons.format_list_numbered_rounded,
-                isActive: controller.isNumberedListActive,
-                onTap: isSaving ? null : onNumberedListTap,
-              ),
-              const SizedBox(width: 8),
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingQuoteAction,
-                icon: Icons.format_quote_rounded,
-                isActive: controller.isFormatActive(
-                  TrainingDocumentFormatKind.quote,
-                ),
-                onTap: isSaving ? null : onQuoteTap,
-              ),
-              const SizedBox(width: 8),
-              _TrainingFormattingButton(
-                tooltip: AppStrings.trainingHeadingAction,
-                icon: Icons.title_rounded,
-                isActive: controller.isFormatActive(
-                  TrainingDocumentFormatKind.heading,
-                ),
-                onTap: isSaving ? null : onHeadingTap,
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -4204,111 +5492,132 @@ class _GenerateQuizDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
 
-    return Dialog(
-      backgroundColor: AppColors.surfaceDark,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: AppTextView.body1(
-                      AppStrings.trainingGenerateQuizDialogTitle,
-                      color: AppColors.textPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 620),
+          decoration: const BoxDecoration(
+            color: AppColors.mainBg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  _DialogCloseButton(onTap: () => Navigator.of(context).pop()),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  _DividerDot(),
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      color: AppColors.fieldBorder.withValues(alpha: 0.34),
-                    ),
-                  ),
-                  _DividerDot(),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Center(
-                child: AppTextView.body(
-                  AppStrings.trainingGenerateQuizDialogTitle,
-                  color: AppColors.hexd9deff,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Center(
-                child: AppTextView.body2(
-                  AppStrings.trainingGenerateQuizDialogDescription,
-                  color: AppColors.lightPurple1,
-                  fontSize: 12,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _QuizSettingsCard(controller: controller),
-              const SizedBox(height: 18),
-              Center(
-                child: SizedBox(
-                  width: 196,
-                  child: TextButton.icon(
-                    onPressed: controller.isGeneratingQuiz
-                        ? null
-                        : () async {
-                            final didGenerate = await context
-                                .read<TrainingModuleController>()
-                                .generateQuizForSelectedModule();
-                            if (!context.mounted || !didGenerate) {
-                              return;
-                            }
-
-                            Navigator.of(context).pop(true);
-                          },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      disabledForegroundColor: AppColors.textPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: AppColors.secondaryColor,
-                      disabledBackgroundColor: AppColors.secondaryColor
-                          .withValues(alpha: 0.55),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                        side: const BorderSide(color: AppColors.secondaryColor),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: AppTextView.body1(
+                        AppStrings.trainingGenerateQuizDialogTitle,
+                        color: AppColors.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    icon: controller.isGeneratingQuiz
-                        ? FastCircularProgressIndicator(width: 16, height: 16)
-                        : const Icon(
-                            Icons.auto_awesome_rounded,
-                            size: 15,
-                            color: AppColors.textPrimary,
+                    _DialogCloseButton(
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    _DividerDot(),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: AppColors.fieldBorder.withValues(alpha: 0.34),
+                      ),
+                    ),
+                    _DividerDot(),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Center(
+                  child: AppTextView.body(
+                    AppStrings.trainingGenerateQuizDialogTitle,
+                    color: AppColors.hexd9deff,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Center(
+                  child: AppTextView.body2(
+                    AppStrings.trainingGenerateQuizDialogDescription,
+                    color: AppColors.lightPurple1,
+                    fontSize: 12,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _QuizSettingsCard(controller: controller),
+                const SizedBox(height: 18),
+                Center(
+                  child: SizedBox(
+                    width: 196,
+                    child: TextButton.icon(
+                      onPressed: controller.isGeneratingQuiz
+                          ? null
+                          : () async {
+                              final didGenerate = await context
+                                  .read<TrainingModuleController>()
+                                  .generateQuizForSelectedModule();
+                              if (!context.mounted || !didGenerate) {
+                                return;
+                              }
+
+                              Navigator.of(context).pop(true);
+                            },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.textPrimary,
+                        disabledForegroundColor: AppColors.textPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: AppColors.secondaryColor,
+                        disabledBackgroundColor: AppColors.secondaryColor
+                            .withValues(alpha: 0.55),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                          side: const BorderSide(
+                            color: AppColors.secondaryColor,
                           ),
-                    label: AppTextView.body(
-                      AppStrings.trainingGenerateQuiz,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      icon: controller.isGeneratingQuiz
+                          ? FastCircularProgressIndicator(width: 16, height: 16)
+                          : const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 15,
+                              color: AppColors.textPrimary,
+                            ),
+                      label: AppTextView.body(
+                        AppStrings.trainingGenerateQuiz,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -4433,7 +5742,7 @@ class _AddQuestionDialogFormController extends ChangeNotifier {
 
 class _AddQuestionDialogState extends State<_AddQuestionDialog> {
   static const int _minOptionCount = 2;
-  static const int _initialOptionCount = 3;
+  static const int _initialOptionCount = 2;
   late final _AddQuestionDialogFormController _formController;
 
   @override
@@ -4481,168 +5790,194 @@ class _AddQuestionDialogState extends State<_AddQuestionDialog> {
 
     return AnimatedBuilder(
       animation: _formController,
-      builder: (context, _) => Dialog(
-        backgroundColor: AppColors.surfaceDark,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 620,
-            maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: AppTextView.body1(
-                        AppStrings.trainingAddQuestionDialogTitle,
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+      builder: (context, _) => Padding(
+        padding: EdgeInsets.only(
+          top: 16,
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(
+              maxWidth: 620,
+              maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.mainBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    _DialogCloseButton(
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    _DividerDot(),
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        color: AppColors.fieldBorder.withValues(alpha: 0.34),
-                      ),
-                    ),
-                    _DividerDot(),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const AppTextView.body2(
-                  AppStrings.trainingAddQuestionDialogDescription,
-                  color: AppColors.lightPurple1,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-                const SizedBox(height: 20),
-                _QuizDialogField(
-                  label: AppStrings.trainingQuestionLabel,
-                  hintText: AppStrings.trainingQuestionHint,
-                  controller: _formController.questionController,
-                  minLines: 3,
-                  maxLines: 5,
-                  textCapitalization: TextCapitalization.sentences,
-                  onChanged: _formController.clearValidationMessage,
-                ),
-                const SizedBox(height: 18),
-                const AppTextView.body3(
-                  AppStrings.trainingQuestionOptionsLabel,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-                const SizedBox(height: 6),
-                const AppTextView.body4(
-                  AppStrings.trainingQuestionSelectCorrectAnswerHint,
-                  color: AppColors.textSecondary,
-                  height: 1.45,
-                ),
-                const SizedBox(height: 14),
-                for (
-                  var index = 0;
-                  index < _formController.optionControllers.length;
-                  index++
-                ) ...[
-                  _QuizOptionEditorCard(
-                    label: AppStrings.trainingQuestionOptionLabel(index + 1),
-                    hintText: AppStrings.trainingQuestionOptionHint(index + 1),
-                    controller: _formController.optionControllers[index],
-                    isSelected:
-                        _formController.selectedCorrectOptionIndex == index,
-                    onSelect: () => _formController.selectCorrectOption(index),
-                    onChanged: _formController.clearValidationMessage,
-                    onRemove:
-                        _formController.optionControllers.length >
-                            _minOptionCount
-                        ? () => _formController.removeOptionField(
-                            index,
-                            minOptionCount: _minOptionCount,
-                          )
-                        : null,
                   ),
-                  if (index != _formController.optionControllers.length - 1)
-                    const SizedBox(height: 12),
-                ],
-                const SizedBox(height: 14),
-                if (_formController.optionControllers.length <
-                    TrainingModuleController.maxQuizOptionsPerQuestion)
-                  _InlineTextAction(
-                    label: AppStrings.trainingQuestionAddOption,
-                    icon: Icons.add_circle_outline_rounded,
-                    onTap: _formController.addOptionField,
-                  ),
-                if (_formController.validationMessage != null) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.red.withValues(alpha: 0.22),
-                      ),
-                    ),
-                    child: AppTextView.body3(
-                      _formController.validationMessage!,
-                      color: AppColors.textPrimary,
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 22),
-                Center(
-                  child: SizedBox(
-                    width: 210,
-                    child: TextButton.icon(
-                      onPressed: controller.isAddingQuestion ? null : _submit,
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textPrimary,
-                        disabledForegroundColor: AppColors.textPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        backgroundColor: AppColors.secondaryColor,
-                        disabledBackgroundColor: AppColors.secondaryColor
-                            .withValues(alpha: 0.55),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                          side: const BorderSide(
-                            color: AppColors.secondaryColor,
-                          ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: AppTextView.body1(
+                          AppStrings.trainingAddQuestionDialogTitle,
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      icon: controller.isAddingQuestion
-                          ? FastCircularProgressIndicator(width: 16, height: 16)
-                          : const Icon(
-                              Icons.playlist_add_rounded,
-                              size: 17,
-                              color: AppColors.textPrimary,
-                            ),
-                      label: const AppTextView.body(
-                        AppStrings.trainingQuestionSaveAction,
-                        fontSize: 14,
+                      _DialogCloseButton(
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      _DividerDot(),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: AppColors.fieldBorder.withValues(alpha: 0.34),
+                        ),
+                      ),
+                      _DividerDot(),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const AppTextView.body2(
+                    AppStrings.trainingAddQuestionDialogDescription,
+                    color: AppColors.lightPurple1,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                  const SizedBox(height: 20),
+                  _QuizDialogField(
+                    label: AppStrings.trainingQuestionLabel,
+                    hintText: AppStrings.trainingQuestionHint,
+                    controller: _formController.questionController,
+                    minLines: 3,
+                    maxLines: 5,
+                    textCapitalization: TextCapitalization.sentences,
+                    onChanged: _formController.clearValidationMessage,
+                  ),
+                  const SizedBox(height: 18),
+                  const AppTextView.body3(
+                    AppStrings.trainingQuestionOptionsLabel,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 6),
+                  const AppTextView.body4(
+                    AppStrings.trainingQuestionSelectCorrectAnswerHint,
+                    color: AppColors.textSecondary,
+                    height: 1.45,
+                  ),
+                  const SizedBox(height: 14),
+                  for (
+                    var index = 0;
+                    index < _formController.optionControllers.length;
+                    index++
+                  ) ...[
+                    _QuizOptionEditorCard(
+                      label: AppStrings.trainingQuestionOptionLabel(index + 1),
+                      hintText: AppStrings.trainingQuestionOptionHint(
+                        index + 1,
+                      ),
+                      controller: _formController.optionControllers[index],
+                      isSelected:
+                          _formController.selectedCorrectOptionIndex == index,
+                      onSelect: () =>
+                          _formController.selectCorrectOption(index),
+                      onChanged: _formController.clearValidationMessage,
+                      onRemove:
+                          _formController.optionControllers.length >
+                              _minOptionCount
+                          ? () => _formController.removeOptionField(
+                              index,
+                              minOptionCount: _minOptionCount,
+                            )
+                          : null,
+                    ),
+                    if (index != _formController.optionControllers.length - 1)
+                      const SizedBox(height: 12),
+                  ],
+                  const SizedBox(height: 14),
+                  if (_formController.optionControllers.length <
+                      TrainingModuleController.maxQuizOptionsPerQuestion)
+                    _InlineTextAction(
+                      label: AppStrings.trainingQuestionAddOption,
+                      icon: Icons.add_circle_outline_rounded,
+                      onTap: _formController.addOptionField,
+                    ),
+                  if (_formController.validationMessage != null) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.red.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: AppTextView.body3(
+                        _formController.validationMessage!,
                         color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  Center(
+                    child: SizedBox(
+                      width: 210,
+                      child: TextButton.icon(
+                        onPressed: controller.isAddingQuestion ? null : _submit,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textPrimary,
+                          disabledForegroundColor: AppColors.textPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          backgroundColor: AppColors.secondaryColor,
+                          disabledBackgroundColor: AppColors.secondaryColor
+                              .withValues(alpha: 0.55),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                            side: const BorderSide(
+                              color: AppColors.secondaryColor,
+                            ),
+                          ),
+                        ),
+                        icon: controller.isAddingQuestion
+                            ? FastCircularProgressIndicator(
+                                width: 16,
+                                height: 16,
+                              )
+                            : const Icon(
+                                Icons.playlist_add_rounded,
+                                size: 17,
+                                color: AppColors.textPrimary,
+                              ),
+                        label: const AppTextView.body(
+                          AppStrings.trainingQuestionSaveAction,
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -5260,21 +6595,13 @@ class _DialogCloseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.78),
-            width: 1,
-          ),
-        ),
-        child: const Icon(
+      borderRadius: BorderRadius.circular(18),
+      child: const Padding(
+        padding: EdgeInsets.all(4),
+        child: Icon(
           Icons.close_rounded,
-          color: AppColors.textPrimary,
-          size: 16,
+          color: AppColors.textSecondary,
+          size: 24,
         ),
       ),
     );
@@ -5738,13 +7065,19 @@ class _EditableQuizQuestionCardState extends State<_EditableQuizQuestionCard> {
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
           decoration: BoxDecoration(
-            color: AppColors.mainBg,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.24),
-            ),
+            color: AppColors.surfaceDark3.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.34)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+                spreadRadius: -10,
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -5753,19 +7086,71 @@ class _EditableQuizQuestionCardState extends State<_EditableQuizQuestionCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: AppTextView.body3(
-                      '${widget.number}. ${widget.question.question}',
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      height: 1.5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${AppStrings.trainingQuestionLabel.toUpperCase()} '
+                          '${widget.number.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            color: AppColors.secondaryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        AppTextView.body1(
+                          widget.question.question,
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          height: 1.45,
+                        ),
+                      ],
                     ),
                   ),
+                  if (widget.canManageQuestions) ...[
+                    const SizedBox(width: 12),
+                    Tooltip(
+                      message: AppStrings.trainingDeleteQuestionAction,
+                      child: InkWell(
+                        onTap: isBusy ? null : _deleteQuestion,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Ink(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceDark.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.fieldBorder.withValues(
+                                alpha: 0.18,
+                              ),
+                            ),
+                          ),
+                          child: Center(
+                            child: widget.isDeleting
+                                ? FastCircularProgressIndicator(
+                                    width: 14,
+                                    height: 14,
+                                  )
+                                : const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: AppColors.textSecondary,
+                                    size: 18,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               if (resolvedImageUrl != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   child: CachedNetworkImage(
                     imageUrl: resolvedImageUrl,
                     height: 160,
@@ -5775,7 +7160,7 @@ class _EditableQuizQuestionCardState extends State<_EditableQuizQuestionCard> {
                 ),
               ],
               if (visibleOptions.isNotEmpty) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 for (var index = 0; index < visibleOptions.length; index++) ...[
                   _QuizOptionTile(
                     controller: _editorController.optionControllerFor(
@@ -5850,93 +7235,45 @@ class _EditableQuizQuestionCardState extends State<_EditableQuizQuestionCard> {
                 ),
               ],
               if (widget.canManageQuestions) ...[
+                const SizedBox(height: 18),
+                _QuizCorrectOptionDropdown(
+                  value: _editorController.selectedCorrectOptionUuid,
+                  options: correctOptionChoices,
+                  showLabel: false,
+                  onChanged: isBusy
+                      ? null
+                      : _editorController.selectCorrectOption,
+                ),
                 const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: _QuizCorrectOptionDropdown(
-                        value: _editorController.selectedCorrectOptionUuid,
-                        options: correctOptionChoices,
-                        onChanged: isBusy
-                            ? null
-                            : _editorController.selectCorrectOption,
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton(
+                    onPressed: canSaveQuestion ? _saveQuestion : null,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      disabledForegroundColor: AppColors.textPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      backgroundColor: AppColors.secondaryColor,
+                      disabledBackgroundColor: AppColors.secondaryColor
+                          .withValues(alpha: 0.42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: const BorderSide(color: AppColors.secondaryColor),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      flex: 5,
-                      child: SizedBox(
-                        height: 44,
-                        child: TextButton(
-                          onPressed: canSaveQuestion ? _saveQuestion : null,
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.textPrimary,
-                            disabledForegroundColor: AppColors.textPrimary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 10,
-                            ),
-                            backgroundColor: AppColors.secondaryColor,
-                            disabledBackgroundColor: AppColors.secondaryColor
-                                .withValues(alpha: 0.42),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: const BorderSide(
-                                color: AppColors.secondaryColor,
-                              ),
-                            ),
+                    child: widget.isSaving
+                        ? FastCircularProgressIndicator(width: 16, height: 16)
+                        : const AppTextView.body(
+                            AppStrings.trainingQuestionSaveAction,
+                            fontSize: 13,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
                           ),
-                          child: widget.isSaving
-                              ? FastCircularProgressIndicator(
-                                  width: 16,
-                                  height: 16,
-                                )
-                              : const FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: AppTextView.body(
-                                    AppStrings.trainingQuestionSaveAction,
-                                    fontSize: 13,
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Tooltip(
-                      message: AppStrings.trainingDeleteQuestionAction,
-                      child: InkWell(
-                        onTap: isBusy ? null : _deleteQuestion,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Ink(
-                          width: 38,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.red.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.red.withValues(alpha: 0.32),
-                            ),
-                          ),
-                          child: Center(
-                            child: widget.isDeleting
-                                ? FastCircularProgressIndicator(
-                                    width: 14,
-                                    height: 14,
-                                  )
-                                : const Icon(
-                                    Icons.delete_forever_rounded,
-                                    color: AppColors.red,
-                                    size: 20,
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ],
@@ -6371,10 +7708,10 @@ class _DraftQuizOptionTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark2.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.24),
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
         ),
       ),
       child: Row(
@@ -6461,11 +7798,13 @@ class _QuizCorrectOptionDropdown extends StatelessWidget {
     required this.value,
     required this.options,
     this.onChanged,
+    this.showLabel = true,
   });
 
   final String value;
   final List<_QuizCorrectOptionChoice> options;
   final ValueChanged<String?>? onChanged;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -6474,12 +7813,13 @@ class _QuizCorrectOptionDropdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const AppTextView.body3(
-          AppStrings.trainingQuestionCorrectAnswerLabel,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-        const SizedBox(height: 8),
+        if (showLabel)
+          const AppTextView.body3(
+            AppStrings.trainingQuestionCorrectAnswerLabel,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        if (showLabel) const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           key: ValueKey<String>(value),
           initialValue: hasValue ? value : null,
@@ -6496,25 +7836,25 @@ class _QuizCorrectOptionDropdown extends StatelessWidget {
           decoration: InputDecoration(
             isDense: true,
             filled: true,
-            fillColor: AppColors.surfaceDark2.withValues(alpha: 0.32),
+            fillColor: AppColors.surfaceDark2.withValues(alpha: 0.42),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 10,
+              horizontal: 12,
+              vertical: 12,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(
-                color: AppColors.fieldBorder.withValues(alpha: 0.24),
+                color: AppColors.fieldBorder.withValues(alpha: 0.22),
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(
-                color: AppColors.fieldBorder.withValues(alpha: 0.24),
+                color: AppColors.fieldBorder.withValues(alpha: 0.22),
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: AppColors.secondaryColor),
             ),
           ),
@@ -6565,10 +7905,14 @@ class _QuizOptionTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark2.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(14),
+        color: isSelected
+            ? AppColors.secondaryColor.withValues(alpha: 0.09)
+            : Colors.white.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.24),
+          color: isSelected
+              ? AppColors.secondaryColor.withValues(alpha: 0.58)
+              : AppColors.fieldBorder.withValues(alpha: 0.18),
         ),
       ),
       child: Row(
@@ -6658,10 +8002,10 @@ class _TrainingReadOnlyBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceDark2.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.22),
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
         ),
       ),
       child: const AppTextView.body3(
@@ -6684,10 +8028,10 @@ class _ContentMessage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.surfaceDark2.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+          color: AppColors.fieldBorder.withValues(alpha: 0.16),
         ),
       ),
       child: AppTextView.body3(

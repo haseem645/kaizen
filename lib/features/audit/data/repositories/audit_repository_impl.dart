@@ -24,12 +24,14 @@ class AuditRepositoryImpl implements AuditRepository {
     required int pageSize,
     required int year,
     required int quarter,
+    String? search,
   }) {
     return _remoteDataSource.getAuditMainList(
       page: page,
       pageSize: pageSize,
       year: year,
       quarter: quarter,
+      search: search,
     );
   }
 
@@ -39,12 +41,14 @@ class AuditRepositoryImpl implements AuditRepository {
     required int pageSize,
     int? year,
     int? quarter,
+    String? search,
   }) {
     return _remoteDataSource.getAuditTeamMembers(
       page: page,
       pageSize: pageSize,
       year: year,
       quarter: quarter,
+      search: search,
     );
   }
 
@@ -176,20 +180,24 @@ class AuditRepositoryImpl implements AuditRepository {
     required String profileJobId,
     required int year,
     required int quarter,
+    String? profileUuid,
   }) {
     return _remoteDataSource.getAuditDetails(
       profileJobId: profileJobId,
       year: year,
       quarter: quarter,
+      profileUuid: profileUuid,
     );
   }
 
   @override
   Future<List<AuditEvaluationChart>> getAuditEvaluationChart({
     required String profileJobId,
+    String? profileUuid,
   }) {
     return _remoteDataSource.getAuditEvaluationChart(
       profileJobId: profileJobId,
+      profileUuid: profileUuid,
     );
   }
 
@@ -382,6 +390,19 @@ class AuditRepositoryImpl implements AuditRepository {
   }) {
     return _remoteDataSource.generateSeatDescriptionTrainingModuleSummary(
       moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<void> updateSeatDescriptionTrainingModule({
+    required String moduleId,
+    String? title,
+    String? description,
+  }) {
+    return _remoteDataSource.updateSeatDescriptionTrainingModule(
+      moduleId: moduleId,
+      title: title,
+      description: description,
     );
   }
 

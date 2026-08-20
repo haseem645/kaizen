@@ -11,12 +11,14 @@ class GetAuditTeamMembersUseCase {
     int pageSize = 10,
     int? year,
     int? quarter,
+    String? search,
   }) {
     return _repository.getAuditTeamMembers(
       page: page,
       pageSize: pageSize,
       year: year,
       quarter: quarter,
+      search: search,
     );
   }
 }

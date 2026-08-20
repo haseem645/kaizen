@@ -10,11 +10,13 @@ class GetAuditDetailsUseCase {
     required String profileJobId,
     required int year,
     required int quarter,
+    String? profileUuid,
   }) {
     return _repository.getAuditDetails(
       profileJobId: profileJobId,
       year: year,
       quarter: quarter,
+      profileUuid: profileUuid,
     );
   }
 }

@@ -1,26 +1,22 @@
 // ignore_for_file: file_names
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/utils/custom_functions.dart';
+import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/audit_profile.dart';
 import '../providers/audit_controller.dart';
+import '../widgets/audit_member_card.dart';
 
 class ViewAllTeamMembers extends StatefulWidget {
-  const ViewAllTeamMembers({
-    super.key,
-    required this.members,
-    required this.onMemberTap,
-    required this.onFavoriteTap,
-  });
+  const ViewAllTeamMembers({super.key, required this.members});
 
   final List<AuditProfile> members;
-  final Future<void> Function(AuditProfile member) onMemberTap;
-  final Future<List<AuditProfile>> Function(AuditProfile member) onFavoriteTap;
 
   @override
   State<ViewAllTeamMembers> createState() => _ViewAllTeamMembersState();
@@ -28,26 +24,42 @@ class ViewAllTeamMembers extends StatefulWidget {
 
 class _ViewAllTeamMembersState extends State<ViewAllTeamMembers> {
   late final TextEditingController _searchController;
-  late List<AuditProfile> _members;
-  _TeamMembersTab _selectedTab = _TeamMembersTab.all;
-  String _query = '';
+  late final ScrollController _scrollController;
+  late final ValueNotifier<_TeamMembersViewState> _viewStateNotifier;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    _members = widget.members;
+    _scrollController = ScrollController()..addListener(_handleScroll);
+    _viewStateNotifier = ValueNotifier<_TeamMembersViewState>(
+      const _TeamMembersViewState(),
+    );
   }
 
   @override
   void dispose() {
+    final controller = context.read<AuditController>();
+    if (controller.teamMembersSearchQuery.trim().isNotEmpty) {
+      unawaited(controller.resetTeamMembersSearch());
+    }
+
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
     _searchController.dispose();
+    _viewStateNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final members = _filteredMembers;
+    final controller = context.watch<AuditController>();
+    final state = controller.state;
+    final members = state.mainList?.results ?? widget.members;
+    final isSearchLoading =
+        state.isLoading && controller.teamMembersSearchQuery.trim().isNotEmpty;
+    _syncSearchController(controller.teamMembersSearchQuery);
 
     return Dialog.fullscreen(
       backgroundColor: AppColors.mainBg,
@@ -59,40 +71,86 @@ class _ViewAllTeamMembersState extends State<ViewAllTeamMembers> {
             children: [
               _Header(onClose: () => Navigator.of(context).pop()),
               const SizedBox(height: 8),
-              _TeamMembersTabs(
-                selectedTab: _selectedTab,
-                onTabChanged: (tab) {
-                  setState(() {
-                    _selectedTab = tab;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              _SearchBar(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() => _query = value);
-                },
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: members.isEmpty
-                    ? const Center(
-                        child: AppTextView.body(
-                          'No team members found.',
-                          color: AppColors.textSecondary,
+              ValueListenableBuilder<_TeamMembersViewState>(
+                valueListenable: _viewStateNotifier,
+                builder: (context, viewState, _) {
+                  final filteredMembers = _visibleMembers(
+                    members,
+                    viewState: viewState,
+                  );
+                  final shouldAutoLoadFavorites =
+                      viewState.selectedTab == _TeamMembersTab.favorites &&
+                      filteredMembers.isEmpty &&
+                      state.mainList?.next != null &&
+                      !state.isLoadingMore;
+
+                  if (shouldAutoLoadFavorites) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!context.mounted) {
+                        return;
+                      }
+
+                      context.read<AuditController>().loadNextTeamMembersPage();
+                    });
+                  }
+
+                  return Expanded(
+                    child: Column(
+                      children: [
+                        _TeamMembersTabs(
+                          selectedTab: viewState.selectedTab,
+                          onTabChanged: _selectTab,
                         ),
-                      )
-                    : ListView.separated(
-                        itemCount: members.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          return _TeamMemberTile(
-                            member: members[index],
-                            onTap: () => widget.onMemberTap(members[index]),
-                          );
-                        },
-                      ),
+                        const SizedBox(height: 16),
+                        _SearchBar(
+                          controller: _searchController,
+                          onChanged: _updateQuery,
+                          isSearchLoading: isSearchLoading,
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: state.isLoading && members.isEmpty
+                              ? Center(child: FastCircularProgressIndicator())
+                              : shouldAutoLoadFavorites
+                              ? Center(child: FastCircularProgressIndicator())
+                              : filteredMembers.isEmpty
+                              ? const Center(
+                                  child: AppTextView.body(
+                                    AppStrings.auditNoTeamMembersFound,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                )
+                              : ListView.separated(
+                                  controller: _scrollController,
+                                  itemCount: filteredMembers.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 18),
+                                  itemBuilder: (context, index) {
+                                    final member = filteredMembers[index];
+                                    final isFavoriteUpdating = controller
+                                        .isFavoriteUpdating(member.profileJob);
+                                    return AuditMemberCard(
+                                      member: member,
+                                      topRightAction: _FavoriteButton(
+                                        isFavorite: member.isFavorite,
+                                        isLoading: isFavoriteUpdating,
+                                        onPressed: () =>
+                                            _handleFavoriteTap(context, member),
+                                      ),
+                                      onAuditTap: () =>
+                                          Navigator.of(context).pop(member),
+                                    );
+                                  },
+                                ),
+                        ),
+                        if (state.isLoadingMore) ...[
+                          const SizedBox(height: 16),
+                          FastCircularProgressIndicator(),
+                        ],
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -101,28 +159,69 @@ class _ViewAllTeamMembersState extends State<ViewAllTeamMembers> {
     );
   }
 
-  List<AuditProfile> get _filteredMembers {
-    final visibleMembers = _selectedTab == _TeamMembersTab.favorites
-        ? _members.where((member) => member.isFavorite).toList(growable: false)
-        : _members;
-    final query = _query.trim().toLowerCase();
-    if (query.isEmpty) {
-      return visibleMembers;
+  void _handleScroll() {
+    if (!_scrollController.hasClients ||
+        _scrollController.position.extentAfter > 360) {
+      return;
     }
 
-    return visibleMembers
-        .where((member) {
-          return member.name.toLowerCase().contains(query) ||
-              member.roleTitle.toLowerCase().contains(query) ||
-              member.email.toLowerCase().contains(query);
-        })
-        .toList(growable: false);
+    context.read<AuditController>().loadNextTeamMembersPage();
   }
 
-  void updateMembers(List<AuditProfile> members) {
-    setState(() {
-      _members = members;
-    });
+  void _selectTab(_TeamMembersTab tab) {
+    final currentState = _viewStateNotifier.value;
+    if (currentState.selectedTab == tab) {
+      return;
+    }
+
+    _viewStateNotifier.value = currentState.copyWith(selectedTab: tab);
+  }
+
+  void _updateQuery(String query) {
+    context.read<AuditController>().updateTeamMembersSearchQuery(query);
+  }
+
+  Future<void> _handleFavoriteTap(
+    BuildContext context,
+    AuditProfile member,
+  ) async {
+    try {
+      await context.read<AuditController>().toggleFavoriteSubordinate(
+        profileJobId: member.profileJob,
+        isFavorite: member.isFavorite,
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Unable to update favorite right now.')),
+        );
+    }
+  }
+
+  void _syncSearchController(String value) {
+    if (_searchController.text == value) {
+      return;
+    }
+
+    _searchController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
+
+  List<AuditProfile> _visibleMembers(
+    List<AuditProfile> members, {
+    required _TeamMembersViewState viewState,
+  }) {
+    final visibleMembers = viewState.selectedTab == _TeamMembersTab.favorites
+        ? members.where((member) => member.isFavorite).toList(growable: false)
+        : members;
+    return visibleMembers;
   }
 }
 
@@ -141,7 +240,7 @@ class _Header extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           const AppTextView.body1(
-            'Team Members',
+            AppStrings.auditTeamMembersTab,
             color: AppColors.secondaryColor,
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -150,49 +249,9 @@ class _Header extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: IconButton(
               onPressed: onClose,
-              icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.controller, required this.onChanged});
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.75)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              cursorColor: AppColors.textPrimary,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
-              decoration: const InputDecoration(
-                hintText: 'Search team members',
-                hintStyle: TextStyle(
-                  color: AppColors.grey1,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-                border: InputBorder.none,
+              icon: const Icon(
+                Icons.close_rounded,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -202,8 +261,106 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
+    required this.controller,
+    required this.onChanged,
+    required this.isSearchLoading,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final bool isSearchLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.mainBg,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.75),
+        ),
+      ),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) {
+          final hasQuery = value.text.trim().isNotEmpty;
+          const trailingSlotSize = 24.0;
+          const trailingIconSize = 18.0;
+
+          return Row(
+            children: [
+              const Icon(
+                Icons.search_rounded,
+                color: AppColors.textSecondary,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  onChanged: onChanged,
+                  cursorColor: AppColors.textPrimary,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: AppStrings.auditSearchTeamMembersHint,
+                    hintStyle: TextStyle(
+                      color: AppColors.grey1,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              if (hasQuery)
+                SizedBox(
+                  width: trailingSlotSize,
+                  height: trailingSlotSize,
+                  child: isSearchLoading
+                      ? Center(
+                          child: FastCircularProgressIndicator(
+                            width: trailingIconSize,
+                            height: trailingIconSize,
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: () {
+                            controller.clear();
+                            onChanged('');
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: trailingSlotSize,
+                            height: trailingSlotSize,
+                          ),
+                          splashRadius: 16,
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: trailingIconSize,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _TeamMembersTabs extends StatelessWidget {
-  const _TeamMembersTabs({required this.selectedTab, required this.onTabChanged});
+  const _TeamMembersTabs({
+    required this.selectedTab,
+    required this.onTabChanged,
+  });
 
   final _TeamMembersTab selectedTab;
   final ValueChanged<_TeamMembersTab> onTabChanged;
@@ -221,7 +378,7 @@ class _TeamMembersTabs extends StatelessWidget {
         children: [
           Expanded(
             child: _TeamMembersTabButton(
-              label: 'All Team Members',
+              label: AppStrings.auditAllTeamMembersTab,
               isSelected: selectedTab == _TeamMembersTab.all,
               onTap: () => onTabChanged(_TeamMembersTab.all),
             ),
@@ -229,7 +386,7 @@ class _TeamMembersTabs extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: _TeamMembersTabButton(
-              label: 'My Favorites',
+              label: AppStrings.auditMyFavoritesTab,
               isSelected: selectedTab == _TeamMembersTab.favorites,
               onTap: () => onTabChanged(_TeamMembersTab.favorites),
             ),
@@ -241,7 +398,11 @@ class _TeamMembersTabs extends StatelessWidget {
 }
 
 class _TeamMembersTabButton extends StatelessWidget {
-  const _TeamMembersTabButton({required this.label, required this.isSelected, required this.onTap});
+  const _TeamMembersTabButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final String label;
   final bool isSelected;
@@ -272,149 +433,41 @@ class _TeamMembersTabButton extends StatelessWidget {
   }
 }
 
-class _TeamMemberTile extends StatelessWidget {
-  const _TeamMemberTile({required this.member, required this.onTap});
+class _FavoriteButton extends StatelessWidget {
+  const _FavoriteButton({
+    required this.isFavorite,
+    required this.isLoading,
+    required this.onPressed,
+  });
 
-  final AuditProfile member;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Stack(
-          children: [
-            Positioned(right: 5, top: 0, child: _FavoriteToggleButton(member: member)),
-
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  _Avatar(size: 48, imageUrl: member.imageUrl),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppTextView.body2(
-                          member.roleTitle,
-                          color: AppColors.secondaryColor,
-                          fontWeight: FontWeight.w600,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        AppTextView.body2(
-                          member.name,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (member.email.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          AppTextView.body3(
-                            member.email,
-                            color: AppColors.textSecondary,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FavoriteToggleButton extends StatelessWidget {
-  const _FavoriteToggleButton({required this.member});
-
-  final AuditProfile member;
+  final bool isFavorite;
+  final bool isLoading;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<AuditController>();
-    final isLoading = controller.isFavoriteUpdating(member.profileJob);
-
     return IconButton(
-      onPressed: isLoading
-          ? null
-          : () async {
-              final parentState = context.findAncestorStateOfType<_ViewAllTeamMembersState>();
-              if (parentState == null) {
-                return;
-              }
-
-              try {
-                final updatedMembers = await parentState.widget.onFavoriteTap(member);
-                if (!context.mounted) {
-                  return;
-                }
-
-                parentState.updateMembers(updatedMembers);
-              } catch (_) {
-                if (!context.mounted) {
-                  return;
-                }
-
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(content: Text('Unable to update favorite right now.')),
-                  );
-              }
-            },
+      onPressed: isLoading ? null : onPressed,
       splashRadius: 18,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
       icon: isLoading
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textPrimary),
-            )
+          ? FastCircularProgressIndicator(width: 16, height: 16)
           : Icon(
               Icons.star_rounded,
-              color: member.isFavorite ? AppColors.yellow : AppColors.grey2,
-              size: 20,
+              color: isFavorite ? AppColors.yellow : AppColors.grey2,
+              size: 18,
             ),
     );
   }
 }
 
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.size, this.imageUrl});
+class _TeamMembersViewState {
+  const _TeamMembersViewState({this.selectedTab = _TeamMembersTab.all});
 
-  final double size;
-  final String? imageUrl;
+  final _TeamMembersTab selectedTab;
 
-  @override
-  Widget build(BuildContext context) {
-    final resolvedImageUrl = CustomFunctions.resolveImageUrl(imageUrl);
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        image: DecorationImage(
-          image: resolvedImageUrl == null
-              ? const AssetImage('${AppStrings.imagePath}dumy_pic.png')
-              : NetworkImage(resolvedImageUrl),
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
+  _TeamMembersViewState copyWith({_TeamMembersTab? selectedTab}) {
+    return _TeamMembersViewState(selectedTab: selectedTab ?? this.selectedTab);
   }
 }

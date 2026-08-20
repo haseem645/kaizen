@@ -41,6 +41,7 @@ class AuditState {
     this.isFacilitatorSignatureUploading = false,
     this.downloadingCertifiedReportUuids = const <String>{},
     this.selectedQuarterlyAuditDescriptionUuid,
+    this.selectedAuditDetailsProfileUuid,
     this.favoriteUpdatingProfileJobs = const <String>{},
   });
 
@@ -76,6 +77,7 @@ class AuditState {
   final bool isFacilitatorSignatureUploading;
   final Set<String> downloadingCertifiedReportUuids;
   final String? selectedQuarterlyAuditDescriptionUuid;
+  final String? selectedAuditDetailsProfileUuid;
   final Set<String> favoriteUpdatingProfileJobs;
 
   AuditState copyWith({
@@ -111,6 +113,7 @@ class AuditState {
     bool? isFacilitatorSignatureUploading,
     Set<String>? downloadingCertifiedReportUuids,
     String? selectedQuarterlyAuditDescriptionUuid,
+    String? selectedAuditDetailsProfileUuid,
     Set<String>? favoriteUpdatingProfileJobs,
     bool clearMainList = false,
     bool clearDetails = false,
@@ -128,6 +131,7 @@ class AuditState {
     bool clearFacilitatorSignatureBytes = false,
     bool clearFacilitatorSignatureImageId = false,
     bool clearSelectedQuarterlyAuditDescription = false,
+    bool clearSelectedAuditDetailsProfileUuid = false,
   }) {
     return AuditState(
       isLoading: isLoading ?? this.isLoading,
@@ -202,6 +206,10 @@ class AuditState {
           ? null
           : selectedQuarterlyAuditDescriptionUuid ??
                 this.selectedQuarterlyAuditDescriptionUuid,
+      selectedAuditDetailsProfileUuid: clearSelectedAuditDetailsProfileUuid
+          ? null
+          : selectedAuditDetailsProfileUuid ??
+                this.selectedAuditDetailsProfileUuid,
       favoriteUpdatingProfileJobs:
           favoriteUpdatingProfileJobs ?? this.favoriteUpdatingProfileJobs,
     );

@@ -11,10 +11,7 @@ import 'package:sparrowkaizen/features/audit/data/repositories/audit_repository_
 import 'package:sparrowkaizen/features/audit/domain/entities/audit_profile.dart';
 import 'package:sparrowkaizen/features/audit/domain/entities/quarterly_audit.dart';
 import 'package:sparrowkaizen/features/audit/domain/usecases/get_audit_overview_usecase.dart';
-import 'package:sparrowkaizen/features/audit/domain/usecases/get_audit_team_members_usecase.dart';
 import 'package:sparrowkaizen/features/audit/domain/usecases/get_quarterly_audit_usecase.dart';
-import 'package:sparrowkaizen/features/audit/domain/usecases/mark_favorite_subordinate_usecase.dart';
-import 'package:sparrowkaizen/features/audit/domain/usecases/mark_unfavorite_subordinate_usecase.dart';
 import 'package:sparrowkaizen/features/audit/presentation/providers/audit_controller.dart';
 import 'package:sparrowkaizen/routes/app_router.dart';
 
@@ -43,24 +40,20 @@ class SingleAuditDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
+        Provider<AuditRemoteDataSource>(
+          create: (_) => createAuditRemoteDataSource(),
+        ),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) =>
+              createGetAuditOverviewUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetQuarterlyAuditUseCase>(
-          update: (_, repository, __) => createGetQuarterlyAuditUseCase(repository),
-        ),
-        ProxyProvider<AuditRepositoryImpl, GetAuditTeamMembersUseCase>(
-          update: (_, repository, __) => createGetAuditTeamMembersUseCase(repository),
-        ),
-        ProxyProvider<AuditRepositoryImpl, MarkFavoriteSubordinateUseCase>(
-          update: (_, repository, __) => createMarkFavoriteSubordinateUseCase(repository),
-        ),
-        ProxyProvider<AuditRepositoryImpl, MarkUnfavoriteSubordinateUseCase>(
-          update: (_, repository, __) => createMarkUnfavoriteSubordinateUseCase(repository),
+          update: (_, repository, __) =>
+              createGetQuarterlyAuditUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
           create: (context) =>
@@ -69,9 +62,9 @@ class SingleAuditDetailsScreen extends StatelessWidget {
                 null,
                 null,
                 context.read<GetQuarterlyAuditUseCase>(),
-                context.read<GetAuditTeamMembersUseCase>(),
-                context.read<MarkFavoriteSubordinateUseCase>(),
-                context.read<MarkUnfavoriteSubordinateUseCase>(),
+                null,
+                null,
+                null,
                 context.read<AuditRepositoryImpl>(),
               )..initializeSingleAuditDetails(
                 quarterlyAuditId: quarterlyAuditId,
@@ -113,7 +106,8 @@ class _SingleAuditDetailsView extends StatefulWidget {
   final bool requireDescriptionSelection;
 
   @override
-  State<_SingleAuditDetailsView> createState() => _SingleAuditDetailsViewState();
+  State<_SingleAuditDetailsView> createState() =>
+      _SingleAuditDetailsViewState();
 }
 
 class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
@@ -122,7 +116,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
   @override
   void initState() {
     super.initState();
-    _filtersNotifier = ValueNotifier<_SingleAuditFiltersState>(const _SingleAuditFiltersState());
+    _filtersNotifier = ValueNotifier<_SingleAuditFiltersState>(
+      const _SingleAuditFiltersState(),
+    );
   }
 
   @override
@@ -134,7 +130,8 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         oldWidget.quarterlyAuditId != widget.quarterlyAuditId ||
         oldWidget.year != widget.year ||
         oldWidget.quarter != widget.quarter ||
-        oldWidget.requireDescriptionSelection != widget.requireDescriptionSelection;
+        oldWidget.requireDescriptionSelection !=
+            widget.requireDescriptionSelection;
     if (!didIdentityChange) {
       return;
     }
@@ -166,9 +163,6 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     final state = controller.state;
     final audit = state.quarterlyAudit;
     final members = state.mainList?.results ?? const <AuditProfile>[];
-    final profileDescription = audit?.descriptions.isEmpty ?? true
-        ? null
-        : audit!.descriptions.first;
 
     return Scaffold(
       backgroundColor: AppColors.mainBg,
@@ -176,7 +170,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         bottom: false,
         child: Column(
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: _buildHeader(context),
+            ),
             const SizedBox(height: 18),
             if (state.isLoading)
               Expanded(child: Center(child: FastCircularProgressIndicator()))
@@ -184,7 +181,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
               const Expanded(
                 child: Center(
                   child: AppTextView.body(
-                    'No audit details found.',
+                    AppStrings.noCheckInDetailFound,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -195,16 +192,20 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   child: Column(
                     children: [
-                      _buildAuditProfileCard(audit, profileDescription),
-                      if (members.isNotEmpty) ...[
+                      _buildAuditProfileCard(audit),
+                      if (state.isOwner && members.isNotEmpty) ...[
                         const SizedBox(height: 18),
-                        _buildSwitchTeamMembersSection(context, audit, members),
+                        _buildTeamMembersSection(context, audit, members),
                       ],
                       const SizedBox(height: 18),
                       ValueListenableBuilder<_SingleAuditFiltersState>(
                         valueListenable: _filtersNotifier,
                         builder: (context, filtersState, _) {
-                          return _buildDescriptionsSection(context, audit, filtersState);
+                          return _buildDescriptionsSection(
+                            context,
+                            audit,
+                            filtersState,
+                          );
                         },
                       ),
                       const SizedBox(height: 24),
@@ -216,6 +217,171 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
         ),
       ),
     );
+  }
+
+  Widget _buildTeamMembersSection(
+    BuildContext context,
+    QuarterlyAudit audit,
+    List<AuditProfile> members,
+  ) {
+    if (members.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final previewMembers = members.take(4).toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: AppTextView.body1(
+                AppStrings.auditTeamMembersTab,
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            TextButton(
+              onPressed: () => _openViewAllTeamMembers(context, audit, members),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const AppTextView.body2(
+                AppStrings.auditSeeMore,
+                color: AppColors.secondaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 116,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: previewMembers.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final member = previewMembers[index];
+              return _buildTeamMemberPreviewCard(
+                context,
+                audit,
+                member,
+                isSelected: _isCurrentMember(audit, member),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeamMemberPreviewCard(
+    BuildContext context,
+    QuarterlyAudit audit,
+    AuditProfile member, {
+    required bool isSelected,
+  }) {
+    final profileName = member.name.trim().isEmpty
+        ? AppStrings.noProfile
+        : member.name;
+
+    return GestureDetector(
+      onTap: isSelected ? null : () => _openSelectedTeamMember(context, member),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 120,
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected ? AppColors.secondaryColor : Colors.transparent,
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildAvatar(38, member.imageUrl),
+            const SizedBox(height: 8),
+            AppTextView.body3(
+              member.roleTitle,
+              color: AppColors.secondaryColor,
+              fontWeight: FontWeight.w600,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              fontSize: 10,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            AppTextView.body2(
+              profileName,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              fontSize: 12,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openViewAllTeamMembers(
+    BuildContext context,
+    QuarterlyAudit audit,
+    List<AuditProfile> members,
+  ) async {
+    final auditController = context.read<AuditController>();
+    final selectedMember = await showDialog<AuditProfile>(
+      context: context,
+      useSafeArea: false,
+      builder: (_) => ChangeNotifierProvider<AuditController>.value(
+        value: auditController,
+        child: ViewAllTeamMembers(members: members),
+      ),
+    );
+
+    if (!context.mounted ||
+        selectedMember == null ||
+        _isCurrentMember(audit, selectedMember)) {
+      return;
+    }
+
+    await _openSelectedTeamMember(context, selectedMember);
+  }
+
+  Future<void> _openSelectedTeamMember(
+    BuildContext context,
+    AuditProfile member,
+  ) {
+    return AppRouter.pushNamed<void>(
+      context,
+      AppRouter.auditDetails,
+      arguments: AuditDetailsRouteArgs(
+        profileJobId: member.profileJob,
+        year: widget.year,
+        quarter: widget.quarter,
+        selectedProfileUuid: member.profileUuid,
+      ),
+    );
+  }
+
+  bool _isCurrentMember(QuarterlyAudit audit, AuditProfile member) {
+    final memberProfileUuid = member.profileUuid.trim();
+    final memberProfileJob = member.profileJob.trim();
+
+    return memberProfileUuid.isNotEmpty &&
+            memberProfileUuid == audit.profileUuid.trim() ||
+        memberProfileJob.isNotEmpty &&
+            memberProfileJob == audit.profileJob.trim();
   }
 
   Future<void> _openDescriptionDetails(
@@ -235,6 +401,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             description: description,
             date: widget.date,
             isOwner: auditController.state.isOwner,
+            isViewOnly: audit.isMismatch,
             onAuditUpdated: () async {
               await auditController.refreshSingleAuditDetails(
                 quarterlyAuditId: audit.uuid,
@@ -273,7 +440,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -289,7 +459,7 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildAuditProfileCard(QuarterlyAudit audit, QuarterlyAuditDescription? description) {
+  Widget _buildAuditProfileCard(QuarterlyAudit audit) {
     final lastAuditDate = widget.date;
 
     return Container(
@@ -312,7 +482,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                   fontWeight: FontWeight.w600,
                 ),
                 AppTextView.body(
-                  audit.profileName,
+                  audit.profileName.trim().isEmpty
+                      ? AppStrings.noProfile
+                      : audit.profileName,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -325,7 +497,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                       TextSpan(
                         text: '${AppStrings.lastAudit}: ',
                         style: TextStyle(
-                          color: AppColors.textSecondary.withValues(alpha: 0.78),
+                          color: AppColors.textSecondary.withValues(
+                            alpha: 0.78,
+                          ),
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                         ),
@@ -351,174 +525,6 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildSwitchTeamMembersSection(
-    BuildContext context,
-    QuarterlyAudit audit,
-    List<AuditProfile> members,
-  ) {
-    if (members.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final previewMembers = members.take(4).toList(growable: false);
-
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: AppTextView.body1(
-                'Switch Team Member',
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            TextButton(
-              onPressed: members.isEmpty ? null : () => _openViewAllTeamMembers(context, members),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
-              child: const AppTextView.body2(
-                'View All',
-                color: AppColors.secondaryColor,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        SizedBox(
-          height: 116,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: previewMembers.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final member = previewMembers[index];
-              final isSelected =
-                  member.profileUuid == audit.profileUuid || member.profileJob == audit.profileJob;
-              return _buildTeamMemberCard(context, member, isSelected);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _openViewAllTeamMembers(BuildContext context, List<AuditProfile> members) {
-    final auditController = context.read<AuditController>();
-    return showDialog<void>(
-      context: context,
-      useSafeArea: false,
-      builder: (_) => ChangeNotifierProvider<AuditController>.value(
-        value: auditController,
-        child: ViewAllTeamMembers(
-          members: members,
-          onMemberTap: (member) async {
-            Navigator.of(context).pop();
-            await _openSelectedTeamMember(context, member);
-          },
-          onFavoriteTap: (member) async {
-            return _markFavorite(context, member);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTeamMemberCard(BuildContext context, AuditProfile member, bool isSelected) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(5),
-      onTap: isSelected ? null : () => _openSelectedTeamMember(context, member),
-      child: Container(
-        width: 120,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: isSelected ? AppColors.secondaryColor : Colors.transparent),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -11,
-              right: -10,
-              child: _FavoriteButton(
-                isFavorite: member.isFavorite,
-                isLoading: context.watch<AuditController>().isFavoriteUpdating(member.profileJob),
-                onPressed: () => _handleFavoriteTap(context, member),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(5),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _buildAvatar(38, member.imageUrl),
-                    const SizedBox(height: 8),
-                    AppTextView.body3(
-                      member.roleTitle,
-                      color: AppColors.secondaryColor,
-                      fontWeight: FontWeight.w600,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      fontSize: 10,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    AppTextView.body2(
-                      member.name,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      fontSize: 12,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openSelectedTeamMember(BuildContext context, AuditProfile member) {
-    return AppRouter.pushReplacementNamed<void, void>(
-      context,
-      AppRouter.auditDetails,
-      arguments: AuditDetailsRouteArgs(
-        profileJobId: member.profileJob,
-        year: widget.year,
-        quarter: widget.quarter,
-      ),
-    );
-  }
-
-  Future<void> _handleFavoriteTap(BuildContext context, AuditProfile member) async {
-    try {
-      await _markFavorite(context, member);
-    } catch (_) {
-      if (!context.mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Unable to update favorite right now.')));
-    }
-  }
-
-  Future<List<AuditProfile>> _markFavorite(BuildContext context, AuditProfile member) {
-    return context.read<AuditController>().toggleFavoriteSubordinate(
-      profileJobId: member.profileJob,
-      isFavorite: member.isFavorite,
-    );
-  }
-
   Widget _buildDescriptionsSection(
     BuildContext context,
     QuarterlyAudit audit,
@@ -537,7 +543,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
           children: [
             Expanded(
               child: AppTextView.body1(
-                filtersState.isFilterOptionsVisible ? 'Filter Options' : 'Descriptions',
+                filtersState.isFilterOptionsVisible
+                    ? 'Filter Options'
+                    : 'Descriptions',
                 color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -545,14 +553,20 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             ),
             const SizedBox(width: 12),
             InkWell(
-              borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
+              borderRadius: BorderRadius.circular(
+                filtersState.isFilterOptionsVisible ? 8 : 8,
+              ),
               onTap: _toggleFilterOptions,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.all(filtersState.isFilterOptionsVisible ? 8 : 8),
+                padding: EdgeInsets.all(
+                  filtersState.isFilterOptionsVisible ? 8 : 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor,
-                  borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
+                  borderRadius: BorderRadius.circular(
+                    filtersState.isFilterOptionsVisible ? 8 : 8,
+                  ),
                 ),
                 child: Icon(
                   filtersState.isFilterOptionsVisible
@@ -573,7 +587,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.24)),
+              border: Border.all(
+                color: AppColors.secondaryColor.withValues(alpha: 0.24),
+              ),
             ),
             child: const AppTextView.body2(
               AppStrings.checkInSelectDescriptionPrompt,
@@ -602,7 +618,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                 child: SizeTransition(
                   sizeFactor: animation,
                   axisAlignment: -1,
-                  child: SlideTransition(position: slideAnimation, child: child),
+                  child: SlideTransition(
+                    position: slideAnimation,
+                    child: child,
+                  ),
                 ),
               );
             },
@@ -640,7 +659,12 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final description = filteredDescriptions[index];
-                      return _buildDescriptionCard(context, audit, description, index);
+                      return _buildDescriptionCard(
+                        context,
+                        audit,
+                        description,
+                        index,
+                      );
                     },
                   ),
           ),
@@ -649,7 +673,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildFilterOptionsView(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  Widget _buildFilterOptionsView(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final categories = _categoryOptions(audit, filtersState);
     final milestoneOptions = _milestoneOptions(audit, filtersState);
     final auditTimingOptions = _auditTimingOptions(audit, filtersState);
@@ -776,7 +803,11 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body2(label, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        AppTextView.body2(
+          label,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
         const SizedBox(height: 10),
         SizedBox(
           height: 32,
@@ -792,12 +823,17 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
                 onTap: () => onTap(option),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.orange2 : Colors.transparent,
                     borderRadius: BorderRadius.circular(50),
                     border: Border.all(
-                      color: isSelected ? AppColors.orange2 : AppColors.textPrimary,
+                      color: isSelected
+                          ? AppColors.orange2
+                          : AppColors.textPrimary,
                     ),
                   ),
                   child: Center(
@@ -822,7 +858,11 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
   ) {
     return audit.descriptions
         .where((description) {
-          if (!_isDescriptionEligibleForDisplay(description, filtersState)) {
+          if (!_isDescriptionEligibleForDisplay(
+            audit,
+            description,
+            filtersState,
+          )) {
             return false;
           }
 
@@ -830,9 +870,13 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
             audit: audit,
             description: description,
           );
-          final milestone = CustomFunctions.normalizeAuditMilestone(description.milestoneDay);
+          final milestone = CustomFunctions.normalizeAuditMilestone(
+            description.milestoneDay,
+          );
           final auditTiming = CustomFunctions.resolveAuditTiming(description);
-          final auditType = CustomFunctions.normalizeAuditType(description.auditFactorType);
+          final auditType = CustomFunctions.normalizeAuditType(
+            description.auditFactorType,
+          );
 
           final matchesCategory =
               filtersState.selectedCategories.isEmpty ||
@@ -847,7 +891,10 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
               filtersState.selectedAuditTypes.isEmpty ||
               filtersState.selectedAuditTypes.contains(auditType);
 
-          return matchesCategory && matchesMilestone && matchesAuditTiming && matchesAuditType;
+          return matchesCategory &&
+              matchesMilestone &&
+              matchesAuditTiming &&
+              matchesAuditType;
         })
         .toList(growable: false);
   }
@@ -857,14 +904,23 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
   }
 
   bool _isDescriptionEligibleForDisplay(
+    QuarterlyAudit audit,
     QuarterlyAuditDescription description,
     _SingleAuditFiltersState filtersState,
   ) {
-    if (!_isDescriptionEligibleForFilterOptions(description, filtersState)) {
+    if (!_isDescriptionEligibleForFilterOptions(
+      audit,
+      description,
+      filtersState,
+    )) {
       return false;
     }
 
     final isAudited = _isDescriptionAudited(description);
+    if (audit.isMismatch && !isAudited) {
+      return false;
+    }
+
     if (filtersState.showAuditedOnly && !isAudited) {
       return false;
     }
@@ -873,11 +929,18 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
   }
 
   bool _isDescriptionEligibleForFilterOptions(
+    QuarterlyAudit audit,
     QuarterlyAuditDescription description,
     _SingleAuditFiltersState filtersState,
   ) {
     final isAudited = _isDescriptionAudited(description);
-    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(widget.date);
+    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(
+      widget.date,
+    );
+
+    if (audit.isMismatch && !isAudited) {
+      return false;
+    }
 
     if (isSelectedAuditDateBeforeToday && !isAudited) {
       return false;
@@ -886,11 +949,18 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return true;
   }
 
-  List<String> _categoryOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _categoryOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(description, filtersState),
+              (description) => _isDescriptionEligibleForFilterOptions(
+                audit,
+                description,
+                filtersState,
+              ),
             )
             .map(
               (description) => CustomFunctions.resolveAuditCategoryOption(
@@ -905,13 +975,24 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return options;
   }
 
-  List<String> _milestoneOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _milestoneOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(description, filtersState),
+              (description) => _isDescriptionEligibleForFilterOptions(
+                audit,
+                description,
+                filtersState,
+              ),
             )
-            .map((description) => CustomFunctions.normalizeAuditMilestone(description.milestoneDay))
+            .map(
+              (description) => CustomFunctions.normalizeAuditMilestone(
+                description.milestoneDay,
+              ),
+            )
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
@@ -919,26 +1000,51 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     return options;
   }
 
-  List<String> _auditTimingOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _auditTimingOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final preferredOrder = AppStrings.auditTimingOptions;
     final availableOptions = audit.descriptions
-        .where((description) => _isDescriptionEligibleForFilterOptions(description, filtersState))
+        .where(
+          (description) => _isDescriptionEligibleForFilterOptions(
+            audit,
+            description,
+            filtersState,
+          ),
+        )
         .map(CustomFunctions.resolveAuditTiming)
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder.where(availableOptions.contains).toList(growable: false);
+    return preferredOrder
+        .where(availableOptions.contains)
+        .toList(growable: false);
   }
 
-  List<String> _auditTypeOptions(QuarterlyAudit audit, _SingleAuditFiltersState filtersState) {
+  List<String> _auditTypeOptions(
+    QuarterlyAudit audit,
+    _SingleAuditFiltersState filtersState,
+  ) {
     final preferredOrder = AppStrings.auditTypeOptions;
     final availableOptions = audit.descriptions
-        .where((description) => _isDescriptionEligibleForFilterOptions(description, filtersState))
-        .map((description) => CustomFunctions.normalizeAuditType(description.auditFactorType))
+        .where(
+          (description) => _isDescriptionEligibleForFilterOptions(
+            audit,
+            description,
+            filtersState,
+          ),
+        )
+        .map(
+          (description) =>
+              CustomFunctions.normalizeAuditType(description.auditFactorType),
+        )
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder.where(availableOptions.contains).toList(growable: false);
+    return preferredOrder
+        .where(availableOptions.contains)
+        .toList(growable: false);
   }
 
   bool _hasActiveFilters(_SingleAuditFiltersState filtersState) =>
@@ -961,7 +1067,9 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
 
   void _toggleShowAuditedOnly() {
     final currentState = _filtersNotifier.value;
-    _filtersNotifier.value = currentState.copyWith(showAuditedOnly: !currentState.showAuditedOnly);
+    _filtersNotifier.value = currentState.copyWith(
+      showAuditedOnly: !currentState.showAuditedOnly,
+    );
   }
 
   void _toggleMilestone(String value) {
@@ -994,8 +1102,12 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
       audit: audit,
       description: description,
     );
-    final title = categoryTitle.isEmpty ? 'Description ${index + 1}' : categoryTitle;
-    final auditFactorType = CustomFunctions.capitalizeFirstLetter(description.auditFactorType);
+    final title = categoryTitle.isEmpty
+        ? 'Description ${index + 1}'
+        : categoryTitle;
+    final auditFactorType = CustomFunctions.capitalizeFirstLetter(
+      description.auditFactorType,
+    );
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -1098,26 +1210,44 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     );
   }
 
-  Widget _buildDescriptionRatingBadge({required int value, required Color color}) {
+  Widget _buildDescriptionRatingBadge({
+    required int value,
+    required Color color,
+  }) {
     return Container(
       alignment: Alignment.center,
       width: 28,
       height: 28,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-      child: AppTextView.body4('$value', color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: AppTextView.body4(
+        '$value',
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 
   String _formatConfidence(double value) {
-    final rounded = value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
+    final rounded = value % 1 == 0
+        ? value.toInt().toString()
+        : value.toStringAsFixed(1);
     return rounded;
   }
 
   Widget _buildPillLabel(String text, {bool isCompact = false}) {
     return Container(
       constraints: isCompact ? const BoxConstraints(maxWidth: 88) : null,
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 9 : 18, vertical: isCompact ? 5 : 7),
-      decoration: BoxDecoration(color: AppColors.orange1, borderRadius: BorderRadius.circular(50)),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 9 : 18,
+        vertical: isCompact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.orange1,
+        borderRadius: BorderRadius.circular(50),
+      ),
       child: AppTextView.body2(
         text,
         color: AppColors.textPrimary,
@@ -1174,7 +1304,8 @@ class _SingleAuditFiltersState {
     Set<String>? selectedAuditTypes,
   }) {
     return _SingleAuditFiltersState(
-      isFilterOptionsVisible: isFilterOptionsVisible ?? this.isFilterOptionsVisible,
+      isFilterOptionsVisible:
+          isFilterOptionsVisible ?? this.isFilterOptionsVisible,
       showAuditedOnly: showAuditedOnly ?? this.showAuditedOnly,
       selectedCategories: selectedCategories ?? this.selectedCategories,
       selectedMilestones: selectedMilestones ?? this.selectedMilestones,
@@ -1184,19 +1315,27 @@ class _SingleAuditFiltersState {
   }
 
   _SingleAuditFiltersState toggleCategory(String value) {
-    return copyWith(selectedCategories: _toggleSetValue(selectedCategories, value));
+    return copyWith(
+      selectedCategories: _toggleSetValue(selectedCategories, value),
+    );
   }
 
   _SingleAuditFiltersState toggleMilestone(String value) {
-    return copyWith(selectedMilestones: _toggleSetValue(selectedMilestones, value));
+    return copyWith(
+      selectedMilestones: _toggleSetValue(selectedMilestones, value),
+    );
   }
 
   _SingleAuditFiltersState toggleAuditTiming(String value) {
-    return copyWith(selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value));
+    return copyWith(
+      selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value),
+    );
   }
 
   _SingleAuditFiltersState toggleAuditType(String value) {
-    return copyWith(selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value));
+    return copyWith(
+      selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value),
+    );
   }
 
   static Set<String> _toggleSetValue(Set<String> values, String value) {
@@ -1207,36 +1346,5 @@ class _SingleAuditFiltersState {
       updatedValues.add(value);
     }
     return updatedValues;
-  }
-}
-
-class _FavoriteButton extends StatelessWidget {
-  const _FavoriteButton({
-    required this.isFavorite,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  final bool isFavorite;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: isLoading ? null : onPressed,
-      splashRadius: 18,
-      icon: isLoading
-          ? const SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textPrimary),
-            )
-          : Icon(
-              Icons.star_rounded,
-              color: isFavorite ? AppColors.yellow : AppColors.grey2,
-              size: 17,
-            ),
-    );
   }
 }

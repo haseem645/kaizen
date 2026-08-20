@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:sparrowkaizen/features/audit/domain/entities/audit_member.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -8,19 +7,33 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_text_view.dart';
 
+class AuditTeamMemberFilterOption {
+  const AuditTeamMemberFilterOption({
+    required this.selectionId,
+    required this.name,
+    required this.email,
+    this.imageUrl,
+    this.profileUuid,
+    required this.onboarded,
+  });
+
+  final String selectionId;
+  final String name;
+  final String email;
+  final String? imageUrl;
+  final String? profileUuid;
+  final bool onboarded;
+}
+
 class AuditTeamMemberFilterSheet extends StatefulWidget {
   const AuditTeamMemberFilterSheet({
     super.key,
     required this.options,
-    this.initialValue,
-    this.showAllOption = false,
-    this.allOptionLabel = 'All Team Members',
+    this.initialSelectionId,
   });
 
-  final List<AuditMember> options;
-  final String? initialValue;
-  final bool showAllOption;
-  final String allOptionLabel;
+  final List<AuditTeamMemberFilterOption> options;
+  final String? initialSelectionId;
 
   @override
   State<AuditTeamMemberFilterSheet> createState() =>
@@ -29,16 +42,15 @@ class AuditTeamMemberFilterSheet extends StatefulWidget {
 
 class _AuditTeamMemberFilterSheetState
     extends State<AuditTeamMemberFilterSheet> {
-  String? _selectedValue;
+  String? _selectedSelectionId;
   late final TextEditingController _searchController;
   String _searchQuery = '';
+  bool _isClosing = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedValue = widget.showAllOption
-        ? (widget.initialValue ?? '')
-        : widget.initialValue;
+    _selectedSelectionId = widget.initialSelectionId;
     _searchController = TextEditingController();
   }
 
@@ -56,9 +68,8 @@ class _AuditTeamMemberFilterSheetState
             return true;
           }
 
-          return option.name.toLowerCase().contains(
-            _searchQuery.trim().toLowerCase(),
-          );
+          final normalizedQuery = _searchQuery.trim().toLowerCase();
+          return option.name.toLowerCase().contains(normalizedQuery);
         })
         .toList(growable: false);
 
@@ -95,35 +106,23 @@ class _AuditTeamMemberFilterSheetState
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
-                  children: [
-                    if (widget.showAllOption)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: _SelectionOptionTile(
-                          title: widget.allOptionLabel,
-                          isSelected: _selectedValue == '',
-                          onTap: () {
-                            setState(() {
-                              _selectedValue = '';
-                            });
-                          },
+                  children: filteredOptions
+                      .map(
+                        (option) => Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: _SelectionOptionTile(
+                            title: option.name,
+                            isSelected:
+                                _selectedSelectionId == option.selectionId,
+                            onTap: () {
+                              setState(() {
+                                _selectedSelectionId = option.selectionId;
+                              });
+                            },
+                          ),
                         ),
-                      ),
-                    ...filteredOptions.map(
-                      (option) => Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: _SelectionOptionTile(
-                          title: option.name,
-                          isSelected: _selectedValue == option.name,
-                          onTap: () {
-                            setState(() {
-                              _selectedValue = option.name;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+                      )
+                      .toList(growable: false),
                 ),
               ),
             ),
@@ -132,14 +131,44 @@ class _AuditTeamMemberFilterSheetState
             const SizedBox(height: 22),
             AppButton(
               text: AppStrings.done,
-              onPressed: (!widget.showAllOption && _selectedValue == null)
-                  ? null
-                  : () => Navigator.of(context).pop(_selectedValue),
+              onPressed: _selectedSelectionId == null ? null : _handleDoneTap,
             ),
           ],
         ),
       ),
     );
+  }
+
+  AuditTeamMemberFilterOption? get _selectedOption {
+    final selectedSelectionId = _selectedSelectionId;
+    if (selectedSelectionId == null) {
+      return null;
+    }
+
+    for (final option in widget.options) {
+      if (option.selectionId == selectedSelectionId) {
+        return option;
+      }
+    }
+
+    return null;
+  }
+
+  void _handleDoneTap() {
+    final selectedOption = _selectedOption;
+    if (_isClosing || selectedOption == null) {
+      return;
+    }
+
+    _isClosing = true;
+    FocusScope.of(context).unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).maybePop(selectedOption);
+    });
   }
 }
 
@@ -226,42 +255,37 @@ class _SelectionOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? AppColors.secondaryColor
-                      : AppColors.hexd9d4f0,
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.hex7747e6
-                        : AppColors.hexd9d4f0,
-                    width: 2,
-                  ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? AppColors.secondaryColor
+                    : AppColors.hexd9d4f0,
+                border: Border.all(
+                  color: isSelected ? AppColors.hex7747e6 : AppColors.hexd9d4f0,
+                  width: 2,
                 ),
               ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: AppTextView.body(
-                  title,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: AppTextView.body(
+                title,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

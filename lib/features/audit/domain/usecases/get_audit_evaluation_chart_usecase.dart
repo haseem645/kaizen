@@ -6,7 +6,13 @@ class GetAuditEvaluationChartUseCase {
 
   final AuditRepository _repository;
 
-  Future<List<AuditEvaluationChart>> call({required String profileJobId}) {
-    return _repository.getAuditEvaluationChart(profileJobId: profileJobId);
+  Future<List<AuditEvaluationChart>> call({
+    required String profileJobId,
+    String? profileUuid,
+  }) {
+    return _repository.getAuditEvaluationChart(
+      profileJobId: profileJobId,
+      profileUuid: profileUuid,
+    );
   }
 }

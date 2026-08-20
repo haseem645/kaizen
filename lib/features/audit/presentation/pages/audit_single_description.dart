@@ -29,6 +29,7 @@ class SingleDescriptionDetails extends StatefulWidget {
     required this.description,
     required this.date,
     required this.isOwner,
+    this.isViewOnly = false,
     this.onAuditUpdated,
   });
 
@@ -36,31 +37,37 @@ class SingleDescriptionDetails extends StatefulWidget {
   final QuarterlyAuditDescription description;
   final String date;
   final bool isOwner;
+  final bool isViewOnly;
   final Future<void> Function()? onAuditUpdated;
 
   @override
-  State<SingleDescriptionDetails> createState() => _SingleDescriptionDetailsState();
+  State<SingleDescriptionDetails> createState() =>
+      _SingleDescriptionDetailsState();
 }
 
 class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
-  late final ValueNotifier<Future<AuditDescriptionAudit>> _auditDescriptionFutureNotifier;
+  late final ValueNotifier<Future<AuditDescriptionAudit>>
+  _auditDescriptionFutureNotifier;
   final ScrollController _scrollController = ScrollController();
   int _lastHandledAuditUploadEventSequence = 0;
 
   @override
   void initState() {
     super.initState();
-    _auditDescriptionFutureNotifier = ValueNotifier<Future<AuditDescriptionAudit>>(
-      _loadAuditDescription(),
-    );
+    _auditDescriptionFutureNotifier =
+        ValueNotifier<Future<AuditDescriptionAudit>>(_loadAuditDescription());
     _lastHandledAuditUploadEventSequence =
         AuditMediaUploadController.instance.latestTerminalEventSequence;
-    AuditMediaUploadController.instance.addListener(_handleAuditMediaUploadChanged);
+    AuditMediaUploadController.instance.addListener(
+      _handleAuditMediaUploadChanged,
+    );
   }
 
   @override
   void dispose() {
-    AuditMediaUploadController.instance.removeListener(_handleAuditMediaUploadChanged);
+    AuditMediaUploadController.instance.removeListener(
+      _handleAuditMediaUploadChanged,
+    );
     _auditDescriptionFutureNotifier.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -74,7 +81,10 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
     );
   }
 
-  Future<void> _submitDescriptionAudit(String descriptionId, Map<String, int> audit) async {
+  Future<void> _submitDescriptionAudit(
+    String descriptionId,
+    Map<String, int> audit,
+  ) async {
     await context.read<AuditController>().submitAuditDescriptionSelection(
       descriptionId: descriptionId,
       audit: audit,
@@ -101,7 +111,10 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
     }
   }
 
-  Future<void> _saveCommentWithoutMedia(String descriptionId, String comment) async {
+  Future<void> _saveCommentWithoutMedia(
+    String descriptionId,
+    String comment,
+  ) async {
     await context.read<AuditController>().createAuditDescriptionComment(
       descriptionId: descriptionId,
       comment: comment,
@@ -121,14 +134,14 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
       return;
     }
 
-    final terminalTasks = AuditMediaUploadController.instance.terminalTasksSince(
-      _lastHandledAuditUploadEventSequence,
-    );
+    final terminalTasks = AuditMediaUploadController.instance
+        .terminalTasksSince(_lastHandledAuditUploadEventSequence);
     if (terminalTasks.isEmpty) {
       return;
     }
 
-    _lastHandledAuditUploadEventSequence = terminalTasks.last.terminalEventSequence;
+    _lastHandledAuditUploadEventSequence =
+        terminalTasks.last.terminalEventSequence;
     var shouldRefresh = false;
     String? failureMessage;
     for (final task in terminalTasks) {
@@ -159,7 +172,9 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _scrollToCommentsSection() {
@@ -168,7 +183,9 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
         return;
       }
 
-      Future<void> scrollToBottom({Duration duration = const Duration(milliseconds: 320)}) async {
+      Future<void> scrollToBottom({
+        Duration duration = const Duration(milliseconds: 320),
+      }) async {
         if (!mounted || !_scrollController.hasClients) {
           return;
         }
@@ -195,7 +212,10 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
         bottom: false,
         child: Column(
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: _buildHeader(context),
+            ),
             const SizedBox(height: 18),
             Expanded(
               child: SingleChildScrollView(
@@ -226,6 +246,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
                               description: widget.description,
                               date: widget.date,
                               isOwner: widget.isOwner,
+                              isViewOnly: widget.isViewOnly,
                               auditDescriptionFuture: auditDescriptionFuture,
                               onSubmitAudit: _submitDescriptionAudit,
                             ),
@@ -234,11 +255,14 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
                               description: widget.description,
                               date: widget.date,
                               isOwner: widget.isOwner,
+                              isViewOnly: widget.isViewOnly,
                               auditDescriptionFuture: auditDescriptionFuture,
-                              onCommentsChanged: _refreshAuditDescriptionSilently,
+                              onCommentsChanged:
+                                  _refreshAuditDescriptionSilently,
                               onCommentsSheetClosed: _scrollToCommentsSection,
                               onSaveCommentWithMedia: _saveCommentWithMedia,
-                              onSaveCommentWithoutMedia: _saveCommentWithoutMedia,
+                              onSaveCommentWithoutMedia:
+                                  _saveCommentWithoutMedia,
                             ),
                           ],
                         );
@@ -293,7 +317,10 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -311,7 +338,11 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
 }
 
 class _AuditProfileCard extends StatelessWidget {
-  const _AuditProfileCard({required this.audit, required this.description, required this.date});
+  const _AuditProfileCard({
+    required this.audit,
+    required this.description,
+    required this.date,
+  });
 
   final QuarterlyAudit audit;
   final QuarterlyAuditDescription? description;
@@ -341,7 +372,9 @@ class _AuditProfileCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
                 AppTextView.body(
-                  audit.profileName,
+                  audit.profileName.trim().isEmpty
+                      ? AppStrings.noProfile
+                      : audit.profileName,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -354,7 +387,9 @@ class _AuditProfileCard extends StatelessWidget {
                       TextSpan(
                         text: '${AppStrings.lastAudit}: ',
                         style: TextStyle(
-                          color: AppColors.textSecondary.withValues(alpha: 0.78),
+                          color: AppColors.textSecondary.withValues(
+                            alpha: 0.78,
+                          ),
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                         ),
@@ -419,7 +454,12 @@ class _SeatDescriptionCard extends StatelessWidget {
 }
 
 class _ExpandableCard extends StatefulWidget {
-  const _ExpandableCard({required this.title, required this.body, this.trailing, this.footer});
+  const _ExpandableCard({
+    required this.title,
+    required this.body,
+    this.trailing,
+    this.footer,
+  });
 
   final String title;
   final String body;
@@ -438,7 +478,9 @@ class _ExpandableCardState extends State<_ExpandableCard> {
     fontWeight: FontWeight.w500,
   );
 
-  late final ValueNotifier<bool> _isExpandedNotifier = ValueNotifier<bool>(false);
+  late final ValueNotifier<bool> _isExpandedNotifier = ValueNotifier<bool>(
+    false,
+  );
 
   @override
   void didUpdateWidget(covariant _ExpandableCard oldWidget) {
@@ -482,7 +524,10 @@ class _ExpandableCardState extends State<_ExpandableCard> {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final hasMoreThanFourLines = _hasMoreThanFourLines(context, constraints.maxWidth);
+              final hasMoreThanFourLines = _hasMoreThanFourLines(
+                context,
+                constraints.maxWidth,
+              );
 
               return ValueListenableBuilder<bool>(
                 valueListenable: _isExpandedNotifier,
@@ -512,7 +557,10 @@ class _ExpandableCardState extends State<_ExpandableCard> {
                       ],
                       if (widget.footer != null) ...[
                         const SizedBox(height: 16),
-                        Align(alignment: Alignment.centerRight, child: widget.footer!),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: widget.footer!,
+                        ),
                       ],
                     ],
                   );
@@ -552,8 +600,11 @@ class _SeatSpecificsCard extends StatelessWidget {
 
     return _ExpandableCard(
       title: AppStrings.auditSeatSpecifics,
-      body: description?.jobSpecifics ?? AppStrings.auditNoSeatSpecificsAvailable,
-      trailing: _PillLabel(text: description?.auditFactorType ?? AppStrings.checkInTitle),
+      body:
+          description?.jobSpecifics ?? AppStrings.auditNoSeatSpecificsAvailable,
+      trailing: _PillLabel(
+        text: description?.auditFactorType ?? AppStrings.checkInTitle,
+      ),
       footer: trainingRoute != null && trainingRoute.hasDescription
           ? _ViewTrainingAction(trainingRoute: trainingRoute)
           : null,
@@ -571,7 +622,9 @@ class _ViewTrainingAction extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => ViewTrainingScreen(trainingRoute: trainingRoute)),
+          MaterialPageRoute<void>(
+            builder: (_) => ViewTrainingScreen(trainingRoute: trainingRoute),
+          ),
         );
       },
       borderRadius: BorderRadius.circular(999),
@@ -584,7 +637,11 @@ class _ViewTrainingAction extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
           const SizedBox(width: 6),
-          const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.secondaryColor, size: 14),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: AppColors.secondaryColor,
+            size: 14,
+          ),
         ],
       ),
     );
@@ -598,6 +655,7 @@ class _PassSelectionCard extends StatefulWidget {
     required this.description,
     required this.date,
     required this.isOwner,
+    required this.isViewOnly,
     required this.auditDescriptionFuture,
     required this.onSubmitAudit,
   });
@@ -605,8 +663,10 @@ class _PassSelectionCard extends StatefulWidget {
   final QuarterlyAuditDescription? description;
   final String date;
   final bool isOwner;
+  final bool isViewOnly;
   final Future<AuditDescriptionAudit> auditDescriptionFuture;
-  final Future<void> Function(String descriptionId, Map<String, int> audit) onSubmitAudit;
+  final Future<void> Function(String descriptionId, Map<String, int> audit)
+  onSubmitAudit;
 
   @override
   State<_PassSelectionCard> createState() => _PassSelectionCardState();
@@ -622,7 +682,10 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
   void initState() {
     super.initState();
     _viewStateNotifier = ValueNotifier<_PassSelectionViewState>(
-      _PassSelectionViewState(blocks: _initialBlocks(widget.description), hasLocalChanges: false),
+      _PassSelectionViewState(
+        blocks: _initialBlocks(widget.description),
+        hasLocalChanges: false,
+      ),
     );
   }
 
@@ -647,7 +710,9 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
   @override
   Widget build(BuildContext context) {
     final canEditBlocks =
-        widget.isOwner && CustomFunctions.isAuditWithinContinueWindow(widget.date);
+        !widget.isViewOnly &&
+        widget.isOwner &&
+        CustomFunctions.isAuditWithinContinueWindow(widget.date);
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
@@ -660,7 +725,9 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
           builder: (context, viewState, _) {
             final blocks = viewState.blocks;
             final isLoading = snapshot.connectionState != ConnectionState.done;
-            final great = blocks.where((block) => block == _PassBlockState.great).length;
+            final great = blocks
+                .where((block) => block == _PassBlockState.great)
+                .length;
             final almostThere = blocks
                 .where((block) => block == _PassBlockState.almostThere)
                 .length;
@@ -689,7 +756,11 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                       spacing: 14,
                       runSpacing: 10,
                       children: [
-                        _LegendItem(color: AppColors.green1, label: 'Great', count: '$great'),
+                        _LegendItem(
+                          color: AppColors.green1,
+                          label: 'Great',
+                          count: '$great',
+                        ),
                         _LegendItem(
                           color: AppColors.orange1,
                           label: 'Almost There',
@@ -728,10 +799,14 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                           count: almostThere,
                           showDecrementControl: widget.isOwner,
                           onTapCount: canEditBlocks
-                              ? () => _incrementRating(_PassBlockState.almostThere)
+                              ? () => _incrementRating(
+                                  _PassBlockState.almostThere,
+                                )
                               : null,
                           onTapArrow: canEditBlocks
-                              ? () => _decrementRating(_PassBlockState.almostThere)
+                              ? () => _decrementRating(
+                                  _PassBlockState.almostThere,
+                                )
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
@@ -743,10 +818,14 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                           count: needsImprovement,
                           showDecrementControl: widget.isOwner,
                           onTapCount: canEditBlocks
-                              ? () => _incrementRating(_PassBlockState.needsImprovement)
+                              ? () => _incrementRating(
+                                  _PassBlockState.needsImprovement,
+                                )
                               : null,
                           onTapArrow: canEditBlocks
-                              ? () => _decrementRating(_PassBlockState.needsImprovement)
+                              ? () => _decrementRating(
+                                  _PassBlockState.needsImprovement,
+                                )
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
@@ -768,8 +847,10 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
     final needsImprovement = description?.needsImprovement ?? 0;
     final blocks = <_PassBlockState>[
       for (var index = 0; index < great; index += 1) _PassBlockState.great,
-      for (var index = 0; index < almostThere; index += 1) _PassBlockState.almostThere,
-      for (var index = 0; index < needsImprovement; index += 1) _PassBlockState.needsImprovement,
+      for (var index = 0; index < almostThere; index += 1)
+        _PassBlockState.almostThere,
+      for (var index = 0; index < needsImprovement; index += 1)
+        _PassBlockState.needsImprovement,
     ];
 
     if (blocks.isEmpty) {
@@ -841,7 +922,9 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
     final blocks = _viewStateNotifier.value.blocks;
     return <String, int>{
       'great': blocks.where((block) => block == _PassBlockState.great).length,
-      'almost_there': blocks.where((block) => block == _PassBlockState.almostThere).length,
+      'almost_there': blocks
+          .where((block) => block == _PassBlockState.almostThere)
+          .length,
       'needs_improvement': blocks
           .where((block) => block == _PassBlockState.needsImprovement)
           .length,
@@ -863,7 +946,9 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
   }
 
   List<_PassBlockState> _normalizeDefaultBlocks(List<_PassBlockState> blocks) {
-    final hasSelectedBlock = blocks.any((block) => block != _PassBlockState.defaultValue);
+    final hasSelectedBlock = blocks.any(
+      (block) => block != _PassBlockState.defaultValue,
+    );
     if (hasSelectedBlock) {
       return blocks;
     }
@@ -873,12 +958,18 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
 }
 
 class _PassSelectionViewState {
-  const _PassSelectionViewState({required this.blocks, required this.hasLocalChanges});
+  const _PassSelectionViewState({
+    required this.blocks,
+    required this.hasLocalChanges,
+  });
 
   final List<_PassBlockState> blocks;
   final bool hasLocalChanges;
 
-  _PassSelectionViewState copyWith({List<_PassBlockState>? blocks, bool? hasLocalChanges}) {
+  _PassSelectionViewState copyWith({
+    List<_PassBlockState>? blocks,
+    bool? hasLocalChanges,
+  }) {
     return _PassSelectionViewState(
       blocks: blocks ?? this.blocks,
       hasLocalChanges: hasLocalChanges ?? this.hasLocalChanges,
@@ -891,6 +982,7 @@ class _CommentsCard extends StatefulWidget {
     required this.description,
     required this.date,
     required this.isOwner,
+    required this.isViewOnly,
     required this.auditDescriptionFuture,
     required this.onCommentsChanged,
     required this.onCommentsSheetClosed,
@@ -901,6 +993,7 @@ class _CommentsCard extends StatefulWidget {
   final QuarterlyAuditDescription description;
   final String date;
   final bool isOwner;
+  final bool isViewOnly;
   final Future<AuditDescriptionAudit> auditDescriptionFuture;
   final Future<void> Function() onCommentsChanged;
   final VoidCallback onCommentsSheetClosed;
@@ -911,14 +1004,17 @@ class _CommentsCard extends StatefulWidget {
     String? mediaType,
   )
   onSaveCommentWithMedia;
-  final Future<void> Function(String descriptionId, String comment) onSaveCommentWithoutMedia;
+  final Future<void> Function(String descriptionId, String comment)
+  onSaveCommentWithoutMedia;
 
   @override
   State<_CommentsCard> createState() => _CommentsCardState();
 }
 
 class _CommentsCardState extends State<_CommentsCard> {
-  late final ValueNotifier<bool> _isExpandedNotifier = ValueNotifier<bool>(false);
+  late final ValueNotifier<bool> _isExpandedNotifier = ValueNotifier<bool>(
+    false,
+  );
 
   @override
   void dispose() {
@@ -928,12 +1024,16 @@ class _CommentsCardState extends State<_CommentsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final canManageComments = widget.isOwner && !CustomFunctions.isDateBeforeToday(widget.date);
-    final canReplyToComments = widget.isOwner;
+    final canManageComments =
+        !widget.isViewOnly &&
+        widget.isOwner &&
+        !CustomFunctions.isDateBeforeToday(widget.date);
+    final canReplyToComments = !widget.isViewOnly && widget.isOwner;
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
-        final media = snapshot.data?.auditMedia ?? const <AuditDescriptionMedia>[];
+        final media =
+            snapshot.data?.auditMedia ?? const <AuditDescriptionMedia>[];
         final hasComments = media.isNotEmpty;
 
         return ValueListenableBuilder<bool>(
@@ -1034,7 +1134,9 @@ class _CommentsCardState extends State<_CommentsCard> {
                             fontSize: 12,
                           ),
                           Icon(
-                            isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                            isExpanded
+                                ? Icons.arrow_drop_up
+                                : Icons.arrow_drop_down,
                             size: 20,
                             color: AppColors.textPrimary,
                           ),
@@ -1071,7 +1173,12 @@ class _CommentsCardState extends State<_CommentsCard> {
         return DescriptionMediaCommentBottomSheet(
           contentType: selectedType,
           onSave: (comment, mediaFile, mediaType) =>
-              widget.onSaveCommentWithMedia(audit.uuid, comment, mediaFile, mediaType),
+              widget.onSaveCommentWithMedia(
+                audit.uuid,
+                comment,
+                mediaFile,
+                mediaType,
+              ),
         );
       },
     );
@@ -1079,10 +1186,14 @@ class _CommentsCardState extends State<_CommentsCard> {
     return didSave ?? false;
   }
 
-  Future<bool> _openScreenRecordingCommentDialog(AuditDescriptionAudit audit) async {
-    final recordedMedia = await Navigator.of(
-      context,
-    ).push<File?>(MaterialPageRoute(builder: (_) => const AuditScreenRecordingCaptureScreen()));
+  Future<bool> _openScreenRecordingCommentDialog(
+    AuditDescriptionAudit audit,
+  ) async {
+    final recordedMedia = await Navigator.of(context).push<File?>(
+      MaterialPageRoute(
+        builder: (_) => const AuditScreenRecordingCaptureScreen(),
+      ),
+    );
     if (!mounted || recordedMedia == null) {
       return false;
     }
@@ -1098,7 +1209,12 @@ class _CommentsCardState extends State<_CommentsCard> {
           initialMediaType: 'screen_recording',
           allowInitialMediaRemoval: false,
           onSave: (comment, mediaFile, mediaType) =>
-              widget.onSaveCommentWithMedia(audit.uuid, comment, mediaFile, mediaType),
+              widget.onSaveCommentWithMedia(
+                audit.uuid,
+                comment,
+                mediaFile,
+                mediaType,
+              ),
         );
       },
     );
@@ -1112,7 +1228,8 @@ class _CommentsCardState extends State<_CommentsCard> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _MediaTypeSelectionBottomSheet(
-          onTypeSelected: (selectedType) => _openSelectedMediaCommentDialog(audit, selectedType),
+          onTypeSelected: (selectedType) =>
+              _openSelectedMediaCommentDialog(audit, selectedType),
         );
       },
     );
@@ -1126,7 +1243,11 @@ class _CommentsCardState extends State<_CommentsCard> {
 }
 
 class _CommentIconButton extends StatelessWidget {
-  const _CommentIconButton({required this.isEnabled, required this.icon, this.onTap});
+  const _CommentIconButton({
+    required this.isEnabled,
+    required this.icon,
+    this.onTap,
+  });
 
   final bool isEnabled;
   final IconData icon;
@@ -1162,7 +1283,8 @@ class _CreateTextCommentDialog extends StatefulWidget {
   final Future<void> Function(String comment) onSave;
 
   @override
-  State<_CreateTextCommentDialog> createState() => _CreateTextCommentDialogState();
+  State<_CreateTextCommentDialog> createState() =>
+      _CreateTextCommentDialogState();
 }
 
 class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
@@ -1192,7 +1314,9 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
+              border: Border.all(
+                color: AppColors.grey2.withValues(alpha: 0.55),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1209,8 +1333,14 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
                       ),
                     ),
                     IconButton(
-                      onPressed: isSaving ? null : () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                      onPressed: isSaving
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -1242,18 +1372,27 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
                     ),
                     filled: true,
                     fillColor: AppColors.fieldFill,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
+                      borderSide: BorderSide(
+                        color: AppColors.fieldBorder.withValues(alpha: 0.35),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.secondaryColor),
+                      borderSide: const BorderSide(
+                        color: AppColors.secondaryColor,
+                      ),
                     ),
                     disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.grey1.withValues(alpha: 0.25)),
+                      borderSide: BorderSide(
+                        color: AppColors.grey1.withValues(alpha: 0.25),
+                      ),
                     ),
                   ),
                 ),
@@ -1262,7 +1401,9 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
                   text: AppStrings.saveComment,
                   onPressed: canSave ? _save : null,
                   isLoading: isSaving,
-                  backgroundColor: canSave ? AppColors.secondaryColor : AppColors.grey1,
+                  backgroundColor: canSave
+                      ? AppColors.secondaryColor
+                      : AppColors.grey1,
                 ),
               ],
             ),
@@ -1331,11 +1472,16 @@ class _CommentMediaCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _CommentMediaPreview(mediaUrl: media.media, mediaType: media.type),
+              _CommentMediaPreview(
+                mediaUrl: media.media,
+                mediaType: media.type,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: AppTextView.body2(
-                  comment == null || comment.isEmpty ? AppStrings.noComment : comment,
+                  comment == null || comment.isEmpty
+                      ? AppStrings.noComment
+                      : comment,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
@@ -1411,7 +1557,10 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
     return Container(
       width: 72,
       height: 72,
-      decoration: BoxDecoration(color: AppColors.hex14182a, borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: AppColors.hex14182a,
+        borderRadius: BorderRadius.circular(6),
+      ),
       child: Center(
         child: Container(
           width: 34,
@@ -1420,7 +1569,11 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
             color: AppColors.secondaryColor,
             borderRadius: BorderRadius.circular(17),
           ),
-          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
+          child: const Icon(
+            Icons.play_arrow_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
         ),
       ),
     );
@@ -1432,7 +1585,10 @@ class _CommentMediaLoadingPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset('${AppStrings.imagePath}no_image.png', fit: BoxFit.cover);
+    return Image.asset(
+      '${AppStrings.imagePath}no_image.png',
+      fit: BoxFit.cover,
+    );
   }
 }
 
@@ -1460,7 +1616,10 @@ class _LegendItem extends StatelessWidget {
             children: [
               TextSpan(
                 text: label,
-                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w400),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
               // TextSpan(
               //   text: count == null ? '' : '($count)',
@@ -1512,7 +1671,10 @@ class _SelectionCounter extends StatelessWidget {
             width: 48,
             height: 48,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: AppTextView.body2(
               '$count',
               color: Colors.white,
@@ -1530,11 +1692,15 @@ class _SelectionCounter extends StatelessWidget {
               width: 48,
               height: 28,
               decoration: BoxDecoration(
-                color: canEditBlocks ? AppColors.grey1 : AppColors.grey1.withValues(alpha: 0.5),
+                color: canEditBlocks
+                    ? AppColors.grey1
+                    : AppColors.grey1.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                canEditBlocks ? Icons.keyboard_arrow_down_rounded : Icons.lock_rounded,
+                canEditBlocks
+                    ? Icons.keyboard_arrow_down_rounded
+                    : Icons.lock_rounded,
                 color: Colors.white,
                 size: canEditBlocks ? 28 : 18,
               ),
@@ -1555,7 +1721,10 @@ class _PillLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-      decoration: BoxDecoration(color: AppColors.orange1, borderRadius: BorderRadius.circular(50)),
+      decoration: BoxDecoration(
+        color: AppColors.orange1,
+        borderRadius: BorderRadius.circular(50),
+      ),
       child: AppTextView.body2(
         text,
         color: AppColors.textPrimary,
@@ -1605,14 +1774,18 @@ class _SeeAllAction extends StatelessWidget {
 class _MediaTypeSelectionBottomSheet extends StatefulWidget {
   const _MediaTypeSelectionBottomSheet({required this.onTypeSelected});
 
-  final Future<bool> Function(DescriptionMediaCommentContentType selectedType) onTypeSelected;
+  final Future<bool> Function(DescriptionMediaCommentContentType selectedType)
+  onTypeSelected;
 
   @override
-  State<_MediaTypeSelectionBottomSheet> createState() => _MediaTypeSelectionBottomSheetState();
+  State<_MediaTypeSelectionBottomSheet> createState() =>
+      _MediaTypeSelectionBottomSheetState();
 }
 
-class _MediaTypeSelectionBottomSheetState extends State<_MediaTypeSelectionBottomSheet> {
-  late final ValueNotifier<bool> _isOpeningChildSheetNotifier = ValueNotifier<bool>(false);
+class _MediaTypeSelectionBottomSheetState
+    extends State<_MediaTypeSelectionBottomSheet> {
+  late final ValueNotifier<bool> _isOpeningChildSheetNotifier =
+      ValueNotifier<bool>(false);
 
   @override
   void dispose() {
@@ -1663,33 +1836,43 @@ class _MediaTypeSelectionBottomSheetState extends State<_MediaTypeSelectionBotto
                   title: AppStrings.auditPhoto,
                   onTap: isOpeningChildSheet
                       ? null
-                      : () => _openChildSheet(DescriptionMediaCommentContentType.photo),
+                      : () => _openChildSheet(
+                          DescriptionMediaCommentContentType.photo,
+                        ),
                 ),
                 const SizedBox(height: 10),
                 _MediaTypeOption(
                   title: AppStrings.auditVideo,
                   onTap: isOpeningChildSheet
                       ? null
-                      : () => _openChildSheet(DescriptionMediaCommentContentType.video),
+                      : () => _openChildSheet(
+                          DescriptionMediaCommentContentType.video,
+                        ),
                 ),
                 const SizedBox(height: 10),
                 _MediaTypeOption(
                   title: AppStrings.auditUpload,
                   onTap: isOpeningChildSheet
                       ? null
-                      : () => _openChildSheet(DescriptionMediaCommentContentType.upload),
+                      : () => _openChildSheet(
+                          DescriptionMediaCommentContentType.upload,
+                        ),
                 ),
                 const SizedBox(height: 10),
                 _MediaTypeOption(
                   title: AppStrings.auditScreenRecording,
                   onTap: isOpeningChildSheet
                       ? null
-                      : () => _openChildSheet(DescriptionMediaCommentContentType.screenRecording),
+                      : () => _openChildSheet(
+                          DescriptionMediaCommentContentType.screenRecording,
+                        ),
                 ),
                 const SizedBox(height: 18),
                 AppButton(
                   text: AppStrings.done,
-                  onPressed: isOpeningChildSheet ? null : () => Navigator.of(context).pop(),
+                  onPressed: isOpeningChildSheet
+                      ? null
+                      : () => Navigator.of(context).pop(),
                 ),
               ],
             ),
@@ -1699,7 +1882,9 @@ class _MediaTypeSelectionBottomSheetState extends State<_MediaTypeSelectionBotto
     );
   }
 
-  Future<void> _openChildSheet(DescriptionMediaCommentContentType selectedType) async {
+  Future<void> _openChildSheet(
+    DescriptionMediaCommentContentType selectedType,
+  ) async {
     if (_isOpeningChildSheetNotifier.value) {
       return;
     }
@@ -1746,7 +1931,11 @@ class _MediaTypeOption extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 20),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
             ],
           ),
         ),

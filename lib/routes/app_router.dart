@@ -274,6 +274,9 @@ class AppRouter {
                 : '',
             year: args is AuditDetailsRouteArgs ? args.year : null,
             quarter: args is AuditDetailsRouteArgs ? args.quarter : null,
+            selectedProfileUuid: args is AuditDetailsRouteArgs
+                ? args.selectedProfileUuid
+                : null,
           ),
         );
       case singleAuditDetails:
@@ -397,11 +400,13 @@ class AuditDetailsRouteArgs {
     required this.profileJobId,
     this.year,
     this.quarter,
+    this.selectedProfileUuid,
   });
 
   final String profileJobId;
   final int? year;
   final int? quarter;
+  final String? selectedProfileUuid;
 }
 
 class SeatProfileDetailRouteArgs {

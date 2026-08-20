@@ -27,17 +27,15 @@ class ViewTrainingScreen extends StatelessWidget {
       providers: [
         Provider<AuditRemoteDataSource>(create: (_) => AuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              AuditRepositoryImpl(remoteDataSource),
+          update: (_, remoteDataSource, __) => AuditRepositoryImpl(remoteDataSource),
         ),
         ChangeNotifierProvider<TrainingModuleController>(
           create: (context) =>
-              TrainingModuleController(context.read<AuditRepositoryImpl>())
-                ..initialize(
-                  jobId: trainingRoute.job,
-                  descriptionId: trainingRoute.description,
-                  initialModuleId: trainingRoute.initialModuleId,
-                ),
+              TrainingModuleController(context.read<AuditRepositoryImpl>())..initialize(
+                jobId: trainingRoute.job,
+                descriptionId: trainingRoute.description,
+                initialModuleId: trainingRoute.initialModuleId,
+              ),
         ),
       ],
       child: const _ViewTrainingScreenView(),
@@ -49,8 +47,7 @@ class _ViewTrainingScreenView extends StatefulWidget {
   const _ViewTrainingScreenView();
 
   @override
-  State<_ViewTrainingScreenView> createState() =>
-      _ViewTrainingScreenViewState();
+  State<_ViewTrainingScreenView> createState() => _ViewTrainingScreenViewState();
 }
 
 class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
@@ -73,8 +70,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
   }
 
   void _handleTabChanged() {
-    if (_tabController.indexIsChanging ||
-        _selectedTabIndex == _tabController.index) {
+    if (_tabController.indexIsChanging || _selectedTabIndex == _tabController.index) {
       return;
     }
 
@@ -109,10 +105,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-              child: _buildHeader(context),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
             const SizedBox(height: 18),
             Expanded(
               child: Padding(
@@ -143,10 +136,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
-                  ),
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                 ),
               ),
             ),
@@ -172,9 +162,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     }
 
     if (controller.modules.isEmpty) {
-      return const _CenteredMessage(
-        message: AppStrings.trainingNoModulesAvailable,
-      );
+      return const _CenteredMessage(message: AppStrings.trainingNoModulesAvailable);
     }
 
     return ListView(
@@ -233,8 +221,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
       );
     }
 
-    if (controller.errorMessage != null &&
-        controller.selectedModuleDetail == null) {
+    if (controller.errorMessage != null && controller.selectedModuleDetail == null) {
       return _ContentMessage(message: controller.errorMessage!);
     }
 
@@ -361,11 +348,7 @@ class _ModuleSelector extends StatelessWidget {
 }
 
 class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({
-    required this.module,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _ModuleCard({required this.module, required this.isSelected, required this.onTap});
 
   final SeatDescriptionTrainingModule module;
   final bool isSelected;
@@ -373,9 +356,7 @@ class _ModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedThumbnail = CustomFunctions.resolveImageUrl(
-      module.thumbnailLink,
-    );
+    final resolvedThumbnail = CustomFunctions.resolveImageUrl(module.thumbnailLink);
 
     return InkWell(
       onTap: onTap,
@@ -414,10 +395,8 @@ class _ModuleCard extends StatelessWidget {
                     : CachedNetworkImage(
                         imageUrl: resolvedThumbnail,
                         fit: BoxFit.cover,
-                        placeholder: (_, _) =>
-                            const _ModuleThumbnailPlaceholder(),
-                        errorWidget: (_, _, _) =>
-                            const _ModuleThumbnailPlaceholder(),
+                        placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
+                        errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
                       ),
               ),
             ),
@@ -443,14 +422,20 @@ class _ModuleThumbnailPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.mainBg,
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.play_circle_outline_rounded,
-        color: AppColors.textSecondary,
-        size: 24,
-      ),
+    return Image.asset(
+      '${AppStrings.imagePath}fallback.png',
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) {
+        return Container(
+          color: AppColors.mainBg,
+          alignment: Alignment.center,
+          child: const Icon(
+            Icons.play_circle_outline_rounded,
+            color: AppColors.textSecondary,
+            size: 24,
+          ),
+        );
+      },
     );
   }
 }
@@ -485,9 +470,7 @@ class _VideoTabContent extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.mainBg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.18),
-            ),
+            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
           ),
           child: AppTextView.body3(
             summary != null && summary.isNotEmpty
@@ -537,9 +520,7 @@ class _SopTabContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
       ),
       child: Html(
         data: html,
@@ -553,10 +534,7 @@ class _SopTabContent extends StatelessWidget {
             fontWeight: FontWeight.w400,
             lineHeight: const LineHeight(1.65),
           ),
-          'p': Style(
-            margin: Margins.only(bottom: 12),
-            lineHeight: const LineHeight(1.65),
-          ),
+          'p': Style(margin: Margins.only(bottom: 12), lineHeight: const LineHeight(1.65)),
           'ul': Style(margin: Margins.only(bottom: 12)),
           'ol': Style(margin: Margins.only(bottom: 12)),
           'li': Style(margin: Margins.only(bottom: 6)),
@@ -606,9 +584,7 @@ class _QuizTabContent extends StatelessWidget {
     }
 
     if (questions.isEmpty) {
-      return const _ContentMessage(
-        message: AppStrings.trainingNoQuizQuestionsAvailable,
-      );
+      return const _ContentMessage(message: AppStrings.trainingNoQuizQuestionsAvailable);
     }
 
     return Column(
@@ -652,9 +628,7 @@ class _AssignmentTabContent extends StatelessWidget {
     final hasTitle = title != null && title.isNotEmpty;
     final hasInstructions = instructions != null && instructions.isNotEmpty;
     if (!hasTitle && !hasInstructions) {
-      return const _ContentMessage(
-        message: AppStrings.trainingNoAssignmentAvailable,
-      );
+      return const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
     }
 
     return Column(
@@ -673,9 +647,7 @@ class _AssignmentTabContent extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.mainBg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.18),
-              ),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
             ),
             child: AppTextView.body2(
               title,
@@ -699,9 +671,7 @@ class _AssignmentTabContent extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.mainBg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.18),
-              ),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
             ),
             child: Html(
               data: instructions,
@@ -715,10 +685,7 @@ class _AssignmentTabContent extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                   lineHeight: const LineHeight(1.65),
                 ),
-                'p': Style(
-                  margin: Margins.only(bottom: 12),
-                  lineHeight: const LineHeight(1.65),
-                ),
+                'p': Style(margin: Margins.only(bottom: 12), lineHeight: const LineHeight(1.65)),
                 'ul': Style(margin: Margins.only(bottom: 12)),
                 'ol': Style(margin: Margins.only(bottom: 12)),
                 'li': Style(margin: Margins.only(bottom: 6)),
@@ -754,9 +721,7 @@ class _QuizQuestionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -784,11 +749,9 @@ class _QuizQuestionCard extends StatelessWidget {
             for (var index = 0; index < question.options.length; index++) ...[
               _QuizOptionTile(
                 text: question.options[index].text,
-                isSelected:
-                    question.selectedOptionUuid == question.options[index].uuid,
+                isSelected: question.selectedOptionUuid == question.options[index].uuid,
               ),
-              if (index != question.options.length - 1)
-                const SizedBox(height: 10),
+              if (index != question.options.length - 1) const SizedBox(height: 10),
             ],
           ],
         ],
@@ -815,9 +778,7 @@ class _QuizOptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: isSelected
-                  ? AppColors.secondaryColor
-                  : AppColors.textSecondary,
+              color: isSelected ? AppColors.secondaryColor : AppColors.textSecondary,
               width: 1.4,
             ),
           ),
@@ -837,9 +798,7 @@ class _QuizOptionTile extends StatelessWidget {
         Expanded(
           child: AppTextView.body3(
             text,
-            color: isSelected
-                ? AppColors.secondaryColor
-                : AppColors.textPrimary,
+            color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
             height: 1.4,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -870,9 +829,7 @@ class _ContentMessage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
       ),
       child: AppTextView.body3(
         message,
@@ -892,11 +849,7 @@ class _CenteredMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: AppTextView.body(
-        message,
-        color: AppColors.textSecondary,
-        textAlign: TextAlign.center,
-      ),
+      child: AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
     );
   }
 }

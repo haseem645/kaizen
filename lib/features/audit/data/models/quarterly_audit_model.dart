@@ -6,6 +6,7 @@ class QuarterlyAuditModel extends QuarterlyAudit {
     required super.uuid,
     required super.jobUuid,
     required super.jobTitle,
+    required super.isMismatch,
     required super.profileUuid,
     required super.profileName,
     required super.profileEmail,
@@ -26,6 +27,10 @@ class QuarterlyAuditModel extends QuarterlyAudit {
       uuid: _readString(json['uuid']) ?? '',
       jobUuid: _readString(job?['uuid']) ?? '',
       jobTitle: _readString(job?['title']) ?? '',
+      isMismatch:
+          _readBool(json['mismatch']) ??
+          _readBool(json['is_mismatch']) ??
+          false,
       profileUuid: _readString(profile?['uuid']) ?? '',
       profileName: _readString(profile?['name']) ?? '',
       profileEmail: _readString(profile?['email']) ?? '',

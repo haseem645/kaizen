@@ -184,6 +184,9 @@ class _AuditScreenViewState extends State<_AuditScreenView> {
                         : '',
                     year: controller.selectedAuditYear,
                     quarter: controller.selectedAuditQuarter,
+                    selectedProfileUuid: member is AuditProfile
+                        ? member.profileUuid
+                        : null,
                   ),
                 );
               },

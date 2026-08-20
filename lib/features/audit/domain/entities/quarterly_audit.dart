@@ -5,6 +5,7 @@ class QuarterlyAudit {
     required this.uuid,
     required this.jobUuid,
     required this.jobTitle,
+    required this.isMismatch,
     required this.profileUuid,
     required this.profileName,
     required this.profileEmail,
@@ -18,6 +19,7 @@ class QuarterlyAudit {
   final String uuid;
   final String jobUuid;
   final String jobTitle;
+  final bool isMismatch;
   final String profileUuid;
   final String profileName;
   final String profileEmail;
