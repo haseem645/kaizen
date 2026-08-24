@@ -40,28 +40,21 @@ class AuditDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(
-          create: (_) => createAuditRemoteDataSource(),
-        ),
+        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) =>
-              createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditDetailsUseCase>(
-          update: (_, repository, __) =>
-              createGetAuditDetailsUseCase(repository),
+          update: (_, repository, __) => createGetAuditDetailsUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditEvaluationChartUseCase>(
-          update: (_, repository, __) =>
-              createGetAuditEvaluationChartUseCase(repository),
+          update: (_, repository, __) => createGetAuditEvaluationChartUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetQuarterlyAuditUseCase>(
-          update: (_, repository, __) =>
-              createGetQuarterlyAuditUseCase(repository),
+          update: (_, repository, __) => createGetQuarterlyAuditUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
           create: (context) =>
@@ -82,21 +75,13 @@ class AuditDetailsScreen extends StatelessWidget {
               ),
         ),
       ],
-      child: _AuditDetailsScreenView(
-        profileJobId: profileJobId,
-        year: year,
-        quarter: quarter,
-      ),
+      child: _AuditDetailsScreenView(profileJobId: profileJobId, year: year, quarter: quarter),
     );
   }
 }
 
 class _AuditDetailsScreenView extends StatelessWidget {
-  const _AuditDetailsScreenView({
-    required this.profileJobId,
-    this.year,
-    this.quarter,
-  });
+  const _AuditDetailsScreenView({required this.profileJobId, this.year, this.quarter});
   final String profileJobId;
   final int? year;
   final int? quarter;
@@ -106,8 +91,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     final controller = context.watch<AuditController>();
     final state = controller.state;
     final details = state.details;
-    final shouldHideBottomAction =
-        details != null && _shouldForceViewOnly(controller, details);
+    final shouldHideBottomAction = details != null && _shouldForceViewOnly(controller, details);
 
     return Scaffold(
       backgroundColor: AppColors.mainBg,
@@ -123,9 +107,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
                     _buildTitle(context),
                     const SizedBox(height: 18),
                     if (state.isLoading)
-                      Expanded(
-                        child: Center(child: FastCircularProgressIndicator()),
-                      )
+                      Expanded(child: Center(child: FastCircularProgressIndicator()))
                     else if (details == null)
                       const Expanded(
                         child: Center(
@@ -144,34 +126,20 @@ class _AuditDetailsScreenView extends StatelessWidget {
                             color: AppColors.surfaceDark3,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          padding: EdgeInsets.only(
-                            left: 14,
-                            right: 14,
-                            top: 12,
-                          ),
+                          padding: EdgeInsets.only(left: 14, right: 14, top: 12),
                           child: Column(
                             children: [
-                              _buildAuditListHeader(
-                                context,
-                                controller,
-                                details,
-                              ),
+                              _buildAuditListHeader(context, controller, details),
                               const SizedBox(height: 6),
 
                               controller.showGraph
                                   ? Expanded(
                                       child: AuditEvaluationChartWidget(
                                         charts: state.evaluationCharts,
-                                        isLoading:
-                                            state.isEvaluationChartLoading,
+                                        isLoading: state.isEvaluationChartLoading,
                                       ),
                                     )
-                                  : Expanded(
-                                      child: _buildAuditListView(
-                                        controller,
-                                        details,
-                                      ),
-                                    ),
+                                  : Expanded(child: _buildAuditListView(controller, details)),
                             ],
                           ),
                         ),
@@ -207,10 +175,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
                 '${AppStrings.imagePath}back.svg',
                 height: 24,
                 width: 24,
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ),
+                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
               ),
             ),
           ),
@@ -284,9 +249,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
                         TextSpan(
                           text: '${AppStrings.checkInLastCheckIn}: ',
                           style: TextStyle(
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.75,
-                            ),
+                            color: AppColors.textSecondary.withValues(alpha: 0.75),
                             fontSize: 11,
                           ),
                         ),
@@ -348,12 +311,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AppTextView.body1(
-              value,
-              fontSize: 24,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+            AppTextView.body1(value, fontSize: 24, color: color, fontWeight: FontWeight.w600),
             AppTextView.body2(
               label,
               color: AppColors.textPrimary,
@@ -371,10 +329,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     AuditController controller,
     AuditDetails details,
   ) {
-    final selectedProfileName = _resolveSelectedProfileName(
-      controller,
-      details,
-    );
+    final selectedProfileName = _resolveSelectedProfileName(controller, details);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -382,8 +337,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
         if (selectedProfileName != null) ...[
           _SelectedTeamMemberTag(
             name: selectedProfileName,
-            onClear: () =>
-                _clearSelectedTeamMember(context, controller, details),
+            onClear: () => _clearSelectedTeamMember(context, controller, details),
           ),
           const SizedBox(height: 10),
         ],
@@ -427,16 +381,11 @@ class _AuditDetailsScreenView extends StatelessWidget {
                     } else {
                       controller.showEvaluationChart(
                         details.profileJob,
-                        profileUuid: _resolveActiveProfileUuid(
-                          controller,
-                          details,
-                        ),
+                        profileUuid: _resolveActiveProfileUuid(controller, details),
                       );
                     }
                   },
-                  child: _buildGraphIcon(
-                    controller.showGraph ? 'chart.svg' : 'list.svg',
-                  ),
+                  child: _buildGraphIcon(controller.showGraph ? 'chart.svg' : 'list.svg'),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -480,13 +429,9 @@ class _AuditDetailsScreenView extends StatelessWidget {
   }
 
   Widget _buildAuditListView(AuditController controller, AuditDetails details) {
-    final isPastLastAuditDate = CustomFunctions.isDateBeforeToday(
-      details.lastAuditDate,
-    );
+    final isPastLastAuditDate = CustomFunctions.isDateBeforeToday(details.lastAuditDate);
     final visibleAudits = isPastLastAuditDate
-        ? details.audits
-              .where((audit) => audit.totalRatings > 0)
-              .toList(growable: false)
+        ? details.audits.where((audit) => audit.totalRatings > 0).toList(growable: false)
         : details.audits;
     final shouldForceViewOnly = _shouldForceViewOnly(controller, details);
 
@@ -505,8 +450,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
       itemBuilder: (context, index) {
         final audit = visibleAudits[index];
         final actionLabel =
-            !shouldForceViewOnly &&
-                CustomFunctions.isAuditWithinContinueWindow(audit.date)
+            !shouldForceViewOnly && CustomFunctions.isAuditWithinContinueWindow(audit.date)
             ? AppStrings.continueAction
             : AppStrings.view;
 
@@ -520,9 +464,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.grey2.withValues(alpha: 0.6),
-                ),
+                border: Border.all(color: AppColors.grey2.withValues(alpha: 0.6)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -543,18 +485,9 @@ class _AuditDetailsScreenView extends StatelessWidget {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           AppTextView.body2('Ratings: ', color: Colors.grey),
-                          _buildRatingBadge(
-                            value: audit.great,
-                            color: AppColors.green1,
-                          ),
-                          _buildRatingBadge(
-                            value: audit.almostThere,
-                            color: AppColors.orange1,
-                          ),
-                          _buildRatingBadge(
-                            value: audit.needsImprovement,
-                            color: AppColors.red1,
-                          ),
+                          _buildRatingBadge(value: audit.great, color: AppColors.green1),
+                          _buildRatingBadge(value: audit.almostThere, color: AppColors.orange1),
+                          _buildRatingBadge(value: audit.needsImprovement, color: AppColors.red1),
                         ],
                       ),
                     ],
@@ -568,12 +501,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
                         color: AppColors.secondaryColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      padding: EdgeInsets.only(
-                        left: 12,
-                        right: 12,
-                        top: 7,
-                        bottom: 7,
-                      ),
+                      padding: EdgeInsets.only(left: 12, right: 12, top: 7, bottom: 7),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -584,11 +512,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                           const SizedBox(width: 4),
-                          const Icon(
-                            Icons.north_east,
-                            size: 14,
-                            color: Colors.white,
-                          ),
+                          const Icon(Icons.north_east, size: 14, color: Colors.white),
                         ],
                       ),
                     ),
@@ -607,10 +531,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
       alignment: Alignment.center,
       width: 30,
       height: 30,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(5),
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
       child: AppTextView.body2(
         '$value',
         color: AppColors.textPrimary,
@@ -643,10 +564,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
       return;
     }
 
-    final activeProfileUuid = _resolveActiveProfileUuid(
-      context.read<AuditController>(),
-      details,
-    );
+    final activeProfileUuid = _resolveActiveProfileUuid(context.read<AuditController>(), details);
 
     await _refreshDetailsAfterAuditReturn(
       context,
@@ -661,8 +579,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     required bool isAuditActionLoading,
   }) {
     final hasDetails = details != null;
-    final shouldStartNewAudit =
-        hasDetails && _shouldStartNewAuditForBottomAction(details);
+    final shouldStartNewAudit = hasDetails && _shouldStartNewAuditForBottomAction(details);
 
     return Container(
       height: 100,
@@ -683,16 +600,10 @@ class _AuditDetailsScreenView extends StatelessWidget {
             padding: EdgeInsets.only(left: 14, right: 14, top: 12),
             child: hasDetails
                 ? AppButton(
-                    text: shouldStartNewAudit
-                        ? AppStrings.newCheckIn
-                        : AppStrings.continueCheckIn,
+                    text: shouldStartNewAudit ? AppStrings.newCheckIn : AppStrings.continueCheckIn,
                     onPressed: isAuditActionLoading
                         ? null
-                        : () => _handleAuditAction(
-                            context,
-                            details,
-                            shouldStartNewAudit,
-                          ),
+                        : () => _handleAuditAction(context, details, shouldStartNewAudit),
                     isLoading: isAuditActionLoading,
                     minimumHeight: 40,
                   )
@@ -770,10 +681,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     );
 
     if (controller.showGraph) {
-      await controller.refreshEvaluationChart(
-        profileJobId,
-        profileUuid: profileUuid,
-      );
+      await controller.refreshEvaluationChart(profileJobId, profileUuid: profileUuid);
     }
   }
 
@@ -793,19 +701,14 @@ class _AuditDetailsScreenView extends StatelessWidget {
           for (var index = 0; index < visibleProfiles.length; index++)
             Positioned(
               left: index * overlapOffset,
-              child: _DetailProfileAvatar(
-                imageUrl: visibleProfiles[index].image,
-              ),
+              child: _DetailProfileAvatar(imageUrl: visibleProfiles[index].image),
             ),
         ],
       ),
     );
   }
 
-  String? _resolveActiveProfileUuid(
-    AuditController controller,
-    AuditDetails details,
-  ) {
+  String? _resolveActiveProfileUuid(AuditController controller, AuditDetails details) {
     final selectedProfileUuid = controller.selectedAuditDetailsProfileUuid;
     if (selectedProfileUuid != null) {
       return selectedProfileUuid;
@@ -816,6 +719,10 @@ class _AuditDetailsScreenView extends StatelessWidget {
   }
 
   bool _shouldForceViewOnly(AuditController controller, AuditDetails details) {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+      return true;
+    }
+
     final selectedProfileUuid = _resolveActiveProfileUuid(controller, details);
     if (selectedProfileUuid == null) {
       return false;
@@ -825,9 +732,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
   }
 
   bool _shouldStartNewAuditForBottomAction(AuditDetails details) {
-    final defaultShouldStartNewAudit = CustomFunctions.shouldStartNewAudit(
-      details,
-    );
+    final defaultShouldStartNewAudit = CustomFunctions.shouldStartNewAudit(details);
     if (!defaultShouldStartNewAudit) {
       return false;
     }
@@ -845,13 +750,9 @@ class _AuditDetailsScreenView extends StatelessWidget {
     return true;
   }
 
-  String? _resolveSelectedProfileName(
-    AuditController controller,
-    AuditDetails details,
-  ) {
+  String? _resolveSelectedProfileName(AuditController controller, AuditDetails details) {
     final selectedProfileUuid = _resolveActiveProfileUuid(controller, details);
-    if (selectedProfileUuid == null ||
-        selectedProfileUuid == details.profileUuid.trim()) {
+    if (selectedProfileUuid == null || selectedProfileUuid == details.profileUuid.trim()) {
       return null;
     }
 
@@ -881,9 +782,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
     );
   }
 
-  List<AuditTeamMemberFilterOption> _buildTeamMemberFilterOptions(
-    AuditDetails details,
-  ) {
+  List<AuditTeamMemberFilterOption> _buildTeamMemberFilterOptions(AuditDetails details) {
     final optionsById = <String, AuditTeamMemberFilterOption>{};
 
     void addOption({
@@ -895,18 +794,14 @@ class _AuditDetailsScreenView extends StatelessWidget {
     }) {
       final normalizedProfileUuid = profileUuid.trim();
       final normalizedEmail = email.trim();
-      final normalizedName = name.trim().isNotEmpty
-          ? name.trim()
-          : normalizedEmail;
+      final normalizedName = name.trim().isNotEmpty ? name.trim() : normalizedEmail;
       final selectionId = normalizedProfileUuid.isNotEmpty
           ? normalizedProfileUuid
           : normalizedEmail.toLowerCase().isNotEmpty
           ? normalizedEmail.toLowerCase()
           : normalizedName.toLowerCase();
 
-      if (selectionId.isEmpty ||
-          normalizedName.isEmpty ||
-          optionsById.containsKey(selectionId)) {
+      if (selectionId.isEmpty || normalizedName.isEmpty || optionsById.containsKey(selectionId)) {
         return;
       }
 
@@ -915,9 +810,7 @@ class _AuditDetailsScreenView extends StatelessWidget {
         name: normalizedName,
         email: normalizedEmail,
         imageUrl: imageUrl,
-        profileUuid: normalizedProfileUuid.isEmpty
-            ? null
-            : normalizedProfileUuid,
+        profileUuid: normalizedProfileUuid.isEmpty ? null : normalizedProfileUuid,
         onboarded: onboarded,
       );
     }
@@ -969,45 +862,33 @@ class _AuditDetailsScreenView extends StatelessWidget {
     return null;
   }
 
-  Future<void> openAuditTeamMemberFilterSheet(
-    BuildContext context,
-    AuditDetails details,
-  ) async {
+  Future<void> openAuditTeamMemberFilterSheet(BuildContext context, AuditDetails details) async {
     final controller = context.read<AuditController>();
     final options = _buildTeamMemberFilterOptions(details);
     if (options.isEmpty) {
       return;
     }
 
-    final selectedOption =
-        await showModalBottomSheet<AuditTeamMemberFilterOption>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (_) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: AuditTeamMemberFilterSheet(
-              options: options,
-              initialSelectionId: _resolveInitialTeamMemberSelectionId(
-                controller,
-                options,
-                details,
-              ),
-            ),
-          ),
-        );
+    final selectedOption = await showModalBottomSheet<AuditTeamMemberFilterOption>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: AuditTeamMemberFilterSheet(
+          options: options,
+          initialSelectionId: _resolveInitialTeamMemberSelectionId(controller, options, details),
+        ),
+      ),
+    );
 
     if (!context.mounted || selectedOption == null) {
       return;
     }
 
     final selectedProfileUuid = selectedOption.profileUuid?.trim() ?? '';
-    final activeProfileUuid =
-        _resolveActiveProfileUuid(controller, details) ?? '';
-    if (selectedProfileUuid.isEmpty ||
-        selectedProfileUuid == activeProfileUuid) {
+    final activeProfileUuid = _resolveActiveProfileUuid(controller, details) ?? '';
+    if (selectedProfileUuid.isEmpty || selectedProfileUuid == activeProfileUuid) {
       return;
     }
 
@@ -1062,9 +943,7 @@ class _SelectedTeamMemberTag extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.secondaryColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.secondaryColor.withValues(alpha: 0.45),
-          ),
+          border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.45)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1082,11 +961,7 @@ class _SelectedTeamMemberTag extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onClear,
-              child: const Icon(
-                Icons.close_rounded,
-                size: 16,
-                color: AppColors.secondaryColor,
-              ),
+              child: const Icon(Icons.close_rounded, size: 16, color: AppColors.secondaryColor),
             ),
           ],
         ),

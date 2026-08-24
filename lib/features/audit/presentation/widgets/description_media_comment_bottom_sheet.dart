@@ -11,6 +11,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 
@@ -113,15 +114,10 @@ class _DescriptionMediaCommentBottomSheetState
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 5, top: 8, bottom: 8),
-                    child: GestureDetector(
+                    child: AppOverlayCloseButton(
                       onTap: _isSaving
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: const Icon(
-                        Icons.close,
-                        color: AppColors.textSecondary,
-                        size: 23,
-                      ),
                     ),
                   ),
                   const Spacer(),

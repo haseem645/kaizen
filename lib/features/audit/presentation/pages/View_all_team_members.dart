@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/audit_profile.dart';
@@ -247,13 +248,7 @@ class _Header extends StatelessWidget {
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: IconButton(
-              onPressed: onClose,
-              icon: const Icon(
-                Icons.close_rounded,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            child: AppOverlayCloseButton(onTap: onClose),
           ),
         ],
       ),

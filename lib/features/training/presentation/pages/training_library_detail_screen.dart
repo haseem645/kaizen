@@ -1,5 +1,5 @@
-import 'package:flutter/gestures.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -7,12 +7,17 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../audit/data/datasources/audit_remote_data_source.dart';
 import '../../../audit/data/repositories/audit_repository_impl.dart';
+import '../../data/datasources/training_library_remote_data_source.dart';
+import '../../data/repositories/training_library_repository_impl.dart';
 import '../../domain/entities/seat_description_training_route.dart';
 import '../../domain/entities/training_library_module.dart';
+import '../../domain/usecases/get_training_library_modules_usecase.dart';
+import '../controllers/training_library_detail_controller.dart';
 import 'edit_training_screen.dart';
 import 'view_training_screen.dart';
 
@@ -33,9 +38,14 @@ _trainingLibraryVisibilityOptions = <_TrainingLibraryVisibilityOptionData>[
 ];
 
 class TrainingLibraryDetailScreen extends StatefulWidget {
-  const TrainingLibraryDetailScreen({super.key, required this.module});
+  const TrainingLibraryDetailScreen({
+    super.key,
+    required this.module,
+    required this.view,
+  });
 
   final TrainingLibraryModule module;
+  final String view;
 
   @override
   State<TrainingLibraryDetailScreen> createState() =>
@@ -45,11 +55,21 @@ class TrainingLibraryDetailScreen extends StatefulWidget {
 class _TrainingLibraryDetailScreenState
     extends State<TrainingLibraryDetailScreen> {
   var _shouldRefreshOnExit = false;
+  late final TrainingLibraryDetailController _detailController;
   late final _TrainingLibraryLessonVisibilityController _visibilityController;
 
   @override
   void initState() {
     super.initState();
+    _detailController = TrainingLibraryDetailController(
+      initialModule: widget.module,
+      getTrainingLibraryModules: GetTrainingLibraryModulesUseCase(
+        createTrainingLibraryRepository(
+          createTrainingLibraryRemoteDataSource(),
+        ),
+      ),
+      view: widget.view,
+    );
     _visibilityController = _TrainingLibraryLessonVisibilityController(
       AuditRepositoryImpl(AuditRemoteDataSource()),
     );
@@ -57,19 +77,13 @@ class _TrainingLibraryDetailScreenState
 
   @override
   void dispose() {
+    _detailController.dispose();
     _visibilityController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final canEditModules =
-        AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
-          seatProfileId: widget.module.seat.id,
-        ) &&
-        widget.module.id.trim().isNotEmpty &&
-        widget.module.seat.id.trim().isNotEmpty;
-
     return PopScope<Object?>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -79,77 +93,101 @@ class _TrainingLibraryDetailScreenState
 
         _handleBack();
       },
-      child: Scaffold(
-        backgroundColor: AppColors.mainBg,
-        appBar: AppBar(
-          backgroundColor: AppColors.mainBg,
-          foregroundColor: AppColors.textPrimary,
-          elevation: 0,
-          leading: IconButton(
-            onPressed: _handleBack,
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          ),
-          title: const AppTextView.title1(
-            AppStrings.trainingLibraryTitle,
-            color: AppColors.secondaryColor,
-            fontSize: 24,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        body: SafeArea(
-          top: false,
-          bottom: false,
-          child: AnimatedBuilder(
-            animation: _visibilityController,
-            builder: (context, _) => ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              children: [
-                const SizedBox(height: 8),
-                _LibrarySummaryCard(module: widget.module),
-                const SizedBox(height: 20),
-                if (widget.module.lessons.isEmpty)
-                  const _MessageCard(
-                    message: AppStrings.trainingLibraryNoLessonsFound,
-                  )
-                else
-                  for (
-                    var index = 0;
-                    index < widget.module.lessons.length;
-                    index++
-                  ) ...[
-                    _TrainingLessonCard(
-                      lesson: widget.module.lessons[index],
-                      isPubliclyAvailable: _visibilityController
-                          .isLessonPubliclyAvailable(
-                            widget.module.lessons[index],
-                          ),
-                      isUpdatingVisibility: _visibilityController
-                          .isUpdatingLesson(widget.module.lessons[index].id),
-                      onTap: () => _openLessonViewer(
-                        context,
-                        widget.module.lessons[index],
-                      ),
-                      canEdit: canEditModules,
-                      onEditTap: canEditModules
-                          ? () => _openLessonEditor(
-                              context,
-                              widget.module.lessons[index],
-                            )
-                          : null,
-                      onVisibilityChanged: canEditModules
-                          ? (value) => _updateLessonVisibility(
-                              lesson: widget.module.lessons[index],
-                              isPubliclyAvailable: value,
-                            )
-                          : null,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_detailController, _visibilityController]),
+        builder: (context, _) {
+          final module = _detailController.module;
+          final canEditModules =
+              AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+                seatProfileId: module.seat.id,
+              ) &&
+              module.id.trim().isNotEmpty &&
+              module.seat.id.trim().isNotEmpty;
+          final isBusy =
+              _visibilityController.isUpdatingAnyLesson ||
+              _detailController.isRefreshing;
+
+          return Scaffold(
+            backgroundColor: AppColors.mainBg,
+            appBar: AppBar(
+              backgroundColor: AppColors.mainBg,
+              foregroundColor: AppColors.textPrimary,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: isBusy
+                  ? null
+                  : IconButton(
+                      onPressed: _handleBack,
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
                     ),
-                    if (index != widget.module.lessons.length - 1)
-                      const SizedBox(height: 12),
-                  ],
-              ],
+              title: const AppTextView.title1(
+                AppStrings.trainingLibraryTitle,
+                color: AppColors.secondaryColor,
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ),
+            body: SafeArea(
+              top: false,
+              bottom: false,
+              child: isBusy
+                  ? Center(
+                      child: FastCircularProgressIndicator(
+                        width: 24,
+                        height: 24,
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                      children: [
+                        _LibrarySummaryCard(module: module),
+                        const SizedBox(height: 20),
+                        if (module.lessons.isEmpty)
+                          const _MessageCard(
+                            message: AppStrings.trainingLibraryNoLessonsFound,
+                          )
+                        else
+                          for (
+                            var index = 0;
+                            index < module.lessons.length;
+                            index++
+                          ) ...[
+                            _TrainingLessonCard(
+                              lesson: module.lessons[index],
+                              isPubliclyAvailable: _visibilityController
+                                  .isLessonPubliclyAvailable(
+                                    module.lessons[index],
+                                  ),
+                              isUpdatingVisibility: _visibilityController
+                                  .isUpdatingLesson(module.lessons[index].id),
+                              onTap: () => _openLessonViewer(
+                                context,
+                                module,
+                                module.lessons[index],
+                              ),
+                              canEdit: canEditModules,
+                              onEditTap: canEditModules
+                                  ? () => _openLessonEditor(
+                                      context,
+                                      module,
+                                      module.lessons[index],
+                                    )
+                                  : null,
+                              onVisibilityChanged: canEditModules
+                                  ? (value) => _updateLessonVisibility(
+                                      lesson: module.lessons[index],
+                                      isPubliclyAvailable: value,
+                                    )
+                                  : null,
+                            ),
+                            if (index != module.lessons.length - 1)
+                              const SizedBox(height: 12),
+                          ],
+                      ],
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -160,6 +198,7 @@ class _TrainingLibraryDetailScreenState
 
   Future<void> _openLessonViewer(
     BuildContext context,
+    TrainingLibraryModule module,
     TrainingLibraryLesson lesson,
   ) async {
     final lessonId = lesson.id.trim();
@@ -171,9 +210,9 @@ class _TrainingLibraryDetailScreenState
       MaterialPageRoute<void>(
         builder: (_) => ViewTrainingScreen(
           trainingRoute: SeatDescriptionTrainingRoute(
-            job: widget.module.seat.id,
-            category: widget.module.category.id,
-            description: widget.module.id,
+            job: module.seat.id,
+            category: module.category.id,
+            description: module.id,
             initialModuleId: lessonId,
           ),
         ),
@@ -183,6 +222,7 @@ class _TrainingLibraryDetailScreenState
 
   Future<void> _openLessonEditor(
     BuildContext context,
+    TrainingLibraryModule module,
     TrainingLibraryLesson lesson,
   ) async {
     final lessonId = lesson.id.trim();
@@ -194,14 +234,14 @@ class _TrainingLibraryDetailScreenState
       MaterialPageRoute<void>(
         builder: (_) => EditTrainingScreen(
           trainingRoute: SeatDescriptionTrainingRoute(
-            job: widget.module.seat.id,
-            category: widget.module.category.id,
-            description: widget.module.id,
+            job: module.seat.id,
+            category: module.category.id,
+            description: module.id,
           ),
           initialModuleId: lessonId,
           canManageTraining: AppManager.instance
               .canCurrentUserManageTrainingForSeatProfile(
-                seatProfileId: widget.module.seat.id,
+                seatProfileId: module.seat.id,
               ),
           useNonBlockingVideoUpload: true,
         ),
@@ -213,6 +253,24 @@ class _TrainingLibraryDetailScreenState
     }
 
     _shouldRefreshOnExit = true;
+    final didRefresh = await _detailController.refreshModule();
+    if (!mounted || didRefresh) {
+      if (didRefresh) {
+        _visibilityController.syncWithLessons(_detailController.module.lessons);
+      }
+      return;
+    }
+
+    ScaffoldMessenger.of(this.context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            _detailController.errorMessage ??
+                AppStrings.loginSomethingWentWrong,
+          ),
+        ),
+      );
   }
 
   Future<void> _updateLessonVisibility({
@@ -260,13 +318,13 @@ class _LibrarySummaryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: AppColors.fieldBorder.withValues(alpha: 0.45),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        padding: const EdgeInsets.fromLTRB(8, 18, 8, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -319,13 +377,11 @@ class _SummaryValueRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 92,
-          child: AppTextView.body3(
-            label,
-            color: AppColors.purple1,
-            fontWeight: FontWeight.w700,
-          ),
+        AppTextView.body2(
+          "$label:",
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -925,14 +981,9 @@ class _LessonSummarySheet extends StatelessWidget {
                               AppStrings.trainingSummaryLabel,
                               color: AppColors.purple1,
                               fontWeight: FontWeight.w700,
+                              fontSize: 18,
                             ),
                             const SizedBox(height: 8),
-                            AppTextView.body1(
-                              lessonTitle,
-                              color: AppColors.textPrimary,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
                           ],
                         ),
                       ),
@@ -1154,18 +1205,7 @@ class _SheetCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: const Padding(
-        padding: EdgeInsets.all(4),
-        child: Icon(
-          Icons.close_rounded,
-          color: AppColors.textSecondary,
-          size: 24,
-        ),
-      ),
-    );
+    return AppOverlayCloseButton(onTap: onTap);
   }
 }
 
@@ -1287,12 +1327,36 @@ class _TrainingLibraryLessonVisibilityController extends ChangeNotifier {
   final Map<String, bool> _visibilityOverrides = <String, bool>{};
   final Set<String> _updatingLessonIds = <String>{};
 
+  bool get isUpdatingAnyLesson => _updatingLessonIds.isNotEmpty;
+
   bool isLessonPubliclyAvailable(TrainingLibraryLesson lesson) {
     return _visibilityOverrides[lesson.id.trim()] ?? lesson.isPubliclyAvailable;
   }
 
   bool isUpdatingLesson(String lessonId) {
     return _updatingLessonIds.contains(lessonId.trim());
+  }
+
+  void syncWithLessons(List<TrainingLibraryLesson> lessons) {
+    final resolvedVisibilityByLessonId = <String, bool>{
+      for (final lesson in lessons)
+        lesson.id.trim(): lesson.isPubliclyAvailable,
+    };
+    var didChange = false;
+
+    _visibilityOverrides.removeWhere((lessonId, visibility) {
+      final resolvedVisibility = resolvedVisibilityByLessonId[lessonId];
+      final shouldRemove =
+          resolvedVisibility == null || resolvedVisibility == visibility;
+      if (shouldRemove) {
+        didChange = true;
+      }
+      return shouldRemove;
+    });
+
+    if (didChange) {
+      notifyListeners();
+    }
   }
 
   Future<bool> updateLessonVisibility({

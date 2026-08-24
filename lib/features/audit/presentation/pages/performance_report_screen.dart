@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/preference/app_preference.dart';
+import '../../../../core/utils/app_permission_utils.dart';
 import '../../../../core/utils/custom_functions.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../data/datasources/audit_remote_data_source.dart';
@@ -16,100 +19,35 @@ import '../../domain/entities/audit_profile.dart';
 import '../../domain/entities/performance_report.dart';
 import '../../domain/usecases/get_audit_overview_usecase.dart';
 import '../providers/audit_controller.dart';
-import 'paygrade_detail_dialog.dart';
 import 'performance_report_dialogs.dart';
+import 'performance_report_paygrade_pipeline_sheet.dart';
 import 'seat_description_final_audit_report.dart';
-
-const List<Map<String, Object>> _flutterIconsList = <Map<String, Object>>[
-  <String, Object>{
-    'key': 'target',
-    'label': 'Target',
-    'icon': Icons.gps_fixed_outlined,
-    'color': AppColors.hex18c4e8,
-    'keywords': <String>['target', 'customer', 'customer first', 'focus'],
-  },
-  <String, Object>{
-    'key': 'shield',
-    'label': 'Shield',
-    'icon': Icons.shield_outlined,
-    'color': AppColors.hexb65cff,
-    'keywords': <String>['shield', 'secure', 'safety', 'protection'],
-  },
-  <String, Object>{
-    'key': 'users',
-    'label': 'People',
-    'icon': Icons.groups_outlined,
-    'color': AppColors.hex1ed9c8,
-    'keywords': <String>['users', 'people', 'customer care', 'professional'],
-  },
-  <String, Object>{
-    'key': 'lightbulb',
-    'label': 'Innovation',
-    'icon': Icons.lightbulb_outlined,
-    'color': AppColors.hex14c7f3,
-    'keywords': <String>['lightbulb', 'innovation', 'creative', 'idea'],
-  },
-  <String, Object>{
-    'key': 'handshake',
-    'label': 'Teamwork',
-    'icon': Icons.handshake_outlined,
-    'color': AppColors.hexf08a24,
-    'keywords': <String>['handshake', 'teamwork', 'team', 'collaboration'],
-  },
-  <String, Object>{
-    'key': 'scale',
-    'label': 'Integrity',
-    'icon': Icons.balance_outlined,
-    'color': AppColors.hexb96cff,
-    'keywords': <String>['scale', 'integrity', 'ethics', 'honesty'],
-  },
-  <String, Object>{
-    'key': 'award',
-    'label': 'Excellence',
-    'icon': Icons.emoji_events_outlined,
-    'color': AppColors.hexff5e33,
-    'keywords': <String>['award', 'excellence', 'superb', 'memorable'],
-  },
-  <String, Object>{
-    'key': 'trending_up',
-    'label': 'Growth',
-    'icon': Icons.trending_up_outlined,
-    'color': AppColors.hex4dd17f,
-    'keywords': <String>['trending_up', 'growth', 'improve', 'learning'],
-  },
-  <String, Object>{
-    'key': 'heart',
-    'label': 'Care',
-    'icon': Icons.favorite_border_outlined,
-    'color': AppColors.hexf46aa8,
-    'keywords': <String>['heart', 'care', 'compassion', 'empathy'],
-  },
-  <String, Object>{
-    'key': 'check_circle',
-    'label': 'Accountability',
-    'icon': Icons.check_circle_outline_outlined,
-    'color': AppColors.hex2ea8ff,
-    'keywords': <String>['check_circle', 'accountability', 'ownership', 'responsibility'],
-  },
-];
 
 bool _isUnavailablePaygradeDisplay(String value) =>
     value.trim() == AppStrings.paygradesUnavailableDisplay;
 
 class PerformanceReportScreen extends StatelessWidget {
-  const PerformanceReportScreen({super.key, required this.profile, this.isMyReport = false});
+  const PerformanceReportScreen({
+    super.key,
+    required this.profile,
+    this.isMyReport = false,
+  });
   final AuditProfile profile;
   final bool isMyReport;
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
+        Provider<AuditRemoteDataSource>(
+          create: (_) => createAuditRemoteDataSource(),
+        ),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) =>
+              createGetAuditOverviewUseCase(repository),
         ),
         ChangeNotifierProvider<AuditController>(
           create: (context) => AuditController(
@@ -129,141 +67,6 @@ class PerformanceReportScreen extends StatelessWidget {
   }
 }
 
-class _CoreValueVisualSpec {
-  const _CoreValueVisualSpec({
-    required this.key,
-    required this.label,
-    required this.icon,
-    required this.color,
-  });
-
-  final String key;
-  final String label;
-  final IconData icon;
-  final Color color;
-}
-
-_CoreValueVisualSpec _resolveCoreValueVisualSpec({required PerformanceReportCoreValue coreValue}) {
-  final normalizedTitle = coreValue.title.trim().toLowerCase();
-  final normalizedIconKey = coreValue.iconKey?.trim().toLowerCase() ?? '';
-  final accentColor = _resolveCoreValueAccentColor(coreValue);
-
-  for (final iconMap in _flutterIconsList) {
-    final key = (iconMap['key'] as String?)?.toLowerCase() ?? '';
-    final label = (iconMap['label'] as String?)?.toLowerCase() ?? '';
-    final keywords = iconMap['keywords'] as List<String>? ?? const <String>[];
-    final matchesExplicitIcon =
-        normalizedIconKey.isNotEmpty && (normalizedIconKey == key || normalizedIconKey == label);
-    final matchesTitle =
-        normalizedTitle.contains(key) ||
-        normalizedTitle.contains(label) ||
-        keywords.any((keyword) => normalizedTitle.contains(keyword));
-
-    if (matchesExplicitIcon || matchesTitle) {
-      return _coreValueVisualSpecFromMap(iconMap, accentColor: accentColor);
-    }
-  }
-
-  if (_flutterIconsList.isEmpty) {
-    return _CoreValueVisualSpec(
-      key: 'award',
-      label: 'Excellence',
-      icon: Icons.emoji_events_outlined,
-      color: accentColor ?? AppColors.secondaryColor,
-    );
-  }
-
-  return _coreValueVisualSpecFromMap(
-    _flutterIconsList[_stableCoreValueIconIndex(coreValue.title)],
-    accentColor: accentColor,
-  );
-}
-
-_CoreValueVisualSpec _coreValueVisualSpecFromMap(
-  Map<String, Object> iconMap, {
-  Color? accentColor,
-}) {
-  final iconData = iconMap['icon'];
-  final color = iconMap['color'];
-  final resolvedColor = accentColor ?? (color is Color ? color : AppColors.secondaryColor);
-
-  return _CoreValueVisualSpec(
-    key: iconMap['key'] as String? ?? '',
-    label: iconMap['label'] as String? ?? '',
-    icon: iconData is IconData ? iconData : Icons.emoji_events_outlined,
-    color: resolvedColor,
-  );
-}
-
-Color? _resolveCoreValueAccentColor(PerformanceReportCoreValue coreValue) {
-  final rawColorValue = _firstNonEmptyCoreValueString(<String?>[
-    coreValue.colorHex,
-    coreValue.rawData['color_hex']?.toString(),
-    coreValue.rawData['colorHex']?.toString(),
-    coreValue.rawData['hex_color']?.toString(),
-    coreValue.rawData['hexCode']?.toString(),
-    coreValue.rawData['hex_code']?.toString(),
-  ]);
-  final normalizedHex = _normalizeCoreValueHex(rawColorValue);
-  if (!_isValidCoreValueHex(normalizedHex)) {
-    return null;
-  }
-
-  final raw = normalizedHex.substring(1);
-  return Color(int.parse(raw, radix: 16) | 0xFF000000);
-}
-
-String _normalizeCoreValueHex(String? value) {
-  final cleaned = value?.trim().toUpperCase().replaceAll(' ', '') ?? '';
-  if (cleaned.isEmpty) {
-    return '';
-  }
-
-  var raw = cleaned;
-  if (raw.startsWith('#')) {
-    raw = raw.substring(1);
-  }
-  if (raw.startsWith('0X')) {
-    raw = raw.substring(2);
-  }
-  if (raw.length == 3) {
-    raw = raw.split('').map((segment) => '$segment$segment').join();
-  } else if (raw.length == 8) {
-    raw = raw.substring(2);
-  }
-
-  if (raw.isEmpty) {
-    return '';
-  }
-
-  return '#$raw';
-}
-
-bool _isValidCoreValueHex(String value) {
-  return RegExp(r'^#[0-9A-F]{6}$').hasMatch(value);
-}
-
-String? _firstNonEmptyCoreValueString(List<String?> values) {
-  for (final value in values) {
-    final normalizedValue = value?.trim() ?? '';
-    if (normalizedValue.isNotEmpty) {
-      return normalizedValue;
-    }
-  }
-
-  return null;
-}
-
-int _stableCoreValueIconIndex(String title) {
-  final normalizedTitle = title.trim();
-  if (normalizedTitle.isEmpty) {
-    return 0;
-  }
-
-  final seed = normalizedTitle.runes.fold<int>(0, (currentValue, rune) => currentValue + rune);
-  return seed % _flutterIconsList.length;
-}
-
 class _PerformanceReportView extends StatefulWidget {
   const _PerformanceReportView({required this.isMyReport});
 
@@ -279,7 +82,10 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
   String _lastSyncedCommitment = '';
   bool _canGenerateRemarks = false;
 
-  static const List<String> _timeRanges = <String>['This Quarter', 'Custom Date Range'];
+  static const List<String> _timeRanges = <String>[
+    'This Quarter',
+    'Custom Date Range',
+  ];
 
   @override
   void initState() {
@@ -303,7 +109,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     }
 
     setState(() {
-      _canGenerateRemarks = user?.canAccessAuditTeamMembers ?? false;
+      _canGenerateRemarks = AppPermissionUtils.canAccessAuditTeamMembers(user);
     });
   }
 
@@ -312,12 +118,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     final controller = context.watch<AuditController>();
     final state = controller.state;
     final report = state.performanceReport;
-    final maxCategoryIndex = report == null || report.categoryTabs.isEmpty
-        ? 0
-        : report.categoryTabs.length - 1;
-    final categorySelectionKey = report == null
-        ? null
-        : '${report.profile.profileJob}:${report.profile.profileUuid}:${report.categoryTabs.length}:${report.remarkVersion}';
+    final reportViewData = controller.performanceReportViewData;
 
     if (_lastSyncedCommitment != state.performanceReportCommitment) {
       _lastSyncedCommitment = state.performanceReportCommitment;
@@ -328,7 +129,9 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
 
         _commentsController.value = TextEditingValue(
           text: _lastSyncedCommitment,
-          selection: TextSelection.collapsed(offset: _lastSyncedCommitment.length),
+          selection: TextSelection.collapsed(
+            offset: _lastSyncedCommitment.length,
+          ),
         );
       });
     }
@@ -350,7 +153,7 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
         bottom: false,
         child: state.isPerformanceReportLoading
             ? FastCircularProgressIndicator()
-            : report == null
+            : report == null || reportViewData == null
             ? const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
@@ -364,27 +167,11 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
             : ValueListenableBuilder<_PerformanceReportLocalState>(
                 valueListenable: _localStateNotifier,
                 builder: (context, localState, _) {
-                  final selectedCategoryIndex = _resolveSelectedCategoryIndex(
-                    localState: localState,
-                    categorySelectionKey: categorySelectionKey,
-                    maxCategoryIndex: maxCategoryIndex,
-                  );
-                  final selectedProfilePayload = report.reportSnapshot['selected_profile'];
-                  final rawCategories = report.reportSnapshot['categories'];
-                  final reportMessage = report.reportSnapshot['message']?.toString().trim();
-                  final hasSelectedProfile = selectedProfilePayload is Map<String, dynamic>
-                      ? selectedProfilePayload.isNotEmpty
-                      : selectedProfilePayload != null;
-                  final isOpenSeatView = !hasSelectedProfile && report.profile.profiles.isEmpty;
-                  final hasCategories = rawCategories is List && rawCategories.isNotEmpty;
-                  final shouldShowCompleteReportUi = hasSelectedProfile && hasCategories;
-                  final shouldShowMessageOnly = hasSelectedProfile && !hasCategories;
-                  final currentPaygradeIndex = report.paygradePipeline.indexWhere(
-                    (step) => step.isCurrent,
-                  );
-                  final currentPaygradeStep = currentPaygradeIndex >= 0
-                      ? report.paygradePipeline[currentPaygradeIndex]
-                      : null;
+                  final selectedCategoryIndex = controller
+                      .resolvePerformanceReportSelectedCategoryIndex(
+                        selectedCategoryIndex: localState.selectedCategoryIndex,
+                        categorySelectionKey: localState.categorySelectionKey,
+                      );
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
                     child: Column(
@@ -396,147 +183,231 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                             report: report,
                             showNoProfileChip: false,
                             isLoading: state.isPerformanceReportLoading,
-                            onProfileTap: (profile) =>
-                                _handleProfileChipTap(controller, report, profile),
+                            onProfileTap: (profile) => _handleProfileChipTap(
+                              controller,
+                              report,
+                              profile,
+                            ),
                           ),
                           const SizedBox(height: 12),
                         ],
-                        if (isOpenSeatView) ...[
-                          _OpenSeatEmptyView(message: reportMessage),
-                        ] else if (shouldShowCompleteReportUi) ...[
+                        if (reportViewData.isOpenSeatView) ...[
+                          _OpenSeatEmptyView(
+                            message: reportViewData.reportMessage,
+                          ),
+                        ] else if (reportViewData
+                            .shouldShowCompleteReportUi) ...[
                           _TimeRangeSelector(
                             value: state.performanceReportTimeRange,
                             options: _timeRanges,
                             customRangeLabel:
-                                state.performanceReportTimeRange == 'Custom Date Range' &&
+                                state.performanceReportTimeRange ==
+                                        'Custom Date Range' &&
                                     state.performanceReportStartDate != null &&
                                     state.performanceReportEndDate != null
                                 ? '${_formatDate(state.performanceReportStartDate!)} - ${_formatDate(state.performanceReportEndDate!)}'
                                 : null,
-                            onChanged: (value) =>
-                                _handleTimeRangeChanged(context, controller, value),
+                            onChanged: (value) => _handleTimeRangeChanged(
+                              context,
+                              controller,
+                              value,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           if (state.certifiedReportOptions.isNotEmpty) ...[
                             _CertifiedReportsSelector(
                               value: state.selectedCertifiedReportUuid,
                               options: state.certifiedReportOptions,
-                              isDownloading: controller.isCertifiedReportPdfDownloading,
+                              isDownloading:
+                                  controller.isCertifiedReportPdfDownloading,
                               onChanged: controller.selectCertifiedReport,
                               onDownload: (option) =>
-                                  _downloadCertifiedReportPdf(context, controller, option),
+                                  _downloadCertifiedReportPdf(
+                                    context,
+                                    controller,
+                                    option,
+                                  ),
                             ),
                             const SizedBox(height: 16),
                           ],
 
-                          _PersonaCard(
-                            report: report,
-                            showPersonaHeader: state.isOwner,
-                            showGenerateRemarksAction: _canGenerateRemarks,
-                            isGeneratingRemarks: state.isGeneratingPerformanceReportRemarks,
-                            onGenerateRemarks: () async {
-                              await controller.generatePerformanceReportRemarks();
-                            },
-                            onDescriptionGo: (row) => _openFinalReport(context, report, row),
+                          if (report.hasPersonalityData) ...[
+                            _PersonaCard(
+                              report: report,
+                              showPersonaHeader: state.isOwner,
+                              showGenerateRemarksAction: _canGenerateRemarks,
+                              isGeneratingRemarks:
+                                  state.isGeneratingPerformanceReportRemarks,
+                              onGenerateRemarks: () async {
+                                await controller
+                                    .generatePerformanceReportRemarks();
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          _RatingsTable(
+                            rows: report.categoryTabs.isEmpty
+                                ? report.ratingRows
+                                : report
+                                      .categoryTabs[selectedCategoryIndex]
+                                      .rows,
+                            onDescriptionGo: (row) =>
+                                _openFinalReport(context, report, row),
+                            categoryTabs: report.categoryTabs,
                             selectedCategoryIndex: selectedCategoryIndex,
                             onCategorySelected: (index) {
                               _localStateNotifier.value = localState.copyWith(
                                 selectedCategoryIndex: index,
-                                categorySelectionKey: categorySelectionKey,
+                                categorySelectionKey:
+                                    reportViewData.categorySelectionKey,
                               );
                             },
                           ),
                           const SizedBox(height: 16),
-                          _PaygradePipelineCard(
+                          PerformanceReportPaygradePipelineSection(
                             report: report,
-                            onStepTap: (step) => showPaygradeDetailDialog(
-                              context,
-                              step: step,
-                              currentStep: currentPaygradeStep,
-                            ),
+                            onTap: () =>
+                                showPerformanceReportPaygradePipelineSheet(
+                                  context,
+                                  report: report,
+                                  currentStep:
+                                      reportViewData.currentPaygradeStep,
+                                ),
                           ),
                           if (report.coreValues.isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            _CoreValuesCard(values: report.coreValues),
+                            _CoreValuesCard(
+                              values: report.coreValues,
+                              isExpanded: localState.isCoreValuesExpanded,
+                              onToggle: () {
+                                _localStateNotifier.value = localState.copyWith(
+                                  isCoreValuesExpanded:
+                                      !localState.isCoreValuesExpanded,
+                                );
+                              },
+                            ),
                           ],
                           if (!widget.isMyReport) ...[
                             const SizedBox(height: 16),
-                            _CommitmentCard(
-                              controller: _commentsController,
-                              isReadOnly: report.isCertified,
-                              certifiedAt: report.certifiedAt,
-                              employeeSignatureUrl: report.selectedProfileSignatureUrl,
-                              employeeName: report.employeeSignatureName ?? report.profile.name,
-                              employeeSignatureBytes: state.employeeSignatureBytes,
-                              facilitatorSignatureUrl: report.facilitatorSignatureUrl,
-                              facilitatorName: report.facilitatorName,
-                              facilitatorSignatureBytes: state.facilitatorSignatureBytes,
-                              onChanged: controller.updatePerformanceReportCommitment,
-                              onAddEmployeeSignature: () => _openSignaturePad(
-                                context,
-                                title: 'Employee Signature',
-                                existingSignatureUrl: report.selectedProfileSignatureUrl,
-                                onSaved: controller.saveEmployeeSignature,
-                              ),
-                              onAddFacilitatorSignature: () async {
-                                final user = await AppPreference.getUser();
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                await _openSignaturePad(
-                                  context,
-                                  title: 'Facilitator Signature',
-                                  existingSignatureUrl: user?.signature?.image,
-                                  onSaved: controller.saveFacilitatorSignature,
-                                );
-                              },
-                              onClearEmployeeSignature: controller.clearEmployeeSignature,
-                              onClearFacilitatorSignature: controller.clearFacilitatorSignature,
-                            ),
-                            if (!report.isCertified) ...[
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton(
-                                  onPressed:
-                                      state.isAuditActionLoading ||
-                                          state.isFacilitatorSignatureUploading
-                                      ? null
-                                      : () => _handleCertify(context, controller),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.secondaryColor,
-                                    foregroundColor: AppColors.textPrimary,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                            ListenableBuilder(
+                              listenable: AppManager.instance,
+                              builder: (context, _) {
+                                final canManageContent = AppManager
+                                    .instance
+                                    .canCurrentOrganizationModifyContent;
+                                final isCommitmentReadOnly =
+                                    report.isCertified || !canManageContent;
+
+                                return Column(
+                                  children: [
+                                    _CommitmentCard(
+                                      controller: _commentsController,
+                                      isReadOnly: isCommitmentReadOnly,
+                                      certifiedAt: report.certifiedAt,
+                                      employeeSignatureUrl:
+                                          report.selectedProfileSignatureUrl,
+                                      employeeName:
+                                          report.employeeSignatureName ??
+                                          report.profile.name,
+                                      employeeSignatureBytes:
+                                          state.employeeSignatureBytes,
+                                      facilitatorSignatureUrl:
+                                          report.facilitatorSignatureUrl,
+                                      facilitatorName: report.facilitatorName,
+                                      facilitatorSignatureBytes:
+                                          state.facilitatorSignatureBytes,
+                                      onChanged: controller
+                                          .updatePerformanceReportCommitment,
+                                      onAddEmployeeSignature: () =>
+                                          _openSignaturePad(
+                                            context,
+                                            title: 'Employee Signature',
+                                            existingSignatureUrl: report
+                                                .selectedProfileSignatureUrl,
+                                            onSaved: controller
+                                                .saveEmployeeSignature,
+                                          ),
+                                      onAddFacilitatorSignature: () async {
+                                        final user =
+                                            await AppPreference.getUser();
+                                        if (!context.mounted) {
+                                          return;
+                                        }
+                                        await _openSignaturePad(
+                                          context,
+                                          title: 'Facilitator Signature',
+                                          existingSignatureUrl:
+                                              user?.signature?.image,
+                                          onSaved: controller
+                                              .saveFacilitatorSignature,
+                                        );
+                                      },
+                                      onClearEmployeeSignature:
+                                          controller.clearEmployeeSignature,
+                                      onClearFacilitatorSignature:
+                                          controller.clearFacilitatorSignature,
                                     ),
-                                  ),
-                                  child:
-                                      state.isAuditActionLoading ||
-                                          state.isFacilitatorSignatureUploading
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2.2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              AppColors.textPrimary,
+                                    if (!report.isCertified &&
+                                        canManageContent) ...[
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: FilledButton(
+                                          onPressed:
+                                              state.isAuditActionLoading ||
+                                                  state
+                                                      .isFacilitatorSignatureUploading
+                                              ? null
+                                              : () => _handleCertify(
+                                                  context,
+                                                  controller,
+                                                ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                AppColors.secondaryColor,
+                                            foregroundColor:
+                                                AppColors.textPrimary,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                           ),
-                                        )
-                                      : const Text(AppStrings.certify),
-                                ),
-                              ),
-                            ],
+                                          child:
+                                              state.isAuditActionLoading ||
+                                                  state
+                                                      .isFacilitatorSignatureUploading
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2.2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(
+                                                          AppColors.textPrimary,
+                                                        ),
+                                                  ),
+                                                )
+                                              : const Text(AppStrings.certify),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              },
+                            ),
                           ],
-                        ] else if (shouldShowMessageOnly &&
-                            reportMessage != null &&
-                            reportMessage.isNotEmpty) ...[
+                        ] else if (reportViewData.shouldShowMessageOnly &&
+                            reportViewData.reportMessage != null) ...[
                           const SizedBox(height: 24),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: AppTextView.body2(
-                              reportMessage,
+                              reportViewData.reportMessage!,
                               color: AppColors.textSecondary,
                               textAlign: TextAlign.center,
                               fontWeight: FontWeight.w500,
@@ -551,22 +422,6 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
               ),
       ),
     );
-  }
-
-  int _resolveSelectedCategoryIndex({
-    required _PerformanceReportLocalState localState,
-    required String? categorySelectionKey,
-    required int maxCategoryIndex,
-  }) {
-    // A report identity change invalidates any previously selected local tab.
-    final hasMatchingKey = localState.categorySelectionKey == categorySelectionKey;
-    if (!hasMatchingKey) {
-      return 0;
-    }
-    if (localState.selectedCategoryIndex > maxCategoryIndex) {
-      return 0;
-    }
-    return localState.selectedCategoryIndex;
   }
 
   Future<void> _handleProfileChipTap(
@@ -585,7 +440,10 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
 
     _localStateNotifier.value = const _PerformanceReportLocalState();
     await controller.initializePerformanceReport(
-      _buildSelectedReportProfile(currentProfile: report.profile, selectedProfile: selectedProfile),
+      _buildSelectedReportProfile(
+        currentProfile: report.profile,
+        selectedProfile: selectedProfile,
+      ),
     );
   }
 
@@ -687,7 +545,9 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     return DateTime(value.year, value.month, value.day);
   }
 
-  DateTime? _resolveParsedPerformanceReportCreatedAt(PerformanceReport? report) {
+  DateTime? _resolveParsedPerformanceReportCreatedAt(
+    PerformanceReport? report,
+  ) {
     final candidates = <String?>[
       report?.createdAt,
       report?.reportSnapshot['createdAt']?.toString(),
@@ -720,10 +580,16 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     final parsedDateTime = DateTime.tryParse(normalizedValue);
     if (parsedDateTime != null) {
       final localDateTime = parsedDateTime.toLocal();
-      return DateTime(localDateTime.year, localDateTime.month, localDateTime.day);
+      return DateTime(
+        localDateTime.year,
+        localDateTime.month,
+        localDateTime.day,
+      );
     }
 
-    final isoDateMatch = RegExp(r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})').firstMatch(normalizedValue);
+    final isoDateMatch = RegExp(
+      r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})',
+    ).firstMatch(normalizedValue);
     if (isoDateMatch != null) {
       final year = int.tryParse(isoDateMatch.group(1)!);
       final month = int.tryParse(isoDateMatch.group(2)!);
@@ -767,7 +633,8 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     if (dayMonthYearMatch != null) {
       final day = int.tryParse(dayMonthYearMatch.group(1)!);
       final month = monthNames[dayMonthYearMatch.group(2)!.toLowerCase()];
-      final year = int.tryParse(dayMonthYearMatch.group(3) ?? '') ?? DateTime.now().year;
+      final year =
+          int.tryParse(dayMonthYearMatch.group(3) ?? '') ?? DateTime.now().year;
       final resolved = _safeDate(year, month, day);
       if (resolved != null) {
         return resolved;
@@ -780,7 +647,8 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     if (monthDayYearMatch != null) {
       final month = monthNames[monthDayYearMatch.group(1)!.toLowerCase()];
       final day = int.tryParse(monthDayYearMatch.group(2)!);
-      final year = int.tryParse(monthDayYearMatch.group(3) ?? '') ?? DateTime.now().year;
+      final year =
+          int.tryParse(monthDayYearMatch.group(3) ?? '') ?? DateTime.now().year;
       final resolved = _safeDate(year, month, day);
       if (resolved != null) {
         return resolved;
@@ -830,14 +698,23 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     return value;
   }
 
-  Future<void> _handleCertify(BuildContext context, AuditController controller) async {
+  Future<void> _handleCertify(
+    BuildContext context,
+    AuditController controller,
+  ) async {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+      return;
+    }
+
     final message = await controller.certifyPerformanceReport();
     if (!context.mounted) {
       return;
     }
 
     if (message != 'Performance report certified successfully.') {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -889,18 +766,26 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
 }
 
 class _PerformanceReportLocalState {
-  const _PerformanceReportLocalState({this.selectedCategoryIndex = 0, this.categorySelectionKey});
+  const _PerformanceReportLocalState({
+    this.selectedCategoryIndex = 0,
+    this.categorySelectionKey,
+    this.isCoreValuesExpanded = false,
+  });
 
   final int selectedCategoryIndex;
   final String? categorySelectionKey;
+  final bool isCoreValuesExpanded;
 
   _PerformanceReportLocalState copyWith({
     int? selectedCategoryIndex,
     String? categorySelectionKey,
+    bool? isCoreValuesExpanded,
   }) {
     return _PerformanceReportLocalState(
-      selectedCategoryIndex: selectedCategoryIndex ?? this.selectedCategoryIndex,
+      selectedCategoryIndex:
+          selectedCategoryIndex ?? this.selectedCategoryIndex,
       categorySelectionKey: categorySelectionKey ?? this.categorySelectionKey,
+      isCoreValuesExpanded: isCoreValuesExpanded ?? this.isCoreValuesExpanded,
     );
   }
 }
@@ -912,7 +797,9 @@ class _ProfileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUnavailablePaygrade = _isUnavailablePaygradeDisplay(report.currentPaygrade);
+    final isUnavailablePaygrade = _isUnavailablePaygradeDisplay(
+      report.currentPaygrade,
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -927,7 +814,8 @@ class _ProfileSummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ProfileSummaryAvatar(
-                  imageUrl: report.profile.imageUrl ?? report.profile.avatarImageUrl,
+                  imageUrl:
+                      report.profile.imageUrl ?? report.profile.avatarImageUrl,
                   name: report.profile.name,
                 ),
                 const SizedBox(height: 12),
@@ -1017,7 +905,11 @@ class _OpenSeatEmptyView extends StatelessWidget {
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          const Icon(Icons.person_off_outlined, color: AppColors.secondaryColor, size: 34),
+          const Icon(
+            Icons.person_off_outlined,
+            color: AppColors.secondaryColor,
+            size: 34,
+          ),
           const SizedBox(height: 12),
           AppTextView.body1(
             'No Profile Assigned',
@@ -1062,7 +954,8 @@ class _ProfileSummaryAvatar extends StatelessWidget {
         child: Image.network(
           resolvedImageUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _ProfileSummaryAvatarFallback(name: name),
+          errorBuilder: (_, __, ___) =>
+              _ProfileSummaryAvatarFallback(name: name),
         ),
       ),
     );
@@ -1077,13 +970,18 @@ class _ProfileSummaryAvatarFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trimmedName = name.trim();
-    final initial = trimmedName.isEmpty ? '?' : trimmedName.substring(0, 1).toUpperCase();
+    final initial = trimmedName.isEmpty
+        ? '?'
+        : trimmedName.substring(0, 1).toUpperCase();
 
     return Container(
       width: 65,
       height: 65,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.grey2),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.grey2,
+      ),
       child: AppTextView.title1(
         initial,
         color: AppColors.textPrimary,
@@ -1095,7 +993,11 @@ class _ProfileSummaryAvatarFallback extends StatelessWidget {
 }
 
 class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.value, required this.label, required this.valueColor});
+  const _MetricCard({
+    required this.value,
+    required this.label,
+    required this.valueColor,
+  });
 
   final String value;
   final String label;
@@ -1113,9 +1015,18 @@ class _MetricCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppTextView.title1(value, color: valueColor, fontSize: 20, fontWeight: FontWeight.w700),
+          AppTextView.title1(
+            value,
+            color: valueColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
           const SizedBox(height: 4),
-          AppTextView.body4(label, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+          AppTextView.body4(
+            label,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
         ],
       ),
     );
@@ -1152,7 +1063,10 @@ class _TimeRangeSelector extends StatelessWidget {
           isExpanded: true,
           dropdownColor: AppColors.surfaceDark3,
           borderRadius: BorderRadius.circular(12),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppColors.textPrimary,
+          ),
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 12,
@@ -1200,7 +1114,9 @@ class _CertifiedReportsSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedValue = options.any((item) => item.uuid == value) ? value : null;
+    final selectedValue = options.any((item) => item.uuid == value)
+        ? value
+        : null;
     String? selectedLabel;
     for (final option in options) {
       if (option.uuid == selectedValue) {
@@ -1226,14 +1142,19 @@ class _CertifiedReportsSelector extends StatelessWidget {
               child: Text(
                 selectedLabel ?? 'Select Certified Report',
                 style: TextStyle(
-                  color: selectedLabel == null ? AppColors.textSecondary : AppColors.textPrimary,
+                  color: selectedLabel == null
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textPrimary),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: AppColors.textPrimary,
+            ),
           ],
         ),
       ),
@@ -1259,9 +1180,6 @@ class _PersonaCard extends StatelessWidget {
     required this.showGenerateRemarksAction,
     required this.isGeneratingRemarks,
     required this.onGenerateRemarks,
-    required this.onDescriptionGo,
-    required this.selectedCategoryIndex,
-    required this.onCategorySelected,
   });
 
   final PerformanceReport report;
@@ -1269,9 +1187,6 @@ class _PersonaCard extends StatelessWidget {
   final bool showGenerateRemarksAction;
   final bool isGeneratingRemarks;
   final Future<void> Function() onGenerateRemarks;
-  final ValueChanged<PerformanceReportRatingRow> onDescriptionGo;
-  final int selectedCategoryIndex;
-  final ValueChanged<int> onCategorySelected;
 
   String get _displayArchetypeSubtitle {
     final value = report.archetypeSubtitle.trim();
@@ -1300,7 +1215,11 @@ class _PersonaCard extends StatelessWidget {
         children: [
           if (report.hasPersonalityData) ...[
             if (showPersonaHeader) ...[
-              Image.asset(report.personalityAvatarImagePath!, width: 160, height: 160),
+              Image.asset(
+                report.personalityAvatarImagePath!,
+                width: 160,
+                height: 160,
+              ),
               SizedBox(height: 1),
               AppTextView.body2(
                 report.archetypeTitle,
@@ -1346,13 +1265,17 @@ class _PersonaCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            isGeneratingRemarks ? 'Generating...' : 'Generate Remarks',
+                            isGeneratingRemarks
+                                ? 'Generating...'
+                                : 'Generate Remarks',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -1366,7 +1289,9 @@ class _PersonaCard extends StatelessWidget {
                               height: 12,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryColor),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.secondaryColor,
+                                ),
                               ),
                             ),
                           ],
@@ -1379,15 +1304,6 @@ class _PersonaCard extends StatelessWidget {
               const SizedBox(height: 16),
             ],
           ],
-          _RatingsTable(
-            rows: report.categoryTabs.isEmpty
-                ? report.ratingRows
-                : report.categoryTabs[selectedCategoryIndex].rows,
-            categoryTabs: report.categoryTabs,
-            onDescriptionGo: onDescriptionGo,
-            selectedCategoryIndex: selectedCategoryIndex,
-            onCategorySelected: onCategorySelected,
-          ),
         ],
       ),
     );
@@ -1429,7 +1345,9 @@ class _ProfileChipsRow extends StatelessWidget {
                       isSelected:
                           profiles[index].uuid == report.profile.uuid ||
                           profiles[index].uuid == report.profile.profileUuid,
-                      onTap: isLoading ? null : () => onProfileTap(profiles[index]),
+                      onTap: isLoading
+                          ? null
+                          : () => onProfileTap(profiles[index]),
                     ),
                     if (index != profiles.length - 1) const SizedBox(width: 8),
                   ],
@@ -1441,7 +1359,11 @@ class _ProfileChipsRow extends StatelessWidget {
 }
 
 class _ProfileNameChip extends StatelessWidget {
-  const _ProfileNameChip({required this.label, required this.isSelected, this.onTap});
+  const _ProfileNameChip({
+    required this.label,
+    required this.isSelected,
+    this.onTap,
+  });
 
   final String label;
   final bool isSelected;
@@ -1458,7 +1380,10 @@ class _ProfileNameChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isSelected ? AppColors.purple2 : AppColors.grey2, width: 1),
+            border: Border.all(
+              color: isSelected ? AppColors.purple2 : AppColors.grey2,
+              width: 1,
+            ),
           ),
           child: AppTextView.body3(
             label,
@@ -1492,66 +1417,33 @@ class _RatingsTable extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark2,
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(8),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List<Widget>.generate(categoryTabs.length, (index) {
-                      final category = categoryTabs[index];
-                      final isSelected = index == selectedCategoryIndex;
-                      return Padding(
-                        padding: EdgeInsets.only(right: index == categoryTabs.length - 1 ? 0 : 10),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () => onCategorySelected(index),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.secondaryColor : Colors.transparent,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: AppColors.secondaryColor),
-                              ),
-                              child: AppTextView.body2(
-                                '${category.label} (${category.score.toStringAsFixed(1)})',
-                                color: isSelected
-                                    ? AppColors.textPrimary
-                                    : AppColors.secondaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          if (categoryTabs.isNotEmpty) ...[
+            _PerformanceReportCategorySelectorCard(
+              categoryTabs: categoryTabs,
+              selectedCategoryIndex: selectedCategoryIndex,
+              onCategorySelected: onCategorySelected,
+            ),
+            const SizedBox(height: 16),
+          ],
           if (rows.isEmpty)
             const AppTextView.body3(
-              'No descriptions available for this category.',
+              AppStrings.performanceReportNoCategoryDescriptions,
               color: AppColors.textSecondary,
             )
           else
             Column(
               children: List<Widget>.generate(rows.length, (index) {
                 return Padding(
-                  padding: EdgeInsets.only(bottom: index == rows.length - 1 ? 0 : 12),
+                  padding: EdgeInsets.only(
+                    bottom: index == rows.length - 1 ? 0 : 12,
+                  ),
                   child: _DescriptionRatingCard(
                     row: rows[index],
                     onGo: () => onDescriptionGo(rows[index]),
@@ -1560,6 +1452,250 @@ class _RatingsTable extends StatelessWidget {
               }),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PerformanceReportCategorySelectorCard extends StatelessWidget {
+  const _PerformanceReportCategorySelectorCard({
+    required this.categoryTabs,
+    required this.selectedCategoryIndex,
+    required this.onCategorySelected,
+  });
+
+  final List<PerformanceReportCategoryTab> categoryTabs;
+  final int selectedCategoryIndex;
+  final ValueChanged<int> onCategorySelected;
+
+  PerformanceReportCategoryTab get _selectedCategory {
+    if (categoryTabs.isEmpty) {
+      return const PerformanceReportCategoryTab(
+        label: '',
+        score: 0,
+        rows: <PerformanceReportRatingRow>[],
+      );
+    }
+
+    final resolvedIndex = selectedCategoryIndex.clamp(
+      0,
+      categoryTabs.length - 1,
+    );
+    return categoryTabs[resolvedIndex];
+  }
+
+  Future<void> _showCategorySheet(BuildContext context) async {
+    final selectedIndex = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.56),
+      isScrollControlled: true,
+      builder: (_) => _PerformanceReportCategorySheet(
+        categoryTabs: categoryTabs,
+        selectedCategoryIndex: selectedCategoryIndex,
+      ),
+    );
+
+    if (!context.mounted ||
+        selectedIndex == null ||
+        selectedIndex == selectedCategoryIndex) {
+      return;
+    }
+
+    onCategorySelected(selectedIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final category = _selectedCategory;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showCategorySheet(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AppTextView.body3(
+                    AppStrings.performanceReportSelectedCategoryTitle,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 4),
+                  AppTextView.body2(
+                    '${category.label} (${category.score.toStringAsFixed(1)})',
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 24,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PerformanceReportCategorySheet extends StatelessWidget {
+  const _PerformanceReportCategorySheet({
+    required this.categoryTabs,
+    required this.selectedCategoryIndex,
+  });
+
+  final List<PerformanceReportCategoryTab> categoryTabs;
+  final int selectedCategoryIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 16,
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 620),
+          decoration: const BoxDecoration(
+            color: AppColors.mainBg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: AppTextView.body1(
+                          AppStrings.performanceReportCategoriesTitle,
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      AppOverlayCloseButton(
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const AppTextView.body3(
+                    AppStrings.performanceReportSelectCategoryDescription,
+                    color: AppColors.textSecondary,
+                    height: 1.45,
+                  ),
+                  const SizedBox(height: 18),
+                  for (var index = 0; index < categoryTabs.length; index++) ...[
+                    _PerformanceReportCategorySheetItem(
+                      category: categoryTabs[index],
+                      isSelected: index == selectedCategoryIndex,
+                      onTap: () => Navigator.of(context).pop(index),
+                    ),
+                    if (index != categoryTabs.length - 1)
+                      const SizedBox(height: 12),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PerformanceReportCategorySheetItem extends StatelessWidget {
+  const _PerformanceReportCategorySheetItem({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final PerformanceReportCategoryTab category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.secondaryColor.withValues(alpha: 0.14)
+              : AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.secondaryColor
+                : AppColors.fieldBorder.withValues(alpha: 0.22),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTextView.body2(
+                    category.label,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 4),
+                  AppTextView.body3(
+                    '${AppStrings.performanceReportPercentageLabel} ${category.score.toStringAsFixed(1)}%',
+                    color: isSelected
+                        ? AppColors.secondaryColor
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
+              color: isSelected
+                  ? AppColors.secondaryColor
+                  : AppColors.textSecondary,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1583,7 +1719,9 @@ class _DescriptionRatingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1682,218 +1820,37 @@ class _RatingBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
-      child: AppTextView.body4('$value', color: AppColors.textPrimary, fontWeight: FontWeight.w700),
-    );
-  }
-}
-
-class _PaygradePipelineCard extends StatelessWidget {
-  const _PaygradePipelineCard({required this.report, required this.onStepTap});
-
-  final PerformanceReport report;
-  final ValueChanged<PerformanceReportPaygradeStep> onStepTap;
-  static const double _stepIndicatorHeight = 34;
-  static const double _stepWidth = 58;
-  static const double _stepCircleSize = 58;
-  static const double _connectorWidth = 30;
-  static const double _connectorThickness = 3;
-  static const double _connectorTopOffset =
-      _stepIndicatorHeight + (_stepCircleSize / 2) - (_connectorThickness / 2);
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPaygrades = report.paygradePipeline.isNotEmpty;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        color: color,
+        borderRadius: BorderRadius.circular(3),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Expanded(
-                child: AppTextView.body2(
-                  'Paygrade Pipeline',
-                  color: AppColors.secondaryColor,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          if (!hasPaygrades)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: AppTextView.body3(
-                'Paygrades not created yet',
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            )
-          else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final itemCount = report.paygradePipeline.length;
-                final contentWidth = (itemCount * _stepWidth) + ((itemCount - 1) * _connectorWidth);
-                final pipelineChildren = List<Widget>.generate(itemCount * 2 - 1, (index) {
-                  if (index.isOdd) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: _connectorTopOffset),
-                      child: Container(
-                        width: _connectorWidth,
-                        height: _connectorThickness,
-                        color: AppColors.secondaryColor.withValues(alpha: 0.45),
-                      ),
-                    );
-                  }
-
-                  final step = report.paygradePipeline[index ~/ 2];
-                  return _PipelineStep(step: step, onTap: () => onStepTap(step));
-                });
-                final pipelineRow = Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: pipelineChildren,
-                );
-
-                if (contentWidth <= constraints.maxWidth) {
-                  return ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                    child: pipelineRow,
-                  );
-                }
-
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: contentWidth),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [pipelineRow],
-                    ),
-                  ),
-                );
-              },
-            ),
-          const SizedBox(height: 5),
-        ],
-      ),
-    );
-  }
-}
-
-class _PipelineStep extends StatelessWidget {
-  const _PipelineStep({required this.step, this.onTap});
-
-  final PerformanceReportPaygradeStep step;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isUnavailablePaygrade =
-        step.payRateAmount <= 0 || _isUnavailablePaygradeDisplay(step.caption);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: SizedBox(
-        width: 58,
-        child: Column(
-          children: [
-            SizedBox(
-              height: _PaygradePipelineCard._stepIndicatorHeight,
-              child: step.isCurrent
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryColor,
-                            borderRadius: BorderRadius.circular(999),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.secondaryColor.withValues(alpha: 0.35),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: const AppTextView.body4(
-                            'Current',
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            textAlign: TextAlign.center,
-                            fontSize: 8,
-                          ),
-                        ),
-                        const SizedBox(height: 1),
-                        const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 14,
-                          color: AppColors.secondaryColor,
-                        ),
-                      ],
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            Container(
-              width: _PaygradePipelineCard._stepCircleSize,
-              height: _PaygradePipelineCard._stepCircleSize,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: step.isCurrent ? AppColors.bgGlow : Colors.transparent,
-                border: Border.all(
-                  color: step.isCurrent
-                      ? AppColors.secondaryColor
-                      : AppColors.secondaryColor.withValues(alpha: 0.55),
-                  width: 2,
-                ),
-                boxShadow: step.isCurrent
-                    ? [
-                        BoxShadow(
-                          color: AppColors.secondaryColor.withValues(alpha: 0.6),
-                          blurRadius: 18,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: AppTextView.body3(
-                step.label,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 10),
-            AppTextView.body4(
-              step.caption,
-              color: isUnavailablePaygrade ? AppColors.secondaryColor : AppColors.textSecondary,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+      child: AppTextView.body4(
+        '$value',
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w700,
       ),
     );
   }
 }
 
 class _CoreValuesCard extends StatelessWidget {
-  const _CoreValuesCard({required this.values});
+  const _CoreValuesCard({
+    required this.values,
+    required this.isExpanded,
+    required this.onToggle,
+  });
 
   final List<PerformanceReportCoreValue> values;
+  final bool isExpanded;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
+    final controller = context.read<AuditController>();
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(8),
@@ -1901,34 +1858,71 @@ class _CoreValuesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AppTextView.body2(
-            AppStrings.performanceReportCoreValuesTitle,
-            color: AppColors.secondaryColor,
-            fontWeight: FontWeight.w700,
-          ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List<Widget>.generate(values.length, (index) {
-                final value = values[index];
-                final visualSpec = _resolveCoreValueVisualSpec(coreValue: value);
-
-                return Padding(
-                  padding: EdgeInsets.only(right: index == values.length - 1 ? 0 : 12),
-                  child: _CoreValuePill(
-                    coreValue: value,
-                    visualSpec: visualSpec,
-                    onTap: () => showPerformanceReportCoreValueDialog(
-                      context,
-                      coreValue: value,
-                      icon: visualSpec.icon,
-                      accentColor: visualSpec.color,
+          InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: AppTextView.body2(
+                      AppStrings.performanceReportCoreValuesTitle,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                );
-              }),
+                  _ExpandChevronBadge(isExpanded: isExpanded),
+                ],
+              ),
             ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxWidth = constraints.hasBoundedWidth
+                      ? constraints.maxWidth
+                      : 0.0;
+                  if (maxWidth <= 10) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final itemWidth = (maxWidth - 10) / 2;
+
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: List<Widget>.generate(values.length, (index) {
+                      final value = values[index];
+                      final visualSpec = controller
+                          .resolvePerformanceReportCoreValueVisualSpec(value);
+
+                      return SizedBox(
+                        width: itemWidth,
+                        child: _CoreValuePill(
+                          coreValue: value,
+                          visualSpec: visualSpec,
+                          fillWidth: true,
+                          onTap: () => showPerformanceReportCoreValueDialog(
+                            context,
+                            coreValue: value,
+                            icon: visualSpec.icon,
+                            accentColor: visualSpec.color,
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
+            ),
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 180),
           ),
         ],
       ),
@@ -1937,11 +1931,17 @@ class _CoreValuesCard extends StatelessWidget {
 }
 
 class _CoreValuePill extends StatelessWidget {
-  const _CoreValuePill({required this.coreValue, required this.visualSpec, required this.onTap});
+  const _CoreValuePill({
+    required this.coreValue,
+    required this.visualSpec,
+    required this.onTap,
+    this.fillWidth = false,
+  });
 
   final PerformanceReportCoreValue coreValue;
-  final _CoreValueVisualSpec visualSpec;
+  final PerformanceReportCoreValueVisualSpec visualSpec;
   final VoidCallback onTap;
+  final bool fillWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -1949,34 +1949,79 @@ class _CoreValuePill extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       onTap: onTap,
       child: Container(
-        constraints: const BoxConstraints(minWidth: 156, maxWidth: 220),
-        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+        width: fillWidth ? double.infinity : null,
+        constraints: fillWidth
+            ? null
+            : const BoxConstraints(minWidth: 148, maxWidth: 220),
+        padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark2,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: visualSpec.color, width: 1.3),
-          boxShadow: [BoxShadow(color: visualSpec.color.withValues(alpha: 0.12), blurRadius: 12)],
+          boxShadow: [
+            BoxShadow(
+              color: visualSpec.color.withValues(alpha: 0.12),
+              blurRadius: 12,
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: visualSpec.color),
-              child: Icon(visualSpec.icon, color: AppColors.textPrimary, size: 20),
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: visualSpec.color,
+              ),
+              child: Icon(
+                visualSpec.icon,
+                color: AppColors.textPrimary,
+                size: 18,
+              ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: AppTextView.body1(
                 coreValue.title,
                 color: AppColors.textPrimary,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandChevronBadge extends StatelessWidget {
+  const _ExpandChevronBadge({required this.isExpanded});
+
+  final bool isExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedRotation(
+      turns: isExpanded ? 0.5 : 0,
+      duration: const Duration(milliseconds: 220),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: AppColors.mainBg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: AppColors.fieldBorder.withValues(alpha: 0.28),
+          ),
+        ),
+        child: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: AppColors.textSecondary,
+          size: 20,
         ),
       ),
     );
@@ -2019,6 +2064,8 @@ class _CommitmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentLength = controller.text.length;
+    final hasCertifiedAt =
+        certifiedAt != null && certifiedAt!.trim().isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -2067,7 +2114,11 @@ class _CommitmentCard extends StatelessWidget {
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.comment_bank_outlined, color: AppColors.secondaryColor, size: 18),
+                    Icon(
+                      Icons.comment_bank_outlined,
+                      color: AppColors.secondaryColor,
+                      size: 18,
+                    ),
                     SizedBox(width: 10),
                     AppTextView.body1(
                       'Comments',
@@ -2093,12 +2144,17 @@ class _CommitmentCard extends StatelessWidget {
                   cursorHeight: 14,
                   decoration: InputDecoration(
                     hintText: 'Enter Comments',
-                    hintStyle: const TextStyle(color: AppColors.grey1, fontSize: 13),
+                    hintStyle: const TextStyle(
+                      color: AppColors.grey1,
+                      fontSize: 13,
+                    ),
                     filled: true,
                     fillColor: AppColors.surfaceDark,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.4)),
+                      borderSide: BorderSide(
+                        color: AppColors.fieldBorder.withValues(alpha: 0.4),
+                      ),
                     ),
                     focusedBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(6)),
@@ -2109,7 +2165,10 @@ class _CommitmentCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: AppTextView.body4('$currentLength/2000', color: AppColors.textSecondary),
+                  child: AppTextView.body4(
+                    '$currentLength/2000',
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -2124,7 +2183,10 @@ class _CommitmentCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.gesture_outlined, color: AppColors.secondaryColor),
+                    const Icon(
+                      Icons.gesture_outlined,
+                      color: AppColors.secondaryColor,
+                    ),
                     const SizedBox(width: 8),
                     AppTextView.body1(
                       "Signature",
@@ -2159,7 +2221,7 @@ class _CommitmentCard extends StatelessWidget {
                   onAddSignature: onAddFacilitatorSignature,
                   onClearSignature: onClearFacilitatorSignature,
                 ),
-                if (isReadOnly) ...[
+                if (isReadOnly && hasCertifiedAt) ...[
                   const SizedBox(height: 14),
                   AppTextView.body3(
                     'Certified at: ${_formatCertifiedAt(certifiedAt)}',
@@ -2229,7 +2291,8 @@ class _SignatureSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolvedSignatureUrl = signatureUrl?.trim();
-    final hasSignatureUrl = resolvedSignatureUrl != null && resolvedSignatureUrl.isNotEmpty;
+    final hasSignatureUrl =
+        resolvedSignatureUrl != null && resolvedSignatureUrl.isNotEmpty;
     final hasSignature = signatureBytes != null || hasSignatureUrl;
 
     return Column(
@@ -2248,7 +2311,10 @@ class _SignatureSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.15), width: 1.8),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.15),
+              width: 1.8,
+            ),
           ),
           child: Column(
             children: [
@@ -2260,7 +2326,10 @@ class _SignatureSection extends StatelessWidget {
                     color: AppColors.secondaryColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.gesture_outlined, color: AppColors.secondaryColor),
+                  child: const Icon(
+                    Icons.gesture_outlined,
+                    color: AppColors.secondaryColor,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 const AppTextView.body2(
@@ -2269,7 +2338,10 @@ class _SignatureSection extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
                 const SizedBox(height: 4),
-                const AppTextView.body3('Add signature to confirm', color: AppColors.textSecondary),
+                const AppTextView.body3(
+                  'Add signature to confirm',
+                  color: AppColors.textSecondary,
+                ),
               ] else ...[
                 Container(
                   width: double.infinity,
@@ -2281,7 +2353,10 @@ class _SignatureSection extends StatelessWidget {
                   ),
                   child: signatureBytes != null
                       ? Image.memory(signatureBytes!, fit: BoxFit.contain)
-                      : Image.network(resolvedSignatureUrl!, fit: BoxFit.contain),
+                      : Image.network(
+                          resolvedSignatureUrl!,
+                          fit: BoxFit.contain,
+                        ),
                 ),
               ],
               if (signerName != null && signerName!.trim().isNotEmpty) ...[
@@ -2302,8 +2377,12 @@ class _SignatureSection extends StatelessWidget {
                         onPressed: onClearSignature,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.textSecondary,
-                          side: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.4)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          side: BorderSide(
+                            color: AppColors.fieldBorder.withValues(alpha: 0.4),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         child: const Text('Clear'),
                       ),
@@ -2314,13 +2393,21 @@ class _SignatureSection extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.secondaryColor,
                         side: const BorderSide(color: AppColors.secondaryColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       icon: Icon(
-                        signatureBytes == null ? Icons.edit_outlined : Icons.refresh_rounded,
+                        signatureBytes == null
+                            ? Icons.edit_outlined
+                            : Icons.refresh_rounded,
                         size: 16,
                       ),
-                      label: Text(signatureBytes == null ? 'Add Signature' : 'Retake Signature'),
+                      label: Text(
+                        signatureBytes == null
+                            ? 'Add Signature'
+                            : 'Retake Signature',
+                      ),
                     ),
                   ],
                 ),

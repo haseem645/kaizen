@@ -232,6 +232,7 @@ class AppStrings {
   static const String paygradesEditSheetTitle = 'Update Paygrade';
   static const String paygradesEditSheetDescription =
       'Review and update the selected paygrade details.';
+  static const String paygradesEditAction = 'Edit';
   static const String paygradesNameLabel = 'Name';
   static const String paygradesNameHint = 'Enter paygrade name';
   static const String paygradesDescriptionHint = 'Enter paygrade specifics';
@@ -390,9 +391,41 @@ class AppStrings {
   static const String certify = 'Certify';
   static const String performanceReportUnavailable =
       'Performance report is not available right now.';
+  static const String performanceReportSelectedCategoryTitle =
+      'Selected Category';
+  static const String performanceReportCategoriesTitle = 'Categories';
+  static const String performanceReportSelectCategory = 'Select Category';
+  static const String performanceReportSelectCategoryDescription =
+      'Choose a category to load its descriptions.';
+  static const String performanceReportPercentageLabel = 'Percentage:';
+  static const String performanceReportNoCategoryDescriptions =
+      'No descriptions available for this category.';
   static const String performanceReportCoreValuesTitle = 'Core Values';
   static const String performanceReportCoreValueDetailsFallback =
       'No details available yet.';
+  static const String performanceReportPaygradePipelineTitle =
+      'View Paygrade Pipeline';
+  static const String sheetPaygradePipelineTitle = 'Paygrade Pipeline';
+  static const String performanceReportPaygradePipelineSubtitle =
+      'Follow the current grade and the next pay levels in one mobile-friendly timeline.';
+  static const String performanceReportPaygradePipelineEmpty =
+      'Paygrades not created yet.';
+  static const String performanceReportPaygradeCurrentGradeLabel =
+      'Current Position';
+  static const String performanceReportPaygradeCurrentPositionValueLabel =
+      'Current Position:';
+  static const String performanceReportPaygradeCurrentPayLabel = 'Current Pay:';
+  static const String performanceReportPaygradeTotalLevelsLabel =
+      'Total Levels:';
+  static const String performanceReportPaygradeLevelsLabel = 'Levels';
+  static const String performanceReportPaygradeTapHint =
+      'Tap a stage to review pay rate and advancement requirements.';
+  static const String performanceReportPaygradeStatusCurrent = 'Current';
+  static const String performanceReportPaygradeStatusAchieved = 'Achieved';
+  static const String performanceReportPaygradeStatusNext = 'Next';
+  static const String performanceReportPaygradeStatusUpcoming = 'Upcoming';
+  static const String performanceReportPaygradeAdvancementRequirementsTitle =
+      'Advancement Requirements';
   static const String performanceSnapshotNoReports = 'No reports available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
   static const String performanceSnapshotDataUnavailable =
@@ -732,6 +765,8 @@ class AppStrings {
       '$count ${count == 1 ? 'Lesson' : 'Lessons'}';
   static String trainingLessonPosition(int current, int total) =>
       'Lesson $current of $total';
+  static String trainingLessonCounter(int current, int total) =>
+      '${current == 1 ? 'Lesson' : 'Lessons'} $current/$total';
   static String trainingLibrarySearchHint(String filterLabel) =>
       'Search by $filterLabel';
   static String trainingQuestionOptionLabel(int number) => 'Option $number';

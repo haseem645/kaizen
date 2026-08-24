@@ -937,16 +937,25 @@ class _SingleAuditDetailsViewState extends State<_SingleAuditDetailsView> {
     final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(
       widget.date,
     );
+    final shouldIncludeUnauditedContinueDescriptions =
+        _shouldIncludeUnauditedContinueDescriptions(audit);
 
     if (audit.isMismatch && !isAudited) {
       return false;
     }
 
-    if (isSelectedAuditDateBeforeToday && !isAudited) {
+    if (isSelectedAuditDateBeforeToday &&
+        !isAudited &&
+        !shouldIncludeUnauditedContinueDescriptions) {
       return false;
     }
 
     return true;
+  }
+
+  bool _shouldIncludeUnauditedContinueDescriptions(QuarterlyAudit audit) {
+    return !audit.isMismatch &&
+        CustomFunctions.isAuditWithinContinueWindow(widget.date);
   }
 
   List<String> _categoryOptions(

@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/preference/app_preference.dart';
+import '../../../../core/utils/app_permission_utils.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../data/datasources/audit_remote_data_source.dart';
 import '../../data/repositories/audit_repository_impl.dart';
@@ -71,12 +74,205 @@ class AuditController extends ChangeNotifier {
 
   AuditState get state => _state;
 
+  PerformanceReportViewData? get performanceReportViewData {
+    final report = _state.performanceReport;
+    if (report == null) {
+      return null;
+    }
+
+    final selectedProfilePayload = report.reportSnapshot['selected_profile'];
+    final rawCategories = report.reportSnapshot['categories'];
+    final rawReportMessage = report.reportSnapshot['message']
+        ?.toString()
+        .trim();
+    final hasSelectedProfile = selectedProfilePayload is Map<String, dynamic>
+        ? selectedProfilePayload.isNotEmpty
+        : selectedProfilePayload != null;
+    final hasCategories = rawCategories is List && rawCategories.isNotEmpty;
+    final currentPaygradeIndex = report.paygradePipeline.indexWhere(
+      (step) => step.isCurrent,
+    );
+
+    return PerformanceReportViewData(
+      categorySelectionKey:
+          '${report.profile.profileJob}:${report.profile.profileUuid}:${report.categoryTabs.length}:${report.remarkVersion}',
+      maxCategoryIndex: report.categoryTabs.isEmpty
+          ? 0
+          : report.categoryTabs.length - 1,
+      reportMessage: rawReportMessage == null || rawReportMessage.isEmpty
+          ? null
+          : rawReportMessage,
+      isOpenSeatView: _isOpenSeatPerformanceReport(report),
+      shouldShowCompleteReportUi: hasSelectedProfile && hasCategories,
+      shouldShowMessageOnly: hasSelectedProfile && !hasCategories,
+      currentPaygradeStep: currentPaygradeIndex >= 0
+          ? report.paygradePipeline[currentPaygradeIndex]
+          : null,
+    );
+  }
+
+  int resolvePerformanceReportSelectedCategoryIndex({
+    required int selectedCategoryIndex,
+    required String? categorySelectionKey,
+  }) {
+    final viewData = performanceReportViewData;
+    if (viewData == null ||
+        categorySelectionKey != viewData.categorySelectionKey) {
+      return 0;
+    }
+
+    if (selectedCategoryIndex > viewData.maxCategoryIndex) {
+      return 0;
+    }
+
+    return selectedCategoryIndex;
+  }
+
+  List<String> buildPerformanceReportPaygradeRequirements(String source) {
+    final trimmed = source.trim();
+    if (trimmed.isEmpty || trimmed == '-') {
+      return const <String>['-'];
+    }
+
+    final items = trimmed
+        .split(RegExp(r'[\r\n]+'))
+        .map(
+          (item) => item.replaceFirst(RegExp(r'^[\-\u2022\*]\s*'), '').trim(),
+        )
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+
+    return items.isEmpty ? <String>[trimmed] : items;
+  }
+
+  double resolvePerformanceReportPaygradeRate(
+    PerformanceReportPaygradeStep step,
+  ) {
+    try {
+      final value = step.payRateAmount;
+      if (value <= 0 || value.isNaN || value.isInfinite) {
+        return _parsePerformanceReportPayRateDisplay(step.payRateDisplay);
+      }
+      return value;
+    } catch (_) {
+      return _parsePerformanceReportPayRateDisplay(step.payRateDisplay);
+    }
+  }
+
+  String formatPerformanceReportPaygradeDelta({
+    required double value,
+    required String paygradeUnit,
+  }) {
+    final safeValue = value <= 0 ? 0.0 : value;
+    final normalized = safeValue.toStringAsFixed(2);
+    return _performanceReportPaygradeDisplayWithUnit(
+      paygradeDisplay: '\$$normalized/hr',
+      paygradeUnit: paygradeUnit,
+    );
+  }
+
+  String formatPerformanceReportPaygradeDisplay({
+    required String paygradeDisplay,
+    required String paygradeUnit,
+  }) {
+    return _performanceReportPaygradeDisplayWithUnit(
+      paygradeDisplay: paygradeDisplay,
+      paygradeUnit: paygradeUnit,
+    );
+  }
+
+  Color resolvePerformanceReportPaygradeDisplayColor(String value) {
+    return _isUnavailablePerformanceReportPaygradeDisplay(value)
+        ? AppColors.secondaryColor
+        : AppColors.textPrimary;
+  }
+
+  double _parsePerformanceReportPayRateDisplay(String value) {
+    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(value);
+    final parsed = match == null ? null : double.tryParse(match.group(1)!);
+    if (parsed == null || parsed <= 0) {
+      return 0.0;
+    }
+    return parsed;
+  }
+
+  String _performanceReportPaygradeDisplayWithUnit({
+    required String paygradeDisplay,
+    required String paygradeUnit,
+  }) {
+    final display = paygradeDisplay.trim();
+    final unit = paygradeUnit.trim();
+    if (display.isEmpty ||
+        display == AppStrings.paygradesUnavailableDisplay ||
+        !_hasPerformanceReportPaygradeUnit(unit)) {
+      return display;
+    }
+
+    final slashIndex = display.lastIndexOf('/');
+    if (slashIndex >= 0) {
+      return '${display.substring(0, slashIndex + 1)}$unit';
+    }
+
+    return '$display/$unit';
+  }
+
+  bool _isUnavailablePerformanceReportPaygradeDisplay(String value) {
+    return value.trim() == AppStrings.paygradesUnavailableDisplay;
+  }
+
+  bool _hasPerformanceReportPaygradeUnit(String value) {
+    final trimmed = value.trim();
+    return trimmed.isNotEmpty && trimmed != '--' && trimmed != '-';
+  }
+
   int get selectedAuditYear =>
       _state.selectedAuditYear ?? CustomFunctions.currentYearQuarter().year;
 
   int get selectedAuditQuarter =>
       _state.selectedAuditQuarter ??
       CustomFunctions.currentYearQuarter().quarter;
+
+  PerformanceReportCoreValueVisualSpec
+  resolvePerformanceReportCoreValueVisualSpec(
+    PerformanceReportCoreValue coreValue,
+  ) {
+    final normalizedTitle = coreValue.title.trim().toLowerCase();
+    final normalizedIconKey = coreValue.iconKey?.trim().toLowerCase() ?? '';
+    final accentColor = _resolveCoreValueAccentColor(coreValue);
+
+    for (final config in _performanceReportCoreValueIconConfigs) {
+      final matchesExplicitIcon =
+          normalizedIconKey.isNotEmpty &&
+          (normalizedIconKey == config.key.toLowerCase() ||
+              normalizedIconKey == config.label.toLowerCase());
+      final matchesTitle =
+          normalizedTitle.contains(config.key.toLowerCase()) ||
+          normalizedTitle.contains(config.label.toLowerCase()) ||
+          config.keywords.any(
+            (keyword) => normalizedTitle.contains(keyword.toLowerCase()),
+          );
+
+      if (matchesExplicitIcon || matchesTitle) {
+        return _coreValueVisualSpecFromConfig(config, accentColor: accentColor);
+      }
+    }
+
+    if (_performanceReportCoreValueIconConfigs.isEmpty) {
+      return PerformanceReportCoreValueVisualSpec(
+        key: 'award',
+        label: 'Excellence',
+        icon: Icons.emoji_events_outlined,
+        color: accentColor ?? AppColors.secondaryColor,
+      );
+    }
+
+    return _coreValueVisualSpecFromConfig(
+      _performanceReportCoreValueIconConfigs[_stableCoreValueIconIndex(
+        coreValue.title,
+      )],
+      accentColor: accentColor,
+    );
+  }
 
   String? get selectedAuditDetailsProfileUuid =>
       _normalizeProfileUuid(_state.selectedAuditDetailsProfileUuid);
@@ -2120,12 +2316,11 @@ class AuditController extends ChangeNotifier {
   }
 
   bool _hasTeamMemberTabsAccess(User? user) {
-    return user?.canAccessAuditTeamMembers ?? false;
+    return AppPermissionUtils.canAccessAuditTeamMembers(user);
   }
 
   bool _isActualOwner(User? user) {
-    return user?.isOwner == true ||
-        user?.normalizedRoles.contains('owner') == true;
+    return AppPermissionUtils.hasOwnerOverrideAccess(user);
   }
 
   @override
@@ -2133,7 +2328,221 @@ class AuditController extends ChangeNotifier {
     _teamMembersSearchDebounceTimer?.cancel();
     super.dispose();
   }
+
+  PerformanceReportCoreValueVisualSpec _coreValueVisualSpecFromConfig(
+    _PerformanceReportCoreValueIconConfig config, {
+    Color? accentColor,
+  }) {
+    return PerformanceReportCoreValueVisualSpec(
+      key: config.key,
+      label: config.label,
+      icon: config.icon,
+      color: accentColor ?? config.color,
+    );
+  }
+
+  Color? _resolveCoreValueAccentColor(PerformanceReportCoreValue coreValue) {
+    final rawColorValue = _firstNonEmptyCoreValueString(<String?>[
+      coreValue.colorHex,
+      coreValue.rawData['color_hex']?.toString(),
+      coreValue.rawData['colorHex']?.toString(),
+      coreValue.rawData['hex_color']?.toString(),
+      coreValue.rawData['hexCode']?.toString(),
+      coreValue.rawData['hex_code']?.toString(),
+    ]);
+    final normalizedHex = _normalizeCoreValueHex(rawColorValue);
+    if (!_isValidCoreValueHex(normalizedHex)) {
+      return null;
+    }
+
+    final raw = normalizedHex.substring(1);
+    return Color(int.parse(raw, radix: 16) | 0xFF000000);
+  }
+
+  String _normalizeCoreValueHex(String? value) {
+    final cleaned = value?.trim().toUpperCase().replaceAll(' ', '') ?? '';
+    if (cleaned.isEmpty) {
+      return '';
+    }
+
+    var raw = cleaned;
+    if (raw.startsWith('#')) {
+      raw = raw.substring(1);
+    }
+    if (raw.startsWith('0X')) {
+      raw = raw.substring(2);
+    }
+    if (raw.length == 3) {
+      raw = raw.split('').map((segment) => '$segment$segment').join();
+    } else if (raw.length == 8) {
+      raw = raw.substring(2);
+    }
+
+    if (raw.isEmpty) {
+      return '';
+    }
+
+    return '#$raw';
+  }
+
+  bool _isValidCoreValueHex(String value) {
+    return RegExp(r'^#[0-9A-F]{6}$').hasMatch(value);
+  }
+
+  String? _firstNonEmptyCoreValueString(List<String?> values) {
+    for (final value in values) {
+      final normalizedValue = value?.trim() ?? '';
+      if (normalizedValue.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  int _stableCoreValueIconIndex(String title) {
+    final normalizedTitle = title.trim();
+    if (normalizedTitle.isEmpty) {
+      return 0;
+    }
+
+    final seed = normalizedTitle.runes.fold<int>(
+      0,
+      (currentValue, rune) => currentValue + rune,
+    );
+    return seed % _performanceReportCoreValueIconConfigs.length;
+  }
 }
+
+class PerformanceReportViewData {
+  const PerformanceReportViewData({
+    required this.categorySelectionKey,
+    required this.maxCategoryIndex,
+    required this.reportMessage,
+    required this.isOpenSeatView,
+    required this.shouldShowCompleteReportUi,
+    required this.shouldShowMessageOnly,
+    required this.currentPaygradeStep,
+  });
+
+  final String categorySelectionKey;
+  final int maxCategoryIndex;
+  final String? reportMessage;
+  final bool isOpenSeatView;
+  final bool shouldShowCompleteReportUi;
+  final bool shouldShowMessageOnly;
+  final PerformanceReportPaygradeStep? currentPaygradeStep;
+}
+
+class PerformanceReportCoreValueVisualSpec {
+  const PerformanceReportCoreValueVisualSpec({
+    required this.key,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  final String key;
+  final String label;
+  final IconData icon;
+  final Color color;
+}
+
+class _PerformanceReportCoreValueIconConfig {
+  const _PerformanceReportCoreValueIconConfig({
+    required this.key,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.keywords,
+  });
+
+  final String key;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final List<String> keywords;
+}
+
+const List<_PerformanceReportCoreValueIconConfig>
+_performanceReportCoreValueIconConfigs =
+    <_PerformanceReportCoreValueIconConfig>[
+      _PerformanceReportCoreValueIconConfig(
+        key: 'target',
+        label: 'Target',
+        icon: Icons.gps_fixed_outlined,
+        color: AppColors.hex18c4e8,
+        keywords: <String>['target', 'customer', 'customer first', 'focus'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'shield',
+        label: 'Shield',
+        icon: Icons.shield_outlined,
+        color: AppColors.hexb65cff,
+        keywords: <String>['shield', 'secure', 'safety', 'protection'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'users',
+        label: 'People',
+        icon: Icons.groups_outlined,
+        color: AppColors.hex1ed9c8,
+        keywords: <String>['users', 'people', 'customer care', 'professional'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'lightbulb',
+        label: 'Innovation',
+        icon: Icons.lightbulb_outlined,
+        color: AppColors.hex14c7f3,
+        keywords: <String>['lightbulb', 'innovation', 'creative', 'idea'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'handshake',
+        label: 'Teamwork',
+        icon: Icons.handshake_outlined,
+        color: AppColors.hexf08a24,
+        keywords: <String>['handshake', 'teamwork', 'team', 'collaboration'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'scale',
+        label: 'Integrity',
+        icon: Icons.balance_outlined,
+        color: AppColors.hexb96cff,
+        keywords: <String>['scale', 'integrity', 'ethics', 'honesty'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'award',
+        label: 'Excellence',
+        icon: Icons.emoji_events_outlined,
+        color: AppColors.hexff5e33,
+        keywords: <String>['award', 'excellence', 'superb', 'memorable'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'trending_up',
+        label: 'Growth',
+        icon: Icons.trending_up_outlined,
+        color: AppColors.hex4dd17f,
+        keywords: <String>['trending_up', 'growth', 'improve', 'learning'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'heart',
+        label: 'Care',
+        icon: Icons.favorite_border_outlined,
+        color: AppColors.hexf46aa8,
+        keywords: <String>['heart', 'care', 'compassion', 'empathy'],
+      ),
+      _PerformanceReportCoreValueIconConfig(
+        key: 'check_circle',
+        label: 'Accountability',
+        icon: Icons.check_circle_outline_outlined,
+        color: AppColors.hex2ea8ff,
+        keywords: <String>[
+          'check_circle',
+          'accountability',
+          'ownership',
+          'responsibility',
+        ],
+      ),
+    ];
 
 AuditRemoteDataSource createAuditRemoteDataSource() => AuditRemoteDataSource();
 

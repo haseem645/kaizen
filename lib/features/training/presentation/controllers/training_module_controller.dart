@@ -1083,6 +1083,35 @@ class TrainingModuleController extends ChangeNotifier {
   bool isDeletingQuestion(String questionId) =>
       _deletingQuestionId == questionId.trim();
   int get summarySnackBarSequence => _summarySnackBarSequence;
+  int get selectedModuleIndex =>
+      _modules.indexWhere((module) => module.uuid == _selectedModuleId);
+  int get totalModules => _modules.length;
+  bool get hasPersistedSelectedModule => selectedModuleIndex >= 0;
+  SeatDescriptionTrainingModule? get selectedModule {
+    final index = selectedModuleIndex;
+    if (index < 0 || index >= _modules.length) {
+      return null;
+    }
+
+    return _modules[index];
+  }
+
+  int get selectedModuleNumber =>
+      hasPersistedSelectedModule ? selectedModuleIndex + 1 : 0;
+  bool get canSelectPreviousModule =>
+      !_isCreatingNewLessonDraft &&
+      hasPersistedSelectedModule &&
+      selectedModuleIndex > 0;
+  bool get canSelectNextModule =>
+      !_isCreatingNewLessonDraft &&
+      hasPersistedSelectedModule &&
+      selectedModuleIndex < _modules.length - 1;
+  bool get canSelectFirstModuleFromDraft =>
+      _isCreatingNewLessonDraft && _modules.isNotEmpty;
+  bool get canSwipeBetweenModules =>
+      canSelectPreviousModule ||
+      canSelectNextModule ||
+      canSelectFirstModuleFromDraft;
 
   String get selectedModuleTitle {
     if (_isCreatingNewLessonDraft) {
@@ -1101,6 +1130,25 @@ class TrainingModuleController extends ChangeNotifier {
     }
 
     return '';
+  }
+
+  Future<void> selectPreviousModule() async {
+    if (!canSelectPreviousModule) {
+      return;
+    }
+
+    await selectModule(_modules[selectedModuleIndex - 1].uuid);
+  }
+
+  Future<void> selectNextModule() async {
+    if (canSelectNextModule) {
+      await selectModule(_modules[selectedModuleIndex + 1].uuid);
+      return;
+    }
+
+    if (canSelectFirstModuleFromDraft) {
+      await selectModule(_modules.first.uuid);
+    }
   }
 
   Future<void> initialize({

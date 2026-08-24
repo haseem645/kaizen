@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/paygrade_detail.dart';
 
@@ -406,25 +407,6 @@ class _PaygradeSheetCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: AppColors.mainBg,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.textPrimary.withValues(alpha: 0.08),
-          ),
-        ),
-        child: const Icon(
-          Icons.close_rounded,
-          color: AppColors.textPrimary,
-          size: 18,
-        ),
-      ),
-    );
+    return AppOverlayCloseButton(onTap: onTap);
   }
 }

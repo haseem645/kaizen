@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/preference/app_preference.dart';
+import '../../../../core/utils/app_permission_utils.dart';
 import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/audit_main_list.dart';
 import '../../domain/entities/audit_member.dart';
@@ -83,8 +84,10 @@ class PerformanceSnapshotController extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       final user = await AppPreference.getUser();
-      _canAccessTeamReports = user?.canAccessAuditTeamMembers ?? false;
-      _isActualOwner = user?.isOwner == true;
+      _canAccessTeamReports = AppPermissionUtils.canAccessAuditTeamMembers(
+        user,
+      );
+      _isActualOwner = AppPermissionUtils.hasOwnerOverrideAccess(user);
       _selectedTab = _canAccessTeamReports
           ? PerformanceSnapshotTab.reports
           : PerformanceSnapshotTab.myReports;

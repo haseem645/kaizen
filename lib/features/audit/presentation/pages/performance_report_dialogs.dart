@@ -9,6 +9,7 @@ import 'package:signature/signature.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../compliance/presentation/pages/document/full_screen_doc.dart';
@@ -206,12 +207,8 @@ class _CoreValueDialogContent extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.textSecondary,
-                    ),
+                  AppOverlayCloseButton(
+                    onTap: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),

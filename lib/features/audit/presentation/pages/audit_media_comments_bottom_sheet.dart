@@ -14,6 +14,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../compliance/presentation/pages/document/full_screen_doc.dart';
 import '../../../compliance/presentation/pages/training/compliance_full_screen_video_view.dart';
@@ -234,12 +235,8 @@ class _AuditMediaCommentsBottomSheetState
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: AppColors.textPrimary,
-                          ),
+                        AppOverlayCloseButton(
+                          onTap: () => Navigator.of(context).pop(),
                         ),
                       ],
                     ),

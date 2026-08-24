@@ -29,16 +29,24 @@ class TrainingLibraryScreen extends StatelessWidget {
         Provider<TrainingLibraryRemoteDataSource>(
           create: (_) => createTrainingLibraryRemoteDataSource(),
         ),
-        ProxyProvider<TrainingLibraryRemoteDataSource, TrainingLibraryRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createTrainingLibraryRepository(remoteDataSource),
+        ProxyProvider<
+          TrainingLibraryRemoteDataSource,
+          TrainingLibraryRepositoryImpl
+        >(
+          update: (_, remoteDataSource, __) =>
+              createTrainingLibraryRepository(remoteDataSource),
         ),
-        ProxyProvider<TrainingLibraryRepositoryImpl, GetTrainingLibraryModulesUseCase>(
-          update: (_, repository, __) => createGetTrainingLibraryModulesUseCase(repository),
+        ProxyProvider<
+          TrainingLibraryRepositoryImpl,
+          GetTrainingLibraryModulesUseCase
+        >(
+          update: (_, repository, __) =>
+              createGetTrainingLibraryModulesUseCase(repository),
         ),
         ChangeNotifierProvider<TrainingLibraryController>(
-          create: (context) =>
-              TrainingLibraryController(context.read<GetTrainingLibraryModulesUseCase>())
-                ..initialize(),
+          create: (context) => TrainingLibraryController(
+            context.read<GetTrainingLibraryModulesUseCase>(),
+          )..initialize(),
         ),
       ],
       child: const _TrainingLibraryScreenView(),
@@ -50,10 +58,12 @@ class _TrainingLibraryScreenView extends StatefulWidget {
   const _TrainingLibraryScreenView();
 
   @override
-  State<_TrainingLibraryScreenView> createState() => _TrainingLibraryScreenViewState();
+  State<_TrainingLibraryScreenView> createState() =>
+      _TrainingLibraryScreenViewState();
 }
 
-class _TrainingLibraryScreenViewState extends State<_TrainingLibraryScreenView> {
+class _TrainingLibraryScreenViewState
+    extends State<_TrainingLibraryScreenView> {
   late final ScrollController _scrollController;
   late final TrainingLibraryController _controller;
 
@@ -73,7 +83,8 @@ class _TrainingLibraryScreenViewState extends State<_TrainingLibraryScreenView> 
   }
 
   void _handleScroll() {
-    if (!_scrollController.hasClients || _scrollController.position.extentAfter > 360) {
+    if (!_scrollController.hasClients ||
+        _scrollController.position.extentAfter > 360) {
       return;
     }
 
@@ -83,6 +94,7 @@ class _TrainingLibraryScreenViewState extends State<_TrainingLibraryScreenView> 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingLibraryController>();
+    final isShowingLoadingState = controller.isShowingFullscreenLoading;
 
     return DrawerMainScreen(
       title: AppStrings.trainingLibraryTitle,
@@ -94,14 +106,19 @@ class _TrainingLibraryScreenViewState extends State<_TrainingLibraryScreenView> 
         child: Column(
           children: <Widget>[
             Expanded(
-              child: controller.isInitialLoading && controller.items.isEmpty
-                  ? Center(child: FastCircularProgressIndicator())
+              child: isShowingLoadingState
+                  ? Center(
+                      child: FastCircularProgressIndicator(
+                        width: 24,
+                        height: 24,
+                      ),
+                    )
                   : _TrainingLibraryContent(
                       controller: controller,
                       scrollController: _scrollController,
                     ),
             ),
-            const _TrainingLibraryCreateAction(),
+            if (!isShowingLoadingState) const _TrainingLibraryCreateAction(),
           ],
         ),
       ),
@@ -110,7 +127,10 @@ class _TrainingLibraryScreenViewState extends State<_TrainingLibraryScreenView> 
 }
 
 class _TrainingLibraryContent extends StatelessWidget {
-  const _TrainingLibraryContent({required this.controller, required this.scrollController});
+  const _TrainingLibraryContent({
+    required this.controller,
+    required this.scrollController,
+  });
 
   final TrainingLibraryController controller;
   final ScrollController scrollController;
@@ -124,16 +144,12 @@ class _TrainingLibraryContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (controller.isInlineLoading && controller.items.isNotEmpty) ...[
-            Center(child: FastCircularProgressIndicator(width: 28, height: 28)),
-            const SizedBox(height: 14),
-          ],
           _TrainingLibrarySearchBar(controller: controller),
           const SizedBox(height: 12),
           _DepartmentFilterStrip(controller: controller),
           const SizedBox(height: 14),
           Expanded(
-            child: RefreshIndicator(
+            child: RefreshIndicator.noSpinner(
               onRefresh: controller.refresh,
               child: _TrainingLibraryResultArea(
                 controller: controller,
@@ -167,11 +183,17 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.35),
+            ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+              const Icon(
+                Icons.search_rounded,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
@@ -185,7 +207,9 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
-                    hintText: AppStrings.trainingLibrarySearchHint(selectedFilterLabel),
+                    hintText: AppStrings.trainingLibrarySearchHint(
+                      selectedFilterLabel,
+                    ),
                     hintStyle: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 15,
@@ -221,17 +245,25 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
                     .toList(growable: false),
                 child: Container(
                   width: filterWidth,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.purple1.withValues(alpha: 0.26),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.34)),
+                    border: Border.all(
+                      color: AppColors.secondaryColor.withValues(alpha: 0.34),
+                    ),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: AppTextView.body3(
-                          _searchFilterChipLabel(controller.searchFilter, compact: isCompact),
+                          _searchFilterChipLabel(
+                            controller.searchFilter,
+                            compact: isCompact,
+                          ),
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                           maxLines: 1,
@@ -264,7 +296,10 @@ class _DepartmentFilterStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <TrainingLibraryDepartment>[
-      const TrainingLibraryDepartment(id: 'all', name: AppStrings.trainingLibraryAllFilter),
+      const TrainingLibraryDepartment(
+        id: 'all',
+        name: AppStrings.trainingLibraryAllFilter,
+      ),
       ...controller.departments,
     ];
 
@@ -296,7 +331,9 @@ class _DepartmentFilterStrip extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.secondaryColor : AppColors.surfaceDark3,
+                color: isSelected
+                    ? AppColors.secondaryColor
+                    : AppColors.surfaceDark3,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                   color: isSelected
@@ -307,7 +344,9 @@ class _DepartmentFilterStrip extends StatelessWidget {
               child: Center(
                 child: AppTextView.body3(
                   item.name,
-                  color: isSelected ? AppColors.textPrimary : AppColors.textPrimary,
+                  color: isSelected
+                      ? AppColors.textPrimary
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -332,19 +371,6 @@ class _TrainingLibraryResultArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (controller.isInlineLoading && controller.items.isEmpty) {
-      return ListView(
-        controller: scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Center(child: FastCircularProgressIndicator(width: 28, height: 28)),
-          ),
-        ],
-      );
-    }
-
     if (controller.errorMessage != null && controller.items.isEmpty) {
       return ListView(
         controller: scrollController,
@@ -363,19 +389,21 @@ class _TrainingLibraryResultArea extends StatelessWidget {
       return ListView(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [_LibraryStatusState(message: AppStrings.trainingLibraryNoModulesFound)],
+        children: const [
+          _LibraryStatusState(
+            message: AppStrings.trainingLibraryNoModulesFound,
+          ),
+        ],
       );
     }
 
     return switch (controller.viewMode) {
       TrainingLibraryViewMode.grid => _TrainingLibraryGrid(
         items: items,
-        isLoadingMore: controller.isLoadingMore,
         scrollController: scrollController,
       ),
       TrainingLibraryViewMode.list => _TrainingLibraryList(
         items: items,
-        isLoadingMore: controller.isLoadingMore,
         scrollController: scrollController,
       ),
     };
@@ -385,12 +413,10 @@ class _TrainingLibraryResultArea extends StatelessWidget {
 class _TrainingLibraryGrid extends StatelessWidget {
   const _TrainingLibraryGrid({
     required this.items,
-    required this.isLoadingMore,
     required this.scrollController,
   });
 
   final List<TrainingLibraryModule> items;
-  final bool isLoadingMore;
   final ScrollController scrollController;
 
   @override
@@ -412,11 +438,8 @@ class _TrainingLibraryGrid extends StatelessWidget {
             mainAxisSpacing: spacing,
             mainAxisExtent: mainAxisExtent,
           ),
-          itemCount: items.length + (isLoadingMore ? 1 : 0),
+          itemCount: items.length,
           itemBuilder: (context, index) {
-            if (index >= items.length) {
-              return Center(child: FastCircularProgressIndicator());
-            }
             return _TrainingLibraryGridCard(module: items[index]);
           },
         );
@@ -428,12 +451,10 @@ class _TrainingLibraryGrid extends StatelessWidget {
 class _TrainingLibraryList extends StatelessWidget {
   const _TrainingLibraryList({
     required this.items,
-    required this.isLoadingMore,
     required this.scrollController,
   });
 
   final List<TrainingLibraryModule> items;
-  final bool isLoadingMore;
   final ScrollController scrollController;
 
   @override
@@ -441,15 +462,8 @@ class _TrainingLibraryList extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: items.length + (isLoadingMore ? 1 : 0),
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        if (index >= items.length) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 18, bottom: 18),
-            child: Center(child: FastCircularProgressIndicator()),
-          );
-        }
-
         return Padding(
           padding: EdgeInsets.only(bottom: index == items.length - 1 ? 0 : 14),
           child: _TrainingLibraryListCard(module: items[index]),
@@ -479,7 +493,9 @@ class _TrainingLibraryGridCard extends StatelessWidget {
                 thumbnailLink: module.thumbnailLink,
                 height: imageHeight,
                 emptyIcon: Icons.video_library_rounded,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -603,7 +619,9 @@ class _TrainingLibraryCardShell extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark3,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.16)),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.16),
+              ),
             ),
             child: child,
           ),
@@ -659,7 +677,9 @@ class _ImagePlaceholder extends StatelessWidget {
       'lib/assets/images/fallback.png',
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) {
-        return Center(child: Icon(icon, color: AppColors.textSecondary, size: 30));
+        return Center(
+          child: Icon(icon, color: AppColors.textSecondary, size: 30),
+        );
       },
     );
   }
@@ -701,13 +721,20 @@ class _MetaDot extends StatelessWidget {
     return Container(
       width: 4,
       height: 4,
-      decoration: const BoxDecoration(color: AppColors.textSecondary, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        color: AppColors.textSecondary,
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
 
 class _CardFieldLine extends StatelessWidget {
-  const _CardFieldLine({required this.label, required this.value, this.maxLines = 2});
+  const _CardFieldLine({
+    required this.label,
+    required this.value,
+    this.maxLines = 2,
+  });
 
   final String label;
   final String value;
@@ -718,7 +745,11 @@ class _CardFieldLine extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body4(label, color: AppColors.purple1, fontWeight: FontWeight.w700),
+        AppTextView.body4(
+          label,
+          color: AppColors.purple1,
+          fontWeight: FontWeight.w700,
+        ),
         const SizedBox(height: 2),
         AppTextView.body3(
           value,
@@ -733,7 +764,11 @@ class _CardFieldLine extends StatelessWidget {
 }
 
 class _LibraryStatusState extends StatelessWidget {
-  const _LibraryStatusState({required this.message, this.actionLabel, this.onActionTap});
+  const _LibraryStatusState({
+    required this.message,
+    this.actionLabel,
+    this.onActionTap,
+  });
 
   final String message;
   final String? actionLabel;
@@ -751,7 +786,11 @@ class _LibraryStatusState extends StatelessWidget {
         ),
         child: Column(
           children: [
-            AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
+            AppTextView.body(
+              message,
+              color: AppColors.textSecondary,
+              textAlign: TextAlign.center,
+            ),
             if (actionLabel != null && onActionTap != null) ...[
               const SizedBox(height: 16),
               OutlinedButton(
@@ -808,8 +847,14 @@ class _TrainingLibraryCreateAction extends StatelessWidget {
                 minHeight: 40,
                 borderRadius: 10,
                 iconSpacing: 8,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                onTap: () => AppRouter.pushNamed(context, AppRouter.seatProfileTrainingSetup),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                onTap: () => AppRouter.pushNamed(
+                  context,
+                  AppRouter.seatProfileTrainingSetup,
+                ),
               ),
             ),
           ),
@@ -822,12 +867,16 @@ class _TrainingLibraryCreateAction extends StatelessWidget {
 String _searchFilterLabel(TrainingLibrarySearchFilter filter) {
   return switch (filter) {
     TrainingLibrarySearchFilter.category => AppStrings.trainingLibraryCategory,
-    TrainingLibrarySearchFilter.department => AppStrings.trainingLibraryDepartment,
+    TrainingLibrarySearchFilter.department =>
+      AppStrings.trainingLibraryDepartment,
     TrainingLibrarySearchFilter.seat => AppStrings.trainingLibrarySeat,
   };
 }
 
-String _searchFilterChipLabel(TrainingLibrarySearchFilter filter, {required bool compact}) {
+String _searchFilterChipLabel(
+  TrainingLibrarySearchFilter filter, {
+  required bool compact,
+}) {
   if (!compact) {
     return _searchFilterLabel(filter);
   }
@@ -839,9 +888,15 @@ String _searchFilterChipLabel(TrainingLibrarySearchFilter filter, {required bool
   };
 }
 
-Future<void> _openLibraryDetail(BuildContext context, TrainingLibraryModule module) async {
+Future<void> _openLibraryDetail(
+  BuildContext context,
+  TrainingLibraryModule module,
+) async {
+  final view = context.read<TrainingLibraryController>().viewMode.name;
   final shouldRefresh = await Navigator.of(context).push<bool>(
-    MaterialPageRoute<bool>(builder: (_) => TrainingLibraryDetailScreen(module: module)),
+    MaterialPageRoute<bool>(
+      builder: (_) => TrainingLibraryDetailScreen(module: module, view: view),
+    ),
   );
   if (shouldRefresh != true || !context.mounted) {
     return;

@@ -44,6 +44,8 @@ class TrainingLibraryController extends ChangeNotifier {
   bool get isViewSyncing => _isViewSyncing;
   bool get isLoadingMore => _isLoadingMore;
   bool get isInlineLoading => _isRefreshing || _isViewSyncing;
+  bool get isShowingFullscreenLoading =>
+      _isInitialLoading || _isRefreshing || _isViewSyncing || _isLoadingMore;
   String? get errorMessage => _errorMessage;
   String get selectedDepartmentId => _selectedDepartmentId;
   TrainingLibraryViewMode get viewMode => _viewMode;

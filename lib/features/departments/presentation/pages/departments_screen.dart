@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -73,21 +74,32 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
   Widget build(BuildContext context) {
     final controller = context.watch<DepartmentsController>();
 
-    return DrawerMainScreen(
-      title: AppStrings.departmentsTitle,
-      selectedMenu: AppMenuType.departments,
-      centerTitle: true,
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: controller.isInitialLoading
-            ? Center(child: FastCircularProgressIndicator())
-            : _buildContent(controller),
-      ),
+    return ListenableBuilder(
+      listenable: AppManager.instance,
+      builder: (context, _) {
+        final canManageContent =
+            AppManager.instance.canCurrentOrganizationModifyContent;
+
+        return DrawerMainScreen(
+          title: AppStrings.departmentsTitle,
+          selectedMenu: AppMenuType.departments,
+          centerTitle: true,
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: controller.isInitialLoading
+                ? Center(child: FastCircularProgressIndicator())
+                : _buildContent(controller, canManageContent),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildContent(DepartmentsController controller) {
+  Widget _buildContent(
+    DepartmentsController controller,
+    bool canManageContent,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Column(
@@ -101,7 +113,7 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: controller.refresh,
-              child: _buildListArea(controller),
+              child: _buildListArea(controller, canManageContent),
             ),
           ),
         ],
@@ -109,7 +121,10 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
     );
   }
 
-  Widget _buildListArea(DepartmentsController controller) {
+  Widget _buildListArea(
+    DepartmentsController controller,
+    bool canManageContent,
+  ) {
     final items = controller.departments;
 
     if (controller.errorMessage != null && items.isEmpty) {
@@ -140,6 +155,7 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
         final department = items[index];
         return _DepartmentCard(
           department: department,
+          showEditAction: canManageContent,
           onEditTap: () => _openEditDialog(department),
         );
       },
@@ -147,6 +163,10 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
   }
 
   Future<void> _openEditDialog(Department department) async {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+      return;
+    }
+
     final didSave = await showEditDepartmentDialog(
       context,
       department: department,
@@ -174,9 +194,14 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
 }
 
 class _DepartmentCard extends StatelessWidget {
-  const _DepartmentCard({required this.department, required this.onEditTap});
+  const _DepartmentCard({
+    required this.department,
+    required this.showEditAction,
+    required this.onEditTap,
+  });
 
   final Department department;
+  final bool showEditAction;
   final VoidCallback onEditTap;
 
   @override
@@ -215,13 +240,14 @@ class _DepartmentCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(
-            onPressed: onEditTap,
-            icon: const Icon(
-              Icons.edit_rounded,
-              color: AppColors.secondaryColor,
+          if (showEditAction)
+            IconButton(
+              onPressed: onEditTap,
+              icon: const Icon(
+                Icons.edit_rounded,
+                color: AppColors.secondaryColor,
+              ),
             ),
-          ),
         ],
       ),
     );

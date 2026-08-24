@@ -2,40 +2,53 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/performance_report.dart';
-
-bool _isUnavailablePaygradeDisplay(String value) =>
-    value.trim() == AppStrings.paygradesUnavailableDisplay;
-
-Color _paygradeDisplayColor(String value) =>
-    _isUnavailablePaygradeDisplay(value)
-    ? AppColors.secondaryColor
-    : AppColors.textPrimary;
+import '../providers/audit_controller.dart';
 
 Future<void> showPaygradeDetailDialog(
   BuildContext context, {
   required PerformanceReportPaygradeStep step,
+  required String paygradeUnit,
+  required AuditController auditController,
   PerformanceReportPaygradeStep? currentStep,
 }) {
   return showDialog<void>(
     context: context,
     barrierDismissible: true,
-    builder: (dialogContext) =>
-        _PaygradeDetailDialog(step: step, currentStep: currentStep),
+    builder: (dialogContext) => _PaygradeDetailDialog(
+      step: step,
+      paygradeUnit: paygradeUnit,
+      currentStep: currentStep,
+      auditController: auditController,
+    ),
   );
 }
 
 class _PaygradeDetailDialog extends StatelessWidget {
-  const _PaygradeDetailDialog({required this.step, this.currentStep});
+  const _PaygradeDetailDialog({
+    required this.step,
+    required this.paygradeUnit,
+    required this.auditController,
+    this.currentStep,
+  });
 
   final PerformanceReportPaygradeStep step;
+  final String paygradeUnit;
+  final AuditController auditController;
   final PerformanceReportPaygradeStep? currentStep;
 
   @override
   Widget build(BuildContext context) {
-    final requirements = _buildRequirements(step.promotionRequirement);
+    final requirements = auditController
+        .buildPerformanceReportPaygradeRequirements(step.promotionRequirement);
     final maxDialogHeight = MediaQuery.of(context).size.height * 0.5;
+    final payRateDisplay = auditController
+        .formatPerformanceReportPaygradeDisplay(
+          paygradeDisplay: step.payRateDisplay,
+          paygradeUnit: paygradeUnit,
+        );
 
     return Dialog(
       backgroundColor: AppColors.mainBg,
@@ -44,7 +57,7 @@ class _PaygradeDetailDialog extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 760, maxHeight: maxDialogHeight),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 20, 10, 28),
+          padding: const EdgeInsets.fromLTRB(10, 20, 10, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -58,25 +71,8 @@ class _PaygradeDetailDialog extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                   const Spacer(),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(999),
+                  AppOverlayCloseButton(
                     onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.textPrimary,
-                          width: 1.6,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: AppColors.textPrimary,
-                        size: 18,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -88,23 +84,33 @@ class _PaygradeDetailDialog extends StatelessWidget {
               ),
               const SizedBox(height: 48),
               if (step.isCurrent || currentStep == null) ...[
-                _CurrentPaygrade(step: step),
+                _CurrentPaygrade(
+                  auditController: auditController,
+                  step: step,
+                  paygradeUnit: paygradeUnit,
+                ),
               ] else ...[
-                _TargetPaygrade(currentStep: currentStep!, targetStep: step),
+                _TargetPaygrade(
+                  auditController: auditController,
+                  currentStep: currentStep!,
+                  targetStep: step,
+                  paygradeUnit: paygradeUnit,
+                ),
               ],
-              const SizedBox(height: 52),
+              const SizedBox(height: 22),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const AppTextView.title(
-                        'Advancement Requirements',
+                        AppStrings
+                            .performanceReportPaygradeAdvancementRequirementsTitle,
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 12),
                       for (final requirement in requirements) ...[
                         _RequirementBullet(text: requirement),
                         const SizedBox(height: 12),
@@ -127,11 +133,12 @@ class _PaygradeDetailDialog extends StatelessWidget {
                                 ),
                               ),
                               TextSpan(
-                                text: step.payRateDisplay,
+                                text: payRateDisplay,
                                 style: TextStyle(
-                                  color: _paygradeDisplayColor(
-                                    step.payRateDisplay,
-                                  ),
+                                  color: auditController
+                                      .resolvePerformanceReportPaygradeDisplayColor(
+                                        payRateDisplay,
+                                      ),
                                 ),
                               ),
                             ],
@@ -148,40 +155,37 @@ class _PaygradeDetailDialog extends StatelessWidget {
       ),
     );
   }
-
-  List<String> _buildRequirements(String source) {
-    final trimmed = source.trim();
-    if (trimmed.isEmpty || trimmed == '-') {
-      return const <String>['-'];
-    }
-
-    final items = trimmed
-        .split(RegExp(r'[\r\n]+'))
-        .map(
-          (item) => item.replaceFirst(RegExp(r'^[\-\u2022\*]\s*'), '').trim(),
-        )
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
-
-    return items.isEmpty ? <String>[trimmed] : items;
-  }
 }
 
 class _CurrentPaygrade extends StatelessWidget {
-  const _CurrentPaygrade({required this.step});
+  const _CurrentPaygrade({
+    required this.auditController,
+    required this.step,
+    required this.paygradeUnit,
+  });
 
+  final AuditController auditController;
   final PerformanceReportPaygradeStep step;
+  final String paygradeUnit;
 
   @override
   Widget build(BuildContext context) {
+    final payRateDisplay = auditController
+        .formatPerformanceReportPaygradeDisplay(
+          paygradeDisplay: step.payRateDisplay,
+          paygradeUnit: paygradeUnit,
+        );
+
     return Column(
       children: [
         Center(child: _PaygradeCircle(step: step, isCurrent: true)),
         const SizedBox(height: 16),
         Center(
           child: AppTextView.title1(
-            step.payRateDisplay,
-            color: _paygradeDisplayColor(step.payRateDisplay),
+            payRateDisplay,
+            color: auditController.resolvePerformanceReportPaygradeDisplayColor(
+              payRateDisplay,
+            ),
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -192,18 +196,43 @@ class _CurrentPaygrade extends StatelessWidget {
 }
 
 class _TargetPaygrade extends StatelessWidget {
-  const _TargetPaygrade({required this.currentStep, required this.targetStep});
+  const _TargetPaygrade({
+    required this.auditController,
+    required this.currentStep,
+    required this.targetStep,
+    required this.paygradeUnit,
+  });
 
+  final AuditController auditController;
   final PerformanceReportPaygradeStep currentStep;
   final PerformanceReportPaygradeStep targetStep;
+  final String paygradeUnit;
 
   @override
   Widget build(BuildContext context) {
-    final currentPayRate = _safePayRate(currentStep);
-    final targetPayRate = _safePayRate(targetStep);
+    final currentPayRate = auditController.resolvePerformanceReportPaygradeRate(
+      currentStep,
+    );
+    final targetPayRate = auditController.resolvePerformanceReportPaygradeRate(
+      targetStep,
+    );
+    final currentPayRateDisplay = auditController
+        .formatPerformanceReportPaygradeDisplay(
+          paygradeDisplay: currentStep.payRateDisplay,
+          paygradeUnit: paygradeUnit,
+        );
+    final targetPayRateDisplay = auditController
+        .formatPerformanceReportPaygradeDisplay(
+          paygradeDisplay: targetStep.payRateDisplay,
+          paygradeUnit: paygradeUnit,
+        );
     final payDelta = targetPayRate - currentPayRate;
     final normalizedDelta = payDelta <= 0 ? 0.0 : payDelta;
-    final payDeltaDisplay = _formatRate(normalizedDelta);
+    final payDeltaDisplay = auditController
+        .formatPerformanceReportPaygradeDelta(
+          value: normalizedDelta,
+          paygradeUnit: paygradeUnit,
+        );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -213,8 +242,11 @@ class _TargetPaygrade extends StatelessWidget {
               _PaygradeCircle(step: currentStep, isCurrent: false),
               const SizedBox(height: 10),
               AppTextView.title1(
-                currentStep.payRateDisplay,
-                color: _paygradeDisplayColor(currentStep.payRateDisplay),
+                currentPayRateDisplay,
+                color: auditController
+                    .resolvePerformanceReportPaygradeDisplayColor(
+                      currentPayRateDisplay,
+                    ),
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -238,8 +270,11 @@ class _TargetPaygrade extends StatelessWidget {
               _PaygradeCircle(step: targetStep, isCurrent: true),
               const SizedBox(height: 10),
               AppTextView.title1(
-                targetStep.payRateDisplay,
-                color: _paygradeDisplayColor(targetStep.payRateDisplay),
+                targetPayRateDisplay,
+                color: auditController
+                    .resolvePerformanceReportPaygradeDisplayColor(
+                      targetPayRateDisplay,
+                    ),
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -248,33 +283,6 @@ class _TargetPaygrade extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  double _safePayRate(PerformanceReportPaygradeStep step) {
-    try {
-      final value = step.payRateAmount;
-      if (value <= 0 || value.isNaN || value.isInfinite) {
-        return _parsePayRateDisplay(step.payRateDisplay);
-      }
-      return value;
-    } catch (_) {
-      return _parsePayRateDisplay(step.payRateDisplay);
-    }
-  }
-
-  double _parsePayRateDisplay(String value) {
-    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(value);
-    final parsed = match == null ? null : double.tryParse(match.group(1)!);
-    if (parsed == null || parsed <= 0) {
-      return 0.0;
-    }
-    return parsed;
-  }
-
-  String _formatRate(double value) {
-    final safeValue = value <= 0 ? 0.0 : value;
-    final normalized = safeValue.toStringAsFixed(2);
-    return '\$$normalized/hr';
   }
 }
 

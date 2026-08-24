@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/seat_profile_detail.dart';
 
@@ -704,31 +705,7 @@ class _SeatDescriptionSheetCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.mainBg,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Icon(
-            Icons.close_rounded,
-            size: 20,
-            color: onTap == null
-                ? AppColors.textSecondary
-                : AppColors.textPrimary,
-          ),
-        ),
-      ),
-    );
+    return AppOverlayCloseButton(onTap: onTap);
   }
 }
 

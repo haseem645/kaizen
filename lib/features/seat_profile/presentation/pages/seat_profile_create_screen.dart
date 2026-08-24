@@ -7,6 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../routes/app_router.dart';
@@ -1843,26 +1844,7 @@ class _SeatContentDialogCloseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Opacity(
       opacity: onTap != null ? 1 : 0.55,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.78),
-              width: 1,
-            ),
-          ),
-          child: const Icon(
-            Icons.close_rounded,
-            color: AppColors.textPrimary,
-            size: 16,
-          ),
-        ),
-      ),
+      child: AppOverlayCloseButton(onTap: onTap),
     );
   }
 }

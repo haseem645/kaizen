@@ -8,6 +8,7 @@ import 'package:sparrowkaizen/core/constants/app_colors.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/audit/domain/entities/audit_description_audit.dart';
@@ -1332,15 +1333,10 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    IconButton(
-                      onPressed: isSaving
+                    AppOverlayCloseButton(
+                      onTap: isSaving
                           ? null
                           : () => Navigator.of(context).pop(),
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
                     ),
                   ],
                 ),

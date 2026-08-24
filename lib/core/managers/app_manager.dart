@@ -14,6 +14,7 @@ import '../network/api_error.dart';
 import '../network/api_processor.dart';
 import '../network/models/organization_conflict_payload.dart';
 import '../preference/app_preference.dart';
+import '../utils/app_permission_utils.dart';
 import 'app_manager_remote_data_source.dart';
 import 'models/company_billing_details.dart';
 import 'models/company_details.dart';
@@ -59,21 +60,34 @@ class AppManager extends ChangeNotifier {
   bool get hasPendingOrganizationConflict =>
       _isHandlingOrganizationConflict && !_didResolveOrganizationConflict;
   bool get currentUserHasOwnerOverrideAccess =>
-      _currentUser?.hasOwnerOverrideAccess == true;
+      AppPermissionUtils.hasOwnerOverrideAccess(_currentUser);
   bool get currentUserCanAccessSandbox =>
-      _currentUser?.canAccessSandbox == true;
+      AppPermissionUtils.canAccessSandbox(_currentUser);
+  bool get canCurrentOrganizationModifyContent =>
+      AppPermissionUtils.canModifyCurrentOrganizationContent(
+        currentOrganization: currentOrganization,
+      );
   bool get currentUserCanCreateSeatProfiles =>
-      _currentUser?.canCreateSeatProfiles == true;
+      AppPermissionUtils.canCreateSeatProfiles(
+        user: _currentUser,
+        currentOrganization: currentOrganization,
+      );
   bool get currentUserCanManageAnyTrainingModules =>
-      _currentUser?.canManageAnyTrainingModules == true;
+      AppPermissionUtils.canManageAnyTrainingModules(
+        user: _currentUser,
+        currentOrganization: currentOrganization,
+      );
+  bool get currentUserCanAccessAuditTeamMembers =>
+      AppPermissionUtils.canAccessAuditTeamMembers(_currentUser);
 
   bool canCurrentUserManageTrainingForSeatProfile({
     required String seatProfileId,
   }) {
-    return _currentUser?.canManageTrainingForSeatProfile(
-          seatProfileId: seatProfileId,
-        ) ==
-        true;
+    return AppPermissionUtils.canManageTrainingForSeatProfile(
+      user: _currentUser,
+      currentOrganization: currentOrganization,
+      seatProfileId: seatProfileId,
+    );
   }
 
   bool get usesParentApiEndpoints {
@@ -794,7 +808,7 @@ class AppManager extends ChangeNotifier {
       return organizationId;
     }
 
-    return user.canAccessSandbox ? '' : null;
+    return AppPermissionUtils.canAccessSandbox(user) ? '' : null;
   }
 
   String? _resolveUserBackedOrganizationSelectionId() {
