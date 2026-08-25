@@ -319,6 +319,8 @@ class AppStrings {
       'Please enter the seat profile name.';
   static const String seatProfileDepartmentRequired =
       'Please select a department.';
+  static const String seatProfilePrivilegedDepartmentRestricted =
+      'Seat profiles cannot be created in the Privileged department.';
   static const String seatProfilePaygradeRequired = 'Please select a paygrade.';
   static const String seatProfileNoItemsFound = 'No seat profiles found.';
   static const String seatProfileNoCategoriesFound = 'No categories found.';
@@ -435,7 +437,7 @@ class AppStrings {
   static const String performanceSnapshotJob = 'Job';
   static const String performanceSnapshotAllJobs = 'All Jobs';
   static const String performanceSnapshotSearchJob = 'Search Job';
-  static const String auditNoMembersFound = 'No audit team members available.';
+  static const String nothingFound = 'Nothing Found!';
   static String auditNoStatusAvailable(String label) => 'No $label available.';
   static const String auditFiltersTitle = 'Filters';
   static const String auditSelectYearQuarter = 'Select Year & Quarter';
