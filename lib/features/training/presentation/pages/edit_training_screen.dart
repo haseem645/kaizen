@@ -154,6 +154,11 @@ class EditTrainingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedInitialModuleId =
+        (initialModuleId?.trim().isNotEmpty ?? false)
+        ? initialModuleId
+        : trainingRoute.initialModuleId;
+
     final routeBasedTrainingAccess = AppManager.instance
         .canCurrentUserManageTrainingForSeatProfile(
           seatProfileId: trainingRoute.job,
@@ -177,12 +182,12 @@ class EditTrainingSection extends StatelessWidget {
               )..initialize(
                 jobId: trainingRoute.job,
                 descriptionId: trainingRoute.description,
-                initialModuleId: initialModuleId,
+                initialModuleId: resolvedInitialModuleId,
               ),
         ),
       ],
       child: _EditTrainingSectionView(
-        initialModuleId: initialModuleId,
+        initialModuleId: resolvedInitialModuleId,
         trainingDescriptionId: trainingRoute.description,
         isEmbedded: isEmbedded,
         skipResumeSessionRefreshOnMediaPicker:
