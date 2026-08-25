@@ -2485,11 +2485,21 @@ class TrainingModuleController extends ChangeNotifier {
       return;
     }
 
+    final currentModule = _findModuleById(detail.uuid);
+    final resolvedDetailThumbnailLink = detail.thumbnailLink?.trim();
+    final resolvedModuleThumbnailLink = currentModule?.thumbnailLink?.trim();
+    final resolvedThumbnailLink =
+        (resolvedDetailThumbnailLink?.isNotEmpty ?? false)
+        ? resolvedDetailThumbnailLink
+        : (resolvedModuleThumbnailLink?.isNotEmpty ?? false)
+        ? resolvedModuleThumbnailLink
+        : null;
+
     final updatedModule = SeatDescriptionTrainingModule(
       uuid: detail.uuid,
       actualId: detail.actualId,
       title: detail.title,
-      thumbnailLink: detail.previewThumbnailLink,
+      thumbnailLink: resolvedThumbnailLink,
       isPubliclyAvailable: detail.isPubliclyAvailable,
     );
     _modules = _modules
