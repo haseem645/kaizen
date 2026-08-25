@@ -6,6 +6,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_swipe_reveal_action.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
@@ -54,6 +55,7 @@ class _DepartmentsScreenView extends StatefulWidget {
 }
 
 class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
+  static const String _privilegedDepartmentName = 'privileged';
   late final DepartmentsController _controller;
 
   @override
@@ -155,7 +157,8 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
         final department = items[index];
         return _DepartmentCard(
           department: department,
-          showEditAction: canManageContent,
+          showEditAction:
+              canManageContent && !_isPrivilegedDepartment(department),
           onEditTap: () => _openEditDialog(department),
         );
       },
@@ -163,7 +166,8 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
   }
 
   Future<void> _openEditDialog(Department department) async {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent ||
+        _isPrivilegedDepartment(department)) {
       return;
     }
 
@@ -191,6 +195,10 @@ class _DepartmentsScreenViewState extends State<_DepartmentsScreenView> {
         ),
       );
   }
+
+  bool _isPrivilegedDepartment(Department department) {
+    return department.name.trim().toLowerCase() == _privilegedDepartmentName;
+  }
 }
 
 class _DepartmentCard extends StatelessWidget {
@@ -208,7 +216,7 @@ class _DepartmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = DepartmentColorPalette.resolveColor(department.colorHex);
 
-    return Container(
+    final card = Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(16),
@@ -216,7 +224,8 @@ class _DepartmentCard extends StatelessWidget {
           color: AppColors.fieldBorder.withValues(alpha: 0.16),
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(minHeight: 80),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Row(
         children: [
           Container(
@@ -240,16 +249,36 @@ class _DepartmentCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (showEditAction)
-            IconButton(
-              onPressed: onEditTap,
-              icon: const Icon(
-                Icons.edit_rounded,
-                color: AppColors.secondaryColor,
-              ),
-            ),
         ],
       ),
+    );
+
+    if (!showEditAction) {
+      return card;
+    }
+
+    return AppSwipeRevealAction(
+      isEnabled: showEditAction,
+      onActionTap: onEditTap,
+      borderRadius: 16,
+      actionWidth: 64,
+      actionGap: 10,
+      actionChild: SizedBox.expand(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.secondaryColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.edit_rounded,
+              color: AppColors.textPrimary,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+      child: card,
     );
   }
 }
