@@ -7,9 +7,12 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../../training/domain/entities/seat_description_training_route.dart';
+import '../../../training/presentation/pages/edit_training_screen.dart';
 import '../../domain/entities/audit_description_audit.dart';
 import '../../domain/entities/seat_description_audit_report_comments.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
@@ -148,6 +151,17 @@ class _SeatDescriptionFinalAuditReportScreenState
                                 _DetailTextCard(
                                   title: 'Description',
                                   body: report.description,
+                                  bottomActionLabel:
+                                      _canOpenTraining(report.trainingRoute)
+                                      ? AppStrings.seatProfileViewTrainings
+                                      : null,
+                                  onBottomActionTap:
+                                      _canOpenTraining(report.trainingRoute)
+                                      ? () => _openTrainingEditor(
+                                          context,
+                                          report.trainingRoute,
+                                        )
+                                      : null,
                                 ),
                                 const SizedBox(height: 16),
                                 _DetailTextCard(
@@ -310,6 +324,30 @@ class _SeatDescriptionFinalAuditReportScreenState
       _commentsFuture = _loadComments();
       _profilesFuture = _loadProfiles();
     });
+  }
+
+  bool _canOpenTraining(SeatDescriptionTrainingRoute trainingRoute) {
+    return trainingRoute.job.trim().isNotEmpty &&
+        trainingRoute.description.trim().isNotEmpty;
+  }
+
+  Future<void> _openTrainingEditor(
+    BuildContext context,
+    SeatDescriptionTrainingRoute trainingRoute,
+  ) {
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => EditTrainingScreen(
+          trainingRoute: trainingRoute,
+          initialModuleId: trainingRoute.initialModuleId,
+          canManageTraining: AppManager.instance
+              .canCurrentUserManageTrainingForSeatProfile(
+                seatProfileId: trainingRoute.job,
+              ),
+          useNonBlockingVideoUpload: true,
+        ),
+      ),
+    );
   }
 }
 
@@ -549,13 +587,24 @@ class _RatingBarRow extends StatelessWidget {
 }
 
 class _DetailTextCard extends StatelessWidget {
-  const _DetailTextCard({required this.title, required this.body});
+  const _DetailTextCard({
+    required this.title,
+    required this.body,
+    this.bottomActionLabel,
+    this.onBottomActionTap,
+  });
 
   final String title;
   final String body;
+  final String? bottomActionLabel;
+  final VoidCallback? onBottomActionTap;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedActionLabel = bottomActionLabel?.trim() ?? '';
+    final showBottomAction =
+        resolvedActionLabel.isNotEmpty && onBottomActionTap != null;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
@@ -581,6 +630,32 @@ class _DetailTextCard extends StatelessWidget {
             fontWeight: FontWeight.w500,
             height: 1.5,
           ),
+          if (showBottomAction) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: onBottomActionTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  child: Text(
+                    resolvedActionLabel,
+                    style: const TextStyle(
+                      color: AppColors.secondaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.secondaryColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

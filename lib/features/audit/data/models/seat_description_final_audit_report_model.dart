@@ -102,6 +102,7 @@ class SeatDescriptionTrainingRouteModel extends SeatDescriptionTrainingRoute {
     required super.job,
     required super.category,
     required super.description,
+    super.initialModuleId,
   });
 
   factory SeatDescriptionTrainingRouteModel.fromApiJson(
@@ -117,6 +118,9 @@ class SeatDescriptionTrainingRouteModel extends SeatDescriptionTrainingRoute {
             json['description'],
           ) ??
           '',
+      initialModuleId: SeatDescriptionFinalAuditReportModel._readString(
+        json['initial_module_id'] ?? json['initialModuleId'],
+      ),
     );
   }
 }
