@@ -36,6 +36,10 @@ class AppPermissionUtils {
     required User? user,
     required Organization? currentOrganization,
   }) {
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
+    }
+
     if (!canModifyCurrentOrganizationContent(
       currentOrganization: currentOrganization,
     )) {
@@ -43,8 +47,7 @@ class AppPermissionUtils {
     }
 
     final availableRoles = user?.normalizedRoles.toSet() ?? const <String>{};
-    return hasOwnerOverrideAccess(user) ||
-        availableRoles.contains('csuite') ||
+    return availableRoles.contains('csuite') ||
         availableRoles.contains('dept_lead') ||
         availableRoles.contains('team_lead');
   }
@@ -53,14 +56,14 @@ class AppPermissionUtils {
     required User? user,
     required Organization? currentOrganization,
   }) {
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
+    }
+
     if (!canModifyCurrentOrganizationContent(
       currentOrganization: currentOrganization,
     )) {
       return false;
-    }
-
-    if (hasOwnerOverrideAccess(user)) {
-      return true;
     }
 
     for (final membership
@@ -97,6 +100,10 @@ class AppPermissionUtils {
     required Organization? currentOrganization,
     required String seatProfileId,
   }) {
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
+    }
+
     final normalizedSeatProfileId = seatProfileId.trim();
     if (normalizedSeatProfileId.isEmpty) {
       return false;
@@ -106,10 +113,6 @@ class AppPermissionUtils {
       currentOrganization: currentOrganization,
     )) {
       return false;
-    }
-
-    if (hasOwnerOverrideAccess(user)) {
-      return true;
     }
 
     if (occupiesSeatProfile(

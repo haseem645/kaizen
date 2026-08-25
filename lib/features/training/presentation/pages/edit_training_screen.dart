@@ -159,12 +159,15 @@ class EditTrainingSection extends StatelessWidget {
         ? initialModuleId
         : trainingRoute.initialModuleId;
 
+    final hasOwnerOverrideAccess =
+        AppManager.instance.currentUserHasOwnerOverrideAccess;
     final routeBasedTrainingAccess = AppManager.instance
         .canCurrentUserManageTrainingForSeatProfile(
           seatProfileId: trainingRoute.job,
         );
     final resolvedCanManageTraining =
-        (canManageTraining ?? routeBasedTrainingAccess) &&
+        hasOwnerOverrideAccess ||
+        canManageTraining == true ||
         routeBasedTrainingAccess;
 
     return MultiProvider(

@@ -255,7 +255,7 @@ class _ExpandableDescriptionText extends StatelessWidget {
             if (hasOverflow) ...[
               const SizedBox(height: 8),
               Text(
-                AppStrings.seeAll,
+                AppStrings.seeAllAction,
                 style: TextStyle(
                   color: AppColors.secondaryColor,
                   fontSize: 14,

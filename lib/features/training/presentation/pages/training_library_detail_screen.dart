@@ -97,12 +97,16 @@ class _TrainingLibraryDetailScreenState
         animation: Listenable.merge([_detailController, _visibilityController]),
         builder: (context, _) {
           final module = _detailController.module;
+          final hasOwnerOverrideAccess =
+              AppManager.instance.currentUserHasOwnerOverrideAccess;
           final canEditModules =
-              AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
-                seatProfileId: module.seat.id,
-              ) &&
               module.id.trim().isNotEmpty &&
-              module.seat.id.trim().isNotEmpty;
+              (hasOwnerOverrideAccess ||
+                  (module.seat.id.trim().isNotEmpty &&
+                      AppManager.instance
+                          .canCurrentUserManageTrainingForSeatProfile(
+                            seatProfileId: module.seat.id,
+                          )));
           final isBusy =
               _visibilityController.isUpdatingAnyLesson ||
               _detailController.isRefreshing;
@@ -239,8 +243,9 @@ class _TrainingLibraryDetailScreenState
             description: module.id,
           ),
           initialModuleId: lessonId,
-          canManageTraining: AppManager.instance
-              .canCurrentUserManageTrainingForSeatProfile(
+          canManageTraining:
+              AppManager.instance.currentUserHasOwnerOverrideAccess ||
+              AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
                 seatProfileId: module.seat.id,
               ),
           useNonBlockingVideoUpload: true,

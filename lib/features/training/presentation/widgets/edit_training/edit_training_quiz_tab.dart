@@ -28,8 +28,7 @@ class _QuizTabContent extends StatelessWidget {
   final String? deletingQuestionId;
   final VoidCallback onAddQuestionTap;
   final VoidCallback onGenerateQuizTap;
-  final Future<void> Function(SeatDescriptionTrainingQuestion question)
-  onDeleteQuestionTap;
+  final Future<void> Function(SeatDescriptionTrainingQuestion question) onDeleteQuestionTap;
   final Future<bool> Function(
     String questionId,
     List<SeatDescriptionTrainingQuestionOption> options,
@@ -48,9 +47,10 @@ class _QuizTabContent extends StatelessWidget {
             child: Wrap(
               alignment: WrapAlignment.start,
               crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 5,
+              runSpacing: 5,
               children: [
+                SizedBox(width: 5),
                 _SecondaryTrainingActionButton(
                   label: AppStrings.trainingAddQuestion,
                   icon: Icons.add_rounded,
@@ -59,18 +59,14 @@ class _QuizTabContent extends StatelessWidget {
                   isDottedBorder: true,
                   horizontalPadding: 16,
                   verticalPadding: 12,
-                  borderRadius: 999,
-                  backgroundColor: AppColors.secondaryColor.withValues(
-                    alpha: 0.04,
-                  ),
-                  activeBorderColor: AppColors.secondaryColor.withValues(
-                    alpha: 0.42,
-                  ),
+                  borderRadius: 14,
+                  backgroundColor: AppColors.secondaryColor.withValues(alpha: 0.04),
+                  activeBorderColor: AppColors.secondaryColor.withValues(alpha: 0.42),
                   activeTextColor: AppColors.secondaryColor,
                   activeIconColor: AppColors.secondaryColor,
                   onTap: canAddQuestion ? onAddQuestionTap : null,
                 ),
-                SizedBox(width: 20),
+                SizedBox(width: 10),
                 _AiGenerateButton(
                   label: AppStrings.trainingGenerateQuiz,
                   isEnabled: canGenerateQuiz,
