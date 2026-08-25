@@ -444,7 +444,7 @@ class _CardForwardArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedRotation(
-      turns: isExpanded ? 0.25 : 0,
+      turns: isExpanded ? 0.5 : 0,
       duration: const Duration(milliseconds: 220),
       child: Container(
         width: 32,
@@ -457,9 +457,9 @@ class _CardForwardArrow extends StatelessWidget {
           ),
         ),
         child: const Icon(
-          Icons.arrow_forward_ios_rounded,
+          Icons.keyboard_arrow_down_rounded,
           color: AppColors.textSecondary,
-          size: 14,
+          size: 20,
         ),
       ),
     );
