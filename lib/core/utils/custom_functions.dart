@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mime/mime.dart';
 
-import '../../features/audit/domain/entities/audit_details.dart';
-import '../../features/audit/domain/entities/quarterly_audit.dart';
+import '../../features/check_in/domain/entities/audit_details.dart';
+import '../../features/check_in/domain/entities/quarterly_audit.dart';
 import '../../features/login/domain/entities/user.dart';
 import '../network/api_endpoints.dart';
 import '../widgets/custom_alert_dialogue.dart';

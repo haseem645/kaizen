@@ -16,7 +16,7 @@ Path style in this file:
 
 ## Canonical Feature References
 
-- Audit: `.../.codex/skills/repo-navigation/references/features/audit.md`
+- Check-In: `.../.codex/skills/repo-navigation/references/features/audit.md`
 - Compliance: `.../.codex/skills/repo-navigation/references/features/compliance.md`
 - Kaizen GPT: `.../.codex/skills/repo-navigation/references/features/kaizen-gpt.md`
 - Kaizengram: `.../.codex/skills/repo-navigation/references/features/kaizengram.md`

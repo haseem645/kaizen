@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
-import 'package:sparrowkaizen/features/audit/presentation/widgets/upgrade_plan_dialog.dart';
+import 'package:sparrowkaizen/features/check_in/presentation/widgets/upgrade_plan_dialog.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/certificate_screen.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/quiz_result_dialogue.dart';
 

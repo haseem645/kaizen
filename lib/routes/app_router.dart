@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/next_quiz_video_screen.dart';
 
 import '../core/preference/app_preference.dart';
-import '../features/audit/domain/entities/audit_member_status.dart';
-import '../features/audit/domain/entities/audit_profile.dart';
-import '../features/audit/presentation/pages/audit_detail_screen.dart';
-import '../features/audit/presentation/pages/audit_report.dart';
-import '../features/audit/presentation/pages/audit_screen.dart';
-import '../features/audit/presentation/pages/performance_report_screen.dart';
-import '../features/audit/presentation/pages/performance_snapshot_screen.dart';
-import '../features/audit/presentation/pages/single_audit_details_screen.dart';
+import '../features/check_in/domain/entities/audit_member_status.dart';
+import '../features/check_in/domain/entities/audit_profile.dart';
+import '../features/check_in/presentation/pages/check_in_details_screen.dart';
+import '../features/check_in/presentation/pages/check_in_report.dart';
+import '../features/check_in/presentation/pages/check_in_screen.dart';
+import '../features/check_in/presentation/pages/performance_report_screen.dart';
+import '../features/check_in/presentation/pages/performance_snapshot_screen.dart';
+import '../features/check_in/presentation/pages/single_check_in_details_screen.dart';
 import '../features/compliance/domain/entities/compliance_tab_type.dart';
 import '../features/compliance/domain/entities/learning_module_detail_track.dart';
 import '../features/compliance/presentation/pages/compliance_screen.dart';
@@ -48,7 +48,7 @@ class AppRouter {
   static const String onboardingPassword = '/onboarding/password';
   static const String learningTracks = '/learning-tracks';
   static const String compliance = '/compliance';
-  static const String audit = '/audit';
+  static const String checkIn = '/check-in';
   static const String performanceSnapshot = '/performance-snapshot';
   static const String reports = '/reports';
   static const String seatProfiles = '/seat-profiles';
@@ -65,9 +65,9 @@ class AppRouter {
   static const String kaizenGpt = '/kaizen-gpt';
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
-  static const String auditDetails = '/audit-details';
-  static const String singleAuditDetails = '/audit-details/single';
-  static const String auditReport = '/audit-report';
+  static const String checkInDetails = '/check-in-details';
+  static const String singleCheckInDetails = '/check-in-details/single';
+  static const String checkInReport = '/check-in-report';
   static const String complianceDetail = '/compliance/detail';
   static const String complianceTracks = '/compliance/tracks';
   static const String complianceTraining = '/compliance/training';
@@ -122,10 +122,10 @@ class AppRouter {
           builder: (_) =>
               const ComplianceScreen(module: ComplianceTabType.document),
         );
-      case audit:
+      case checkIn:
         return _buildRoute(
           settings: settings,
-          builder: (_) => const AuditScreen(),
+          builder: (_) => const CheckInScreen(),
         );
       case performanceSnapshot:
         return _buildRoute(
@@ -264,48 +264,54 @@ class AppRouter {
         );
       case profile:
         return _buildRoute(settings: settings, builder: (_) => ProfileScreen());
-      case auditDetails:
+      case checkInDetails:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => AuditDetailsScreen(
-            profileJobId: args is AuditDetailsRouteArgs
+          builder: (_) => CheckInDetailsScreen(
+            profileJobId: args is CheckInDetailsRouteArgs
                 ? args.profileJobId
                 : '',
-            year: args is AuditDetailsRouteArgs ? args.year : null,
-            quarter: args is AuditDetailsRouteArgs ? args.quarter : null,
-            selectedProfileUuid: args is AuditDetailsRouteArgs
+            year: args is CheckInDetailsRouteArgs ? args.year : null,
+            quarter: args is CheckInDetailsRouteArgs ? args.quarter : null,
+            selectedProfileUuid: args is CheckInDetailsRouteArgs
                 ? args.selectedProfileUuid
                 : null,
           ),
         );
-      case singleAuditDetails:
+      case singleCheckInDetails:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => SingleAuditDetailsScreen(
-            quarterlyAuditId: args is SingleAuditDetailsRouteArgs
+          builder: (_) => SingleCheckInDetailsScreen(
+            quarterlyAuditId: args is SingleCheckInDetailsRouteArgs
                 ? args.quarterlyAuditId
                 : '',
-            date: args is SingleAuditDetailsRouteArgs ? args.date : '',
-            lastAuditDate: args is SingleAuditDetailsRouteArgs
+            date: args is SingleCheckInDetailsRouteArgs ? args.date : '',
+            lastAuditDate: args is SingleCheckInDetailsRouteArgs
                 ? args.lastAuditDate
                 : '',
-            year: args is SingleAuditDetailsRouteArgs ? args.year : null,
-            quarter: args is SingleAuditDetailsRouteArgs ? args.quarter : null,
-            requireDescriptionSelection: args is SingleAuditDetailsRouteArgs
+            year: args is SingleCheckInDetailsRouteArgs ? args.year : null,
+            quarter: args is SingleCheckInDetailsRouteArgs
+                ? args.quarter
+                : null,
+            requireDescriptionSelection: args is SingleCheckInDetailsRouteArgs
                 ? args.requireDescriptionSelection
                 : false,
           ),
         );
-      case auditReport:
+      case checkInReport:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => AuditReportScreen(
-            profileJobId: args is AuditReportRouteArgs ? args.profileJobId : '',
-            initialYear: args is AuditReportRouteArgs ? args.initialYear : null,
-            initialQuarter: args is AuditReportRouteArgs
+          builder: (_) => CheckInReportScreen(
+            profileJobId: args is CheckInReportRouteArgs
+                ? args.profileJobId
+                : '',
+            initialYear: args is CheckInReportRouteArgs
+                ? args.initialYear
+                : null,
+            initialQuarter: args is CheckInReportRouteArgs
                 ? args.initialQuarter
                 : null,
           ),
@@ -395,8 +401,8 @@ class ComplianceTracksRouteArgs {
   final String title;
 }
 
-class AuditDetailsRouteArgs {
-  const AuditDetailsRouteArgs({
+class CheckInDetailsRouteArgs {
+  const CheckInDetailsRouteArgs({
     required this.profileJobId,
     this.year,
     this.quarter,
@@ -468,8 +474,8 @@ class PaygradeDetailRouteArgs {
   final String paygradeId;
 }
 
-class SingleAuditDetailsRouteArgs {
-  const SingleAuditDetailsRouteArgs({
+class SingleCheckInDetailsRouteArgs {
+  const SingleCheckInDetailsRouteArgs({
     required this.quarterlyAuditId,
     required this.date,
     required this.lastAuditDate,
@@ -486,8 +492,8 @@ class SingleAuditDetailsRouteArgs {
   final bool requireDescriptionSelection;
 }
 
-class AuditReportRouteArgs {
-  const AuditReportRouteArgs({
+class CheckInReportRouteArgs {
+  const CheckInReportRouteArgs({
     required this.profileJobId,
     this.initialYear,
     this.initialQuarter,

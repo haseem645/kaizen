@@ -127,7 +127,7 @@ class DrawerMainScreen extends StatelessWidget {
       return;
     }
 
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.audit);
+    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.checkIn);
   }
 
   void _openSeatProfiles(BuildContext context) {

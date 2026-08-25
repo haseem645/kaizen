@@ -12,7 +12,7 @@ import '../../../../core/network/api_error.dart';
 import '../../../../core/services/file_uploader.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/seat_description_training.dart';
-import '../../../audit/domain/repositories/audit_repository.dart';
+import '../../../check_in/domain/repositories/audit_repository.dart';
 
 enum QuizGenerationDifficulty {
   easy('easy'),

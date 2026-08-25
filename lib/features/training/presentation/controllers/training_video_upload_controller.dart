@@ -9,9 +9,9 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/services/background_media_upload_controller.dart';
 import '../../../../core/services/file_uploader.dart';
-import '../../../audit/data/datasources/audit_remote_data_source.dart';
-import '../../../audit/data/repositories/audit_repository_impl.dart';
-import '../../../audit/domain/repositories/audit_repository.dart';
+import '../../../check_in/data/datasources/audit_remote_data_source.dart';
+import '../../../check_in/data/repositories/audit_repository_impl.dart';
+import '../../../check_in/domain/repositories/audit_repository.dart';
 import '../../domain/entities/seat_description_training.dart';
 
 class TrainingVideoUploadTask {

@@ -647,7 +647,7 @@ extension _KaizenGramViewStateActions on _KaizenGramViewState {
         await AppRouter.pushNamed<void>(context, AppRouter.compliance);
         return;
       case _PowerListDestination.audit:
-        await AppRouter.pushNamed<void>(context, AppRouter.audit);
+        await AppRouter.pushNamed<void>(context, AppRouter.checkIn);
         return;
     }
   }
