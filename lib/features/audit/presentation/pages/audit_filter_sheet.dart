@@ -170,6 +170,11 @@ class _FilterSelectionTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
         borderRadius: BorderRadius.circular(4),
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),

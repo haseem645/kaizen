@@ -89,6 +89,7 @@ class AuditRepositoryImpl implements AuditRepository {
     );
   }
 
+  @override
   Future<List<String>> getSubordinateJobTitles() {
     return _remoteDataSource.getSubordinateJobTitles();
   }

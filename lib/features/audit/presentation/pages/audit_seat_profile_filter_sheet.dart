@@ -240,6 +240,11 @@ class _SelectionOptionTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(

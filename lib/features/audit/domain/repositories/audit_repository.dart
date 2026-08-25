@@ -45,6 +45,8 @@ abstract class AuditRepository {
     required int pageSize,
   });
 
+  Future<List<String>> getSubordinateJobTitles();
+
   Future<PerformanceReport> getPerformanceReportOverview({
     required AuditProfile profile,
     int? year,

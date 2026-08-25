@@ -68,6 +68,8 @@ class AuditController extends ChangeNotifier {
   AuditMainList? _myCheckInMainListCache;
   Timer? _teamMembersSearchDebounceTimer;
   String _teamMembersSearchQuery = '';
+  bool _isSeatProfileFilterLoading = false;
+  List<String> _seatProfileOptions = const <String>[];
   bool _hasPendingTeamMembersSearchRefresh = false;
   final Map<String, _CachedCertifiedReportPdfUrl> _certifiedReportPdfUrlCache =
       <String, _CachedCertifiedReportPdfUrl>{};
@@ -280,6 +282,8 @@ class AuditController extends ChangeNotifier {
   String get selectedAuditYearQuarterLabel =>
       '$selectedAuditYear - Q$selectedAuditQuarter';
 
+  bool get isSeatProfileFilterLoading => _isSeatProfileFilterLoading;
+
   String get teamMembersSearchQuery => _teamMembersSearchQuery;
 
   List<int> get auditYearOptions {
@@ -331,6 +335,10 @@ class AuditController extends ChangeNotifier {
   }
 
   List<String> get seatProfileOptions {
+    if (_seatProfileOptions.isNotEmpty) {
+      return _seatProfileOptions;
+    }
+
     final members = _state.mainList?.results ?? const <AuditProfile>[];
     final uniqueOptions = members
         .map((member) => member.seatProfile)
@@ -347,6 +355,27 @@ class AuditController extends ChangeNotifier {
         .toSet()
         .toList(growable: false);
     return uniqueOptions;
+  }
+
+  Future<void> ensureSeatProfileOptionsLoaded() async {
+    final auditRepository = _auditRepository;
+    if (auditRepository == null ||
+        _isSeatProfileFilterLoading ||
+        _seatProfileOptions.isNotEmpty) {
+      return;
+    }
+
+    _isSeatProfileFilterLoading = true;
+    notifyListeners();
+
+    try {
+      _seatProfileOptions = await auditRepository.getSubordinateJobTitles();
+    } catch (error) {
+      _logRecoverableError('ensureSeatProfileOptionsLoaded', error);
+    } finally {
+      _isSeatProfileFilterLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> initialize() async {
