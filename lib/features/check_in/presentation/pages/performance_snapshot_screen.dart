@@ -89,7 +89,11 @@ class _PerformanceSnapshotView extends StatelessWidget {
                     ],
                     CheckInSearchBar(
                       controller: controller.searchController,
-                      onChanged: (_) {},
+                      onChanged: controller.updateSearchQuery,
+                      onClearTap: () {
+                        controller.resetSearch();
+                      },
+                      isSearchLoading: controller.isSearchLoading,
                       onFilterTap: () =>
                           _openSeatProfileFilter(context, controller),
                     ),

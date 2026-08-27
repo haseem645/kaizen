@@ -58,12 +58,14 @@ class AuditRepositoryImpl implements AuditRepository {
     required int pageSize,
     int? year,
     int? quarter,
+    String? search,
   }) {
     return _remoteDataSource.getMyAudits(
       page: page,
       pageSize: pageSize,
       year: year,
       quarter: quarter,
+      search: search,
     );
   }
 
@@ -71,10 +73,12 @@ class AuditRepositoryImpl implements AuditRepository {
   Future<dynamic> getMyPerformanceSnapshot({
     required int page,
     required int pageSize,
+    String? search,
   }) {
     return _remoteDataSource.getMyPerformanceSnapshot(
       page: page,
       pageSize: pageSize,
+      search: search,
     );
   }
 
@@ -82,10 +86,12 @@ class AuditRepositoryImpl implements AuditRepository {
   Future<dynamic> getPerformanceSnapshot({
     required int page,
     required int pageSize,
+    String? search,
   }) {
     return _remoteDataSource.getPerformanceSnapshot(
       page: page,
       pageSize: pageSize,
+      search: search,
     );
   }
 

@@ -118,7 +118,7 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
       child: SafeArea(
         top: false,
         bottom: false,
-        child: state.isLoading
+        child: state.isLoading && state.mainList == null
             ? FastCircularProgressIndicator()
             : _buildContent(controller, state),
       ),
@@ -140,6 +140,10 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
     final members = controller.visibleMembers;
     final showSearchAndFilter = state.isOwner;
     final showSelectionTabs = state.isOwner && !state.isActualOwner;
+    final isSearchLoading =
+        state.isLoading &&
+        state.mainList != null &&
+        state.searchQuery.trim().isNotEmpty;
 
     return ListView(
       controller: _scrollController,
@@ -158,6 +162,11 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
           CheckInSearchBar(
             controller: _searchController,
             onChanged: controller.updateSearchQuery,
+            onClearTap: () {
+              _searchController.clear();
+              controller.resetSearch();
+            },
+            isSearchLoading: isSearchLoading,
             onFilterTap: () => _openFilterSheet(context, controller, state),
           ),
           if (controller.isSeatProfileFilterLoading) ...[

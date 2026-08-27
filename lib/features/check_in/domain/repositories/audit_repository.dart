@@ -33,16 +33,19 @@ abstract class AuditRepository {
     required int pageSize,
     int? year,
     int? quarter,
+    String? search,
   });
 
   Future<dynamic> getMyPerformanceSnapshot({
     required int page,
     required int pageSize,
+    String? search,
   });
 
   Future<dynamic> getPerformanceSnapshot({
     required int page,
     required int pageSize,
+    String? search,
   });
 
   Future<List<String>> getSubordinateJobTitles();

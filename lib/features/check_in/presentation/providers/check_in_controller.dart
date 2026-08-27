@@ -37,6 +37,9 @@ import 'check_in_state.dart';
 
 class CheckInController extends ChangeNotifier {
   static const Duration _certifiedReportPdfUrlCacheTtl = Duration(minutes: 10);
+  static const Duration _mainListSearchDebounceDuration = Duration(
+    milliseconds: 400,
+  );
   static const Duration _teamMembersSearchDebounceDuration = Duration(
     milliseconds: 400,
   );
@@ -66,10 +69,12 @@ class CheckInController extends ChangeNotifier {
   CheckInState _state = const CheckInState();
   AuditMainList? _activeMainListCache;
   AuditMainList? _myCheckInMainListCache;
+  Timer? _mainListSearchDebounceTimer;
   Timer? _teamMembersSearchDebounceTimer;
   String _teamMembersSearchQuery = '';
   bool _isSeatProfileFilterLoading = false;
   List<String> _seatProfileOptions = const <String>[];
+  bool _hasPendingMainListSearchRefresh = false;
   bool _hasPendingTeamMembersSearchRefresh = false;
   final Map<String, _CachedCertifiedReportPdfUrl> _certifiedReportPdfUrlCache =
       <String, _CachedCertifiedReportPdfUrl>{};
@@ -299,7 +304,6 @@ class CheckInController extends ChangeNotifier {
 
   List<AuditMember> get visibleMembers {
     final members = _state.mainList?.results ?? const <AuditProfile>[];
-    final query = _state.searchQuery.trim().toLowerCase();
 
     return members
         .where((member) {
@@ -308,14 +312,10 @@ class CheckInController extends ChangeNotifier {
                   _state.selectedStatus == AuditMemberStatus.active
               ? member.status == _state.selectedStatus
               : true;
-          final matchesQuery =
-              query.isEmpty ||
-              member.name.toLowerCase().contains(query) ||
-              member.roleTitle.toLowerCase().contains(query);
           final matchesSeatProfile =
               _state.selectedSeatProfile == null ||
               member.seatProfile == _state.selectedSeatProfile;
-          return matchesStatus && matchesQuery && matchesSeatProfile;
+          return matchesStatus && matchesSeatProfile;
         })
         .toList(growable: false);
   }
@@ -390,6 +390,7 @@ class CheckInController extends ChangeNotifier {
 
       _activeMainListCache = null;
       _myCheckInMainListCache = null;
+      _resetMainListSearchState();
       _resetTeamMembersSearchState();
 
       _state = _state.copyWith(
@@ -397,6 +398,7 @@ class CheckInController extends ChangeNotifier {
         isOwner: isOwner,
         isActualOwner: isActualOwner,
         selectedStatus: selectedStatus,
+        searchQuery: '',
         selectedAuditYear: currentYearQuarter.year,
         selectedAuditQuarter: currentYearQuarter.quarter,
         isLoadingMore: false,
@@ -475,6 +477,7 @@ class CheckInController extends ChangeNotifier {
       final nextList = await _loadTeamMembers(
         page: nextPage,
         pageSize: _teamMembersScreenPageSize,
+        search: _teamMembersSearchQuery,
       );
       final mergedList = AuditMainList(
         count: nextList.count,
@@ -667,12 +670,14 @@ class CheckInController extends ChangeNotifier {
 
       _activeMainListCache = null;
       _myCheckInMainListCache = null;
+      _resetMainListSearchState();
       _resetTeamMembersSearchState();
 
       _state = _state.copyWith(
         isLoading: true,
         isOwner: isOwner,
         isActualOwner: isActualOwner,
+        searchQuery: '',
         selectedAuditYear: resolvedYear,
         selectedAuditQuarter: resolvedQuarter,
         selectedYearQuarter: selectedYearQuarterLabel,
@@ -1039,6 +1044,7 @@ class CheckInController extends ChangeNotifier {
           : await _loadTeamMembers(
               page: 1,
               pageSize: _resolvedTeamMembersPageSize(),
+              search: _teamMembersSearchQuery,
             );
       final sortedMembers =
           _sortedMainList(refreshedMembers) ?? refreshedMembers;
@@ -1063,6 +1069,8 @@ class CheckInController extends ChangeNotifier {
     if (_state.selectedStatus == status) {
       return;
     }
+
+    _cancelPendingMainListSearchRefresh();
 
     _state = _state.copyWith(
       selectedStatus: status,
@@ -1111,8 +1119,24 @@ class CheckInController extends ChangeNotifier {
       return;
     }
 
+    _activeMainListCache = null;
+    _myCheckInMainListCache = null;
     _state = _state.copyWith(searchQuery: query);
     notifyListeners();
+    _scheduleMainListSearchRefresh();
+  }
+
+  Future<void> resetSearch({bool showLoader = true}) async {
+    _cancelPendingMainListSearchRefresh();
+    if (_state.searchQuery.trim().isEmpty) {
+      return;
+    }
+
+    _activeMainListCache = null;
+    _myCheckInMainListCache = null;
+    _state = _state.copyWith(searchQuery: '');
+    notifyListeners();
+    await _refreshMainListSearchResults(showLoader: showLoader);
   }
 
   void updateTeamMembersSearchQuery(String query) {
@@ -1169,6 +1193,7 @@ class CheckInController extends ChangeNotifier {
     }
 
     if (isPeriodChanged) {
+      _cancelPendingMainListSearchRefresh();
       _activeMainListCache = null;
       _myCheckInMainListCache = null;
 
@@ -1218,6 +1243,7 @@ class CheckInController extends ChangeNotifier {
       return;
     }
 
+    _cancelPendingMainListSearchRefresh();
     _activeMainListCache = null;
     _myCheckInMainListCache = null;
 
@@ -2012,6 +2038,89 @@ class CheckInController extends ChangeNotifier {
     return currentCount > 0 ? currentCount : 10;
   }
 
+  void _scheduleMainListSearchRefresh({bool immediate = false}) {
+    _mainListSearchDebounceTimer?.cancel();
+
+    if (immediate) {
+      unawaited(_runDebouncedMainListSearchRefresh());
+      return;
+    }
+
+    _mainListSearchDebounceTimer = Timer(_mainListSearchDebounceDuration, () {
+      unawaited(_runDebouncedMainListSearchRefresh());
+    });
+  }
+
+  Future<void> _runDebouncedMainListSearchRefresh() async {
+    if (_state.isLoading || _state.isLoadingMore) {
+      _hasPendingMainListSearchRefresh = true;
+      return;
+    }
+
+    _hasPendingMainListSearchRefresh = false;
+    await _refreshMainListSearchResults(showLoader: true);
+  }
+
+  Future<void> _refreshMainListSearchResults({required bool showLoader}) async {
+    final requestKey = _mainListRequestKey;
+    _activeMainListCache = null;
+    _myCheckInMainListCache = null;
+
+    _state = _state.copyWith(isLoading: showLoader, isLoadingMore: false);
+    notifyListeners();
+
+    try {
+      final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
+      if (requestKey != _mainListRequestKey) {
+        return;
+      }
+
+      _cacheList(_state.selectedStatus, mainList);
+      _state = _state.copyWith(
+        isLoading: false,
+        isLoadingMore: false,
+        mainList: mainList,
+      );
+      notifyListeners();
+    } catch (error) {
+      if (requestKey != _mainListRequestKey) {
+        return;
+      }
+
+      _state = _state.copyWith(isLoading: false, isLoadingMore: false);
+      notifyListeners();
+      _logRecoverableError('refreshMainListSearchResults', error);
+    } finally {
+      _flushPendingMainListSearchRefresh();
+    }
+  }
+
+  void _flushPendingMainListSearchRefresh() {
+    if (!_hasPendingMainListSearchRefresh ||
+        _state.isLoading ||
+        _state.isLoadingMore) {
+      return;
+    }
+
+    _hasPendingMainListSearchRefresh = false;
+    _scheduleMainListSearchRefresh(immediate: true);
+  }
+
+  void _resetMainListSearchState() {
+    _mainListSearchDebounceTimer?.cancel();
+    _hasPendingMainListSearchRefresh = false;
+  }
+
+  void _cancelPendingMainListSearchRefresh() {
+    _mainListSearchDebounceTimer?.cancel();
+    _hasPendingMainListSearchRefresh = false;
+  }
+
+  String get _mainListRequestKey {
+    return '${_state.selectedStatus.name}|${_state.searchQuery.trim()}|'
+        '$selectedAuditYear|$selectedAuditQuarter';
+  }
+
   void _scheduleTeamMembersSearchRefresh({bool immediate = false}) {
     _teamMembersSearchDebounceTimer?.cancel();
 
@@ -2050,6 +2159,7 @@ class CheckInController extends ChangeNotifier {
       final mainList = await _loadTeamMembers(
         page: 1,
         pageSize: _teamMembersScreenPageSize,
+        search: _teamMembersSearchQuery,
       );
       final sortedMainList = _sortedMainList(mainList) ?? mainList;
       _cacheList(AuditMemberStatus.active, sortedMainList);
@@ -2203,13 +2313,23 @@ class CheckInController extends ChangeNotifier {
   Future<AuditMainList> _loadListForSelectedStatus({
     required int page,
     required int pageSize,
+    String? search,
   }) {
+    final resolvedSearch = search ?? _state.searchQuery;
     if (!_state.isActualOwner &&
         _state.selectedStatus == AuditMemberStatus.deactivated) {
-      return _loadMyCheckIns(page: page, pageSize: pageSize);
+      return _loadMyCheckIns(
+        page: page,
+        pageSize: pageSize,
+        search: resolvedSearch,
+      );
     }
 
-    return _loadTeamMembers(page: page, pageSize: pageSize);
+    return _loadTeamMembers(
+      page: page,
+      pageSize: pageSize,
+      search: resolvedSearch,
+    );
   }
 
   Future<AuditMainList> _preloadNonOwnerLists({
@@ -2217,8 +2337,16 @@ class CheckInController extends ChangeNotifier {
     required int pageSize,
   }) async {
     final results = await Future.wait<AuditMainList>(<Future<AuditMainList>>[
-      _loadTeamMembers(page: page, pageSize: pageSize),
-      _loadMyCheckIns(page: page, pageSize: pageSize),
+      _loadTeamMembers(
+        page: page,
+        pageSize: pageSize,
+        search: _state.searchQuery,
+      ),
+      _loadMyCheckIns(
+        page: page,
+        pageSize: pageSize,
+        search: _state.searchQuery,
+      ),
     ]);
 
     _activeMainListCache = results[0];
@@ -2232,23 +2360,28 @@ class CheckInController extends ChangeNotifier {
   Future<AuditMainList> _loadTeamMembers({
     required int page,
     required int pageSize,
+    String? search,
   }) {
+    final trimmedSearch = search?.trim();
     return _getAuditOverviewUseCase(
       page: page,
       pageSize: pageSize,
       year: selectedAuditYear,
       quarter: selectedAuditQuarter,
-      search: _teamMembersSearchQuery,
+      search: trimmedSearch == null || trimmedSearch.isEmpty
+          ? null
+          : trimmedSearch,
     );
   }
 
   Future<AuditMainList> _loadMyCheckIns({
     required int page,
     required int pageSize,
+    String? search,
   }) {
     final auditRepository = _auditRepository;
     if (auditRepository == null) {
-      return _loadTeamMembers(page: page, pageSize: pageSize);
+      return _loadTeamMembers(page: page, pageSize: pageSize, search: search);
     }
 
     return auditRepository.getMyAudits(
@@ -2256,6 +2389,7 @@ class CheckInController extends ChangeNotifier {
       pageSize: pageSize,
       year: selectedAuditYear,
       quarter: selectedAuditQuarter,
+      search: search,
     );
   }
 
@@ -2267,6 +2401,7 @@ class CheckInController extends ChangeNotifier {
       return;
     }
 
+    _cancelPendingMainListSearchRefresh();
     _activeMainListCache = null;
     _myCheckInMainListCache = null;
 
@@ -2354,6 +2489,7 @@ class CheckInController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _mainListSearchDebounceTimer?.cancel();
     _teamMembersSearchDebounceTimer?.cancel();
     super.dispose();
   }

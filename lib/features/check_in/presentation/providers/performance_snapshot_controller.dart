@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
@@ -13,8 +15,9 @@ import '../../domain/entities/audit_profile.dart';
 enum PerformanceSnapshotTab { reports, myReports }
 
 class PerformanceSnapshotController extends ChangeNotifier {
+  static const Duration _searchDebounceDuration = Duration(milliseconds: 400);
+
   PerformanceSnapshotController(this._repository) {
-    searchController.addListener(_handleSearchChanged);
     scrollController.addListener(_handleScroll);
   }
 
@@ -34,6 +37,8 @@ class PerformanceSnapshotController extends ChangeNotifier {
   String _searchQuery = '';
   String? _selectedJobTitle;
   String? _myReportsErrorMessage;
+  Timer? _searchDebounceTimer;
+  bool _hasPendingSearchRefresh = false;
 
   bool get canAccessTeamReports => _canAccessTeamReports;
   bool get isActualOwner => _isActualOwner;
@@ -42,6 +47,10 @@ class PerformanceSnapshotController extends ChangeNotifier {
   List<String> get jobOptions => _jobOptions;
   String get searchQuery => _searchQuery;
   String? get selectedJobTitle => _selectedJobTitle;
+  bool get isSearchLoading =>
+      currentData.isLoading &&
+      currentData.items.isNotEmpty &&
+      _searchQuery.trim().isNotEmpty;
 
   PagedAuditData get currentData =>
       _selectedTab == PerformanceSnapshotTab.reports
@@ -49,17 +58,11 @@ class PerformanceSnapshotController extends ChangeNotifier {
       : _myReportsData;
 
   List<AuditProfile> get visibleReports {
-    final query = _searchQuery.trim().toLowerCase();
-
     return currentData.items
         .where((item) {
-          final matchesQuery =
-              query.isEmpty ||
-              item.name.toLowerCase().contains(query) ||
-              item.roleTitle.toLowerCase().contains(query);
           final matchesJob =
               _selectedJobTitle == null || item.roleTitle == _selectedJobTitle;
-          return matchesQuery && matchesJob;
+          return matchesJob;
         })
         .toList(growable: false);
   }
@@ -83,6 +86,11 @@ class PerformanceSnapshotController extends ChangeNotifier {
 
   Future<void> initialize() async {
     try {
+      _cancelPendingSearchRefresh();
+      _searchQuery = '';
+      searchController.clear();
+      _reportsData = const PagedAuditData();
+      _myReportsData = const PagedAuditData();
       final user = await AppPreference.getUser();
       _canAccessTeamReports = AppPermissionUtils.canAccessAuditTeamMembers(
         user,
@@ -118,41 +126,93 @@ class PerformanceSnapshotController extends ChangeNotifier {
 
     _selectedTab = nextTab;
     _selectedJobTitle = null;
+    _cancelPendingSearchRefresh();
+    _searchQuery = '';
     searchController.clear();
+    final nextTabData = currentData;
     notifyListeners();
 
-    if (nextTab == PerformanceSnapshotTab.myReports &&
-        _myReportsData.items.isEmpty) {
-      loadMyReports();
+    if (_currentDataMatchesSearch() && nextTabData.currentPage > 0) {
+      return;
     }
+
+    if (nextTab == PerformanceSnapshotTab.reports) {
+      unawaited(loadReports());
+      return;
+    }
+
+    unawaited(loadMyReports());
   }
 
-  Future<void> loadReports({bool loadMore = false}) async {
+  Future<void> loadReports({
+    bool loadMore = false,
+    bool force = false,
+    bool showLoader = true,
+  }) async {
     final currentData = _reportsData;
-    if (currentData.isLoading || currentData.isLoadingMore) {
+    if (!force && (currentData.isLoading || currentData.isLoadingMore)) {
       return;
     }
 
     _reportsData = currentData.copyWith(
-      isLoading: !loadMore,
+      isLoading: !loadMore && showLoader,
       isLoadingMore: loadMore,
     );
     notifyListeners();
 
     final nextPage = loadMore ? currentData.currentPage + 1 : 1;
+    final requestQuery = _searchQuery.trim();
+    final requestKey = _requestKeyFor(
+      tab: PerformanceSnapshotTab.reports,
+      query: requestQuery,
+    );
     try {
       final result = await _repository.getPerformanceSnapshot(
         page: nextPage,
         pageSize: 12,
+        search: requestQuery.isEmpty ? null : requestQuery,
       );
+      final isStaleRequest =
+          requestKey !=
+          _requestKeyFor(
+            tab: PerformanceSnapshotTab.reports,
+            query: _searchQuery.trim(),
+          );
+      if (isStaleRequest) {
+        _reportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        notifyListeners();
+        _flushPendingSearchRefresh();
+        return;
+      }
+
       final parsed = _parsePerformanceSnapshotResponse(result);
       final parsedItems = parsed.items;
 
       _reportsData = PagedAuditData.fromMainList(
         parsed.mainList,
         items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
+        query: requestQuery,
       );
     } catch (error) {
+      final isStaleRequest =
+          requestKey !=
+          _requestKeyFor(
+            tab: PerformanceSnapshotTab.reports,
+            query: _searchQuery.trim(),
+          );
+      if (isStaleRequest) {
+        _reportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        notifyListeners();
+        _flushPendingSearchRefresh();
+        return;
+      }
+
       _reportsData = currentData.copyWith(
         isLoading: false,
         isLoadingMore: false,
@@ -160,16 +220,21 @@ class PerformanceSnapshotController extends ChangeNotifier {
       debugPrint('PerformanceSnapshotController.loadReports failed: $error');
     }
     notifyListeners();
+    _flushPendingSearchRefresh();
   }
 
-  Future<void> loadMyReports({bool loadMore = false}) async {
+  Future<void> loadMyReports({
+    bool loadMore = false,
+    bool force = false,
+    bool showLoader = true,
+  }) async {
     final currentData = _myReportsData;
-    if (currentData.isLoading || currentData.isLoadingMore) {
+    if (!force && (currentData.isLoading || currentData.isLoadingMore)) {
       return;
     }
 
     _myReportsData = currentData.copyWith(
-      isLoading: !loadMore,
+      isLoading: !loadMore && showLoader,
       isLoadingMore: loadMore,
     );
     if (!loadMore) {
@@ -178,20 +243,59 @@ class PerformanceSnapshotController extends ChangeNotifier {
     notifyListeners();
 
     final nextPage = loadMore ? currentData.currentPage + 1 : 1;
+    final requestQuery = _searchQuery.trim();
+    final requestKey = _requestKeyFor(
+      tab: PerformanceSnapshotTab.myReports,
+      query: requestQuery,
+    );
     try {
       final result = await _repository.getMyPerformanceSnapshot(
         page: nextPage,
         pageSize: 12,
+        search: requestQuery.isEmpty ? null : requestQuery,
       );
+      final isStaleRequest =
+          requestKey !=
+          _requestKeyFor(
+            tab: PerformanceSnapshotTab.myReports,
+            query: _searchQuery.trim(),
+          );
+      if (isStaleRequest) {
+        _myReportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        notifyListeners();
+        _flushPendingSearchRefresh();
+        return;
+      }
+
       final parsed = _parsePerformanceSnapshotResponse(result);
       final parsedItems = parsed.items;
 
       _myReportsData = PagedAuditData.fromMainList(
         parsed.mainList,
         items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
+        query: requestQuery,
       );
       _myReportsErrorMessage = null;
     } on ApiError catch (error) {
+      final isStaleRequest =
+          requestKey !=
+          _requestKeyFor(
+            tab: PerformanceSnapshotTab.myReports,
+            query: _searchQuery.trim(),
+          );
+      if (isStaleRequest) {
+        _myReportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        notifyListeners();
+        _flushPendingSearchRefresh();
+        return;
+      }
+
       if (error.statusCode == 400) {
         _myReportsData = currentData.copyWith(
           isLoading: false,
@@ -209,6 +313,22 @@ class PerformanceSnapshotController extends ChangeNotifier {
         );
       }
     } catch (error) {
+      final isStaleRequest =
+          requestKey !=
+          _requestKeyFor(
+            tab: PerformanceSnapshotTab.myReports,
+            query: _searchQuery.trim(),
+          );
+      if (isStaleRequest) {
+        _myReportsData = currentData.copyWith(
+          isLoading: false,
+          isLoadingMore: false,
+        );
+        notifyListeners();
+        _flushPendingSearchRefresh();
+        return;
+      }
+
       _myReportsData = currentData.copyWith(
         isLoading: false,
         isLoadingMore: false,
@@ -217,6 +337,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
       debugPrint('PerformanceSnapshotController.loadMyReports failed: $error');
     }
     notifyListeners();
+    _flushPendingSearchRefresh();
   }
 
   Future<void> loadMore() async {
@@ -272,14 +393,26 @@ class PerformanceSnapshotController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _handleSearchChanged() {
-    final nextQuery = searchController.text;
-    if (_searchQuery == nextQuery) {
+  void updateSearchQuery(String value) {
+    if (_searchQuery == value) {
       return;
     }
 
-    _searchQuery = nextQuery;
+    _searchQuery = value;
     notifyListeners();
+    _scheduleSearchRefresh();
+  }
+
+  Future<void> resetSearch({bool showLoader = true}) async {
+    _cancelPendingSearchRefresh();
+    if (_searchQuery.trim().isEmpty) {
+      return;
+    }
+
+    _searchQuery = '';
+    searchController.clear();
+    notifyListeners();
+    await _refreshSearchResults(showLoader: showLoader);
   }
 
   void _handleScroll() {
@@ -534,13 +667,72 @@ class PerformanceSnapshotController extends ChangeNotifier {
 
   @override
   void dispose() {
-    searchController
-      ..removeListener(_handleSearchChanged)
-      ..dispose();
+    _searchDebounceTimer?.cancel();
+    searchController.dispose();
     scrollController
       ..removeListener(_handleScroll)
       ..dispose();
     super.dispose();
+  }
+
+  void _scheduleSearchRefresh({bool immediate = false}) {
+    _searchDebounceTimer?.cancel();
+
+    if (immediate) {
+      unawaited(_runDebouncedSearchRefresh());
+      return;
+    }
+
+    _searchDebounceTimer = Timer(_searchDebounceDuration, () {
+      unawaited(_runDebouncedSearchRefresh());
+    });
+  }
+
+  Future<void> _runDebouncedSearchRefresh() async {
+    if (_isInitializing || currentData.isLoading || currentData.isLoadingMore) {
+      _hasPendingSearchRefresh = true;
+      return;
+    }
+
+    _hasPendingSearchRefresh = false;
+    await _refreshSearchResults(showLoader: true);
+  }
+
+  Future<void> _refreshSearchResults({required bool showLoader}) async {
+    if (_selectedTab == PerformanceSnapshotTab.reports) {
+      await loadReports(force: true, showLoader: showLoader);
+      return;
+    }
+
+    await loadMyReports(force: true, showLoader: showLoader);
+  }
+
+  void _flushPendingSearchRefresh() {
+    if (!_hasPendingSearchRefresh ||
+        _isInitializing ||
+        currentData.isLoading ||
+        currentData.isLoadingMore) {
+      return;
+    }
+
+    _hasPendingSearchRefresh = false;
+    _scheduleSearchRefresh(immediate: true);
+  }
+
+  void _cancelPendingSearchRefresh() {
+    _searchDebounceTimer?.cancel();
+    _hasPendingSearchRefresh = false;
+  }
+
+  bool _currentDataMatchesSearch() {
+    return currentData.query.trim() == _searchQuery.trim();
+  }
+
+  String _requestKeyFor({
+    required PerformanceSnapshotTab tab,
+    required String query,
+  }) {
+    return '${tab.name}|$query';
   }
 }
 
@@ -561,6 +753,7 @@ class PagedAuditData {
     this.hasNextPage = false,
     this.isLoading = false,
     this.isLoadingMore = false,
+    this.query = '',
   });
 
   final List<AuditProfile> items;
@@ -568,6 +761,7 @@ class PagedAuditData {
   final bool hasNextPage;
   final bool isLoading;
   final bool isLoadingMore;
+  final String query;
 
   PagedAuditData copyWith({
     List<AuditProfile>? items,
@@ -575,6 +769,7 @@ class PagedAuditData {
     bool? hasNextPage,
     bool? isLoading,
     bool? isLoadingMore,
+    String? query,
   }) {
     return PagedAuditData(
       items: items ?? this.items,
@@ -582,12 +777,14 @@ class PagedAuditData {
       hasNextPage: hasNextPage ?? this.hasNextPage,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      query: query ?? this.query,
     );
   }
 
   factory PagedAuditData.fromMainList(
     AuditMainList list, {
     required List<AuditProfile> items,
+    String query = '',
   }) {
     return PagedAuditData(
       items: items,
@@ -595,6 +792,7 @@ class PagedAuditData {
       hasNextPage: list.next != null,
       isLoading: false,
       isLoadingMore: false,
+      query: query,
     );
   }
 }
