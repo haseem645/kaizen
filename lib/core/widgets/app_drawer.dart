@@ -30,6 +30,7 @@ class AppDrawer extends StatelessWidget {
     this.onSettingTap,
     this.onDrawerHeaderTap,
     this.onOrganizationTap,
+    this.onLogoutTap,
   });
 
   final String name;
@@ -51,30 +52,34 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback? onSettingTap;
   final VoidCallback? onDrawerHeaderTap;
   final VoidCallback? onOrganizationTap;
+  final VoidCallback? onLogoutTap;
 
   @override
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.surfaceDark,
       child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-            _buildHeader(),
-            const SizedBox(height: 12),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ..._buildModuleItems(context),
-                    const SizedBox(height: 12),
-                    _buildOrganizationRow(context),
-                  ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ..._buildModuleItems(context),
+                      const SizedBox(height: 8),
+                      _buildOrganizationRow(context),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
+
+            Align(alignment: Alignment.bottomCenter, child: _buildLogoutSection(context)),
           ],
         ),
       ),
@@ -209,18 +214,14 @@ class AppDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required bool isSelected,
+    Color? color,
     VoidCallback? onTap,
   }) {
+    final resolvedColor = color ?? (isSelected ? AppColors.secondaryColor : AppColors.textPrimary);
+
     return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
-      ),
-      title: AppTextView.body2(
-        title,
-        color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
-        fontWeight: FontWeight.w600,
-      ),
+      leading: Icon(icon, color: resolvedColor),
+      title: AppTextView.body2(title, color: resolvedColor, fontWeight: FontWeight.w600),
       selected: isSelected,
       selectedTileColor: AppColors.secondaryColor.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(1)),
@@ -228,6 +229,20 @@ class AppDrawer extends StatelessWidget {
         Navigator.of(context).pop();
         onTap?.call();
       },
+    );
+  }
+
+  Widget _buildLogoutSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: _buildDrawerItem(
+        context,
+        icon: Icons.logout_rounded,
+        title: AppStrings.authLogout,
+        isSelected: false,
+        color: AppColors.red,
+        onTap: onLogoutTap,
+      ),
     );
   }
 
@@ -241,10 +256,7 @@ class AppDrawer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Divider(
-            height: 1,
-            color: AppColors.textPrimary.withValues(alpha: 0.08),
-          ),
+          Divider(height: 1, color: AppColors.textPrimary.withValues(alpha: 0.08)),
           const SizedBox(height: 12),
           Material(
             color: AppColors.surfaceDark3.withValues(alpha: 0.92),
@@ -256,23 +268,14 @@ class AppDrawer extends StatelessWidget {
                 onOrganizationTap?.call();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 13,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.textPrimary.withValues(alpha: 0.08),
-                  ),
+                  border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.08)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.apartment_outlined,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
+                    const Icon(Icons.apartment_outlined, color: AppColors.textSecondary, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -328,16 +331,10 @@ class _ProfileAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.surfaceDark3,
         border: Border.all(color: AppColors.secondaryColor, width: 2),
-        image: provider == null
-            ? null
-            : DecorationImage(image: provider, fit: BoxFit.cover),
+        image: provider == null ? null : DecorationImage(image: provider, fit: BoxFit.cover),
       ),
       child: provider == null
-          ? const Icon(
-              Icons.person_outline_rounded,
-              color: AppColors.textPrimary,
-              size: 48,
-            )
+          ? const Icon(Icons.person_outline_rounded, color: AppColors.textPrimary, size: 48)
           : null,
     );
   }

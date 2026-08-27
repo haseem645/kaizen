@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/next_quiz_video_screen.dart';
 
 import '../core/preference/app_preference.dart';
+import '../features/auth/presentation/pages/forgot_password_screen.dart';
+import '../features/auth/presentation/pages/set_password_screen.dart'
+    as auth_reset;
 import '../features/check_in/domain/entities/audit_member_status.dart';
 import '../features/check_in/domain/entities/audit_profile.dart';
 import '../features/check_in/presentation/pages/check_in_details_screen.dart';
@@ -19,7 +22,8 @@ import '../features/departments/presentation/pages/departments_screen.dart';
 import '../features/kaizen_gpt/presentation/pages/kaizen_gpt.dart';
 import '../features/kaizengram/presentation/pages/kaizengram_screen.dart';
 import '../features/login/presentation/pages/login_screen.dart';
-import '../features/onboarding/presentation/pages/set_password_screen.dart';
+import '../features/onboarding/presentation/pages/set_password_screen.dart'
+    as onboarding_flow;
 import '../features/onboarding/presentation/pages/set_profile_image_screen.dart';
 import '../features/organizations/presentation/pages/organizations_screen.dart';
 import '../features/paygrades/presentation/pages/paygrade_detail_screen.dart';
@@ -32,9 +36,9 @@ import '../features/seat_profile/presentation/pages/seat_profile_create_screen.d
 import '../features/seat_profile/presentation/pages/seat_profile_descriptions_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
+import '../features/splash/presentation/pages/splash_screen.dart';
 import '../features/training/presentation/pages/setup_training_screen.dart';
 import '../features/training/presentation/pages/training_library_screen.dart';
-import '../features/splash/presentation/pages/splash_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -44,6 +48,8 @@ class AppRouter {
 
   static const String splash = '/';
   static const String login = '/login';
+  static const String forgotPassword = '/login/forgot-password';
+  static const String loginSetPassword = '/login/set-password';
   static const String onboarding = '/onboarding';
   static const String onboardingPassword = '/onboarding/password';
   static const String learningTracks = '/learning-tracks';
@@ -92,6 +98,23 @@ class AppRouter {
           settings: settings,
           builder: (_) => const LoginScreen(),
         );
+      case forgotPassword:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => ForgotPasswordScreen(
+            initialEmail: args is LoginSetPasswordRouteArgs ? args.email : null,
+          ),
+        );
+      case loginSetPassword:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => auth_reset.SetPasswordScreen(
+            initialEmail: args is LoginSetPasswordRouteArgs ? args.email : null,
+            initialToken: args is LoginSetPasswordRouteArgs ? args.token : null,
+          ),
+        );
       case onboarding:
         return _buildRoute(
           settings: settings,
@@ -101,7 +124,7 @@ class AppRouter {
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => SetPasswordScreen(
+          builder: (_) => onboarding_flow.SetPasswordScreen(
             initialProfileImagePath: args is OnboardingPasswordRouteArgs
                 ? args.profileImagePath
                 : null,
@@ -529,4 +552,11 @@ class OnboardingPasswordRouteArgs {
 
   final String? profileImagePath;
   final String? email;
+}
+
+class LoginSetPasswordRouteArgs {
+  const LoginSetPasswordRouteArgs({this.email, this.token});
+
+  final String? email;
+  final String? token;
 }

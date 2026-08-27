@@ -44,12 +44,12 @@ class CustomFunctions {
     'lib/assets/images/ISTP_Craftsman(M).png',
   ];
 
-  static showCustomAlert(
+  static Future<void> showCustomAlert(
     BuildContext context,
     String title,
     String description,
   ) {
-    showDialog(
+    return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return CustomAlertDialog(title, description);

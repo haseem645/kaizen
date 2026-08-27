@@ -9,6 +9,8 @@ class ApiEndPoints {
   static const String version = '/api/v1/';
   static const String parentPrefix = 'parent_';
   static const String login = 'accounts/login/';
+  static const String passwordReset = 'password_reset/';
+  static const String passwordConfirm = 'password_confirm/';
   static const String setActiveOrganization =
       'accounts/set_active_organization/';
   static const String refreshToken = 'accounts/token/refresh/';

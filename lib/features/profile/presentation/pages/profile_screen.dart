@@ -5,11 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
-import 'package:sparrowkaizen/core/widgets/app_confirmation_dialog.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/login/domain/entities/user.dart';
 import 'package:sparrowkaizen/features/profile/presentation/providers/profile_controller.dart';
-import 'package:sparrowkaizen/routes/app_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -87,7 +85,10 @@ class _ProfileContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 0), child: const _ProfileHeaderBar()),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: const _ProfileHeaderBar(),
+        ),
         const SizedBox(height: 24),
         Expanded(
           child: ListView(
@@ -104,8 +105,6 @@ class _ProfileContent extends StatelessWidget {
                 user: user,
                 onEditDateOfBirth: () => _pickDateOfBirth(context, controller),
               ),
-              const SizedBox(height: 24),
-              Center(child: _ProfileLogoutButton(onTap: () => _showLogoutConfirmation(context))),
               const SizedBox(height: 12),
             ],
           ),
@@ -122,47 +121,21 @@ class _ProfileContent extends StatelessWidget {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Unable to upload profile image right now.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to upload profile image right now.'),
+        ),
+      );
     }
   }
 
-  Future<void> _showLogoutConfirmation(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AppConfirmationDialog(
-          title: 'Logout',
-          description: 'Are you sure you want to logout?',
-          onCancelCallback: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-          },
-          onConfirmCallback: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-            await _logout(context);
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    await context.read<ProfileController>().clearAuth();
-
-    if (!context.mounted) {
-      return;
-    }
-
-    Navigator.of(
-      context,
-      rootNavigator: true,
-    ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
-  }
-
-  Future<void> _pickDateOfBirth(BuildContext context, ProfileController controller) async {
+  Future<void> _pickDateOfBirth(
+    BuildContext context,
+    ProfileController controller,
+  ) async {
     final initialDate =
-        _ProfileViewData.tryParseDate(controller.user?.dateOfBirth) ?? DateTime(1995, 6, 8);
+        _ProfileViewData.tryParseDate(controller.user?.dateOfBirth) ??
+        DateTime(1995, 6, 8);
     final now = DateTime.now();
     final pickedDate = await showDialog<DateTime>(
       context: context,
@@ -179,15 +152,19 @@ class _ProfileContent extends StatelessWidget {
     }
 
     try {
-      await controller.updateDateOfBirth(_ProfileViewData.formatApiDate(pickedDate));
+      await controller.updateDateOfBirth(
+        _ProfileViewData.formatApiDate(pickedDate),
+      );
     } catch (_) {
       if (!context.mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Unable to update date of birth right now.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to update date of birth right now.'),
+        ),
+      );
     }
   }
 }
@@ -203,7 +180,11 @@ class _ProfileHeaderBar extends StatelessWidget {
         children: [
           _ProfileHeaderAction(
             onTap: () => Navigator.of(context).pop(),
-            child: SvgPicture.asset('${AppStrings.imagePath}back.svg', width: 22, height: 22),
+            child: SvgPicture.asset(
+              '${AppStrings.imagePath}back.svg',
+              width: 22,
+              height: 22,
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -248,7 +229,11 @@ class _ProfileHeaderAction extends StatelessWidget {
 }
 
 class _ProfileHeroCard extends StatelessWidget {
-  const _ProfileHeroCard({required this.controller, required this.user, required this.onEditImage});
+  const _ProfileHeroCard({
+    required this.controller,
+    required this.user,
+    required this.onEditImage,
+  });
 
   final ProfileController controller;
   final User user;
@@ -278,7 +263,8 @@ class _ProfileHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (_ProfileViewData.resolveStatus(user) case final String status) ...[
+          if (_ProfileViewData.resolveStatus(user)
+              case final String status) ...[
             AppTextView.body2(
               status,
               color: AppColors.green1,
@@ -329,10 +315,16 @@ class _ProfileImageEditButton extends StatelessWidget {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.textPrimary,
+                    ),
                   ),
                 )
-              : const Icon(Icons.camera_alt_outlined, color: AppColors.textPrimary, size: 18),
+              : const Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.textPrimary,
+                  size: 18,
+                ),
         ),
       ),
     );
@@ -375,7 +367,11 @@ class _ProfileInfoSection extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         if (personality != null) ...[
-          _InfoCard(title: 'Personality', value: personality, icon: Icons.psychology_outlined),
+          _InfoCard(
+            title: 'Personality',
+            value: personality,
+            icon: Icons.psychology_outlined,
+          ),
           const SizedBox(height: 14),
         ],
         _InfoCard(
@@ -388,10 +384,16 @@ class _ProfileInfoSection extends StatelessWidget {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryColor),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.secondaryColor,
+                    ),
                   ),
                 )
-              : const Icon(Icons.edit_calendar_outlined, color: AppColors.secondaryColor, size: 20),
+              : const Icon(
+                  Icons.edit_calendar_outlined,
+                  color: AppColors.secondaryColor,
+                  size: 20,
+                ),
           onTap: controller.isUpdatingDateOfBirth ? null : onEditDateOfBirth,
         ),
         const SizedBox(height: 14),
@@ -401,35 +403,6 @@ class _ProfileInfoSection extends StatelessWidget {
           icon: Icons.location_on_outlined,
         ),
       ],
-    );
-  }
-}
-
-class _ProfileLogoutButton extends StatelessWidget {
-  const _ProfileLogoutButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.logout_rounded, color: AppColors.red, size: 20),
-            SizedBox(width: 12),
-            AppTextView.body('Logout', color: AppColors.red, fontWeight: FontWeight.w700),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -457,7 +430,9 @@ class _DateOfBirthDialogContent extends StatelessWidget {
         builder: (context, controller, _) {
           return Dialog(
             backgroundColor: AppColors.surfaceDark,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Column(
@@ -473,7 +448,9 @@ class _DateOfBirthDialogContent extends StatelessWidget {
                   const SizedBox(height: 14),
                   _ProfileDateSelectionChip(
                     label: 'Date',
-                    value: _ProfileViewData.formatDisplayDate(controller.selectedDate),
+                    value: _ProfileViewData.formatDisplayDate(
+                      controller.selectedDate,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   _ProfileCalendar(
@@ -491,14 +468,20 @@ class _DateOfBirthDialogContent extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(controller.selectedDate),
+                      onPressed: () =>
+                          Navigator.of(context).pop(controller.selectedDate),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.secondaryColor,
                         foregroundColor: AppColors.textPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text('Apply'),
                     ),
@@ -568,9 +551,17 @@ class _ProfileDateSelectionChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextView.body4(label, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+          AppTextView.body4(
+            label,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
           const SizedBox(height: 4),
-          AppTextView.body3(value, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+          AppTextView.body3(
+            value,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
         ],
       ),
     );
@@ -609,12 +600,20 @@ class _ProfileCalendar extends StatelessWidget {
     final gridStart = firstDayOfMonth.subtract(Duration(days: startOffset));
     final days = List<DateTime>.generate(
       42,
-      (index) => DateTime(gridStart.year, gridStart.month, gridStart.day + index),
+      (index) =>
+          DateTime(gridStart.year, gridStart.month, gridStart.day + index),
       growable: false,
     );
-    final previousMonth = DateTime(visibleMonth.year, visibleMonth.month - 1, 1);
+    final previousMonth = DateTime(
+      visibleMonth.year,
+      visibleMonth.month - 1,
+      1,
+    );
     final nextMonth = DateTime(visibleMonth.year, visibleMonth.month + 1, 1);
-    final canGoPrevious = !_isProfileMonthBefore(previousMonth, resolvedMinDate);
+    final canGoPrevious = !_isProfileMonthBefore(
+      previousMonth,
+      resolvedMinDate,
+    );
     final canGoNext = !_isProfileMonthAfter(nextMonth, resolvedMaxDate);
     final years = List<int>.generate(
       resolvedMaxDate.year - resolvedMinDate.year + 1,
@@ -632,7 +631,10 @@ class _ProfileCalendar extends StatelessWidget {
                   : canGoPrevious
                   ? () => onMonthChanged(previousMonth)
                   : null,
-              icon: const Icon(Icons.chevron_left_rounded, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.chevron_left_rounded,
+                color: AppColors.textPrimary,
+              ),
             ),
             Expanded(
               child: InkWell(
@@ -646,7 +648,9 @@ class _ProfileCalendar extends StatelessWidget {
                       AppTextView.body2(
                         isSelectingYear
                             ? '${visibleMonth.year}'
-                            : MaterialLocalizations.of(context).formatMonthYear(visibleMonth),
+                            : MaterialLocalizations.of(
+                                context,
+                              ).formatMonthYear(visibleMonth),
                         color: AppColors.textPrimary,
                         textAlign: TextAlign.center,
                         fontWeight: FontWeight.w700,
@@ -670,7 +674,10 @@ class _ProfileCalendar extends StatelessWidget {
                   : canGoNext
                   ? () => onMonthChanged(nextMonth)
                   : null,
-              icon: const Icon(Icons.chevron_right_rounded, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textPrimary,
+              ),
             ),
           ],
         ),
@@ -722,7 +729,9 @@ class _ProfileCalendar extends StatelessWidget {
             ),
             itemBuilder: (context, index) {
               final date = days[index];
-              final isEnabled = !date.isBefore(resolvedMinDate) && !date.isAfter(resolvedMaxDate);
+              final isEnabled =
+                  !date.isBefore(resolvedMinDate) &&
+                  !date.isAfter(resolvedMaxDate);
               return _ProfileCalendarDayCell(
                 date: date,
                 isCurrentMonth: date.month == visibleMonth.month,
@@ -780,7 +789,9 @@ class _ProfileYearCell extends StatelessWidget {
           child: AppTextView.body3(
             '$year',
             color: AppColors.textPrimary,
-            fontWeight: isSelected || isVisibleYear ? FontWeight.w700 : FontWeight.w500,
+            fontWeight: isSelected || isVisibleYear
+                ? FontWeight.w700
+                : FontWeight.w500,
           ),
         ),
       ),
@@ -864,11 +875,13 @@ class _ProfileCalendarDayCell extends StatelessWidget {
 }
 
 bool _isProfileMonthBefore(DateTime month, DateTime minDate) {
-  return month.year < minDate.year || (month.year == minDate.year && month.month < minDate.month);
+  return month.year < minDate.year ||
+      (month.year == minDate.year && month.month < minDate.month);
 }
 
 bool _isProfileMonthAfter(DateTime month, DateTime maxDate) {
-  return month.year > maxDate.year || (month.year == maxDate.year && month.month > maxDate.month);
+  return month.year > maxDate.year ||
+      (month.year == maxDate.year && month.month > maxDate.month);
 }
 
 DateTime _profileDateOnly(DateTime value) {
@@ -876,7 +889,9 @@ DateTime _profileDateOnly(DateTime value) {
 }
 
 bool _isSameProfileDate(DateTime date, DateTime other) {
-  return date.year == other.year && date.month == other.month && date.day == other.day;
+  return date.year == other.year &&
+      date.month == other.month &&
+      date.day == other.day;
 }
 
 class _ProfileAvatar extends StatelessWidget {
@@ -896,10 +911,16 @@ class _ProfileAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.surfaceDark3,
         border: Border.all(color: AppColors.secondaryColor, width: 2),
-        image: provider == null ? null : DecorationImage(image: provider, fit: BoxFit.cover),
+        image: provider == null
+            ? null
+            : DecorationImage(image: provider, fit: BoxFit.cover),
       ),
       child: provider == null
-          ? const Icon(Icons.person_outline_rounded, color: AppColors.textPrimary, size: 48)
+          ? const Icon(
+              Icons.person_outline_rounded,
+              color: AppColors.textPrimary,
+              size: 48,
+            )
           : null,
     );
   }
@@ -1093,7 +1114,9 @@ abstract final class _ProfileViewData {
       return null;
     }
 
-    final timestamp = trimmedValue.length <= 10 ? numericValue * 1000 : numericValue;
+    final timestamp = trimmedValue.length <= 10
+        ? numericValue * 1000
+        : numericValue;
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 

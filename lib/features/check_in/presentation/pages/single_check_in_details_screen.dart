@@ -659,12 +659,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final description = filteredDescriptions[index];
-                      return _buildDescriptionCard(
-                        context,
-                        audit,
-                        description,
-                        index,
-                      );
+                      return _buildDescriptionCard(context, audit, description);
                     },
                   ),
           ),
@@ -1105,15 +1100,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     BuildContext context,
     QuarterlyAudit audit,
     QuarterlyAuditDescription description,
-    int index,
   ) {
-    final categoryTitle = CustomFunctions.resolveAuditCategoryTitle(
-      audit: audit,
-      description: description,
-    );
-    final title = categoryTitle.isEmpty
-        ? 'Description ${index + 1}'
-        : categoryTitle;
     final auditFactorType = CustomFunctions.capitalizeFirstLetter(
       description.auditFactorType,
     );
@@ -1138,24 +1125,9 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextView.body1(
-                          title,
-                          color: AppColors.secondaryColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildPillLabel(
-                        auditFactorType.isEmpty ? 'Audit' : auditFactorType,
-                        isCompact: true,
-                      ),
-                    ],
+                  _buildPillLabel(
+                    auditFactorType.isEmpty ? 'Audit' : auditFactorType,
+                    isCompact: true,
                   ),
                   const SizedBox(height: 6),
                   AppTextView.body3(

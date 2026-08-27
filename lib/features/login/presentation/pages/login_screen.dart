@@ -7,11 +7,14 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
-import '../../../../core/widgets/splash_background_effects.dart';
 import '../../../../routes/app_router.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/usecases/login_usecase.dart';
+import '../../../auth/presentation/auth_validators.dart';
+import '../../../auth/presentation/widgets/auth_link_button.dart';
+import '../../../auth/presentation/widgets/auth_outlined_text_field.dart';
+import '../../../auth/presentation/widgets/auth_page_frame.dart';
 import '../providers/login_controller.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -118,240 +121,84 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
     _isErrorDialogVisible = false;
   }
 
-  String? _validateEmail(String value) {
-    final email = value.trim();
-    if (email.isEmpty) {
-      return AppStrings.loginEnterEmail;
-    }
-    if (!email.contains('@')) {
-      return AppStrings.loginEnterValidEmail;
-    }
-    return null;
-  }
-
-  String? _validatePassword(String value) {
-    final password = value.trim();
-    if (password.isEmpty) {
-      return AppStrings.loginEnterPassword;
-    }
-    if (password.length < 6) {
-      return AppStrings.loginPasswordLength;
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LoginController>();
-    return Scaffold(
-      backgroundColor: AppColors.hex292c3c,
-      resizeToAvoidBottomInset: true,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.hex33364b,
-              AppColors.hex2e3144,
-              AppColors.hex292c3c,
-            ],
-            stops: [0.0, 0.42, 1.0],
-          ),
-        ),
-        child: Stack(
+    return AuthPageFrame(
+      title: AppStrings.loginToYourAccount,
+      subtitle: AppStrings.enterProvidedCredentialsToContinue,
+      body: Form(
+        key: controller.formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Positioned.fill(child: SplashBackgroundEffects()),
-            _buildBody(context, controller),
+            _buildEmailField(),
+            _buildPasswordField(),
+            Align(
+              alignment: Alignment.centerRight,
+              child: AuthLinkButton(
+                label: AppStrings.loginForgotPassword,
+                color: AppColors.textSecondary,
+                icon: Icons.lock_outline_rounded,
+                fontWeight: FontWeight.w500,
+                onTap: () {
+                  AppRouter.pushNamed<void>(context, AppRouter.forgotPassword);
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildLoginButton(context, controller),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, LoginController controller) {
-    final mediaQuery = MediaQuery.of(context);
-    final bottomInset = mediaQuery.viewInsets.bottom;
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isTabletLayout = mediaQuery.size.shortestSide >= 600;
-          final contentPadding = EdgeInsets.fromLTRB(
-            isTabletLayout ? 40 : 30,
-            isTabletLayout ? 40 : 80,
-            isTabletLayout ? 40 : 30,
-            bottomInset + 24,
-          );
-          final minHeight = (constraints.maxHeight - contentPadding.vertical)
-              .clamp(0.0, double.infinity)
-              .toDouble();
-
-          return SingleChildScrollView(
-            padding: contentPadding,
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: minHeight),
-              child: Align(
-                alignment: isTabletLayout
-                    ? Alignment.center
-                    : Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    children: [
-                      SizedBox(height: isTabletLayout ? 0 : 40),
-                      _buildTitle(context),
-                      SizedBox(height: isTabletLayout ? 64 : 90),
-                      Form(
-                        key: controller.formKey,
-                        child: Column(
-                          children: [
-                            _buildSignInTitle(context),
-                            const SizedBox(height: 10),
-                            _buildSubtitle(context),
-                            SizedBox(height: isTabletLayout ? 48 : 60),
-                            _buildEmailField(),
-                            const SizedBox(height: 2),
-                            _buildPasswordField(),
-                            const SizedBox(height: 12),
-                            _buildLoginButton(context, controller),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTitle(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AppTextView.body1(
-          AppStrings.kaizen,
-          color: AppColors.secondaryColor,
-          fontSize: 25,
-          fontWeight: FontWeight.w400,
-        ),
-        Container(
-          width: 1,
-          height: 18,
-          margin: const EdgeInsets.only(left: 7, top: 4, right: 7),
-          color: AppColors.textPrimary,
-        ),
-        AppTextView.body1(
-          AppStrings.teams,
-          color: AppColors.textPrimary,
-          fontSize: 25,
-          fontWeight: FontWeight.w400,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSignInTitle(BuildContext context) {
-    return AppTextView.title(
-      AppStrings.loginToYourAccount,
-      textAlign: TextAlign.center,
-      color: AppColors.textPrimary,
-      fontSize: 24,
-      fontWeight: FontWeight.w700,
-    );
-  }
-
-  Widget _buildSubtitle(BuildContext context) {
-    return AppTextView.body3(
-      AppStrings.enterProvidedCredentialsToContinue,
-      textAlign: TextAlign.center,
-      color: AppColors.textPrimary,
-      fontWeight: FontWeight.w500,
-      fontSize: 16,
-    );
-  }
-
   Widget _buildEmailField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 48,
-          child: TextFormField(
-            controller: _controller.emailController,
-            keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: AppColors.textPrimary),
-            cursorColor: AppColors.textPrimary,
-            cursorHeight: 18,
-            onChanged: (value) {
-              setState(() {
-                _hasInteractedWithEmail = true;
-                _emailError = _validateEmail(value);
-              });
-            },
-            decoration: _buildInputDecoration(
-              labelText: AppStrings.loginEmailLabel,
-              hasError: _hasInteractedWithEmail && _emailError != null,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 18,
-          child: _buildFieldError(_hasInteractedWithEmail ? _emailError : null),
-        ),
-      ],
+    return AuthOutlinedTextField(
+      controller: _controller.emailController,
+      labelText: AppStrings.loginEmailLabel,
+      errorText: _hasInteractedWithEmail ? _emailError : null,
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      autofillHints: const <String>[AutofillHints.email],
+      onChanged: (value) {
+        setState(() {
+          _hasInteractedWithEmail = true;
+          _emailError = AuthValidators.validateEmail(value);
+        });
+      },
     );
   }
 
   Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 48,
-          child: TextFormField(
-            controller: _controller.passwordController,
-            obscureText: _isPasswordHidden,
-            style: const TextStyle(color: AppColors.textPrimary),
-            cursorColor: AppColors.textPrimary,
-            cursorHeight: 18,
-            onChanged: (value) {
-              setState(() {
-                _hasInteractedWithPassword = true;
-                _passwordError = _validatePassword(value);
-              });
-            },
-            decoration: _buildInputDecoration(
-              labelText: AppStrings.loginPasswordLabel,
-              hasError: _hasInteractedWithPassword && _passwordError != null,
-              suffixIcon: IconButton(
-                onPressed: () {
-                  setState(() {
-                    _isPasswordHidden = !_isPasswordHidden;
-                  });
-                },
-                icon: Icon(
-                  _isPasswordHidden
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: AppColors.secondaryColor,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
+    return AuthOutlinedTextField(
+      controller: _controller.passwordController,
+      labelText: AppStrings.loginPasswordLabel,
+      errorText: _hasInteractedWithPassword ? _passwordError : null,
+      obscureText: _isPasswordHidden,
+      textInputAction: TextInputAction.done,
+      autofillHints: const <String>[AutofillHints.password],
+      onChanged: (value) {
+        setState(() {
+          _hasInteractedWithPassword = true;
+          _passwordError = AuthValidators.validateLoginPassword(value);
+        });
+      },
+      suffixIcon: IconButton(
+        onPressed: () {
+          setState(() {
+            _isPasswordHidden = !_isPasswordHidden;
+          });
+        },
+        icon: Icon(
+          _isPasswordHidden
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
+          color: AppColors.secondaryColor,
+          size: 20,
         ),
-        SizedBox(
-          height: 18,
-          child: _buildFieldError(
-            _hasInteractedWithPassword ? _passwordError : null,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -363,8 +210,10 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
         setState(() {
           _hasInteractedWithEmail = true;
           _hasInteractedWithPassword = true;
-          _emailError = _validateEmail(controller.emailController.text);
-          _passwordError = _validatePassword(
+          _emailError = AuthValidators.validateEmail(
+            controller.emailController.text,
+          );
+          _passwordError = AuthValidators.validateLoginPassword(
             controller.passwordController.text,
           );
         });
@@ -378,51 +227,6 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
           password: controller.passwordController.text,
         );
       },
-    );
-  }
-
-  Widget _buildFieldError(String? errorText) {
-    if (errorText == null || errorText.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, left: 4),
-      child: AppTextView.body4(errorText, color: AppColors.red1, fontSize: 10),
-    );
-  }
-
-  InputDecoration _buildInputDecoration({
-    required String labelText,
-    required bool hasError,
-    Widget? suffixIcon,
-  }) {
-    final inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(5),
-      borderSide: const BorderSide(color: AppColors.fieldBorder, width: 1),
-    );
-
-    return InputDecoration(
-      labelText: labelText,
-      labelStyle: const TextStyle(color: AppColors.fieldBorder),
-      filled: true,
-      fillColor: Colors.transparent,
-      enabledBorder: inputBorder,
-      focusedBorder: inputBorder.copyWith(
-        borderSide: const BorderSide(color: AppColors.textPrimary, width: 1),
-      ),
-      border: hasError
-          ? inputBorder.copyWith(
-              borderSide: const BorderSide(color: AppColors.red),
-            )
-          : inputBorder,
-      errorBorder: inputBorder.copyWith(
-        borderSide: const BorderSide(color: AppColors.red),
-      ),
-      focusedErrorBorder: inputBorder.copyWith(
-        borderSide: const BorderSide(color: AppColors.red),
-      ),
-      suffixIcon: suffixIcon,
     );
   }
 }

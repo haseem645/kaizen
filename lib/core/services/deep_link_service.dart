@@ -241,6 +241,11 @@ class DeepLinkService {
         .map((segment) => segment.trim().toLowerCase())
         .toList(growable: false);
 
+    final passwordResetTarget = _resolvePasswordResetTarget(uri);
+    if (passwordResetTarget != null) {
+      return passwordResetTarget;
+    }
+
     if (normalizedSegments.length >= 3 &&
         normalizedSegments[0] == 'ltc' &&
         normalizedSegments[1] == 'assigned-track') {
@@ -277,6 +282,49 @@ class DeepLinkService {
     }
 
     return const DeepLinkTarget.profile(clearStack: true);
+  }
+
+  DeepLinkTarget? _resolvePasswordResetTarget(Uri uri) {
+    final rawLink = uri.toString().trim();
+    if (rawLink.isEmpty) {
+      return null;
+    }
+
+    const passwordResetMarkers = <String>[
+      '/auth/password-reset/confirm',
+      '/auth/password-reset',
+    ];
+    final normalizedRawLink = rawLink.toLowerCase();
+
+    var hasMatchedPasswordResetMarker = false;
+    for (final marker in passwordResetMarkers) {
+      final markerIndex = normalizedRawLink.indexOf(marker);
+      if (markerIndex == -1) {
+        continue;
+      }
+
+      final markerEndIndex = markerIndex + marker.length;
+      if (markerEndIndex < normalizedRawLink.length) {
+        final nextCharacter = normalizedRawLink[markerEndIndex];
+        if (nextCharacter != '/' && nextCharacter != '?') {
+          continue;
+        }
+      }
+
+      hasMatchedPasswordResetMarker = true;
+      break;
+    }
+
+    if (!hasMatchedPasswordResetMarker) {
+      return null;
+    }
+
+    final token = uri.queryParameters['token']?.trim() ?? '';
+    if (token.isEmpty) {
+      return null;
+    }
+
+    return DeepLinkTarget.passwordResetConfirm(token: token);
   }
 
   Future<DeepLinkTarget?> _resolveOrganizationDeepLinkTarget(Uri uri) async {
@@ -610,6 +658,14 @@ class DeepLinkTarget {
         arguments: OnboardingPasswordRouteArgs(
           profileImagePath: profileImagePath,
         ),
+        requiresAuthentication: false,
+      );
+
+  DeepLinkTarget.passwordResetConfirm({required String token, String? email})
+    : this._(
+        routeName: AppRouter.loginSetPassword,
+        arguments: LoginSetPasswordRouteArgs(email: email, token: token),
+        clearStack: true,
         requiresAuthentication: false,
       );
 

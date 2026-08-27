@@ -13,10 +13,7 @@ class LoginUseCase {
 
   final AuthRepository _authRepository;
 
-  Future<AppUser> call({
-    required String email,
-    required String password,
-  }) async {
+  Future<AppUser> call({required String email, required String password}) async {
     final normalizedEmail = email.trim().toLowerCase();
     final normalizedPassword = password.trim();
 
@@ -32,8 +29,8 @@ class LoginUseCase {
       throw const LoginException(AppStrings.loginEnterPassword);
     }
 
-    if (normalizedPassword.length < 6) {
-      throw const LoginException(AppStrings.loginPasswordLength);
+    if (normalizedPassword.length < 8) {
+      throw const LoginException(AppStrings.authPasswordMinLength);
     }
 
     try {
@@ -54,19 +51,14 @@ class LoginUseCase {
       await AppPreference.clearSelectedOrganizationId();
       AppManager.instance.updateCurrentUser(null);
 
-      final userProfile = await _authRepository.fetchUserDetail(
-        accessToken: loginResponse.access,
-      );
+      final userProfile = await _authRepository.fetchUserDetail(accessToken: loginResponse.access);
 
       await _authRepository.saveUserProfile(userProfile);
       AppManager.instance.updateCurrentUser(userProfile);
       await _fetchCompanyDetailsAfterUserDetails(loginResponse.access);
       await _fetchOrganizationsAfterLogin();
 
-      final displayName = _resolveDisplayName(
-        email: normalizedEmail,
-        profile: userProfile,
-      );
+      final displayName = _resolveDisplayName(email: normalizedEmail, profile: userProfile);
 
       return AppUser(
         id: userProfile.uuid ?? userProfile.userUuid ?? normalizedEmail,
@@ -148,8 +140,9 @@ class LoginUseCase {
 
   Future<void> _fetchCompanyDetailsAfterUserDetails(String accessToken) async {
     try {
-      final companyDetails = await AppManagerRemoteDataSource()
-          .fetchCompanyDetails(accessToken: accessToken);
+      final companyDetails = await AppManagerRemoteDataSource().fetchCompanyDetails(
+        accessToken: accessToken,
+      );
       await AppPreference.saveActiveCompany(companyDetails);
       AppManager.instance.saveActiveCompany(companyDetails);
     } catch (_) {
