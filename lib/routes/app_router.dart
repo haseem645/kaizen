@@ -12,7 +12,7 @@ import '../features/check_in/presentation/pages/check_in_report.dart';
 import '../features/check_in/presentation/pages/check_in_screen.dart';
 import '../features/check_in/presentation/pages/performance_report_screen.dart';
 import '../features/check_in/presentation/pages/performance_snapshot_screen.dart';
-import '../features/check_in/presentation/pages/single_check_in_details_screen.dart';
+import '../features/check_in/presentation/pages/check_in_descriptions_list_screen.dart';
 import '../features/compliance/domain/entities/compliance_tab_type.dart';
 import '../features/compliance/domain/entities/learning_module_detail_track.dart';
 import '../features/compliance/presentation/pages/compliance_screen.dart';
@@ -72,7 +72,7 @@ class AppRouter {
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
   static const String checkInDetails = '/check-in-details';
-  static const String singleCheckInDetails = '/check-in-details/single';
+  static const String checkInDescriptionsList = '/check-in-details/single';
   static const String checkInReport = '/check-in-report';
   static const String complianceDetail = '/compliance/detail';
   static const String complianceTracks = '/compliance/tracks';
@@ -302,23 +302,24 @@ class AppRouter {
                 : null,
           ),
         );
-      case singleCheckInDetails:
+      case checkInDescriptionsList:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => SingleCheckInDetailsScreen(
-            quarterlyAuditId: args is SingleCheckInDetailsRouteArgs
+          builder: (_) => CheckInDescriptionsListScreen(
+            quarterlyAuditId: args is CheckInDescriptionsListRouteArgs
                 ? args.quarterlyAuditId
                 : '',
-            date: args is SingleCheckInDetailsRouteArgs ? args.date : '',
-            lastAuditDate: args is SingleCheckInDetailsRouteArgs
+            date: args is CheckInDescriptionsListRouteArgs ? args.date : '',
+            lastAuditDate: args is CheckInDescriptionsListRouteArgs
                 ? args.lastAuditDate
                 : '',
-            year: args is SingleCheckInDetailsRouteArgs ? args.year : null,
-            quarter: args is SingleCheckInDetailsRouteArgs
+            year: args is CheckInDescriptionsListRouteArgs ? args.year : null,
+            quarter: args is CheckInDescriptionsListRouteArgs
                 ? args.quarter
                 : null,
-            requireDescriptionSelection: args is SingleCheckInDetailsRouteArgs
+            requireDescriptionSelection:
+                args is CheckInDescriptionsListRouteArgs
                 ? args.requireDescriptionSelection
                 : false,
           ),
@@ -497,8 +498,8 @@ class PaygradeDetailRouteArgs {
   final String paygradeId;
 }
 
-class SingleCheckInDetailsRouteArgs {
-  const SingleCheckInDetailsRouteArgs({
+class CheckInDescriptionsListRouteArgs {
+  const CheckInDescriptionsListRouteArgs({
     required this.quarterlyAuditId,
     required this.date,
     required this.lastAuditDate,

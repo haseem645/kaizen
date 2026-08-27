@@ -631,8 +631,8 @@ class _CheckInDetailsScreenView extends StatelessWidget {
   }) async {
     await AppRouter.pushNamed(
       context,
-      AppRouter.singleCheckInDetails,
-      arguments: SingleCheckInDetailsRouteArgs(
+      AppRouter.checkInDescriptionsList,
+      arguments: CheckInDescriptionsListRouteArgs(
         quarterlyAuditId: details.uuid,
         date: date,
         lastAuditDate: details.lastAuditDate,
