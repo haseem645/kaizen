@@ -40,20 +40,15 @@ class SingleCheckInDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(
-          create: (_) => createAuditRemoteDataSource(),
-        ),
+        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) =>
-              createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetQuarterlyAuditUseCase>(
-          update: (_, repository, __) =>
-              createGetQuarterlyAuditUseCase(repository),
+          update: (_, repository, __) => createGetQuarterlyAuditUseCase(repository),
         ),
         ChangeNotifierProvider<CheckInController>(
           create: (context) =>
@@ -106,8 +101,7 @@ class _SingleCheckInDetailsView extends StatefulWidget {
   final bool requireDescriptionSelection;
 
   @override
-  State<_SingleCheckInDetailsView> createState() =>
-      _SingleCheckInDetailsViewState();
+  State<_SingleCheckInDetailsView> createState() => _SingleCheckInDetailsViewState();
 }
 
 class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
@@ -130,8 +124,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
         oldWidget.quarterlyAuditId != widget.quarterlyAuditId ||
         oldWidget.year != widget.year ||
         oldWidget.quarter != widget.quarter ||
-        oldWidget.requireDescriptionSelection !=
-            widget.requireDescriptionSelection;
+        oldWidget.requireDescriptionSelection != widget.requireDescriptionSelection;
     if (!didIdentityChange) {
       return;
     }
@@ -170,10 +163,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-              child: _buildHeader(context),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
             const SizedBox(height: 18),
             if (state.isLoading)
               Expanded(child: Center(child: FastCircularProgressIndicator()))
@@ -201,11 +191,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                       ValueListenableBuilder<_SingleCheckInFiltersState>(
                         valueListenable: _filtersNotifier,
                         builder: (context, filtersState, _) {
-                          return _buildDescriptionsSection(
-                            context,
-                            audit,
-                            filtersState,
-                          );
+                          return _buildDescriptionsSection(context, audit, filtersState);
                         },
                       ),
                       const SizedBox(height: 24),
@@ -286,9 +272,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     AuditProfile member, {
     required bool isSelected,
   }) {
-    final profileName = member.name.trim().isEmpty
-        ? AppStrings.noProfile
-        : member.name;
+    final profileName = member.name.trim().isEmpty ? AppStrings.noProfile : member.name;
 
     return GestureDetector(
       onTap: isSelected ? null : () => _openSelectedTeamMember(context, member),
@@ -349,19 +333,14 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
       ),
     );
 
-    if (!context.mounted ||
-        selectedMember == null ||
-        _isCurrentMember(audit, selectedMember)) {
+    if (!context.mounted || selectedMember == null || _isCurrentMember(audit, selectedMember)) {
       return;
     }
 
     await _openSelectedTeamMember(context, selectedMember);
   }
 
-  Future<void> _openSelectedTeamMember(
-    BuildContext context,
-    AuditProfile member,
-  ) {
+  Future<void> _openSelectedTeamMember(BuildContext context, AuditProfile member) {
     return AppRouter.pushNamed<void>(
       context,
       AppRouter.checkInDetails,
@@ -378,10 +357,8 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     final memberProfileUuid = member.profileUuid.trim();
     final memberProfileJob = member.profileJob.trim();
 
-    return memberProfileUuid.isNotEmpty &&
-            memberProfileUuid == audit.profileUuid.trim() ||
-        memberProfileJob.isNotEmpty &&
-            memberProfileJob == audit.profileJob.trim();
+    return memberProfileUuid.isNotEmpty && memberProfileUuid == audit.profileUuid.trim() ||
+        memberProfileJob.isNotEmpty && memberProfileJob == audit.profileJob.trim();
   }
 
   Future<void> _openDescriptionDetails(
@@ -440,10 +417,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
-                  ),
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                 ),
               ),
             ),
@@ -482,9 +456,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                   fontWeight: FontWeight.w600,
                 ),
                 AppTextView.body(
-                  audit.profileName.trim().isEmpty
-                      ? AppStrings.noProfile
-                      : audit.profileName,
+                  audit.profileName.trim().isEmpty ? AppStrings.noProfile : audit.profileName,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -497,9 +469,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                       TextSpan(
                         text: '${AppStrings.lastAudit}: ',
                         style: TextStyle(
-                          color: AppColors.textSecondary.withValues(
-                            alpha: 0.78,
-                          ),
+                          color: AppColors.textSecondary.withValues(alpha: 0.78),
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                         ),
@@ -543,9 +513,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
           children: [
             Expanded(
               child: AppTextView.body1(
-                filtersState.isFilterOptionsVisible
-                    ? 'Filter Options'
-                    : 'Descriptions',
+                filtersState.isFilterOptionsVisible ? 'Filter Options' : 'Descriptions',
                 color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -553,20 +521,14 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
             ),
             const SizedBox(width: 12),
             InkWell(
-              borderRadius: BorderRadius.circular(
-                filtersState.isFilterOptionsVisible ? 8 : 8,
-              ),
+              borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
               onTap: _toggleFilterOptions,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.all(
-                  filtersState.isFilterOptionsVisible ? 8 : 8,
-                ),
+                padding: EdgeInsets.all(filtersState.isFilterOptionsVisible ? 8 : 8),
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor,
-                  borderRadius: BorderRadius.circular(
-                    filtersState.isFilterOptionsVisible ? 8 : 8,
-                  ),
+                  borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
                 ),
                 child: Icon(
                   filtersState.isFilterOptionsVisible
@@ -587,9 +549,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppColors.secondaryColor.withValues(alpha: 0.24),
-              ),
+              border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.24)),
             ),
             child: const AppTextView.body2(
               AppStrings.checkInSelectDescriptionPrompt,
@@ -618,10 +578,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                 child: SizeTransition(
                   sizeFactor: animation,
                   axisAlignment: -1,
-                  child: SlideTransition(
-                    position: slideAnimation,
-                    child: child,
-                  ),
+                  child: SlideTransition(position: slideAnimation, child: child),
                 ),
               );
             },
@@ -668,10 +625,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     );
   }
 
-  Widget _buildFilterOptionsView(
-    QuarterlyAudit audit,
-    _SingleCheckInFiltersState filtersState,
-  ) {
+  Widget _buildFilterOptionsView(QuarterlyAudit audit, _SingleCheckInFiltersState filtersState) {
     final categories = _categoryOptions(audit, filtersState);
     final milestoneOptions = _milestoneOptions(audit, filtersState);
     final auditTimingOptions = _auditTimingOptions(audit, filtersState);
@@ -798,11 +752,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body2(
-          label,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
+        AppTextView.body2(label, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         const SizedBox(height: 10),
         SizedBox(
           height: 32,
@@ -818,17 +768,12 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
                 onTap: () => onTap(option),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.orange2 : Colors.transparent,
                     borderRadius: BorderRadius.circular(50),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.orange2
-                          : AppColors.textPrimary,
+                      color: isSelected ? AppColors.orange2 : AppColors.textPrimary,
                     ),
                   ),
                   child: Center(
@@ -853,11 +798,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
   ) {
     return audit.descriptions
         .where((description) {
-          if (!_isDescriptionEligibleForDisplay(
-            audit,
-            description,
-            filtersState,
-          )) {
+          if (!_isDescriptionEligibleForDisplay(audit, description, filtersState)) {
             return false;
           }
 
@@ -865,13 +806,9 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
             audit: audit,
             description: description,
           );
-          final milestone = CustomFunctions.normalizeAuditMilestone(
-            description.milestoneDay,
-          );
+          final milestone = CustomFunctions.normalizeAuditMilestone(description.milestoneDay);
           final auditTiming = CustomFunctions.resolveAuditTiming(description);
-          final auditType = CustomFunctions.normalizeAuditType(
-            description.auditFactorType,
-          );
+          final auditType = CustomFunctions.normalizeAuditType(description.auditFactorType);
 
           final matchesCategory =
               filtersState.selectedCategories.isEmpty ||
@@ -886,10 +823,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
               filtersState.selectedAuditTypes.isEmpty ||
               filtersState.selectedAuditTypes.contains(auditType);
 
-          return matchesCategory &&
-              matchesMilestone &&
-              matchesAuditTiming &&
-              matchesAuditType;
+          return matchesCategory && matchesMilestone && matchesAuditTiming && matchesAuditType;
         })
         .toList(growable: false);
   }
@@ -903,11 +837,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     QuarterlyAuditDescription description,
     _SingleCheckInFiltersState filtersState,
   ) {
-    if (!_isDescriptionEligibleForFilterOptions(
-      audit,
-      description,
-      filtersState,
-    )) {
+    if (!_isDescriptionEligibleForFilterOptions(audit, description, filtersState)) {
       return false;
     }
 
@@ -929,11 +859,10 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     _SingleCheckInFiltersState filtersState,
   ) {
     final isAudited = _isDescriptionAudited(description);
-    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(
-      widget.date,
+    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(widget.date);
+    final shouldIncludeUnauditedContinueDescriptions = _shouldIncludeUnauditedContinueDescriptions(
+      audit,
     );
-    final shouldIncludeUnauditedContinueDescriptions =
-        _shouldIncludeUnauditedContinueDescriptions(audit);
 
     if (audit.isMismatch && !isAudited) {
       return false;
@@ -949,22 +878,15 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
   }
 
   bool _shouldIncludeUnauditedContinueDescriptions(QuarterlyAudit audit) {
-    return !audit.isMismatch &&
-        CustomFunctions.isAuditWithinContinueWindow(widget.date);
+    return !audit.isMismatch && CustomFunctions.isAuditWithinContinueWindow(widget.date);
   }
 
-  List<String> _categoryOptions(
-    QuarterlyAudit audit,
-    _SingleCheckInFiltersState filtersState,
-  ) {
+  List<String> _categoryOptions(QuarterlyAudit audit, _SingleCheckInFiltersState filtersState) {
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(
-                audit,
-                description,
-                filtersState,
-              ),
+              (description) =>
+                  _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
             )
             .map(
               (description) => CustomFunctions.resolveAuditCategoryOption(
@@ -979,24 +901,14 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     return options;
   }
 
-  List<String> _milestoneOptions(
-    QuarterlyAudit audit,
-    _SingleCheckInFiltersState filtersState,
-  ) {
+  List<String> _milestoneOptions(QuarterlyAudit audit, _SingleCheckInFiltersState filtersState) {
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(
-                audit,
-                description,
-                filtersState,
-              ),
+              (description) =>
+                  _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
             )
-            .map(
-              (description) => CustomFunctions.normalizeAuditMilestone(
-                description.milestoneDay,
-              ),
-            )
+            .map((description) => CustomFunctions.normalizeAuditMilestone(description.milestoneDay))
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
@@ -1004,51 +916,30 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     return options;
   }
 
-  List<String> _auditTimingOptions(
-    QuarterlyAudit audit,
-    _SingleCheckInFiltersState filtersState,
-  ) {
+  List<String> _auditTimingOptions(QuarterlyAudit audit, _SingleCheckInFiltersState filtersState) {
     final preferredOrder = AppStrings.auditTimingOptions;
     final availableOptions = audit.descriptions
         .where(
-          (description) => _isDescriptionEligibleForFilterOptions(
-            audit,
-            description,
-            filtersState,
-          ),
+          (description) => _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
         )
         .map(CustomFunctions.resolveAuditTiming)
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder
-        .where(availableOptions.contains)
-        .toList(growable: false);
+    return preferredOrder.where(availableOptions.contains).toList(growable: false);
   }
 
-  List<String> _auditTypeOptions(
-    QuarterlyAudit audit,
-    _SingleCheckInFiltersState filtersState,
-  ) {
+  List<String> _auditTypeOptions(QuarterlyAudit audit, _SingleCheckInFiltersState filtersState) {
     final preferredOrder = AppStrings.auditTypeOptions;
     final availableOptions = audit.descriptions
         .where(
-          (description) => _isDescriptionEligibleForFilterOptions(
-            audit,
-            description,
-            filtersState,
-          ),
+          (description) => _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
         )
-        .map(
-          (description) =>
-              CustomFunctions.normalizeAuditType(description.auditFactorType),
-        )
+        .map((description) => CustomFunctions.normalizeAuditType(description.auditFactorType))
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder
-        .where(availableOptions.contains)
-        .toList(growable: false);
+    return preferredOrder.where(availableOptions.contains).toList(growable: false);
   }
 
   bool _hasActiveFilters(_SingleCheckInFiltersState filtersState) =>
@@ -1071,9 +962,7 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
 
   void _toggleShowAuditedOnly() {
     final currentState = _filtersNotifier.value;
-    _filtersNotifier.value = currentState.copyWith(
-      showAuditedOnly: !currentState.showAuditedOnly,
-    );
+    _filtersNotifier.value = currentState.copyWith(showAuditedOnly: !currentState.showAuditedOnly);
   }
 
   void _toggleMilestone(String value) {
@@ -1101,9 +990,10 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     QuarterlyAudit audit,
     QuarterlyAuditDescription description,
   ) {
-    final auditFactorType = CustomFunctions.capitalizeFirstLetter(
-      description.auditFactorType,
-    );
+    final auditFactorType = CustomFunctions.capitalizeFirstLetter(description.auditFactorType);
+    final descriptionText = description.description.isEmpty
+        ? 'No description available.'
+        : description.description;
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -1111,78 +1001,74 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(14, 8, 12, 14),
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 14),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.transparent, width: 1.4),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Stack(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  _buildPillLabel(
-                    auditFactorType.isEmpty ? 'Audit' : auditFactorType,
-                    isCompact: true,
-                  ),
-                  const SizedBox(height: 6),
-                  AppTextView.body3(
-                    description.description.isEmpty
-                        ? 'No description available.'
-                        : description.description,
-                    color: AppColors.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      AppTextView.body3(
-                        'Confidence: ${_formatConfidence(description.confidenceLevel)}%',
-                        fontSize: 11,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                AppTextView.body1(
+                  descriptionText,
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    AppTextView.body3(
+                      'Confidence: ${_formatConfidence(description.confidenceLevel)}%',
+                      fontSize: 11,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildDescriptionRatingBadge(value: description.great, color: AppColors.green1),
+                    const SizedBox(width: 5),
+                    _buildDescriptionRatingBadge(
+                      value: description.almostThere,
+                      color: AppColors.orange1,
+                    ),
+                    const SizedBox(width: 5),
+                    _buildDescriptionRatingBadge(
+                      value: description.needsImprovement,
+                      color: AppColors.red1,
+                    ),
 
-                      SizedBox(width: 8),
-                      _buildDescriptionRatingBadge(
-                        value: description.great,
-                        color: AppColors.green1,
-                      ),
-                      SizedBox(width: 5),
-                      _buildDescriptionRatingBadge(
-                        value: description.almostThere,
-                        color: AppColors.orange1,
-                      ),
-                      SizedBox(width: 5),
-                      _buildDescriptionRatingBadge(
-                        value: description.needsImprovement,
-                        color: AppColors.red1,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    const Spacer(),
+                    _buildPillLabel(
+                      auditFactorType.isEmpty ? 'Audit' : auditFactorType,
+                      isCompact: true,
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Container(
-              width: 30,
-              height: 30,
-              margin: EdgeInsets.only(top: 8),
-              decoration: BoxDecoration(
-                color: AppColors.secondaryColor.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: AppColors.secondaryColor,
-                size: 15,
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 25,
+                height: 25,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryColor.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppColors.secondaryColor,
+                  size: 15,
+                ),
               ),
             ),
           ],
@@ -1191,49 +1077,30 @@ class _SingleCheckInDetailsViewState extends State<_SingleCheckInDetailsView> {
     );
   }
 
-  Widget _buildDescriptionRatingBadge({
-    required int value,
-    required Color color,
-  }) {
+  Widget _buildDescriptionRatingBadge({required int value, required Color color}) {
     return Container(
       alignment: Alignment.center,
       width: 28,
       height: 28,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: AppTextView.body4(
-        '$value',
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w700,
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+      child: AppTextView.body4('$value', color: AppColors.textPrimary, fontWeight: FontWeight.w700),
     );
   }
 
   String _formatConfidence(double value) {
-    final rounded = value % 1 == 0
-        ? value.toInt().toString()
-        : value.toStringAsFixed(1);
+    final rounded = value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
     return rounded;
   }
 
   Widget _buildPillLabel(String text, {bool isCompact = false}) {
     return Container(
-      constraints: isCompact ? const BoxConstraints(maxWidth: 88) : null,
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 9 : 18,
-        vertical: isCompact ? 5 : 7,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.orange1,
-        borderRadius: BorderRadius.circular(50),
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(color: AppColors.orange1, borderRadius: BorderRadius.circular(50)),
       child: AppTextView.body2(
         text,
         color: AppColors.textPrimary,
         fontWeight: FontWeight.w600,
-        fontSize: isCompact ? 10 : 12,
+        fontSize: 10,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -1285,8 +1152,7 @@ class _SingleCheckInFiltersState {
     Set<String>? selectedAuditTypes,
   }) {
     return _SingleCheckInFiltersState(
-      isFilterOptionsVisible:
-          isFilterOptionsVisible ?? this.isFilterOptionsVisible,
+      isFilterOptionsVisible: isFilterOptionsVisible ?? this.isFilterOptionsVisible,
       showAuditedOnly: showAuditedOnly ?? this.showAuditedOnly,
       selectedCategories: selectedCategories ?? this.selectedCategories,
       selectedMilestones: selectedMilestones ?? this.selectedMilestones,
@@ -1296,27 +1162,19 @@ class _SingleCheckInFiltersState {
   }
 
   _SingleCheckInFiltersState toggleCategory(String value) {
-    return copyWith(
-      selectedCategories: _toggleSetValue(selectedCategories, value),
-    );
+    return copyWith(selectedCategories: _toggleSetValue(selectedCategories, value));
   }
 
   _SingleCheckInFiltersState toggleMilestone(String value) {
-    return copyWith(
-      selectedMilestones: _toggleSetValue(selectedMilestones, value),
-    );
+    return copyWith(selectedMilestones: _toggleSetValue(selectedMilestones, value));
   }
 
   _SingleCheckInFiltersState toggleAuditTiming(String value) {
-    return copyWith(
-      selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value),
-    );
+    return copyWith(selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value));
   }
 
   _SingleCheckInFiltersState toggleAuditType(String value) {
-    return copyWith(
-      selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value),
-    );
+    return copyWith(selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value));
   }
 
   static Set<String> _toggleSetValue(Set<String> values, String value) {
