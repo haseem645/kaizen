@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/video_playback_service.dart';
 import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_back_button.dart';
 import '../../../../../core/widgets/app_text_view.dart';
@@ -200,6 +201,7 @@ class _ComplianceFullScreenVideoViewState
       await controller.seekTo(Duration.zero);
     }
 
+    unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
     await controller.play();
   }
 

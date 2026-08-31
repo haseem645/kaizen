@@ -1,3 +1,4 @@
+import AVFoundation
 import Flutter
 import UIKit
 import UserNotifications
@@ -5,6 +6,7 @@ import UserNotifications
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let trainingUploadNotificationBridge = TrainingUploadNotificationBridge()
+  private let videoAudioSessionBridge = VideoAudioSessionBridge()
 
   override func application(
     _ application: UIApplication,
@@ -17,6 +19,7 @@ import UserNotifications
       super.application(application, didFinishLaunchingWithOptions: launchOptions)
     if let controller = window?.rootViewController as? FlutterViewController {
       trainingUploadNotificationBridge.register(with: controller.binaryMessenger)
+      videoAudioSessionBridge.register(with: controller.binaryMessenger)
     }
     return didFinishLaunching
   }
@@ -32,6 +35,43 @@ import UserNotifications
       didReceive: response,
       withCompletionHandler: completionHandler
     )
+  }
+}
+
+private final class VideoAudioSessionBridge {
+  private let methodChannelName = "kaizenteams/video_audio_session"
+
+  func register(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: methodChannelName, binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else {
+        result(nil)
+        return
+      }
+
+      switch call.method {
+      case "prepareForPlayback":
+        self.prepareForPlayback(result: result)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private func prepareForPlayback(result: @escaping FlutterResult) {
+    let session = AVAudioSession.sharedInstance()
+
+    do {
+      if session.category == .playAndRecord || session.category == .record {
+        try session.setMode(.default)
+        try session.overrideOutputAudioPort(.speaker)
+        try session.setActive(true)
+      }
+      result(nil)
+    } catch {
+      // This bridge is best-effort only. Avoid surfacing route-prep failures into Flutter logs.
+      result(nil)
+    }
   }
 }
 

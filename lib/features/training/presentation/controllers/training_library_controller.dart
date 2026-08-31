@@ -44,8 +44,7 @@ class TrainingLibraryController extends ChangeNotifier {
   bool get isViewSyncing => _isViewSyncing;
   bool get isLoadingMore => _isLoadingMore;
   bool get isInlineLoading => _isRefreshing || _isViewSyncing;
-  bool get isShowingFullscreenLoading =>
-      _isInitialLoading || _isRefreshing || _isViewSyncing || _isLoadingMore;
+  bool get isShowingFullscreenLoading => _isInitialLoading && _items.isEmpty;
   String? get errorMessage => _errorMessage;
   String get selectedDepartmentId => _selectedDepartmentId;
   TrainingLibraryViewMode get viewMode => _viewMode;
@@ -56,6 +55,7 @@ class TrainingLibraryController extends ChangeNotifier {
   List<TrainingLibraryModule> get items =>
       List<TrainingLibraryModule>.unmodifiable(_items);
   bool get _hasActiveSearch => _searchQuery.trim().isNotEmpty;
+  bool get _hasActiveDepartmentFilter => _selectedDepartmentId != 'all';
 
   List<TrainingLibraryModule> get visibleItems {
     final filteredByDepartment = _selectedDepartmentId == 'all'
@@ -132,9 +132,11 @@ class TrainingLibraryController extends ChangeNotifier {
       return;
     }
 
+    _searchDebounceTimer?.cancel();
     _selectedDepartmentId = departmentId;
+    _errorMessage = null;
     notifyListeners();
-    await _loadUntilDepartmentHasVisibleItems();
+    await _reloadModulesForActiveFilters();
   }
 
   Future<void> selectSearchFilter(TrainingLibrarySearchFilter filter) async {
@@ -142,25 +144,15 @@ class TrainingLibraryController extends ChangeNotifier {
       return;
     }
 
+    _searchDebounceTimer?.cancel();
     _searchFilter = filter;
     if (_searchQuery.trim().isEmpty) {
       notifyListeners();
       return;
     }
 
-    _isRefreshing = true;
-    _errorMessage = null;
     notifyListeners();
-
-    try {
-      await _reloadModules();
-    } catch (error) {
-      _errorMessage = error.toString();
-    }
-
-    _isRefreshing = false;
-    notifyListeners();
-    _flushPendingSearchRefresh();
+    await _reloadModulesForActiveFilters();
   }
 
   void updateSearchQuery(String value) {
@@ -169,7 +161,24 @@ class TrainingLibraryController extends ChangeNotifier {
     }
 
     _searchQuery = value;
+    _errorMessage = null;
+    notifyListeners();
     _scheduleSearchRefresh();
+  }
+
+  Future<void> clearSearch() async {
+    final hadSearch = _hasActiveSearch;
+    final hadDepartmentFilter = _hasActiveDepartmentFilter;
+    if (!hadSearch && !hadDepartmentFilter) {
+      return;
+    }
+
+    _searchDebounceTimer?.cancel();
+    _searchQuery = '';
+    _selectedDepartmentId = 'all';
+    _errorMessage = null;
+    notifyListeners();
+    await _reloadModulesForActiveFilters();
   }
 
   Future<void> loadNextPage() async {
@@ -197,7 +206,7 @@ class TrainingLibraryController extends ChangeNotifier {
     _currentPage = 0;
     _hasNextPage = true;
     _items = const <TrainingLibraryModule>[];
-    if (!_hasActiveSearch) {
+    if (!_hasActiveSearch && !_hasActiveDepartmentFilter) {
       _departments = const <TrainingLibraryDepartment>[];
     }
     await _loadPage(1, replace: true);
@@ -211,6 +220,7 @@ class TrainingLibraryController extends ChangeNotifier {
       pageSize: _pageSize,
       searchType: _searchFilter.apiValue,
       searchText: _searchQuery.trim(),
+      departmentId: _hasActiveDepartmentFilter ? _selectedDepartmentId : null,
     );
 
     final nextItems = replace
@@ -262,11 +272,35 @@ class TrainingLibraryController extends ChangeNotifier {
     List<TrainingLibraryModule> modules,
   ) {
     final resolvedDepartments = _resolveDepartments(modules);
-    if (!_hasActiveSearch) {
+    if (!_hasActiveSearch && !_hasActiveDepartmentFilter) {
       return resolvedDepartments;
     }
 
     return _mergeDepartments(_departments, resolvedDepartments);
+  }
+
+  Future<void> _reloadModulesForActiveFilters() async {
+    if (_isInitialLoading ||
+        _isRefreshing ||
+        _isViewSyncing ||
+        _isLoadingMore) {
+      _hasPendingSearchRefresh = true;
+      return;
+    }
+
+    _isRefreshing = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _reloadModules();
+    } catch (error) {
+      _errorMessage = error.toString();
+    }
+
+    _isRefreshing = false;
+    notifyListeners();
+    _flushPendingSearchRefresh();
   }
 
   List<TrainingLibraryDepartment> _mergeDepartments(
@@ -341,19 +375,7 @@ class TrainingLibraryController extends ChangeNotifier {
     }
 
     _hasPendingSearchRefresh = false;
-    _isRefreshing = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      await _reloadModules();
-    } catch (error) {
-      _errorMessage = error.toString();
-    }
-
-    _isRefreshing = false;
-    notifyListeners();
-    _flushPendingSearchRefresh();
+    await _reloadModulesForActiveFilters();
   }
 
   void _flushPendingSearchRefresh() {

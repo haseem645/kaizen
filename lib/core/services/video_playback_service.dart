@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../utils/custom_functions.dart';
@@ -13,6 +14,9 @@ class VideoPlaybackService {
 
   static const Duration defaultCacheMaxAge = Duration(days: 30);
   static const Duration _retainedControllerMaxIdleTime = Duration(minutes: 3);
+  static const MethodChannel _audioSessionChannel = MethodChannel(
+    'kaizenteams/video_audio_session',
+  );
   static const String _customCacheNamespace = 'kaizen-video';
   static const String _packageCacheStoragePrefix =
       'cached_video_player_plus_caching_time_of_';
@@ -38,6 +42,18 @@ class VideoPlaybackService {
       headers: headers,
       cacheMaxAge: cacheMaxAge,
     );
+  }
+
+  static Future<void> prepareAudiblePlaybackAudioSession() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+
+    try {
+      await _audioSessionChannel.invokeMethod<void>('prepareForPlayback');
+    } catch (error) {
+      // Best-effort only. Playback should continue even if the route stays unchanged.
+    }
   }
 
   static Future<VideoPlayerController?> createInitializedController(
@@ -86,9 +102,6 @@ class VideoPlaybackService {
 
     final videoUri = Uri.parse(resolvedUrl);
     final cacheKey = _cacheKeyFor(videoUri);
-    unawaited(
-      _warmUpResolvedUri(videoUri, headers: headers, cacheMaxAge: cacheMaxAge),
-    );
 
     final cachedFile = await _getValidCachedFile(
       cacheKey: cacheKey,

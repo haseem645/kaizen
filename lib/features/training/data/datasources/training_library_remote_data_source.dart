@@ -15,16 +15,17 @@ class TrainingLibraryRemoteDataSource {
     int pageSize = 10,
     String searchType = 'category',
     String searchText = '',
+    String? departmentId,
   }) {
     return _apiCallExecutor.processApi<TrainingLibraryPageModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.trainingModulesAll,
       parameters: <String, dynamic>{
         'view': view,
-        'page': page,
-        'page_size': pageSize,
         'searchType': searchType,
         if (searchText.trim().isNotEmpty) 'searchText': searchText.trim(),
+        if (departmentId?.trim().isNotEmpty ?? false)
+          'department': departmentId!.trim(),
       },
       decoder: (json) {
         if (json is Map<String, dynamic>) {

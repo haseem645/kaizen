@@ -14,6 +14,7 @@ class TrainingLibraryRepositoryImpl implements TrainingLibraryRepository {
     int pageSize = 10,
     String searchType = 'category',
     String searchText = '',
+    String? departmentId,
   }) {
     return _remoteDataSource.getTrainingLibraryModules(
       view: view,
@@ -21,6 +22,7 @@ class TrainingLibraryRepositoryImpl implements TrainingLibraryRepository {
       pageSize: pageSize,
       searchType: searchType,
       searchText: searchText,
+      departmentId: departmentId,
     );
   }
 }

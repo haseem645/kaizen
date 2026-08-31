@@ -7,5 +7,6 @@ abstract class TrainingLibraryRepository {
     int pageSize = 10,
     String searchType = 'category',
     String searchText = '',
+    String? departmentId,
   });
 }

@@ -164,13 +164,50 @@ class _TrainingLibraryContent extends StatelessWidget {
   }
 }
 
-class _TrainingLibrarySearchBar extends StatelessWidget {
+class _TrainingLibrarySearchBar extends StatefulWidget {
   const _TrainingLibrarySearchBar({required this.controller});
 
   final TrainingLibraryController controller;
 
   @override
+  State<_TrainingLibrarySearchBar> createState() =>
+      _TrainingLibrarySearchBarState();
+}
+
+class _TrainingLibrarySearchBarState extends State<_TrainingLibrarySearchBar> {
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(
+      text: widget.controller.searchQuery,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrainingLibrarySearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextQuery = widget.controller.searchQuery;
+    if (_textController.text == nextQuery) {
+      return;
+    }
+
+    _textController.value = TextEditingValue(
+      text: nextQuery,
+      selection: TextSelection.collapsed(offset: nextQuery.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     final selectedFilterLabel = _searchFilterLabel(controller.searchFilter);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -197,6 +234,7 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
+                  controller: _textController,
                   onChanged: controller.updateSearchQuery,
                   textInputAction: TextInputAction.search,
                   cursorHeight: 18,
@@ -220,6 +258,20 @@ class _TrainingLibrarySearchBar extends StatelessWidget {
                   ),
                 ),
               ),
+              if (controller.searchQuery.trim().isNotEmpty) ...[
+                const SizedBox(width: 6),
+                IconButton(
+                  tooltip: AppStrings.clearSearch,
+                  onPressed: controller.clearSearch,
+                  visualDensity: VisualDensity.compact,
+                  splashRadius: 18,
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
+                ),
+              ],
               Container(
                 width: 1,
                 height: 24,
@@ -371,6 +423,17 @@ class _TrainingLibraryResultArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (controller.isInlineLoading) {
+      return ListView(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 48),
+          Center(child: FastCircularProgressIndicator(width: 24, height: 24)),
+        ],
+      );
+    }
+
     if (controller.errorMessage != null && controller.items.isEmpty) {
       return ListView(
         controller: scrollController,

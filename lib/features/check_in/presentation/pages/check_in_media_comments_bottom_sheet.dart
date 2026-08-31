@@ -1171,6 +1171,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
       await controller.seekTo(Duration.zero);
     }
 
+    unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
     await controller.play();
   }
 

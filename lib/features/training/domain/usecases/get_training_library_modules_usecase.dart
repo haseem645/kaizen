@@ -12,6 +12,7 @@ class GetTrainingLibraryModulesUseCase {
     int pageSize = 10,
     String searchType = 'category',
     String searchText = '',
+    String? departmentId,
   }) {
     return _repository.getTrainingLibraryModules(
       view: view,
@@ -19,6 +20,7 @@ class GetTrainingLibraryModulesUseCase {
       pageSize: pageSize,
       searchType: searchType,
       searchText: searchText,
+      departmentId: departmentId,
     );
   }
 }

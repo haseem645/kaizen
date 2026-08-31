@@ -98,6 +98,7 @@ class _ChatVideoPreviewState extends State<ChatVideoPreview>
     controller.addListener(_handleVideoChanged);
     _controller = controller;
     if (widget.autoPlay) {
+      unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
       await controller.play();
     }
     if (mounted && generation == _initializationGeneration) {
@@ -153,6 +154,7 @@ class _ChatVideoPreviewState extends State<ChatVideoPreview>
       await controller.seekTo(Duration.zero);
     }
 
+    unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
     await controller.play();
   }
 

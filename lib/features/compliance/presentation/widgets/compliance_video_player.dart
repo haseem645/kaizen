@@ -45,7 +45,6 @@ class ComplianceVideoPlayer extends StatefulWidget {
 class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     with AutomaticKeepAliveClientMixin<ComplianceVideoPlayer> {
   static const _cacheMaxAge = Duration(days: 30);
-  static const _playbackStartWaitTimeout = Duration(milliseconds: 900);
 
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
@@ -62,7 +61,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   void initState() {
     super.initState();
     _showThumbnailPreview = _hasThumbnail;
-    _warmUpVideoCache();
     _setupController();
   }
 
@@ -82,7 +80,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
       _currentViewType = VideoViewType.textureView;
       _didRetryWithPlatformView = false;
       _disposeController();
-      _warmUpVideoCache();
       _setupController();
     }
   }
@@ -91,12 +88,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   void dispose() {
     _disposeController();
     super.dispose();
-  }
-
-  void _warmUpVideoCache() {
-    unawaited(
-      VideoPlaybackService.warmUp(widget.videoUrl, cacheMaxAge: _cacheMaxAge),
-    );
   }
 
   void _setupController() {
@@ -271,15 +262,11 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
       await controller.seekTo(Duration.zero);
     }
 
+    unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
     await controller.play();
-    await _waitForPlaybackToStart(controller, initialPosition: position);
-    if (_showThumbnailPreview && mounted) {
-      setState(() {
-        _showThumbnailPreview = false;
-      });
-    }
     if (mounted) {
       setState(() {
+        _showThumbnailPreview = false;
         _isPreparingPlayback = false;
       });
     }
@@ -342,43 +329,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
         ),
       ),
     );
-  }
-
-  Future<void> _waitForPlaybackToStart(
-    VideoPlayerController controller, {
-    required Duration initialPosition,
-  }) async {
-    final value = controller.value;
-    if (_hasPlaybackStarted(value, initialPosition)) {
-      return;
-    }
-
-    final completer = Completer<void>();
-    late VoidCallback listener;
-    listener = () {
-      final nextValue = controller.value;
-      if (_hasPlaybackStarted(nextValue, initialPosition)) {
-        controller.removeListener(listener);
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
-      }
-    };
-
-    controller.addListener(listener);
-    try {
-      await completer.future.timeout(
-        _playbackStartWaitTimeout,
-        onTimeout: () {},
-      );
-    } finally {
-      controller.removeListener(listener);
-    }
-  }
-
-  bool _hasPlaybackStarted(VideoPlayerValue value, Duration initialPosition) {
-    return value.position > initialPosition ||
-        (value.isPlaying && !value.isBuffering);
   }
 
   @override

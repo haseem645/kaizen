@@ -27,8 +27,7 @@ class TrainingLibraryPageModel extends TrainingLibraryPage {
             currentPage < totalPages) ||
         (count != null &&
             currentPage != null &&
-            currentPage * pageSize < count) ||
-        items.length >= pageSize;
+            currentPage * pageSize < count);
 
     return TrainingLibraryPageModel(items: items, hasNextPage: hasNextPage);
   }
