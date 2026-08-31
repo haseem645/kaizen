@@ -1096,6 +1096,11 @@ class TrainingModuleController extends ChangeNotifier {
     return _modules[index];
   }
 
+  bool get isSelectedModulePubliclyAvailable =>
+      _selectedModuleDetail?.isPubliclyAvailable ??
+      selectedModule?.isPubliclyAvailable ??
+      false;
+
   int get selectedModuleNumber =>
       hasPersistedSelectedModule ? selectedModuleIndex + 1 : 0;
   bool get canSelectPreviousModule =>

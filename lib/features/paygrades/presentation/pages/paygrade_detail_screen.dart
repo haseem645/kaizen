@@ -28,16 +28,21 @@ class PaygradeDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<PaygradeRemoteDataSource>(create: (_) => createPaygradeRemoteDataSource()),
+        Provider<PaygradeRemoteDataSource>(
+          create: (_) => createPaygradeRemoteDataSource(),
+        ),
         ProxyProvider<PaygradeRemoteDataSource, PaygradeRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createPaygradeDetailRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createPaygradeDetailRepository(remoteDataSource),
         ),
         ProxyProvider<PaygradeRepositoryImpl, GetPaygradesUseCase>(
-          update: (_, repository, __) => createGetPaygradeDetailUseCase(repository),
+          update: (_, repository, __) =>
+              createGetPaygradeDetailUseCase(repository),
         ),
         ChangeNotifierProvider<PaygradeDetailController>(
           create: (context) =>
-              PaygradeDetailController(context.read<GetPaygradesUseCase>())..initialize(paygradeId),
+              PaygradeDetailController(context.read<GetPaygradesUseCase>())
+                ..initialize(paygradeId),
         ),
       ],
       child: const _PaygradeDetailScreenView(),
@@ -62,7 +67,8 @@ class _PaygradeDetailScreenView extends StatelessWidget {
           child: ListenableBuilder(
             listenable: AppManager.instance,
             builder: (context, _) {
-              final canManageContent = AppManager.instance.canCurrentOrganizationModifyContent;
+              final canManageContent =
+                  AppManager.instance.currentUserCanManagePaygrades;
 
               return Column(
                 children: [
@@ -74,11 +80,15 @@ class _PaygradeDetailScreenView extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
                   if (controller.isLoading)
-                    Expanded(child: Center(child: FastCircularProgressIndicator()))
+                    Expanded(
+                      child: Center(child: FastCircularProgressIndicator()),
+                    )
                   else if (controller.errorMessage != null)
                     Expanded(child: _buildErrorMessage(controller))
                   else if (detail == null)
-                    Expanded(child: _buildMessage(AppStrings.loginSomethingWentWrong))
+                    Expanded(
+                      child: _buildMessage(AppStrings.loginSomethingWentWrong),
+                    )
                   else
                     Expanded(
                       child: ListView(
@@ -90,12 +100,19 @@ class _PaygradeDetailScreenView extends StatelessWidget {
                               isLoading: controller.isGeneratingPaygrades,
                               onTap: controller.isGeneratingPaygrades
                                   ? null
-                                  : () => _openGeneratePaygradesSheet(context, controller),
+                                  : () => _openGeneratePaygradesSheet(
+                                      context,
+                                      controller,
+                                    ),
                             ),
                           ],
                           const SizedBox(height: 18),
                           if (detail.payGrades.isNotEmpty)
-                            for (var index = 0; index < detail.payGrades.length; index++)
+                            for (
+                              var index = 0;
+                              index < detail.payGrades.length;
+                              index++
+                            )
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
                                 child: _PaygradeEntryCard(
@@ -124,7 +141,8 @@ class _PaygradeDetailScreenView extends StatelessWidget {
                           if (canManageContent) ...[
                             SizedBox(height: detail.payGrades.isEmpty ? 18 : 2),
                             _AddPaygradeLevelButton(
-                              onTap: () => _openCreatePaygradeSheet(context, controller),
+                              onTap: () =>
+                                  _openCreatePaygradeSheet(context, controller),
                             ),
                           ],
                         ],
@@ -151,7 +169,10 @@ class _PaygradeDetailScreenView extends StatelessWidget {
               '${AppStrings.imagePath}back.svg',
               width: 24,
               height: 24,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
@@ -199,7 +220,11 @@ class _PaygradeDetailScreenView extends StatelessWidget {
 
   Widget _buildMessage(String message) {
     return Center(
-      child: AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
+      child: AppTextView.body(
+        message,
+        color: AppColors.textSecondary,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -225,7 +250,7 @@ class _PaygradeDetailScreenView extends StatelessWidget {
     PaygradeDetailController controller,
     PaygradeEntry entry,
   ) async {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+    if (!AppManager.instance.currentUserCanManagePaygrades) {
       return;
     }
 
@@ -257,7 +282,7 @@ class _PaygradeDetailScreenView extends StatelessWidget {
     BuildContext context,
     PaygradeDetailController controller,
   ) async {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+    if (!AppManager.instance.currentUserCanManagePaygrades) {
       return;
     }
 
@@ -287,7 +312,7 @@ class _PaygradeDetailScreenView extends StatelessWidget {
     BuildContext context,
     PaygradeDetailController controller,
   ) async {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+    if (!AppManager.instance.currentUserCanManagePaygrades) {
       return;
     }
 
@@ -307,13 +332,14 @@ class _PaygradeDetailScreenView extends StatelessWidget {
     PaygradeDetailController controller,
     PaygradeEntry entry,
   ) async {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+    if (!AppManager.instance.currentUserCanManagePaygrades) {
       return;
     }
 
     final didDelete = await showDialog<bool>(
       context: context,
-      builder: (_) => _DeletePaygradeDialog(controller: controller, entry: entry),
+      builder: (_) =>
+          _DeletePaygradeDialog(controller: controller, entry: entry),
     );
 
     if (!context.mounted) {
@@ -323,13 +349,18 @@ class _PaygradeDetailScreenView extends StatelessWidget {
     if (didDelete == false && (controller.errorMessage ?? '').isNotEmpty) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: AppTextView.body2(controller.errorMessage!)));
+        ..showSnackBar(
+          SnackBar(content: AppTextView.body2(controller.errorMessage!)),
+        );
     }
   }
 }
 
 class _PaygradeTabSwitcher extends StatelessWidget {
-  const _PaygradeTabSwitcher({required this.selectedTab, required this.onTabSelected});
+  const _PaygradeTabSwitcher({
+    required this.selectedTab,
+    required this.onTabSelected,
+  });
 
   final PaygradeDetailTab selectedTab;
   final ValueChanged<PaygradeDetailTab> onTabSelected;
@@ -364,7 +395,11 @@ class _PaygradeTabSwitcher extends StatelessWidget {
 }
 
 class _TabButton extends StatelessWidget {
-  const _TabButton({required this.title, required this.isSelected, required this.onTap});
+  const _TabButton({
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final String title;
   final bool isSelected;
@@ -414,7 +449,10 @@ class _RegenerateWithAiButton extends StatelessWidget {
             ),
           ),
           if (isLoading)
-            Positioned(right: 16, child: FastCircularProgressIndicator(width: 18, height: 18)),
+            Positioned(
+              right: 16,
+              child: FastCircularProgressIndicator(width: 18, height: 18),
+            ),
         ],
       ),
     );
@@ -509,11 +547,20 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
                       onPressed: widget.onEditTap,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.secondaryColor,
-                        side: BorderSide(color: AppColors.secondaryColor.withValues(alpha: 0.72)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        side: BorderSide(
+                          color: AppColors.secondaryColor.withValues(
+                            alpha: 0.72,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                       ),
                       icon: const Icon(
                         Icons.edit_outlined,
@@ -547,11 +594,18 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
       actionGap: 10,
       actionChild: SizedBox.expand(
         child: DecoratedBox(
-          decoration: BoxDecoration(color: AppColors.red1, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: AppColors.red1,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Center(
             child: widget.isDeleting
                 ? FastCircularProgressIndicator(width: 14, height: 14)
-                : const Icon(Icons.delete_outline_rounded, color: AppColors.textPrimary, size: 22),
+                : const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.textPrimary,
+                    size: 22,
+                  ),
           ),
         ),
       ),
@@ -560,7 +614,9 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
   }
 
   String _cleanPaygradeTitle(String title) {
-    return title.replaceFirst(RegExp(r'^\s*paygrade\s*:\s*', caseSensitive: false), '').trim();
+    return title
+        .replaceFirst(RegExp(r'^\s*paygrade\s*:\s*', caseSensitive: false), '')
+        .trim();
   }
 
   String _buildPaygradePrefix(String cleanedTitle, int rowNumber) {
@@ -586,8 +642,14 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: AppTextView.body2(label, color: AppColors.textSecondary)),
-        AppTextView.body2(value, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        Expanded(
+          child: AppTextView.body2(label, color: AppColors.textSecondary),
+        ),
+        AppTextView.body2(
+          value,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
       ],
     );
   }
@@ -636,8 +698,11 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
             if (shouldShowSeeAll) ...[
               const SizedBox(height: 6),
               GestureDetector(
-                onTap: () =>
-                    _showExpandedTextDialog(context, title: label, description: resolvedValue),
+                onTap: () => _showExpandedTextDialog(
+                  context,
+                  title: label,
+                  description: resolvedValue,
+                ),
                 child: AppTextView.body2(
                   AppStrings.seeAllAction,
                   color: AppColors.secondaryColor,
@@ -659,13 +724,17 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
   }) async {
     await showDialog<void>(
       context: context,
-      builder: (_) => _PaygradeExpandedTextDialog(title: title, description: description),
+      builder: (_) =>
+          _PaygradeExpandedTextDialog(title: title, description: description),
     );
   }
 }
 
 class _PaygradeExpandedTextDialog extends StatelessWidget {
-  const _PaygradeExpandedTextDialog({required this.title, required this.description});
+  const _PaygradeExpandedTextDialog({
+    required this.title,
+    required this.description,
+  });
 
   final String title;
   final String description;
@@ -694,7 +763,9 @@ class _PaygradeExpandedTextDialog extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  _PaygradeExpandedTextDialogCloseButton(onTap: () => Navigator.of(context).pop()),
+                  _PaygradeExpandedTextDialogCloseButton(
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
@@ -765,7 +836,11 @@ class _AddPaygradeLevelButton extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.add_rounded, size: 18, color: AppColors.secondaryColor),
+                  const Icon(
+                    Icons.add_rounded,
+                    size: 18,
+                    color: AppColors.secondaryColor,
+                  ),
                   const SizedBox(width: 8),
                   AppTextView.body3(
                     AppStrings.paygradesAddLevelAction,
@@ -783,7 +858,10 @@ class _AddPaygradeLevelButton extends StatelessWidget {
 }
 
 class _DashedPaygradeButtonPainter extends CustomPainter {
-  const _DashedPaygradeButtonPainter({required this.color, required this.radius});
+  const _DashedPaygradeButtonPainter({
+    required this.color,
+    required this.radius,
+  });
 
   final Color color;
   final double radius;
@@ -876,7 +954,9 @@ class _ForwardArrowBadge extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.mainBg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
+          border: Border.all(
+            color: AppColors.fieldBorder.withValues(alpha: 0.28),
+          ),
         ),
         child: const Icon(
           Icons.keyboard_arrow_down_rounded,

@@ -99,14 +99,14 @@ class _TrainingLibraryDetailScreenState
           final module = _detailController.module;
           final hasOwnerOverrideAccess =
               AppManager.instance.currentUserHasOwnerOverrideAccess;
+          final canManageManagedSeatTraining = module.seat.id.trim().isNotEmpty
+              ? AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+                  seatProfileId: module.seat.id,
+                )
+              : false;
           final canEditModules =
               module.id.trim().isNotEmpty &&
-              (hasOwnerOverrideAccess ||
-                  (module.seat.id.trim().isNotEmpty &&
-                      AppManager.instance
-                          .canCurrentUserManageTrainingForSeatProfile(
-                            seatProfileId: module.seat.id,
-                          )));
+              (hasOwnerOverrideAccess || canManageManagedSeatTraining);
           final isBusy =
               _visibilityController.isUpdatingAnyLesson ||
               _detailController.isRefreshing;

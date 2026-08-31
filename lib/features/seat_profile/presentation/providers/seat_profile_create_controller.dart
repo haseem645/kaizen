@@ -74,12 +74,12 @@ enum SeatContentTone {
 }
 
 class SeatProfileCreateController extends ChangeNotifier {
-  static const String _privilegedDepartmentName = 'privileged';
-
   SeatProfileCreateController(
     this._getSeatProfilesUseCase, {
     SeatProfileFormInitialData? initialData,
-  }) : _initialData = initialData {
+    bool Function(Department department)? canManageDepartment,
+  }) : _initialData = initialData,
+       _canManageDepartment = canManageDepartment ?? _allowEveryDepartment {
     nameController.addListener(_handleNameChanged);
     if (_initialData != null) {
       nameController.text = _initialData.name;
@@ -91,7 +91,10 @@ class SeatProfileCreateController extends ChangeNotifier {
 
   final GetSeatProfilesUseCase _getSeatProfilesUseCase;
   final SeatProfileFormInitialData? _initialData;
+  final bool Function(Department department) _canManageDepartment;
   final TextEditingController nameController = TextEditingController();
+
+  static bool _allowEveryDepartment(Department department) => true;
 
   bool _isLoadingDepartments = false;
   bool _isSubmitting = false;
@@ -209,8 +212,8 @@ class SeatProfileCreateController extends ChangeNotifier {
       }
     }
 
-    if (selected != null && !_isDepartmentAllowedForCurrentMode(selected)) {
-      _errorMessage = AppStrings.seatProfilePrivilegedDepartmentRestricted;
+    if (selected != null && !_canManageDepartment(selected)) {
+      _errorMessage = AppStrings.seatProfileDepartmentAccessDenied;
       notifyListeners();
       return;
     }
@@ -253,8 +256,8 @@ class SeatProfileCreateController extends ChangeNotifier {
       return false;
     }
 
-    if (!_isDepartmentAllowedForCurrentMode(department)) {
-      _errorMessage = AppStrings.seatProfilePrivilegedDepartmentRestricted;
+    if (!_canManageDepartment(department)) {
+      _errorMessage = AppStrings.seatProfileDepartmentAccessDenied;
       notifyListeners();
       return false;
     }
@@ -433,13 +436,7 @@ class SeatProfileCreateController extends ChangeNotifier {
   List<Department> _filterDepartmentsForCurrentMode(
     List<Department> departments,
   ) {
-    if (isEditMode) {
-      return departments;
-    }
-
-    return departments
-        .where(_isDepartmentAllowedForCurrentMode)
-        .toList(growable: false);
+    return departments.where(_canManageDepartment).toList(growable: false);
   }
 
   List<Department> _mergeInitialDepartmentIfNeeded(
@@ -477,14 +474,6 @@ class SeatProfileCreateController extends ChangeNotifier {
 
       _selectedDepartment ??= initialDepartment;
     }
-  }
-
-  bool _isDepartmentAllowedForCurrentMode(Department department) {
-    if (isEditMode) {
-      return true;
-    }
-
-    return department.name.trim().toLowerCase() != _privilegedDepartmentName;
   }
 
   String get _actionTargetId {

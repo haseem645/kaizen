@@ -1,6 +1,7 @@
 import 'organization_hierarchy_job.dart';
 import 'organization_hierarchy_profile.dart';
 import 'user_hierarchy_membership.dart';
+import 'user_role_utils.dart';
 
 class OrganizationHierarchyNode {
   const OrganizationHierarchyNode({
@@ -173,7 +174,7 @@ class OrganizationHierarchyNode {
   }
 
   List<String> _resolveManageableSeatProfileIds() {
-    final normalizedRole = _normalizeIdentifier(role);
+    final normalizedRole = normalizeUserRole(role);
     if (normalizedRole != 'owner' &&
         normalizedRole != 'csuite' &&
         normalizedRole != 'dept_lead' &&
@@ -184,19 +185,13 @@ class OrganizationHierarchyNode {
     final seatProfileIds = <String>[];
     final seenSeatProfileIds = <String>{};
 
-    void collectSeatProfileIds(OrganizationHierarchyNode node) {
-      final jobUuid = node.job?.uuid.trim() ?? '';
-      if (jobUuid.isNotEmpty && seenSeatProfileIds.add(jobUuid)) {
+    for (final child in children) {
+      final jobUuid = child.job?.uuid.trim() ?? '';
+      final normalizedJobUuid = _normalizeIdentifier(jobUuid);
+      if (normalizedJobUuid.isNotEmpty &&
+          seenSeatProfileIds.add(normalizedJobUuid)) {
         seatProfileIds.add(jobUuid);
       }
-
-      for (final child in node.children) {
-        collectSeatProfileIds(child);
-      }
-    }
-
-    for (final child in children) {
-      collectSeatProfileIds(child);
     }
 
     return List<String>.unmodifiable(seatProfileIds);

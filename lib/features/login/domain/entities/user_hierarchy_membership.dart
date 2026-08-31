@@ -1,5 +1,6 @@
 import 'organization_hierarchy_job.dart';
 import 'organization_hierarchy_profile.dart';
+import 'user_role_utils.dart';
 
 class UserHierarchyMembership {
   const UserHierarchyMembership({
@@ -24,6 +25,16 @@ class UserHierarchyMembership {
     'dept_lead',
     'team_lead',
   };
+  static const Set<String> _departmentManagerRoles = <String>{
+    'owner',
+    'csuite',
+    'dept_lead',
+    'team_lead',
+  };
+  static const Set<String> _organizationWideTrainingManagerRoles = <String>{
+    'owner',
+    'csuite',
+  };
 
   final String nodeUuid;
   final String role;
@@ -39,9 +50,41 @@ class UserHierarchyMembership {
   final bool paygradeAssignmentExists;
   final List<String> manageableSeatProfileIds;
 
-  String get normalizedRole => role.trim().toLowerCase();
+  String get normalizedRole => normalizeUserRole(role);
   bool get canManageTrainingModules =>
       _trainingManagerRoles.contains(normalizedRole);
+  bool get canManageSeatProfileDepartments =>
+      _departmentManagerRoles.contains(normalizedRole);
+  bool get hasOrganizationWideTrainingManagement =>
+      _organizationWideTrainingManagerRoles.contains(normalizedRole);
+  bool get hasManagedSeatProfiles => manageableSeatProfileIds.isNotEmpty;
+  bool get hasDepartmentScope =>
+      _normalizeIdentifier(departmentUuid).isNotEmpty;
+
+  bool managesDepartment(String departmentId) {
+    final normalizedDepartmentId = _normalizeIdentifier(departmentId);
+    if (normalizedDepartmentId.isEmpty) {
+      return false;
+    }
+
+    return _normalizeIdentifier(departmentUuid) == normalizedDepartmentId;
+  }
+
+  bool managesSeatProfile(String seatProfileId) {
+    final normalizedSeatProfileId = _normalizeIdentifier(seatProfileId);
+    if (normalizedSeatProfileId.isEmpty) {
+      return false;
+    }
+
+    for (final manageableSeatProfileId in manageableSeatProfileIds) {
+      if (_normalizeIdentifier(manageableSeatProfileId) ==
+          normalizedSeatProfileId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   factory UserHierarchyMembership.fromJson(Map<String, dynamic> json) {
     final profileJson = _readMap(json['profile']);
@@ -121,4 +164,8 @@ List<String> _parseStringList(dynamic value) {
       .map((item) => item?.toString().trim() ?? '')
       .where((item) => item.isNotEmpty)
       .toList(growable: false);
+}
+
+String _normalizeIdentifier(String? value) {
+  return value?.trim().toLowerCase() ?? '';
 }

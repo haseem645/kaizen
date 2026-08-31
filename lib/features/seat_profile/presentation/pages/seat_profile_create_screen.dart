@@ -25,7 +25,7 @@ class SeatProfileCreateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+    if (!_canAccessSeatProfileForm()) {
       return const _SeatProfileCreateAccessDeniedView();
     }
 
@@ -45,10 +45,34 @@ class SeatProfileCreateScreen extends StatelessWidget {
           create: (context) => SeatProfileCreateController(
             context.read<GetSeatProfilesUseCase>(),
             initialData: initialData,
+            canManageDepartment: (department) =>
+                AppManager.instance.canCurrentUserManageSeatProfileDepartment(
+                  departmentId: department.id,
+                ),
           )..initialize(),
         ),
       ],
       child: const _SeatProfileCreateScreenView(),
+    );
+  }
+
+  bool _canAccessSeatProfileForm() {
+    final initialData = this.initialData;
+    if (initialData == null || !initialData.isValid) {
+      return AppManager.instance.currentUserCanOpenSeatProfileCreateFlow;
+    }
+
+    final departmentId = initialData.department?.id.trim() ?? '';
+    if (departmentId.isEmpty) {
+      final currentUserRoles =
+          AppManager.instance.currentUser?.normalizedRoles.toSet() ??
+          const <String>{};
+      return AppManager.instance.currentUserHasOwnerOverrideAccess ||
+          currentUserRoles.contains('csuite');
+    }
+
+    return AppManager.instance.canCurrentUserManageSeatProfileDepartment(
+      departmentId: departmentId,
     );
   }
 }

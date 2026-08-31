@@ -160,6 +160,9 @@ class _SeatDescriptionFinalCheckInReportScreenState
                                       ? () => _openTrainingEditor(
                                           context,
                                           report.trainingRoute,
+                                          additionalSeatProfileIds: <String>[
+                                            report.job.uuid,
+                                          ],
                                         )
                                       : null,
                                 ),
@@ -335,8 +338,9 @@ class _SeatDescriptionFinalCheckInReportScreenState
 
   Future<void> _openTrainingEditor(
     BuildContext context,
-    SeatDescriptionTrainingRoute trainingRoute,
-  ) {
+    SeatDescriptionTrainingRoute trainingRoute, {
+    List<String> additionalSeatProfileIds = const <String>[],
+  }) {
     return Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => EditTrainingScreen(
@@ -345,6 +349,7 @@ class _SeatDescriptionFinalCheckInReportScreenState
           canManageTraining: AppManager.instance
               .canCurrentUserManageTrainingForSeatProfile(
                 seatProfileId: trainingRoute.job,
+                additionalSeatProfileIds: additionalSeatProfileIds,
               ),
           useNonBlockingVideoUpload: true,
         ),

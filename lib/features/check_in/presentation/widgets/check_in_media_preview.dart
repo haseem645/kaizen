@@ -1,12 +1,12 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/video_playback_service.dart';
 import '../../../../core/utils/custom_functions.dart';
-import '../../../../core/utils/webm_playback_helper.dart';
 
 class CheckInMediaPreview extends StatelessWidget {
   const CheckInMediaPreview({
@@ -97,6 +97,7 @@ class _CheckInVideoPreview extends StatefulWidget {
 class _CheckInVideoPreviewState extends State<_CheckInVideoPreview> {
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
+  int _initializationGeneration = 0;
 
   @override
   void initState() {
@@ -120,40 +121,49 @@ class _CheckInVideoPreviewState extends State<_CheckInVideoPreview> {
   }
 
   void _setupController() {
-    _initializeFuture = _initializeController();
+    final generation = ++_initializationGeneration;
+    _initializeFuture = _initializeController(generation);
   }
 
-  Future<void> _initializeController() async {
-    final source = await WebmPlaybackHelper.resolvePlayableSource(
+  Future<void> _initializeController(int generation) async {
+    final controller = await VideoPlaybackService.acquireInitializedController(
       widget.mediaUrl,
     );
-    if (!mounted || source == null) {
+    if (controller == null) {
       return;
     }
 
-    final controller = source.isFile
-        ? VideoPlayerController.file(File(source.path))
-        : VideoPlayerController.networkUrl(Uri.parse(source.path));
-    _controller = controller;
-
     try {
-      await controller.initialize();
+      if (!mounted || generation != _initializationGeneration) {
+        await VideoPlaybackService.releaseController(controller);
+        return;
+      }
+
       await controller.setLooping(false);
       await controller.setVolume(0);
+      if (!mounted || generation != _initializationGeneration) {
+        await VideoPlaybackService.releaseController(controller);
+        return;
+      }
+      _controller = controller;
     } catch (error) {
       debugPrint('Audit video preview initialization failed: $error');
+      await VideoPlaybackService.releaseController(controller);
     }
 
-    if (mounted) {
+    if (mounted && generation == _initializationGeneration) {
       setState(() {});
     }
   }
 
   void _disposeController() {
+    _initializationGeneration++;
     final controller = _controller;
     _controller = null;
     _initializeFuture = null;
-    controller?.dispose();
+    if (controller != null) {
+      unawaited(VideoPlaybackService.releaseController(controller));
+    }
   }
 
   @override

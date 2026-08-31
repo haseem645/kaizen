@@ -138,7 +138,7 @@ class AppStrings {
   static const String seatProfileUpdateAction = 'Update';
   static const String seatProfileCreatedAction = 'Done';
   static const String seatProfileCreateAccessDenied =
-      'You are not allowed to create seat profiles.';
+      'You are not allowed to create or edit seat profiles here.';
   static const String seatProfileAddDescriptionAction = 'Add Description';
   static const String seatProfileAddSeatDescriptionAction =
       'Add Seat Description';
@@ -382,6 +382,8 @@ class AppStrings {
       'Please select a department.';
   static const String seatProfilePrivilegedDepartmentRestricted =
       'Seat profiles cannot be created in the Privileged department.';
+  static const String seatProfileDepartmentAccessDenied =
+      'You are not allowed to manage seat profiles for this department.';
   static const String seatProfilePaygradeRequired = 'Please select a paygrade.';
   static const String seatProfileNoItemsFound = 'No seat profiles found.';
   static const String seatProfileNoCategoriesFound = 'No categories found.';
@@ -564,6 +566,8 @@ class AppStrings {
   static const String trainingQuizDisabled = 'Off';
   static const String trainingQuizGeneratedSuccess =
       'Quiz generated successfully.';
+  static String trainingVideoPositionLabel(int current, int total) =>
+      'Video $current of $total';
   static const String trainingSopGeneratedSuccess =
       'SOP generated successfully.';
   static const String trainingCancel = 'Cancel';
@@ -742,6 +746,8 @@ class AppStrings {
   static const String trainingLibrarySeat = 'Seat';
   static const String trainingLibraryCategory = 'Category';
   static const String trainingLibraryCreate = 'Create';
+  static const String trainingCreateAccessDenied =
+      'You do not have access to create training modules from this account.';
   static const String trainingLibrarySearchFieldTooltip = 'Choose search field';
   static const String trainingLibrarySearchFieldLabel = 'Search by';
   static const String trainingLibraryNoModulesFound =
@@ -954,6 +960,21 @@ class AppStrings {
       'Choose whether you want to upload a photo or a video';
   static const String auditUploadPhoto = 'Upload Photo';
   static const String auditUploadVideo = 'Upload Video';
+  static const String auditMarkupImage = 'Markup';
+  static const String auditMarkupImageTitle = 'Markup image';
+  static const String auditMarkupImageHint =
+      'Mark the image to highlight what matters before saving.';
+  static const String auditMarkupDraw = 'Draw';
+  static const String auditMarkupCrop = 'Crop';
+  static const String auditMarkupUndo = 'Undo';
+  static const String auditMarkupClear = 'Clear';
+  static const String auditMarkupResetCrop = 'Reset crop';
+  static const String auditMarkupCropHint =
+      'Drag a corner to resize the crop area, or drag inside the box to move it.';
+  static const String auditMarkupImageLoadError =
+      'Unable to open this image for markup right now.';
+  static const String auditMarkupImageSaveError =
+      'Unable to save the marked image right now.';
   static const String auditScreenRecordingPreview = 'Screen recording preview';
   static const String auditScreenRecordingPreviewHint =
       'Record a screen first, then it will appear here for playback before saving.';

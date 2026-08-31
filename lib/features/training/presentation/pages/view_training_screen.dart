@@ -15,6 +15,7 @@ import '../../../compliance/presentation/widgets/compliance_video_player.dart';
 import '../../domain/entities/seat_description_training.dart';
 import '../../domain/entities/seat_description_training_route.dart';
 import '../controllers/training_module_controller.dart';
+import '../models/view_training_tab_access.dart';
 
 class ViewTrainingScreen extends StatelessWidget {
   const ViewTrainingScreen({super.key, required this.trainingRoute});
@@ -27,15 +28,17 @@ class ViewTrainingScreen extends StatelessWidget {
       providers: [
         Provider<AuditRemoteDataSource>(create: (_) => AuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => AuditRepositoryImpl(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              AuditRepositoryImpl(remoteDataSource),
         ),
         ChangeNotifierProvider<TrainingModuleController>(
           create: (context) =>
-              TrainingModuleController(context.read<AuditRepositoryImpl>())..initialize(
-                jobId: trainingRoute.job,
-                descriptionId: trainingRoute.description,
-                initialModuleId: trainingRoute.initialModuleId,
-              ),
+              TrainingModuleController(context.read<AuditRepositoryImpl>())
+                ..initialize(
+                  jobId: trainingRoute.job,
+                  descriptionId: trainingRoute.description,
+                  initialModuleId: trainingRoute.initialModuleId,
+                ),
         ),
       ],
       child: const _ViewTrainingScreenView(),
@@ -47,112 +50,115 @@ class _ViewTrainingScreenView extends StatefulWidget {
   const _ViewTrainingScreenView();
 
   @override
-  State<_ViewTrainingScreenView> createState() => _ViewTrainingScreenViewState();
+  State<_ViewTrainingScreenView> createState() =>
+      _ViewTrainingScreenViewState();
 }
 
 class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     with SingleTickerProviderStateMixin {
+  late final TrainingModuleController _trainingController;
   late final TabController _tabController;
-  var _selectedTabIndex = 0;
+  final ValueNotifier<int> _selectedTabIndexNotifier = ValueNotifier<int>(0);
 
   @override
   void initState() {
     super.initState();
+    _trainingController = context.read<TrainingModuleController>();
+    _trainingController.addListener(_handleTrainingModuleChanged);
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChanged);
   }
 
   @override
   void dispose() {
+    _trainingController.removeListener(_handleTrainingModuleChanged);
+    _selectedTabIndexNotifier.dispose();
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     super.dispose();
   }
 
+  void _handleTrainingModuleChanged() {
+    if (!mounted) {
+      return;
+    }
+
+    _coerceSelectedTabForCurrentModule(_trainingController);
+  }
+
   void _handleTabChanged() {
-    if (_tabController.indexIsChanging || _selectedTabIndex == _tabController.index) {
+    if (_tabController.indexIsChanging ||
+        _selectedTabIndexNotifier.value == _tabController.index) {
       return;
     }
 
-    final controller = context.read<TrainingModuleController>();
-
-    setState(() {
-      _selectedTabIndex = _tabController.index;
-    });
-
-    if (_selectedTabIndex == 1) {
-      controller.loadDocumentForSelectedModule();
+    final selectedTabIndex = _coerceSelectedTabForCurrentModule(
+      _trainingController,
+      candidateIndex: _tabController.index,
+    );
+    if (selectedTabIndex != _tabController.index) {
       return;
     }
 
-    if (_selectedTabIndex == 2) {
-      controller.loadQuestionsForSelectedModule();
-      return;
-    }
-
-    if (_selectedTabIndex == 3) {
-      controller.loadAssignmentForSelectedModule();
-    }
+    _selectedTabIndexNotifier.value = selectedTabIndex;
+    _syncSelectedTabDataForIndex(_trainingController, selectedTabIndex);
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
 
-    return Scaffold(
-      backgroundColor: AppColors.mainBg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
-            const SizedBox(height: 18),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                child: _buildBody(controller),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return SizedBox(
-      height: 32,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => Navigator.of(context).pop(),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: SvgPicture.asset(
-                  '${AppStrings.imagePath}back.svg',
-                  height: 24,
-                  width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+    return ValueListenableBuilder<int>(
+      valueListenable: _selectedTabIndexNotifier,
+      builder: (context, selectedTabIndex, _) {
+        return Scaffold(
+          backgroundColor: AppColors.mainBg,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+                  child: _buildHeader(context),
                 ),
-              ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: _buildBody(controller, selectedTabIndex),
+                  ),
+                ),
+              ],
             ),
           ),
-          const AppTextView.body(
-            AppStrings.seatProfileTrainings,
-            color: AppColors.secondaryColor,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildBody(TrainingModuleController controller) {
+  int _coerceSelectedTabForCurrentModule(
+    TrainingModuleController controller, {
+    int? candidateIndex,
+  }) {
+    final selectedTabIndex = candidateIndex ?? _selectedTabIndexNotifier.value;
+    final normalizedTabIndex = normalizeTrainingViewerTabIndex(
+      isPubliclyAvailable: controller.isSelectedModulePubliclyAvailable,
+      tabIndex: selectedTabIndex,
+    );
+
+    if (normalizedTabIndex != selectedTabIndex &&
+        _tabController.index != normalizedTabIndex) {
+      _tabController.animateTo(normalizedTabIndex);
+    }
+
+    if (_selectedTabIndexNotifier.value != normalizedTabIndex) {
+      _selectedTabIndexNotifier.value = normalizedTabIndex;
+    }
+
+    return normalizedTabIndex;
+  }
+
+  Widget _buildBody(TrainingModuleController controller, int selectedTabIndex) {
     if (controller.isLoading && controller.modules.isEmpty) {
       return Center(child: FastCircularProgressIndicator());
     }
@@ -162,7 +168,9 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     }
 
     if (controller.modules.isEmpty) {
-      return const _CenteredMessage(message: AppStrings.trainingNoModulesAvailable);
+      return const _CenteredMessage(
+        message: AppStrings.trainingNoModulesAvailable,
+      );
     }
 
     return ListView(
@@ -172,16 +180,20 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
             modules: controller.modules,
             selectedModuleId: controller.selectedModuleId,
             onModuleSelected: (moduleId) async {
-              if (moduleId == controller.selectedModuleId) {
-                await _syncSelectedTabData(controller);
-                return;
+              if (moduleId != controller.selectedModuleId) {
+                await controller.selectModule(moduleId);
+                if (!mounted) {
+                  return;
+                }
               }
 
-              await controller.selectModule(moduleId);
-              if (!mounted) {
-                return;
-              }
-              await _syncSelectedTabData(controller);
+              final normalizedTabIndex = _coerceSelectedTabForCurrentModule(
+                controller,
+              );
+              await _syncSelectedTabDataForIndex(
+                controller,
+                normalizedTabIndex,
+              );
             },
           ),
           const SizedBox(height: 18),
@@ -203,9 +215,13 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
                 ),
                 const SizedBox(height: 14),
               ],
-              _TrainingTabs(controller: _tabController),
+              _TrainingTabs(
+                controller: _tabController,
+                isPubliclyAvailable:
+                    controller.isSelectedModulePubliclyAvailable,
+              ),
               const SizedBox(height: 18),
-              _buildTabContent(controller),
+              _buildTabContent(controller, selectedTabIndex),
             ],
           ),
         ),
@@ -213,7 +229,46 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     );
   }
 
-  Widget _buildTabContent(TrainingModuleController controller) {
+  Widget _buildHeader(BuildContext context) {
+    return SizedBox(
+      height: 32,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => Navigator.of(context).pop(),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: SvgPicture.asset(
+                  '${AppStrings.imagePath}back.svg',
+                  height: 24,
+                  width: 24,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const AppTextView.body(
+            AppStrings.seatProfileTrainings,
+            color: AppColors.secondaryColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabContent(
+    TrainingModuleController controller,
+    int selectedTabIndex,
+  ) {
     if (controller.isLoading && controller.selectedModuleDetail == null) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 36),
@@ -221,15 +276,16 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
       );
     }
 
-    if (controller.errorMessage != null && controller.selectedModuleDetail == null) {
+    if (controller.errorMessage != null &&
+        controller.selectedModuleDetail == null) {
       return _ContentMessage(message: controller.errorMessage!);
     }
 
-    if (_selectedTabIndex == 0) {
+    if (selectedTabIndex == 0) {
       return _VideoTabContent(detail: controller.selectedModuleDetail);
     }
 
-    if (_selectedTabIndex == 1) {
+    if (selectedTabIndex == 1) {
       return _SopTabContent(
         isLoading: controller.isDocumentLoading,
         errorMessage: controller.documentErrorMessage,
@@ -237,7 +293,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
       );
     }
 
-    if (_selectedTabIndex == 2) {
+    if (selectedTabIndex == 2) {
       return _QuizTabContent(
         isLoading: controller.isQuestionsLoading,
         errorMessage: controller.questionsErrorMessage,
@@ -252,63 +308,129 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     );
   }
 
-  Future<void> _syncSelectedTabData(TrainingModuleController controller) async {
-    if (_selectedTabIndex == 1) {
+  Future<void> _syncSelectedTabDataForIndex(
+    TrainingModuleController controller,
+    int selectedTabIndex,
+  ) async {
+    if (selectedTabIndex == 1) {
       await controller.loadDocumentForSelectedModule();
       return;
     }
 
-    if (_selectedTabIndex == 2) {
+    if (selectedTabIndex == 2) {
       await controller.loadQuestionsForSelectedModule();
       return;
     }
 
-    if (_selectedTabIndex == 3) {
+    if (selectedTabIndex == 3) {
       await controller.loadAssignmentForSelectedModule();
     }
   }
 }
 
 class _TrainingTabs extends StatelessWidget {
-  const _TrainingTabs({required this.controller});
+  const _TrainingTabs({
+    required this.controller,
+    required this.isPubliclyAvailable,
+  });
 
   final TabController controller;
+  final bool isPubliclyAvailable;
 
   @override
   Widget build(BuildContext context) {
-    return TabBar(
-      controller: controller,
-      isScrollable: true,
-      tabAlignment: TabAlignment.start,
-      labelPadding: EdgeInsets.zero,
-      indicatorSize: TabBarIndicatorSize.tab,
-      indicatorColor: AppColors.secondaryColor,
-      labelColor: AppColors.secondaryColor,
-      unselectedLabelColor: AppColors.textSecondary,
-      dividerColor: AppColors.fieldBorder.withValues(alpha: 0.22),
-      tabs: const <Widget>[
-        _TrainingTabLabel(label: AppStrings.trainingVideoTab),
-        _TrainingTabLabel(label: AppStrings.trainingSopTab),
-        _TrainingTabLabel(label: AppStrings.trainingQuizTab),
-        _TrainingTabLabel(label: AppStrings.trainingAssignmentTab),
-      ],
+    const labels = <String>[
+      AppStrings.trainingVideoTab,
+      AppStrings.trainingSopTab,
+      AppStrings.trainingQuizTab,
+      AppStrings.trainingAssignmentTab,
+    ];
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            for (var index = 0; index < labels.length; index++) ...[
+              _TrainingTabChip(
+                label: labels[index],
+                isSelected: controller.index == index,
+                isEnabled: isTrainingViewerTabEnabled(
+                  isPubliclyAvailable: isPubliclyAvailable,
+                  tabIndex: index,
+                ),
+                onTap: () {
+                  if (!isTrainingViewerTabEnabled(
+                    isPubliclyAvailable: isPubliclyAvailable,
+                    tabIndex: index,
+                  )) {
+                    return;
+                  }
+
+                  if (controller.index != index) {
+                    controller.animateTo(index);
+                  }
+                },
+              ),
+              if (index != labels.length - 1) const SizedBox(width: 12),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _TrainingTabLabel extends StatelessWidget {
-  const _TrainingTabLabel({required this.label});
+class _TrainingTabChip extends StatelessWidget {
+  const _TrainingTabChip({
+    required this.label,
+    required this.isSelected,
+    required this.isEnabled,
+    required this.onTap,
+  });
 
   final String label;
+  final bool isSelected;
+  final bool isEnabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 22),
-      child: Tab(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 22, right: 14),
-          child: AppTextView.body2(label, fontWeight: FontWeight.w600),
+    final textColor = isSelected
+        ? AppColors.secondaryColor
+        : isEnabled
+        ? AppColors.textPrimary
+        : AppColors.textSecondary.withValues(alpha: 0.55);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minWidth: 98),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.secondaryColor.withValues(alpha: 0.05)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.secondaryColor
+                  : Colors.white.withValues(alpha: isEnabled ? 0.4 : 0.16),
+            ),
+          ),
+          child: Center(
+            child: AppTextView.body2(
+              label,
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -348,7 +470,11 @@ class _ModuleSelector extends StatelessWidget {
 }
 
 class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({required this.module, required this.isSelected, required this.onTap});
+  const _ModuleCard({
+    required this.module,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final SeatDescriptionTrainingModule module;
   final bool isSelected;
@@ -356,7 +482,9 @@ class _ModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedThumbnail = CustomFunctions.resolveImageUrl(module.thumbnailLink);
+    final resolvedThumbnail = CustomFunctions.resolveImageUrl(
+      module.thumbnailLink,
+    );
 
     return InkWell(
       onTap: onTap,
@@ -395,8 +523,10 @@ class _ModuleCard extends StatelessWidget {
                     : CachedNetworkImage(
                         imageUrl: resolvedThumbnail,
                         fit: BoxFit.cover,
-                        placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
-                        errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
+                        placeholder: (_, _) =>
+                            const _ModuleThumbnailPlaceholder(),
+                        errorWidget: (_, _, _) =>
+                            const _ModuleThumbnailPlaceholder(),
                       ),
               ),
             ),
@@ -470,7 +600,9 @@ class _VideoTabContent extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.mainBg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+            border: Border.all(
+              color: AppColors.fieldBorder.withValues(alpha: 0.18),
+            ),
           ),
           child: AppTextView.body3(
             summary != null && summary.isNotEmpty
@@ -520,7 +652,9 @@ class _SopTabContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: Html(
         data: html,
@@ -534,7 +668,10 @@ class _SopTabContent extends StatelessWidget {
             fontWeight: FontWeight.w400,
             lineHeight: const LineHeight(1.65),
           ),
-          'p': Style(margin: Margins.only(bottom: 12), lineHeight: const LineHeight(1.65)),
+          'p': Style(
+            margin: Margins.only(bottom: 12),
+            lineHeight: const LineHeight(1.65),
+          ),
           'ul': Style(margin: Margins.only(bottom: 12)),
           'ol': Style(margin: Margins.only(bottom: 12)),
           'li': Style(margin: Margins.only(bottom: 6)),
@@ -584,7 +721,9 @@ class _QuizTabContent extends StatelessWidget {
     }
 
     if (questions.isEmpty) {
-      return const _ContentMessage(message: AppStrings.trainingNoQuizQuestionsAvailable);
+      return const _ContentMessage(
+        message: AppStrings.trainingNoQuizQuestionsAvailable,
+      );
     }
 
     return Column(
@@ -628,7 +767,9 @@ class _AssignmentTabContent extends StatelessWidget {
     final hasTitle = title != null && title.isNotEmpty;
     final hasInstructions = instructions != null && instructions.isNotEmpty;
     if (!hasTitle && !hasInstructions) {
-      return const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
+      return const _ContentMessage(
+        message: AppStrings.trainingNoAssignmentAvailable,
+      );
     }
 
     return Column(
@@ -647,7 +788,9 @@ class _AssignmentTabContent extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.mainBg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
             ),
             child: AppTextView.body2(
               title,
@@ -671,7 +814,9 @@ class _AssignmentTabContent extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.mainBg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+              border: Border.all(
+                color: AppColors.fieldBorder.withValues(alpha: 0.18),
+              ),
             ),
             child: Html(
               data: instructions,
@@ -685,7 +830,10 @@ class _AssignmentTabContent extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                   lineHeight: const LineHeight(1.65),
                 ),
-                'p': Style(margin: Margins.only(bottom: 12), lineHeight: const LineHeight(1.65)),
+                'p': Style(
+                  margin: Margins.only(bottom: 12),
+                  lineHeight: const LineHeight(1.65),
+                ),
                 'ul': Style(margin: Margins.only(bottom: 12)),
                 'ol': Style(margin: Margins.only(bottom: 12)),
                 'li': Style(margin: Margins.only(bottom: 6)),
@@ -721,7 +869,9 @@ class _QuizQuestionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,9 +899,11 @@ class _QuizQuestionCard extends StatelessWidget {
             for (var index = 0; index < question.options.length; index++) ...[
               _QuizOptionTile(
                 text: question.options[index].text,
-                isSelected: question.selectedOptionUuid == question.options[index].uuid,
+                isSelected:
+                    question.selectedOptionUuid == question.options[index].uuid,
               ),
-              if (index != question.options.length - 1) const SizedBox(height: 10),
+              if (index != question.options.length - 1)
+                const SizedBox(height: 10),
             ],
           ],
         ],
@@ -778,7 +930,9 @@ class _QuizOptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: isSelected ? AppColors.secondaryColor : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.secondaryColor
+                  : AppColors.textSecondary,
               width: 1.4,
             ),
           ),
@@ -798,7 +952,9 @@ class _QuizOptionTile extends StatelessWidget {
         Expanded(
           child: AppTextView.body3(
             text,
-            color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
+            color: isSelected
+                ? AppColors.secondaryColor
+                : AppColors.textPrimary,
             height: 1.4,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -829,7 +985,9 @@ class _ContentMessage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.18),
+        ),
       ),
       child: AppTextView.body3(
         message,
@@ -849,7 +1007,11 @@ class _CenteredMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
+      child: AppTextView.body(
+        message,
+        color: AppColors.textSecondary,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }

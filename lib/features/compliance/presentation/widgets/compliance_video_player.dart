@@ -42,7 +42,8 @@ class ComplianceVideoPlayer extends StatefulWidget {
   State<ComplianceVideoPlayer> createState() => _ComplianceVideoPlayerState();
 }
 
-class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
+class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
+    with AutomaticKeepAliveClientMixin<ComplianceVideoPlayer> {
   static const _cacheMaxAge = Duration(days: 30);
   static const _playbackStartWaitTimeout = Duration(milliseconds: 900);
 
@@ -115,7 +116,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     VideoPlayerController? controller;
 
     try {
-      controller = await VideoPlaybackService.createInitializedController(
+      controller = await VideoPlaybackService.acquireInitializedController(
         widget.videoUrl,
         localFilePath: widget.localVideoPath,
         cacheMaxAge: _cacheMaxAge,
@@ -126,14 +127,14 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       }
 
       if (!mounted || !_isActiveGeneration(generation)) {
-        await controller.dispose();
+        await VideoPlaybackService.releaseController(controller);
         return;
       }
 
       await controller.setLooping(false);
       await controller.setVolume(1);
       if (!mounted || !_isActiveGeneration(generation)) {
-        await controller.dispose();
+        await VideoPlaybackService.releaseController(controller);
         return;
       }
 
@@ -142,7 +143,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       });
     } catch (error) {
       if (controller != null) {
-        await controller.dispose();
+        await VideoPlaybackService.releaseController(controller);
       }
       if (_shouldRetryWithPlatformView(viewType, generation)) {
         _currentViewType = VideoViewType.platformView;
@@ -193,9 +194,12 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     _isScrubbing = false;
     _scrubPositionMillis = null;
     if (controller != null) {
-      unawaited(controller.dispose());
+      unawaited(VideoPlaybackService.releaseController(controller));
     }
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   bool get _hasThumbnail {
     return CustomFunctions.resolveImageUrl(widget.thumbnailLink) != null;
@@ -379,6 +383,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = _controller;
 
     return FutureBuilder<void>(
@@ -685,10 +690,18 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     final currentMillis = position.inMilliseconds
         .clamp(0, duration.inMilliseconds)
         .toDouble();
+    final bufferedMillis = _resolvedBufferedMillis(
+      controllerValue,
+      maxMillis: maxMillis,
+      currentMillis: currentMillis,
+    );
 
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
         activeTrackColor: AppColors.secondaryColor,
+        secondaryActiveTrackColor: AppColors.textPrimary.withValues(
+          alpha: 0.55,
+        ),
         inactiveTrackColor: AppColors.textPrimary.withValues(alpha: 0.35),
         thumbColor: AppColors.textPrimary,
         overlayColor: AppColors.secondaryColor.withValues(alpha: 0.18),
@@ -697,6 +710,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       ),
       child: Slider(
         value: currentMillis,
+        secondaryTrackValue: bufferedMillis,
         min: 0,
         max: maxMillis,
         onChangeStart:
@@ -727,6 +741,31 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
               },
       ),
     );
+  }
+
+  double? _resolvedBufferedMillis(
+    VideoPlayerValue? controllerValue, {
+    required double maxMillis,
+    required double currentMillis,
+  }) {
+    if (controllerValue == null || controllerValue.buffered.isEmpty) {
+      return null;
+    }
+
+    var bufferedEndMillis = 0.0;
+    for (final range in controllerValue.buffered) {
+      final rangeEndMillis = range.end.inMilliseconds.toDouble();
+      if (rangeEndMillis > bufferedEndMillis) {
+        bufferedEndMillis = rangeEndMillis;
+      }
+    }
+
+    final clampedBufferedMillis = bufferedEndMillis.clamp(0.0, maxMillis);
+    if (clampedBufferedMillis <= currentMillis) {
+      return null;
+    }
+
+    return clampedBufferedMillis;
   }
 
   Duration _resolvedDisplayedPosition(VideoPlayerValue? controllerValue) {

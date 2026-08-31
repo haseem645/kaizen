@@ -1,4 +1,5 @@
 import 'user_hierarchy_membership.dart';
+import 'user_role_utils.dart';
 
 class User {
   final String? uuid;
@@ -37,8 +38,7 @@ class User {
   final String? dateOfBirth;
   final List<UserHierarchyMembership>? hierarchyMemberships;
 
-  List<String> get normalizedRoles =>
-      _normalizeRoles(roles: roles, hierarchyMemberships: hierarchyMemberships);
+  List<String> get normalizedRoles => _normalizeRoles(roles: roles);
 
   User({
     this.uuid,
@@ -346,15 +346,12 @@ class User {
         .toList(growable: false);
   }
 
-  static List<String> _normalizeRoles({
-    List<String>? roles,
-    List<UserHierarchyMembership>? hierarchyMemberships,
-  }) {
+  static List<String> _normalizeRoles({List<String>? roles}) {
     final normalizedRoles = <String>[];
     final seenRoles = <String>{};
 
     void addRole(String? rawRole) {
-      final normalizedRole = rawRole?.trim().toLowerCase() ?? '';
+      final normalizedRole = normalizeUserRole(rawRole);
       if (normalizedRole.isEmpty || !seenRoles.add(normalizedRole)) {
         return;
       }
@@ -364,11 +361,6 @@ class User {
 
     for (final role in roles ?? const <String>[]) {
       addRole(role);
-    }
-
-    for (final membership
-        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
-      addRole(membership.role);
     }
 
     return List<String>.unmodifiable(normalizedRoles);

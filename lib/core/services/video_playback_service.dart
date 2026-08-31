@@ -12,10 +12,16 @@ class VideoPlaybackService {
   VideoPlaybackService._();
 
   static const Duration defaultCacheMaxAge = Duration(days: 30);
+  static const Duration _retainedControllerMaxIdleTime = Duration(minutes: 3);
   static const String _customCacheNamespace = 'kaizen-video';
   static const String _packageCacheStoragePrefix =
       'cached_video_player_plus_caching_time_of_';
   static final Map<String, Future<void>> _warmUpJobs = <String, Future<void>>{};
+  static final Map<String, _RetainedVideoControllerEntry> _idleControllers =
+      <String, _RetainedVideoControllerEntry>{};
+  static final Map<VideoPlayerController, _RetainedVideoControllerEntry>
+  _leasedControllers = <VideoPlayerController, _RetainedVideoControllerEntry>{};
+  static final Map<String, Duration> _lastKnownPositions = <String, Duration>{};
 
   static Future<void> warmUp(
     String? videoUrl, {
@@ -115,6 +121,104 @@ class VideoPlaybackService {
     );
     await controller.initialize();
     return controller;
+  }
+
+  static Future<VideoPlayerController?> acquireInitializedController(
+    String? videoUrl, {
+    String? localFilePath,
+    Map<String, String> headers = const <String, String>{},
+    Duration cacheMaxAge = defaultCacheMaxAge,
+    VideoPlayerOptions? videoPlayerOptions,
+    VideoViewType viewType = VideoViewType.textureView,
+  }) async {
+    final poolKey = await _controllerPoolKeyFor(
+      videoUrl,
+      localFilePath: localFilePath,
+      headers: headers,
+      viewType: viewType,
+    );
+    if (poolKey == null) {
+      return createInitializedController(
+        videoUrl,
+        localFilePath: localFilePath,
+        headers: headers,
+        cacheMaxAge: cacheMaxAge,
+        videoPlayerOptions: videoPlayerOptions,
+        viewType: viewType,
+      );
+    }
+
+    final retainedEntry = _idleControllers.remove(poolKey);
+    if (retainedEntry != null) {
+      retainedEntry.disposeTimer?.cancel();
+      retainedEntry.disposeTimer = null;
+      final retainedController = retainedEntry.controller;
+      if (retainedController.value.isInitialized) {
+        _leasedControllers[retainedController] = retainedEntry;
+        await _restoreLastKnownPosition(retainedController, poolKey: poolKey);
+        return retainedController;
+      }
+
+      await retainedController.dispose();
+    }
+
+    final controller = await createInitializedController(
+      videoUrl,
+      localFilePath: localFilePath,
+      headers: headers,
+      cacheMaxAge: cacheMaxAge,
+      videoPlayerOptions: videoPlayerOptions,
+      viewType: viewType,
+    );
+    if (controller == null) {
+      return null;
+    }
+
+    final entry = _RetainedVideoControllerEntry(
+      poolKey: poolKey,
+      controller: controller,
+    );
+    _leasedControllers[controller] = entry;
+    await _restoreLastKnownPosition(controller, poolKey: poolKey);
+    return controller;
+  }
+
+  static Future<void> releaseController(
+    VideoPlayerController controller,
+  ) async {
+    final leasedEntry = _leasedControllers.remove(controller);
+    if (leasedEntry == null) {
+      if (_isIdleController(controller)) {
+        return;
+      }
+      await controller.dispose();
+      return;
+    }
+
+    final poolKey = leasedEntry.poolKey;
+    _lastKnownPositions[poolKey] = _normalizedResumePosition(controller.value);
+
+    if (controller.value.isPlaying) {
+      try {
+        await controller.pause();
+      } catch (_) {
+        // Ignore pause failures and continue with disposal retention.
+      }
+    }
+
+    final existingIdleEntry = _idleControllers.remove(poolKey);
+    if (existingIdleEntry != null &&
+        !identical(existingIdleEntry.controller, controller)) {
+      existingIdleEntry.disposeTimer?.cancel();
+      await existingIdleEntry.controller.dispose();
+    }
+
+    leasedEntry.disposeTimer?.cancel();
+    leasedEntry.disposeTimer = Timer(
+      _retainedControllerMaxIdleTime,
+      () => unawaited(_expireIdleController(poolKey, controller)),
+    );
+    _idleControllers[poolKey] = leasedEntry;
   }
 
   static Future<VideoPlayerController?> _createControllerFromResolvedSource(
@@ -236,4 +340,129 @@ class VideoPlaybackService {
     return CustomFunctions.isApplePlatform() &&
         CustomFunctions.isWebmVideoUrl(resolvedUrl);
   }
+
+  static Future<String?> _controllerPoolKeyFor(
+    String? videoUrl, {
+    String? localFilePath,
+    required Map<String, String> headers,
+    required VideoViewType viewType,
+  }) async {
+    final resolvedLocalFilePath = localFilePath?.trim();
+    if (resolvedLocalFilePath != null && resolvedLocalFilePath.isNotEmpty) {
+      final localFile = File(resolvedLocalFilePath);
+      if (await localFile.exists()) {
+        return _controllerPoolKeyForSource(
+          'file::$resolvedLocalFilePath',
+          headers: headers,
+          viewType: viewType,
+        );
+      }
+    }
+
+    final resolvedUrl = CustomFunctions.resolveNetworkUrl(videoUrl);
+    if (resolvedUrl == null) {
+      return null;
+    }
+
+    return _controllerPoolKeyForSource(
+      'url::$resolvedUrl',
+      headers: headers,
+      viewType: viewType,
+    );
+  }
+
+  static String _controllerPoolKeyForSource(
+    String sourceKey, {
+    required Map<String, String> headers,
+    required VideoViewType viewType,
+  }) {
+    if (headers.isEmpty) {
+      return '$sourceKey::${viewType.name}';
+    }
+
+    final sortedEntries = headers.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    final headersHash = Object.hashAll(
+      sortedEntries.map((entry) => Object.hash(entry.key, entry.value)),
+    );
+    return '$sourceKey::${viewType.name}::$headersHash';
+  }
+
+  static Future<void> _restoreLastKnownPosition(
+    VideoPlayerController controller, {
+    required String poolKey,
+  }) async {
+    final resumePosition = _lastKnownPositions[poolKey];
+    if (resumePosition == null || resumePosition <= Duration.zero) {
+      return;
+    }
+
+    final duration = controller.value.duration;
+    if (duration <= Duration.zero) {
+      return;
+    }
+
+    final clampedPosition = resumePosition >= duration
+        ? duration
+        : resumePosition;
+    if (controller.value.position == clampedPosition) {
+      return;
+    }
+
+    try {
+      await controller.seekTo(clampedPosition);
+    } catch (_) {
+      // Reusing the controller is still valuable even if resume seek fails.
+    }
+  }
+
+  static Duration _normalizedResumePosition(VideoPlayerValue value) {
+    final duration = value.duration;
+    final position = value.position;
+    if (duration <= Duration.zero || position <= Duration.zero) {
+      return Duration.zero;
+    }
+
+    if (position >= duration) {
+      return Duration.zero;
+    }
+
+    return position;
+  }
+
+  static bool _isIdleController(VideoPlayerController controller) {
+    for (final entry in _idleControllers.values) {
+      if (identical(entry.controller, controller)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  static Future<void> _expireIdleController(
+    String poolKey,
+    VideoPlayerController controller,
+  ) async {
+    final retainedEntry = _idleControllers[poolKey];
+    if (retainedEntry == null ||
+        !identical(retainedEntry.controller, controller)) {
+      return;
+    }
+
+    _idleControllers.remove(poolKey);
+    retainedEntry.disposeTimer?.cancel();
+    await retainedEntry.controller.dispose();
+  }
+}
+
+class _RetainedVideoControllerEntry {
+  _RetainedVideoControllerEntry({
+    required this.poolKey,
+    required this.controller,
+  });
+
+  final String poolKey;
+  final VideoPlayerController controller;
+  Timer? disposeTimer;
 }

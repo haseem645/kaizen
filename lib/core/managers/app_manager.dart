@@ -63,8 +63,17 @@ class AppManager extends ChangeNotifier {
       AppPermissionUtils.hasOwnerOverrideAccess(_currentUser);
   bool get currentUserCanAccessSandbox =>
       AppPermissionUtils.canAccessSandbox(_currentUser);
+  bool get currentUserCanOpenSeatProfileCreateFlow =>
+      AppPermissionUtils.canAccessScopedCreateEntry(_currentUser);
+  bool get currentUserCanOpenTrainingModuleCreateFlow =>
+      AppPermissionUtils.canAccessScopedCreateEntry(_currentUser);
   bool get canCurrentOrganizationModifyContent =>
       AppPermissionUtils.canModifyCurrentOrganizationContent(
+        currentOrganization: currentOrganization,
+      );
+  bool get currentUserCanManageAnySeatProfileDepartments =>
+      AppPermissionUtils.canManageAnySeatProfileDepartments(
+        user: _currentUser,
         currentOrganization: currentOrganization,
       );
   bool get currentUserCanCreateSeatProfiles =>
@@ -79,14 +88,31 @@ class AppManager extends ChangeNotifier {
       );
   bool get currentUserCanAccessAuditTeamMembers =>
       AppPermissionUtils.canAccessAuditTeamMembers(_currentUser);
+  bool get currentUserCanManagePaygrades =>
+      AppPermissionUtils.canManagePaygrades(
+        user: _currentUser,
+        currentOrganization: currentOrganization,
+      );
+
+  bool canCurrentUserManageSeatProfileDepartment({
+    required String departmentId,
+  }) {
+    return AppPermissionUtils.canManageSeatProfileDepartment(
+      user: _currentUser,
+      currentOrganization: currentOrganization,
+      departmentId: departmentId,
+    );
+  }
 
   bool canCurrentUserManageTrainingForSeatProfile({
     required String seatProfileId,
+    Iterable<String> additionalSeatProfileIds = const <String>[],
   }) {
     return AppPermissionUtils.canManageTrainingForSeatProfile(
       user: _currentUser,
       currentOrganization: currentOrganization,
       seatProfileId: seatProfileId,
+      additionalSeatProfileIds: additionalSeatProfileIds,
     );
   }
 

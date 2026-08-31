@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -26,12 +28,25 @@ class ComplianceFullScreenVideoView extends StatefulWidget {
 
 class _ComplianceFullScreenVideoViewState
     extends State<ComplianceFullScreenVideoView> {
+  static const Duration _entryBufferingSuppressionDuration = Duration(
+    milliseconds: 900,
+  );
+  static const Duration _bufferingIndicatorDelay = Duration(milliseconds: 350);
+
   bool _isScrubbing = false;
   double? _scrubPositionMillis;
+  final ValueNotifier<bool> _showBufferingIndicator = ValueNotifier<bool>(
+    false,
+  );
+  Timer? _entryBufferingSuppressionTimer;
+  Timer? _pendingBufferingIndicatorTimer;
+  Duration _lastObservedPosition = Duration.zero;
+  bool _isEntryBufferingSuppressed = false;
 
   @override
   void initState() {
     super.initState();
+    _attachController(widget.controller);
     _syncInitialPosition();
   }
 
@@ -39,10 +54,117 @@ class _ComplianceFullScreenVideoViewState
   void didUpdateWidget(covariant ComplianceFullScreenVideoView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
+      _detachController(oldWidget.controller);
       _isScrubbing = false;
       _scrubPositionMillis = null;
+      _attachController(widget.controller);
       _syncInitialPosition();
     }
+  }
+
+  @override
+  void dispose() {
+    _detachController(widget.controller);
+    _showBufferingIndicator.dispose();
+    super.dispose();
+  }
+
+  void _attachController(VideoPlayerController controller) {
+    _lastObservedPosition = controller.value.position;
+    _configureEntryBufferingSuppression(controller);
+    controller.addListener(_handleControllerChanged);
+    _handleControllerChanged();
+  }
+
+  void _detachController(VideoPlayerController controller) {
+    controller.removeListener(_handleControllerChanged);
+    _entryBufferingSuppressionTimer?.cancel();
+    _entryBufferingSuppressionTimer = null;
+    _pendingBufferingIndicatorTimer?.cancel();
+    _pendingBufferingIndicatorTimer = null;
+    _isEntryBufferingSuppressed = false;
+  }
+
+  void _configureEntryBufferingSuppression(VideoPlayerController controller) {
+    _entryBufferingSuppressionTimer?.cancel();
+    _entryBufferingSuppressionTimer = null;
+    _pendingBufferingIndicatorTimer?.cancel();
+    _pendingBufferingIndicatorTimer = null;
+
+    final shouldSuppressBriefly =
+        controller.value.isInitialized &&
+        (controller.value.isPlaying ||
+            controller.value.position > Duration.zero);
+    if (!shouldSuppressBriefly) {
+      _isEntryBufferingSuppressed = false;
+      _showBufferingIndicator.value = false;
+      return;
+    }
+
+    _isEntryBufferingSuppressed = true;
+    _showBufferingIndicator.value = false;
+    _entryBufferingSuppressionTimer = Timer(
+      _entryBufferingSuppressionDuration,
+      () {
+        _entryBufferingSuppressionTimer = null;
+        _isEntryBufferingSuppressed = false;
+        _handleControllerChanged();
+      },
+    );
+  }
+
+  void _handleControllerChanged() {
+    final value = widget.controller.value;
+    final position = value.position;
+    final hasPositionChanged = position != _lastObservedPosition;
+    _lastObservedPosition = position;
+
+    if (hasPositionChanged) {
+      _pendingBufferingIndicatorTimer?.cancel();
+      _pendingBufferingIndicatorTimer = null;
+      if (_showBufferingIndicator.value) {
+        _showBufferingIndicator.value = false;
+      }
+      return;
+    }
+
+    final shouldShowIndicator =
+        !_isEntryBufferingSuppressed && _shouldShowBufferingIndicator(value);
+    if (!shouldShowIndicator) {
+      _pendingBufferingIndicatorTimer?.cancel();
+      _pendingBufferingIndicatorTimer = null;
+      if (_showBufferingIndicator.value) {
+        _showBufferingIndicator.value = false;
+      }
+      return;
+    }
+
+    if (_showBufferingIndicator.value ||
+        _pendingBufferingIndicatorTimer != null) {
+      return;
+    }
+
+    final stalledPosition = position;
+    _pendingBufferingIndicatorTimer = Timer(_bufferingIndicatorDelay, () {
+      _pendingBufferingIndicatorTimer = null;
+      final latestValue = widget.controller.value;
+      final isStillStalled =
+          !_isEntryBufferingSuppressed &&
+          latestValue.position == stalledPosition &&
+          _shouldShowBufferingIndicator(latestValue);
+      if (mounted) {
+        _showBufferingIndicator.value = isStillStalled;
+      }
+    });
+  }
+
+  bool _shouldShowBufferingIndicator(VideoPlayerValue value) {
+    if (!value.isInitialized || !value.isBuffering || !value.isPlaying) {
+      return false;
+    }
+
+    final duration = value.duration;
+    return duration <= Duration.zero || value.position < duration;
   }
 
   Future<void> _syncInitialPosition() async {
@@ -93,76 +215,86 @@ class _ComplianceFullScreenVideoViewState
             final controller = widget.controller;
             final isReady = controllerValue.isInitialized;
 
-            return Stack(
-              children: [
-                Center(
-                  child: isReady
-                      ? AspectRatio(
-                          aspectRatio: controllerValue.aspectRatio,
-                          child: child ?? VideoPlayer(controller),
-                        )
-                      : FastCircularProgressIndicator(width: 32, height: 32),
-                ),
-                if (isReady && controllerValue.isBuffering)
-                  Center(
-                    child: SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: FastCircularProgressIndicator(),
+            return ValueListenableBuilder<bool>(
+              valueListenable: _showBufferingIndicator,
+              builder: (context, showBufferingIndicator, _) {
+                return Stack(
+                  children: [
+                    Center(
+                      child: isReady
+                          ? AspectRatio(
+                              aspectRatio: controllerValue.aspectRatio,
+                              child: child ?? VideoPlayer(controller),
+                            )
+                          : FastCircularProgressIndicator(
+                              width: 32,
+                              height: 32,
+                            ),
                     ),
-                  ),
-                Positioned(
-                  left: 12,
-                  top: 12,
-                  child: AppBackButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-                Positioned(
-                  left: 24,
-                  right: 24,
-                  bottom: 24,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AppTextView.body1(
-                        widget.title,
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                    if (isReady &&
+                        controllerValue.isBuffering &&
+                        showBufferingIndicator)
+                      Center(
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: FastCircularProgressIndicator(),
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      _FullScreenVideoControls(
-                        controllerValue: controllerValue,
-                        isReady: isReady,
-                        isScrubbing: _isScrubbing,
-                        scrubPositionMillis: _scrubPositionMillis,
-                        onTogglePlayback: _togglePlayback,
-                        onScrubStart: (value) {
-                          setState(() {
-                            _isScrubbing = true;
-                            _scrubPositionMillis = value;
-                          });
-                        },
-                        onScrubChanged: (value) {
-                          setState(() {
-                            _scrubPositionMillis = value;
-                          });
-                        },
-                        onScrubEnd: (value) async {
-                          setState(() {
-                            _isScrubbing = false;
-                            _scrubPositionMillis = null;
-                          });
-                          await controller.seekTo(
-                            Duration(milliseconds: value.round()),
-                          );
-                        },
+                    Positioned(
+                      left: 12,
+                      top: 12,
+                      child: AppBackButton(
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                    Positioned(
+                      left: 24,
+                      right: 24,
+                      bottom: 24,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          AppTextView.body1(
+                            widget.title,
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          const SizedBox(height: 8),
+                          _FullScreenVideoControls(
+                            controllerValue: controllerValue,
+                            isReady: isReady,
+                            isScrubbing: _isScrubbing,
+                            scrubPositionMillis: _scrubPositionMillis,
+                            onTogglePlayback: _togglePlayback,
+                            onScrubStart: (value) {
+                              setState(() {
+                                _isScrubbing = true;
+                                _scrubPositionMillis = value;
+                              });
+                            },
+                            onScrubChanged: (value) {
+                              setState(() {
+                                _scrubPositionMillis = value;
+                              });
+                            },
+                            onScrubEnd: (value) async {
+                              setState(() {
+                                _isScrubbing = false;
+                                _scrubPositionMillis = null;
+                              });
+                              await controller.seekTo(
+                                Duration(milliseconds: value.round()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -204,6 +336,11 @@ class _FullScreenVideoControls extends StatelessWidget {
     final currentMillis = position.inMilliseconds
         .clamp(0, duration.inMilliseconds)
         .toDouble();
+    final bufferedMillis = _resolvedBufferedMillis(
+      controllerValue,
+      maxMillis: maxMillis,
+      currentMillis: currentMillis,
+    );
 
     return Row(
       children: [
@@ -221,6 +358,9 @@ class _FullScreenVideoControls extends StatelessWidget {
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: AppColors.secondaryColor,
+              secondaryActiveTrackColor: AppColors.textPrimary.withValues(
+                alpha: 0.55,
+              ),
               inactiveTrackColor: AppColors.textPrimary.withValues(alpha: 0.35),
               thumbColor: AppColors.textPrimary,
               overlayColor: AppColors.secondaryColor.withValues(alpha: 0.18),
@@ -229,6 +369,7 @@ class _FullScreenVideoControls extends StatelessWidget {
             ),
             child: Slider(
               value: currentMillis,
+              secondaryTrackValue: bufferedMillis,
               min: 0,
               max: maxMillis,
               onChangeStart: !isReady ? null : onScrubStart,
@@ -244,5 +385,30 @@ class _FullScreenVideoControls extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  double? _resolvedBufferedMillis(
+    VideoPlayerValue controllerValue, {
+    required double maxMillis,
+    required double currentMillis,
+  }) {
+    if (controllerValue.buffered.isEmpty) {
+      return null;
+    }
+
+    var bufferedEndMillis = 0.0;
+    for (final range in controllerValue.buffered) {
+      final rangeEndMillis = range.end.inMilliseconds.toDouble();
+      if (rangeEndMillis > bufferedEndMillis) {
+        bufferedEndMillis = rangeEndMillis;
+      }
+    }
+
+    final clampedBufferedMillis = bufferedEndMillis.clamp(0.0, maxMillis);
+    if (clampedBufferedMillis <= currentMillis) {
+      return null;
+    }
+
+    return clampedBufferedMillis;
   }
 }

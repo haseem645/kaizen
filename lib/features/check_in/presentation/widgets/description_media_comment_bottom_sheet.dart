@@ -14,13 +14,9 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import 'description_media_image_markup_sheet.dart';
 
-enum DescriptionMediaCommentContentType {
-  photo,
-  video,
-  upload,
-  screenRecording,
-}
+enum DescriptionMediaCommentContentType { photo, video, upload, screenRecording }
 
 class DescriptionMediaCommentBottomSheet extends StatefulWidget {
   const DescriptionMediaCommentBottomSheet({
@@ -33,12 +29,7 @@ class DescriptionMediaCommentBottomSheet extends StatefulWidget {
   });
 
   final DescriptionMediaCommentContentType contentType;
-  final Future<void> Function(
-    String comment,
-    File? mediaFile,
-    String? mediaType,
-  )
-  onSave;
+  final Future<void> Function(String comment, File? mediaFile, String? mediaType) onSave;
   final File? initialMediaFile;
   final String? initialMediaType;
   final bool allowInitialMediaRemoval;
@@ -48,13 +39,13 @@ class DescriptionMediaCommentBottomSheet extends StatefulWidget {
       _DescriptionMediaCommentBottomSheetState();
 }
 
-class _DescriptionMediaCommentBottomSheetState
-    extends State<DescriptionMediaCommentBottomSheet> {
+class _DescriptionMediaCommentBottomSheetState extends State<DescriptionMediaCommentBottomSheet> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
   File? _selectedMedia;
   String? _selectedMediaType;
+  DescriptionMediaImageMarkupSession? _imageMarkupSession;
   var _isPickingMedia = false;
   var _isSaving = false;
 
@@ -73,6 +64,7 @@ class _DescriptionMediaCommentBottomSheetState
 
   @override
   void dispose() {
+    _disposeImageMarkupPreview(_imageMarkupSession);
     _controller.dispose();
     super.dispose();
   }
@@ -81,9 +73,7 @@ class _DescriptionMediaCommentBottomSheetState
   Widget build(BuildContext context) {
     final comment = _controller.text.trim();
     final canSave =
-        (comment.isNotEmpty || _selectedMedia != null) &&
-        !_isSaving &&
-        !_isPickingMedia;
+        (comment.isNotEmpty || _selectedMedia != null) && !_isSaving && !_isPickingMedia;
     final sheetHeight = MediaQuery.sizeOf(context).height * 0.88;
     final topPadding = MediaQuery.paddingOf(context).top;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
@@ -115,9 +105,7 @@ class _DescriptionMediaCommentBottomSheetState
                   Padding(
                     padding: const EdgeInsets.only(left: 5, top: 8, bottom: 8),
                     child: AppOverlayCloseButton(
-                      onTap: _isSaving
-                          ? null
-                          : () => Navigator.of(context).pop(),
+                      onTap: _isSaving ? null : () => Navigator.of(context).pop(),
                     ),
                   ),
                   const Spacer(),
@@ -142,9 +130,7 @@ class _DescriptionMediaCommentBottomSheetState
                       text: AppStrings.saveComment,
                       onPressed: canSave ? _save : null,
                       isLoading: _isSaving,
-                      backgroundColor: canSave
-                          ? AppColors.secondaryColor
-                          : AppColors.grey1,
+                      backgroundColor: canSave ? AppColors.secondaryColor : AppColors.grey1,
                     ),
                   ],
                 ),
@@ -161,8 +147,7 @@ class _DescriptionMediaCommentBottomSheetState
       DescriptionMediaCommentContentType.photo => _buildPhotoContent(),
       DescriptionMediaCommentContentType.video => _buildVideoContent(),
       DescriptionMediaCommentContentType.upload => _buildUploadContent(),
-      DescriptionMediaCommentContentType.screenRecording =>
-        _buildScreenRecordingContent(),
+      DescriptionMediaCommentContentType.screenRecording => _buildScreenRecordingContent(),
     };
   }
 
@@ -179,9 +164,8 @@ class _DescriptionMediaCommentBottomSheetState
           : _SelectedMediaPreview(
               mediaFile: _selectedMedia!,
               mediaType: _selectedMediaType,
-              onClear: _isSaving || _isPickingMedia
-                  ? null
-                  : _clearSelectedMedia,
+              onClear: _isSaving || _isPickingMedia ? null : _clearSelectedMedia,
+              onEditImage: _isSaving || _isPickingMedia ? null : _openImageMarkupEditor,
             ),
     );
   }
@@ -199,9 +183,7 @@ class _DescriptionMediaCommentBottomSheetState
           : _SelectedMediaPreview(
               mediaFile: _selectedMedia!,
               mediaType: _selectedMediaType,
-              onClear: _isSaving || _isPickingMedia
-                  ? null
-                  : _clearSelectedMedia,
+              onClear: _isSaving || _isPickingMedia ? null : _clearSelectedMedia,
             ),
     );
   }
@@ -211,19 +193,14 @@ class _DescriptionMediaCommentBottomSheetState
       child: _selectedMedia == null
           ? _UploadMediaContent(
               isBusy: _isPickingMedia,
-              onUploadPhoto: _isSaving || _isPickingMedia
-                  ? null
-                  : _pickImageFromGallery,
-              onUploadVideo: _isSaving || _isPickingMedia
-                  ? null
-                  : _pickVideoFromGallery,
+              onUploadPhoto: _isSaving || _isPickingMedia ? null : _pickImageFromGallery,
+              onUploadVideo: _isSaving || _isPickingMedia ? null : _pickVideoFromGallery,
             )
           : _SelectedMediaPreview(
               mediaFile: _selectedMedia!,
               mediaType: _selectedMediaType,
-              onClear: _isSaving || _isPickingMedia
-                  ? null
-                  : _clearSelectedMedia,
+              onClear: _isSaving || _isPickingMedia ? null : _clearSelectedMedia,
+              onEditImage: _isSaving || _isPickingMedia ? null : _openImageMarkupEditor,
             ),
     );
   }
@@ -250,7 +227,7 @@ class _DescriptionMediaCommentBottomSheetState
 
     setState(() => _isSaving = true);
     try {
-      await widget.onSave(comment, _selectedMedia, _selectedMediaType);
+      await widget.onSave(comment, _resolvedMediaFileForSave(), _selectedMediaType);
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -292,18 +269,12 @@ class _DescriptionMediaCommentBottomSheetState
 
     setState(() => _isPickingMedia = true);
     try {
-      final pickedFile = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 90,
-      );
+      final pickedFile = await _imagePicker.pickImage(source: source);
       if (!mounted || pickedFile == null) {
         return;
       }
 
-      setState(() {
-        _selectedMedia = File(pickedFile.path);
-        _selectedMediaType = 'image';
-      });
+      _updateSelectedMedia(File(pickedFile.path), 'image');
     } on PlatformException catch (error) {
       if (!mounted) {
         return;
@@ -338,10 +309,7 @@ class _DescriptionMediaCommentBottomSheetState
       }
 
       final mediaFile = File(pickedFile.path);
-      setState(() {
-        _selectedMedia = mediaFile;
-        _selectedMediaType = 'video';
-      });
+      _updateSelectedMedia(mediaFile, 'video');
 
       if (source == ImageSource.camera) {
         await _persistCapturedVideoToGallery(mediaFile);
@@ -384,8 +352,7 @@ class _DescriptionMediaCommentBottomSheetState
       }
 
       final restoredFile =
-          response.file ??
-          (response.files?.isNotEmpty == true ? response.files!.first : null);
+          response.file ?? (response.files?.isNotEmpty == true ? response.files!.first : null);
       if (restoredFile == null) {
         return;
       }
@@ -394,8 +361,7 @@ class _DescriptionMediaCommentBottomSheetState
         retrieveType: response.type,
         path: restoredFile.path,
       );
-      if (restoredMediaType == null ||
-          !_canRestoreRecoveredMedia(restoredMediaType)) {
+      if (restoredMediaType == null || !_canRestoreRecoveredMedia(restoredMediaType)) {
         return;
       }
 
@@ -416,10 +382,7 @@ class _DescriptionMediaCommentBottomSheetState
         return;
       }
 
-      setState(() {
-        _selectedMedia = mediaFile;
-        _selectedMediaType = restoredMediaType;
-      });
+      _updateSelectedMedia(mediaFile, restoredMediaType);
 
       if (restoredMediaType == 'video' &&
           widget.contentType == DescriptionMediaCommentContentType.video) {
@@ -433,10 +396,7 @@ class _DescriptionMediaCommentBottomSheetState
     }
   }
 
-  String? _resolveRecoveredMediaType({
-    required RetrieveType? retrieveType,
-    required String path,
-  }) {
+  String? _resolveRecoveredMediaType({required RetrieveType? retrieveType, required String path}) {
     if (retrieveType == RetrieveType.image) {
       return 'image';
     }
@@ -462,8 +422,7 @@ class _DescriptionMediaCommentBottomSheetState
     return switch (widget.contentType) {
       DescriptionMediaCommentContentType.photo => mediaType == 'image',
       DescriptionMediaCommentContentType.video => mediaType == 'video',
-      DescriptionMediaCommentContentType.upload =>
-        mediaType == 'image' || mediaType == 'video',
+      DescriptionMediaCommentContentType.upload => mediaType == 'image' || mediaType == 'video',
       DescriptionMediaCommentContentType.screenRecording => false,
     };
   }
@@ -484,10 +443,7 @@ class _DescriptionMediaCommentBottomSheetState
       final permissionState = await PhotoManager.requestPermissionExtend(
         requestOption: const PermissionRequestOption(
           iosAccessLevel: IosAccessLevel.addOnly,
-          androidPermission: AndroidPermission(
-            type: RequestType.video,
-            mediaLocation: false,
-          ),
+          androidPermission: AndroidPermission(type: RequestType.video, mediaLocation: false),
         ),
       );
       if (!mounted) {
@@ -501,10 +457,7 @@ class _DescriptionMediaCommentBottomSheetState
 
       await PhotoManager.editor.saveVideo(
         mediaFile,
-        title: CustomFunctions.fileNameFromPath(
-          mediaFile.path,
-          fallback: 'audit-video.mp4',
-        ),
+        title: CustomFunctions.fileNameFromPath(mediaFile.path, fallback: 'audit-video.mp4'),
       );
     } catch (error) {
       debugPrint('Unable to save recorded video to gallery: $error');
@@ -533,9 +486,7 @@ class _DescriptionMediaCommentBottomSheetState
       return AppStrings.auditPhotoLibraryPermissionImage;
     }
 
-    return isCamera
-        ? AppStrings.auditCameraOpenError
-        : AppStrings.auditPickImageError;
+    return isCamera ? AppStrings.auditCameraOpenError : AppStrings.auditPickImageError;
   }
 
   String _buildVideoErrorMessage(ImageSource source, PlatformException error) {
@@ -557,22 +508,105 @@ class _DescriptionMediaCommentBottomSheetState
       return AppStrings.auditPhotoLibraryPermissionVideo;
     }
 
-    return isCamera
-        ? AppStrings.auditRecordVideoError
-        : AppStrings.auditPickVideoError;
+    return isCamera ? AppStrings.auditRecordVideoError : AppStrings.auditPickVideoError;
   }
 
   void _clearSelectedMedia() {
+    final previousMarkupSession = _imageMarkupSession;
     setState(() {
       _selectedMedia = null;
       _selectedMediaType = null;
+      _imageMarkupSession = null;
     });
+    _disposeImageMarkupPreview(previousMarkupSession);
+  }
+
+  Future<void> _openImageMarkupEditor() async {
+    final selectedMediaType = _selectedMediaType?.trim().toLowerCase();
+    if (_isSaving || _isPickingMedia || selectedMediaType != 'image') {
+      return;
+    }
+
+    final sourceImageFile = _imageMarkupSession?.sourceImageFile ?? _selectedMedia;
+    if (sourceImageFile == null) {
+      return;
+    }
+
+    final markupSession = await showDescriptionMediaImageMarkupSheet(
+      context,
+      imageFile: sourceImageFile,
+      initialSession: _imageMarkupSession,
+    );
+    if (!mounted || markupSession == null) {
+      return;
+    }
+
+    _applyImageMarkupSession(markupSession);
+  }
+
+  void _updateSelectedMedia(File mediaFile, String mediaType) {
+    final previousMarkupSession = _imageMarkupSession;
+    setState(() {
+      _selectedMedia = mediaFile;
+      _selectedMediaType = mediaType;
+      _imageMarkupSession = null;
+    });
+    _disposeImageMarkupPreview(previousMarkupSession, preservedPaths: <String>{mediaFile.path});
+  }
+
+  void _applyImageMarkupSession(DescriptionMediaImageMarkupSession session) {
+    final previousMarkupSession = _imageMarkupSession;
+    setState(() {
+      _selectedMedia = session.displayImageFile;
+      _selectedMediaType = 'image';
+      _imageMarkupSession = session;
+    });
+    _disposeImageMarkupPreview(
+      previousMarkupSession,
+      preservedPaths: <String>{session.previewImageFile.path},
+    );
+  }
+
+  File? _resolvedMediaFileForSave() {
+    final selectedMediaType = _selectedMediaType?.trim().toLowerCase();
+    if (selectedMediaType == 'image') {
+      return _imageMarkupSession?.displayImageFile ?? _selectedMedia;
+    }
+
+    return _selectedMedia;
+  }
+
+  void _disposeImageMarkupPreview(
+    DescriptionMediaImageMarkupSession? session, {
+    Set<String> preservedPaths = const <String>{},
+  }) {
+    if (session == null) {
+      return;
+    }
+
+    final previewPath = session.previewImageFile.path;
+    if (previewPath.isEmpty ||
+        previewPath == session.sourceImageFile.path ||
+        preservedPaths.contains(previewPath)) {
+      return;
+    }
+
+    unawaited(_deleteFileIfExists(previewPath));
+  }
+
+  Future<void> _deleteFileIfExists(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (error) {
+      debugPrint('Unable to delete markup preview: $error');
+    }
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -626,15 +660,10 @@ class _ReusableCommentField extends StatelessWidget {
           ),
           filled: true,
           fillColor: AppColors.fieldFill,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 12,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: AppColors.fieldBorder.withValues(alpha: 0.35),
-            ),
+            borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -642,9 +671,7 @@ class _ReusableCommentField extends StatelessWidget {
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: AppColors.grey1.withValues(alpha: 0.25),
-            ),
+            borderSide: BorderSide(color: AppColors.grey1.withValues(alpha: 0.25)),
           ),
         ),
       ),
@@ -695,11 +722,7 @@ class _ActionStateView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isBusy)
-              SizedBox(
-                width: 26,
-                height: 26,
-                child: FastCircularProgressIndicator(),
-              )
+              SizedBox(width: 26, height: 26, child: FastCircularProgressIndicator())
             else ...[
               AppTextView.body1(
                 title,
@@ -717,11 +740,7 @@ class _ActionStateView extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 18),
-              AppButton(
-                text: buttonText,
-                onPressed: onPressed,
-                minimumHeight: 44,
-              ),
+              AppButton(text: buttonText, onPressed: onPressed, minimumHeight: 44),
             ],
           ],
         ),
@@ -744,13 +763,7 @@ class _UploadMediaContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isBusy) {
-      return Center(
-        child: SizedBox(
-          width: 26,
-          height: 26,
-          child: FastCircularProgressIndicator(),
-        ),
-      );
+      return Center(child: SizedBox(width: 26, height: 26, child: FastCircularProgressIndicator()));
     }
 
     return Center(
@@ -833,18 +846,18 @@ class _SelectedMediaPreview extends StatelessWidget {
     required this.mediaFile,
     required this.mediaType,
     required this.onClear,
+    this.onEditImage,
   });
 
   final File mediaFile;
   final String? mediaType;
   final VoidCallback? onClear;
+  final VoidCallback? onEditImage;
 
   @override
   Widget build(BuildContext context) {
     final normalizedMediaType = mediaType?.trim().toLowerCase();
-    final isVideo =
-        normalizedMediaType == 'video' ||
-        normalizedMediaType == 'screen_recording';
+    final isVideo = normalizedMediaType == 'video' || normalizedMediaType == 'screen_recording';
 
     return Stack(
       fit: StackFit.expand,
@@ -853,7 +866,14 @@ class _SelectedMediaPreview extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: isVideo
               ? _LocalVideoPreview(videoFile: mediaFile)
-              : Image.file(mediaFile, fit: BoxFit.cover),
+              : ColoredBox(
+                  color: AppColors.surfaceDark1,
+                  child: Image.file(
+                    mediaFile,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
         ),
         if (onClear != null)
           Positioned(
@@ -871,12 +891,30 @@ class _SelectedMediaPreview extends StatelessWidget {
                     color: Colors.black.withValues(alpha: 0.45),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
                 ),
+              ),
+            ),
+          ),
+        if (!isVideo && onEditImage != null)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: FilledButton.icon(
+                onPressed: onEditImage,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.secondaryColor,
+                  foregroundColor: AppColors.textPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: Size.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text(AppStrings.auditMarkupImage),
               ),
             ),
           ),
@@ -1042,9 +1080,7 @@ class _RecordedPreviewFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.black,
-      child: const Center(
-        child: Icon(Icons.videocam_rounded, color: Colors.white70, size: 42),
-      ),
+      child: const Center(child: Icon(Icons.videocam_rounded, color: Colors.white70, size: 42)),
     );
   }
 }

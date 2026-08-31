@@ -309,7 +309,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   }
 
   Future<void> _openCreateSeatProfile(BuildContext context) async {
-    if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+    if (!AppManager.instance.currentUserCanOpenSeatProfileCreateFlow) {
       return;
     }
 
@@ -353,7 +353,7 @@ class _SeatProfileCreateAction extends StatelessWidget {
     return ListenableBuilder(
       listenable: AppManager.instance,
       builder: (context, _) {
-        if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+        if (!AppManager.instance.currentUserCanOpenSeatProfileCreateFlow) {
           return const SizedBox.shrink();
         }
 

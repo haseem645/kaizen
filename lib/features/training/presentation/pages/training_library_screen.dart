@@ -817,7 +817,7 @@ class _TrainingLibraryCreateAction extends StatelessWidget {
     return ListenableBuilder(
       listenable: AppManager.instance,
       builder: (context, _) {
-        if (!AppManager.instance.currentUserCanManageAnyTrainingModules) {
+        if (!AppManager.instance.currentUserCanOpenTrainingModuleCreateFlow) {
           return const SizedBox.shrink();
         }
 

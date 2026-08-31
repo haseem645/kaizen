@@ -254,7 +254,7 @@ List<DepartmentModel> _decodeDepartments(dynamic json) {
     throw const ApiError.invalidResponse();
   }
 
-  final items = json['all'];
+  final items = json['all'] ?? json['subordinate_departments'];
   if (items is! List) {
     throw const ApiError.invalidResponse();
   }

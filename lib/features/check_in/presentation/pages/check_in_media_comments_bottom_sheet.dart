@@ -1036,6 +1036,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
   Object? _initializationError;
+  int _initializationGeneration = 0;
 
   @override
   void initState() {
@@ -1059,30 +1060,41 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
   }
 
   void _setupController() {
-    _initializeFuture = _initializeController();
+    _initializationError = null;
+    final generation = ++_initializationGeneration;
+    _initializeFuture = _initializeController(generation);
   }
 
-  Future<void> _initializeController() async {
+  Future<void> _initializeController(int generation) async {
     final resolvedVideoUrl = CustomFunctions.resolveNetworkUrl(widget.mediaUrl);
     if (resolvedVideoUrl == null) {
       _initializationError = ArgumentError('Invalid video URL');
       throw _initializationError!;
     }
 
-    _initializationError = null;
     final headers = _buildVideoHeaders(resolvedVideoUrl);
-    final controller = await VideoPlaybackService.createInitializedController(
+    VideoPlayerController? controller;
+    controller = await VideoPlaybackService.acquireInitializedController(
       widget.mediaUrl,
       headers: headers,
     );
-    if (!mounted || controller == null) {
+    if (controller == null) {
       _initializationError = ArgumentError('Unable to resolve video source');
       throw _initializationError!;
     }
 
     try {
+      if (!mounted || !_isActiveGeneration(generation)) {
+        await VideoPlaybackService.releaseController(controller);
+        return;
+      }
+
       await controller.setLooping(false);
       await controller.setVolume(1);
+      if (!mounted || !_isActiveGeneration(generation)) {
+        await VideoPlaybackService.releaseController(controller);
+        return;
+      }
       _controller = controller;
       if (mounted) {
         setState(() {});
@@ -1092,11 +1104,16 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
         'Audit video initialization failed for $resolvedVideoUrl: $error',
       );
       _initializationError = error;
+      await VideoPlaybackService.releaseController(controller);
       if (mounted) {
         setState(() {});
       }
       rethrow;
     }
+  }
+
+  bool _isActiveGeneration(int generation) {
+    return generation == _initializationGeneration;
   }
 
   Map<String, String> _buildVideoHeaders(String resolvedVideoUrl) {
@@ -1115,12 +1132,13 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
   }
 
   void _disposeController() {
+    _initializationGeneration++;
     final controller = _controller;
     _controller = null;
     _initializeFuture = null;
     _initializationError = null;
     if (controller != null) {
-      unawaited(controller.dispose());
+      unawaited(VideoPlaybackService.releaseController(controller));
     }
   }
 
