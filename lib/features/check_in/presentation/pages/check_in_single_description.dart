@@ -668,6 +668,16 @@ class _ViewTrainingAction extends StatelessWidget {
   }
 }
 
+bool _canEditSingleDescriptionAudit({
+  required bool isViewOnly,
+  required bool isOwner,
+  required String date,
+}) {
+  return !isViewOnly &&
+      isOwner &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
+}
+
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
 
 class _PassSelectionCard extends StatefulWidget {
@@ -729,10 +739,11 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final canEditBlocks =
-        !widget.isViewOnly &&
-        widget.isOwner &&
-        CustomFunctions.isAuditWithinContinueWindow(widget.date);
+    final canEditBlocks = _canEditSingleDescriptionAudit(
+      isViewOnly: widget.isViewOnly,
+      isOwner: widget.isOwner,
+      date: widget.date,
+    );
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
@@ -1044,6 +1055,11 @@ class _CommentsCardState extends State<_CommentsCard> {
 
   @override
   Widget build(BuildContext context) {
+    final canCreateComments = _canEditSingleDescriptionAudit(
+      isViewOnly: widget.isViewOnly,
+      isOwner: widget.isOwner,
+      date: widget.date,
+    );
     final canManageComments =
         !widget.isViewOnly &&
         widget.isOwner &&
@@ -1079,7 +1095,7 @@ class _CommentsCardState extends State<_CommentsCard> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      if (canManageComments) ...[
+                      if (canCreateComments) ...[
                         _CommentIconButton(
                           isEnabled: snapshot.hasData,
                           icon: Icons.camera_alt_outlined,
