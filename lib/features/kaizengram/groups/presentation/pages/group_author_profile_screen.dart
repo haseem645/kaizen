@@ -39,7 +39,7 @@ class GroupAuthorProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppFullScreen(
-      backgroundColor: const Color(0xFF111317),
+      backgroundColor: AppColors.hex111317,
       child: Column(
         children: <Widget>[
           Padding(

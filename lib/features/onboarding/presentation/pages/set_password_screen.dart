@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/app_back_button.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_full_screen.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/splash_gradient_background.dart';
-import '../../../../routes/app_router.dart';
 import '../providers/onboarding_controller.dart';
 import 'set_profile_image_screen.dart';
 
@@ -33,48 +32,22 @@ class SetPasswordScreen extends StatelessWidget {
   }
 }
 
-class _SetPasswordScreenView extends StatefulWidget {
+class _SetPasswordScreenView extends StatelessWidget {
   const _SetPasswordScreenView();
-
-  @override
-  State<_SetPasswordScreenView> createState() => _SetPasswordScreenViewState();
-}
-
-class _SetPasswordScreenViewState extends State<_SetPasswordScreenView> {
-  late final OnboardingController _controller;
-  bool _hasHandledCompletion = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = context.read<OnboardingController>();
-    _controller.addListener(_handleStateChanged);
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_handleStateChanged);
-    super.dispose();
-  }
-
-  void _handleStateChanged() {
-    if (!_controller.isCompleted || _hasHandledCompletion || !mounted) {
-      return;
-    }
-
-    _hasHandledCompletion = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      AppRouter.pushReplacementNamed<void, void>(context, AppRouter.login);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<OnboardingController>();
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final contentPadding = controller.resolveSetPasswordContentPadding(
+      bottomInset,
+    );
+
+    if (controller.shouldNavigateToLogin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.navigateToLoginAfterCompletion(context);
+      });
+    }
 
     return AppFullScreen(
       backgroundColor: Colors.transparent,
@@ -83,88 +56,106 @@ class _SetPasswordScreenViewState extends State<_SetPasswordScreenView> {
         child: SafeArea(
           child: Stack(
             children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 900),
-                    child: Form(
-                      key: controller.passwordFormKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 28),
-                          const AppTextView.title(
-                            'Set Password',
-                            color: AppColors.textPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            textAlign: TextAlign.center,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final minHeight = controller.resolveSetPasswordMinHeight(
+                    maxHeight: constraints.maxHeight,
+                    contentPadding: contentPadding,
+                  );
+
+                  return SingleChildScrollView(
+                    padding: contentPadding,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: minHeight),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
+                          child: Form(
+                            key: controller.passwordFormKey,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: controller
+                                      .resolveSetPasswordHeaderSpacing(
+                                        bottomInset,
+                                      ),
+                                ),
+                                const AppTextView.title(
+                                  AppStrings.onboardingSetPasswordTitle,
+                                  color: AppColors.textPrimary,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 5),
+                                const AppTextView.body(
+                                  AppStrings.onboardingSetPasswordSubtitle,
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(
+                                  height: controller
+                                      .resolveSetPasswordFormSpacing(
+                                        bottomInset,
+                                      ),
+                                ),
+                                _ReadOnlyField(
+                                  value: controller.setPasswordDisplayEmail,
+                                  hint:
+                                      AppStrings.onboardingSetPasswordEmailHint,
+                                ),
+                                const SizedBox(height: 14),
+                                _PasswordField(
+                                  controller: controller.passwordController,
+                                  hint: AppStrings
+                                      .onboardingSetPasswordPasswordHint,
+                                  obscureText: controller.isPasswordHidden,
+                                  onToggle: controller.togglePasswordVisibility,
+                                  validator: controller.validatePassword,
+                                ),
+                                const SizedBox(height: 14),
+                                _PasswordField(
+                                  controller:
+                                      controller.confirmPasswordController,
+                                  hint: AppStrings
+                                      .onboardingSetPasswordConfirmPasswordHint,
+                                  obscureText:
+                                      controller.isConfirmPasswordHidden,
+                                  onToggle: controller
+                                      .toggleConfirmPasswordVisibility,
+                                  validator: controller.validateConfirmPassword,
+                                ),
+                                const SizedBox(height: 16),
+                                const _PasswordRequirementsList(),
+                                SizedBox(
+                                  height: controller
+                                      .resolveSetPasswordActionSpacing(
+                                        bottomInset,
+                                      ),
+                                ),
+                                AppButton(
+                                  text: AppStrings.next,
+                                  onPressed: controller.submitSetPassword,
+                                  isLoading: controller.isSubmitting,
+                                  backgroundColor: AppColors.secondaryColor,
+                                  minimumHeight: 45,
+                                  borderRadius: 8,
+                                  textSize: 18,
+                                ),
+                                const SizedBox(height: 32),
+                                const OnboardingPoweredByFooter(),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 5),
-                          const AppTextView.body(
-                            'Please create a secure password to continue',
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 120),
-                          _ReadOnlyField(
-                            value: controller.email.isEmpty
-                                ? 'Not available'
-                                : controller.email,
-                            hint: 'Email',
-                          ),
-                          const SizedBox(height: 14),
-                          _PasswordField(
-                            controller: controller.passwordController,
-                            hint: 'Enter password',
-                            obscureText: controller.isPasswordHidden,
-                            onToggle: controller.togglePasswordVisibility,
-                            validator: controller.validatePassword,
-                          ),
-                          const SizedBox(height: 14),
-                          _PasswordField(
-                            controller: controller.confirmPasswordController,
-                            hint: 'Confirm password',
-                            obscureText: controller.isConfirmPasswordHidden,
-                            onToggle:
-                                controller.toggleConfirmPasswordVisibility,
-                            validator: controller.validateConfirmPassword,
-                          ),
-                          const SizedBox(height: 16),
-                          const AppTextView.body(
-                            'Use at least 8 characters.',
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 60),
-                          AppButton(
-                            text: 'Next',
-                            onPressed: () async {
-                              await controller.completeOnboarding();
-                            },
-                            isLoading: controller.isSubmitting,
-                            backgroundColor: AppColors.secondaryColor,
-                            minimumHeight: 45,
-                            borderRadius: 8,
-                            textSize: 18,
-                          ),
-                          const SizedBox(height: 32),
-                          const OnboardingPoweredByFooter(),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: AppBackButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                  );
+                },
               ),
               if (controller.isInitializingUser)
                 Positioned.fill(
@@ -282,7 +273,7 @@ class _PasswordField extends StatelessWidget {
             vertical: 12,
           ),
           border: InputBorder.none,
-          errorStyle: const TextStyle(color: Color(0xFFFFB3B3)),
+          errorStyle: const TextStyle(color: AppColors.hexffb3b3),
           suffixIcon: IconButton(
             onPressed: onToggle,
             icon: Icon(
@@ -292,6 +283,40 @@ class _PasswordField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PasswordRequirementsList extends StatelessWidget {
+  const _PasswordRequirementsList();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        _PasswordRequirementText(AppStrings.authPasswordRequirementMinLength),
+        SizedBox(height: 2),
+        _PasswordRequirementText(AppStrings.authPasswordRequirementLetter),
+        SizedBox(height: 2),
+        _PasswordRequirementText(AppStrings.authPasswordRequirementNumber),
+      ],
+    );
+  }
+}
+
+class _PasswordRequirementText extends StatelessWidget {
+  const _PasswordRequirementText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextView.body(
+      text,
+      color: AppColors.textSecondary,
+      fontSize: 14,
+      textAlign: TextAlign.left,
     );
   }
 }

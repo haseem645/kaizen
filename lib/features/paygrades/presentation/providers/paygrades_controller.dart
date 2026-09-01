@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/preference/app_preference.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../seat_profile/domain/entities/department.dart';
 import '../../data/datasources/paygrade_remote_data_source.dart';
 import '../../data/repositories/paygrade_repository_impl.dart';
@@ -24,7 +24,7 @@ class PaygradesController extends ChangeNotifier {
   bool _isLoadingMore = false;
   bool _hasNextPage = true;
   int _currentPage = 0;
-  bool _isOwner = true;
+  bool _hasGlobalDepartmentAccess = true;
   String? _errorMessage;
   String _searchQuery = '';
   String _selectedDepartmentId = 'all';
@@ -38,7 +38,7 @@ class PaygradesController extends ChangeNotifier {
   bool get isListLoading => _isListLoading;
   bool get isRefreshing => _isRefreshing;
   bool get isLoadingMore => _isLoadingMore;
-  bool get isOwner => _isOwner;
+  bool get hasGlobalDepartmentAccess => _hasGlobalDepartmentAccess;
   String? get errorMessage => _errorMessage;
   String get selectedDepartmentId => _selectedDepartmentId;
   List<Department> get departments =>
@@ -52,7 +52,7 @@ class PaygradesController extends ChangeNotifier {
 
     _isInitialLoading = true;
     _errorMessage = null;
-    _isOwner = true;
+    _hasGlobalDepartmentAccess = true;
     _selectedDepartmentId = 'all';
     _searchQuery = '';
     _departments = const <Department>[];
@@ -61,10 +61,11 @@ class PaygradesController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = await AppPreference.getUser();
-      _isOwner = user?.isOwner == true;
+      _hasGlobalDepartmentAccess =
+          AppManager.instance.currentUserHasOwnerOverrideAccess ||
+          AppManager.instance.currentUserCanManagePaygrades;
       await _loadDepartments();
-      if (!_isOwner && _departments.isNotEmpty) {
+      if (!_hasGlobalDepartmentAccess && _departments.isNotEmpty) {
         _selectedDepartmentId = _departments.first.id;
       }
       await _reloadPaygrades();
@@ -103,7 +104,9 @@ class PaygradesController extends ChangeNotifier {
 
   Future<void> _loadDepartments() async {
     _departments = List<Department>.unmodifiable(
-      await _getPaygradesUseCase.getDepartments(isOwner: _isOwner),
+      await _getPaygradesUseCase.getDepartments(
+        isOwner: _hasGlobalDepartmentAccess,
+      ),
     );
   }
 

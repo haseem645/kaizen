@@ -212,7 +212,7 @@ class LearningTrackCard extends StatelessWidget {
 
     if (normalized == 'due' || normalized == 'due by') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFFFE8D9),
+        backgroundColor: AppColors.hexffe8d9,
         borderColor: AppColors.orange1,
         textColor: AppColors.orange1,
       );
@@ -220,7 +220,7 @@ class LearningTrackCard extends StatelessWidget {
 
     if (normalized == 'non compliant') {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFFFE1E1),
+        backgroundColor: AppColors.hexffe1e1,
         borderColor: AppColors.red,
         textColor: AppColors.red,
       );
@@ -228,7 +228,7 @@ class LearningTrackCard extends StatelessWidget {
 
     if (CustomFunctions.isCancelledStatus(normalized)) {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFFFE1E1),
+        backgroundColor: AppColors.hexffe1e1,
         borderColor: AppColors.red,
         textColor: AppColors.red,
       );
@@ -236,7 +236,7 @@ class LearningTrackCard extends StatelessWidget {
 
     if (CustomFunctions.isPassedStatus(normalized)) {
       return const _TrackStatusStyle(
-        backgroundColor: Color(0xFFE3F8F4),
+        backgroundColor: AppColors.hexe3f8f4,
         borderColor: AppColors.green1,
         textColor: AppColors.green1,
       );

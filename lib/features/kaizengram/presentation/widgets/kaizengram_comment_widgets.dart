@@ -251,7 +251,7 @@ class _CreateSocialPostBottomSheetState
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF20253A),
+                  color: AppColors.hex20253a,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -1544,7 +1544,7 @@ class _CommentAttachmentPreviewStrip extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFF24283D),
+          color: AppColors.surfaceDark3,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -1729,7 +1729,7 @@ class _CommentAttachmentPreviewCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 color: useDraftStyle
-                    ? const Color(0xFF111317)
+                    ? AppColors.hex111317
                     : AppColors.surfaceDark3,
                 child: mediaChild,
               ),

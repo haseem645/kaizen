@@ -14,7 +14,7 @@ import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_text_view.dart';
 import '../../../../../core/widgets/fast_circular_progress.dart';
-import '../../../../audit/presentation/widgets/upgrade_plan_dialog.dart';
+import '../../../../check_in/presentation/widgets/upgrade_plan_dialog.dart';
 import '../../../domain/entities/compliance_document.dart';
 import '../../../domain/usecases/upload_compliance_document_usecase.dart';
 import 'compliance_document_full_screen_image.dart';

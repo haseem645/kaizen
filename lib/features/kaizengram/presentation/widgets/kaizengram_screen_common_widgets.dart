@@ -26,7 +26,7 @@ class KaizengramNotificationActionIcon extends StatelessWidget {
               constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
               padding: const EdgeInsets.symmetric(horizontal: 4),
               decoration: const BoxDecoration(
-                color: Color(0xFFFF6B6B),
+                color: AppColors.hexff6b6b,
                 shape: BoxShape.circle,
               ),
               child: Center(

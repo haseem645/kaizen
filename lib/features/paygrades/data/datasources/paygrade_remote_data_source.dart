@@ -154,7 +154,9 @@ List<DepartmentModel> _decodeDepartments(
     throw const ApiError.invalidResponse();
   }
 
-  final items = isOwner ? json['all'] : json['subordinate_departments'];
+  final items = isOwner
+      ? (json['all'] ?? json['subordinate_departments'])
+      : (json['subordinate_departments'] ?? json['all']);
   if (items is! List) {
     throw const ApiError.invalidResponse();
   }

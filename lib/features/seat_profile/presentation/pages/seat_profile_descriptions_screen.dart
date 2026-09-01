@@ -99,10 +99,7 @@ class SeatProfileDescriptionsScreen extends StatelessWidget {
               '${AppStrings.imagePath}back.svg',
               width: 24,
               height: 24,
-              colorFilter: const ColorFilter.mode(
-                Colors.white,
-                BlendMode.srcIn,
-              ),
+              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
             ),
           ),
         ),
@@ -125,10 +122,7 @@ class SeatProfileDescriptionsScreen extends StatelessWidget {
 }
 
 class _DescriptionCard extends StatelessWidget {
-  const _DescriptionCard({
-    required this.description,
-    required this.onUpdateDescription,
-  });
+  const _DescriptionCard({required this.description, required this.onUpdateDescription});
 
   final SeatProfileDescription description;
   final Future<void> Function(
@@ -177,9 +171,7 @@ class _DescriptionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   AppTextView.body2(
-                    seatProfileDescriptionMilestoneLabel(
-                      description.milestoneDays,
-                    ),
+                    seatProfileDescriptionMilestoneLabel(description.milestoneDays),
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
@@ -194,9 +186,7 @@ class _DescriptionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   AppTextView.body2(
-                    seatProfileDescriptionCheckInTypeLabel(
-                      description.auditFactorType,
-                    ),
+                    seatProfileDescriptionCheckInTypeLabel(description.auditFactorType),
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
@@ -208,15 +198,13 @@ class _DescriptionCard extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
               const SizedBox(height: 6),
-              _ExpandableDescriptionText(
-                description: description.auditSpecifics,
-              ),
+              _ExpandableDescriptionText(description: description.auditSpecifics),
               const SizedBox(height: 16),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppTextView.body2(
-                    AppStrings.seatProfileViewTraining,
+                    AppStrings.seatProfileTrainings,
                     color: AppColors.secondaryColor,
                     fontWeight: FontWeight.w700,
                   ),
@@ -263,16 +251,11 @@ class _ExpandableDescriptionText extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              description,
-              style: textStyle,
-              maxLines: 7,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(description, style: textStyle, maxLines: 7, overflow: TextOverflow.ellipsis),
             if (hasOverflow) ...[
               const SizedBox(height: 8),
               Text(
-                AppStrings.seeAll,
+                AppStrings.seeAllAction,
                 style: TextStyle(
                   color: AppColors.secondaryColor,
                   fontSize: 14,

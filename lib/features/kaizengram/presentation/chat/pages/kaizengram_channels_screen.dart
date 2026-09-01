@@ -277,7 +277,7 @@ class _ChannelAvatar extends StatelessWidget {
           : FileImage(File(imagePath)) as ImageProvider<Object>;
       return CircleAvatar(
         radius: 16,
-        backgroundColor: const Color(0xFF24283D),
+        backgroundColor: AppColors.surfaceDark3,
         backgroundImage: imageProvider,
       );
     }
@@ -286,7 +286,7 @@ class _ChannelAvatar extends StatelessWidget {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: const Color(0xFF24283D),
+        color: AppColors.surfaceDark3,
         shape: BoxShape.circle,
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.06),

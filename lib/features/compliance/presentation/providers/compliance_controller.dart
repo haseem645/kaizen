@@ -12,6 +12,7 @@ class ComplianceController extends ChangeNotifier {
 
   final GetComplianceOverviewUseCase _getComplianceOverviewUseCase;
   ComplianceState _state = const ComplianceState();
+  Future<void>? _initializeOperation;
 
   ComplianceState get state => _state;
 
@@ -19,7 +20,32 @@ class ComplianceController extends ChangeNotifier {
     bool showLoading = true,
     bool forceRefresh = false,
   }) async {
-    if (showLoading) {
+    final existingOperation = _initializeOperation;
+    if (existingOperation != null) {
+      await existingOperation;
+      return;
+    }
+
+    final operation = _runInitialize(
+      showLoading: showLoading,
+      forceRefresh: forceRefresh,
+    );
+    _initializeOperation = operation;
+
+    try {
+      await operation;
+    } finally {
+      if (identical(_initializeOperation, operation)) {
+        _initializeOperation = null;
+      }
+    }
+  }
+
+  Future<void> _runInitialize({
+    required bool showLoading,
+    required bool forceRefresh,
+  }) async {
+    if (showLoading && !_state.isLoading) {
       _state = _state.copyWith(isLoading: true);
       notifyListeners();
     }

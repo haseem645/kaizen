@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
-import 'package:sparrowkaizen/features/audit/presentation/widgets/upgrade_plan_dialog.dart';
+import 'package:sparrowkaizen/features/check_in/presentation/widgets/upgrade_plan_dialog.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/certificate_screen.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/quiz_result_dialogue.dart';
 
@@ -46,7 +46,8 @@ class ComplianceTrainingScreen extends StatefulWidget {
   final String itemUuid;
 
   @override
-  State<ComplianceTrainingScreen> createState() => _ComplianceTrainingScreenState();
+  State<ComplianceTrainingScreen> createState() =>
+      _ComplianceTrainingScreenState();
 }
 
 class _ComplianceTrainingScreenState extends State<ComplianceTrainingScreen> {
@@ -58,35 +59,50 @@ class _ComplianceTrainingScreenState extends State<ComplianceTrainingScreen> {
           create: (_) => createComplianceTrainingRemoteDataSource(),
         ),
         ProxyProvider<ComplianceRemoteDataSource, ComplianceRepositoryImpl>(
-          update: (_, remoteDataSource, __) => createComplianceRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              createComplianceRepository(remoteDataSource),
         ),
-        ProxyProvider<ComplianceRepositoryImpl, GetComplianceTrackItemDetailUseCase>(
-          update: (_, repository, __) => createGetComplianceTrackItemDetailUseCase(repository),
+        ProxyProvider<
+          ComplianceRepositoryImpl,
+          GetComplianceTrackItemDetailUseCase
+        >(
+          update: (_, repository, __) =>
+              createGetComplianceTrackItemDetailUseCase(repository),
         ),
         ProxyProvider<ComplianceRepositoryImpl, GetComplianceQuizUseCase>(
-          update: (_, repository, __) => createGetComplianceQuizUseCase(repository),
+          update: (_, repository, __) =>
+              createGetComplianceQuizUseCase(repository),
         ),
         ProxyProvider<ComplianceRepositoryImpl, GetComplianceTracksUseCase>(
           update: (_, repository, __) => GetComplianceTracksUseCase(repository),
         ),
-        ProxyProvider<ComplianceRepositoryImpl, GetComplianceCertificateUseCase>(
-          update: (_, repository, __) => createGetComplianceCertificateUseCase(repository),
+        ProxyProvider<
+          ComplianceRepositoryImpl,
+          GetComplianceCertificateUseCase
+        >(
+          update: (_, repository, __) =>
+              createGetComplianceCertificateUseCase(repository),
         ),
         ProxyProvider<ComplianceRepositoryImpl, GetComplianceQuizResultUseCase>(
-          update: (_, repository, __) => createGetComplianceQuizResultUseCase(repository),
+          update: (_, repository, __) =>
+              createGetComplianceQuizResultUseCase(repository),
         ),
         ProxyProvider<ComplianceRepositoryImpl, StartComplianceQuizUseCase>(
-          update: (_, repository, __) => createStartComplianceQuizUseCase(repository),
+          update: (_, repository, __) =>
+              createStartComplianceQuizUseCase(repository),
         ),
         ProxyProvider<ComplianceRepositoryImpl, PauseComplianceQuizUseCase>(
-          update: (_, repository, __) => createPauseComplianceQuizUseCase(repository),
+          update: (_, repository, __) =>
+              createPauseComplianceQuizUseCase(repository),
         ),
         ProxyProvider<ComplianceRepositoryImpl, SubmitComplianceQuizUseCase>(
-          update: (_, repository, __) => createSubmitComplianceQuizUseCase(repository),
+          update: (_, repository, __) =>
+              createSubmitComplianceQuizUseCase(repository),
         ),
         ChangeNotifierProvider<ComplianceTrainingController>(
-          create: (context) =>
-              ComplianceTrainingController(context.read<GetComplianceTrackItemDetailUseCase>()),
+          create: (context) => ComplianceTrainingController(
+            context.read<GetComplianceTrackItemDetailUseCase>(),
+          ),
         ),
         ChangeNotifierProvider<ComplianceQuizController>(
           create: (context) => ComplianceQuizController(
@@ -107,16 +123,21 @@ class _ComplianceTrainingScreenState extends State<ComplianceTrainingScreen> {
 }
 
 class _ComplianceTrainingScreenView extends StatefulWidget {
-  const _ComplianceTrainingScreenView({required this.trackAssignmentUuid, required this.itemUuid});
+  const _ComplianceTrainingScreenView({
+    required this.trackAssignmentUuid,
+    required this.itemUuid,
+  });
 
   final String trackAssignmentUuid;
   final String itemUuid;
 
   @override
-  State<_ComplianceTrainingScreenView> createState() => _ComplianceTrainingScreenViewState();
+  State<_ComplianceTrainingScreenView> createState() =>
+      _ComplianceTrainingScreenViewState();
 }
 
-class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreenView>
+class _ComplianceTrainingScreenViewState
+    extends State<_ComplianceTrainingScreenView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   late final ComplianceTrainingController _controller;
@@ -129,6 +150,7 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
   var _isCompletingQuizSubmit = false;
   var _isLoadingFreshTracks = true;
   var _moduleCount = 0;
+  var _currentModuleNumber = 0;
   ComplianceCertificate? _pendingCertificate;
   late String _currentItemUuid;
   LearningTrackModuleDetail? _currentTrack;
@@ -142,7 +164,8 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
     _controller = context.read<ComplianceTrainingController>();
     _quizController = context.read<ComplianceQuizController>();
     _getComplianceTracksUseCase = context.read<GetComplianceTracksUseCase>();
-    _getComplianceCertificateUseCase = context.read<GetComplianceCertificateUseCase>();
+    _getComplianceCertificateUseCase = context
+        .read<GetComplianceCertificateUseCase>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -163,16 +186,23 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
       return;
     }
 
+    final moduleTracks = tracks
+        .where((track) => !track.isBreakPoint)
+        .toList(growable: false);
     LearningTrackModuleDetail? currentTrack;
-    for (final track in tracks) {
+    var currentModuleNumber = 0;
+    for (var index = 0; index < moduleTracks.length; index++) {
+      final track = moduleTracks[index];
       if (track.trainingModuleItemId == _currentItemUuid) {
         currentTrack = track;
+        currentModuleNumber = index + 1;
         break;
       }
     }
     setState(() {
       _currentTrack = currentTrack;
-      _moduleCount = tracks.where((track) => !track.isBreakPoint).length;
+      _moduleCount = moduleTracks.length;
+      _currentModuleNumber = currentModuleNumber;
     });
 
     if (currentTrack == null) {
@@ -220,7 +250,9 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
 
   Future<List<LearningTrackModuleDetail>> _loadFreshTracks() async {
     try {
-      return await _getComplianceTracksUseCase(trackAssignmentUuid: widget.trackAssignmentUuid);
+      return await _getComplianceTracksUseCase(
+        trackAssignmentUuid: widget.trackAssignmentUuid,
+      );
     } catch (_) {
       return const <LearningTrackModuleDetail>[];
     }
@@ -301,7 +333,10 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
           return;
         }
 
-        await _openQuizResultForTrack(track, trainingModuleUuid: trainingModuleUuid);
+        await _openQuizResultForTrack(
+          track,
+          trainingModuleUuid: trainingModuleUuid,
+        );
       } finally {
         if (mounted) {
           setState(() {
@@ -340,17 +375,21 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
       barrierLabel: 'Welcome Quiz',
       barrierColor: Colors.black.withValues(alpha: 0.65),
       transitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (_, __, ___) => ChangeNotifierProvider<ComplianceQuizController>.value(
-        value: _quizController,
-        child: WelcomeQuizScreen(
-          track: track,
-          trackAssignmentUuid: widget.trackAssignmentUuid,
-          trainingModuleUuid: trainingModuleUuid,
-          clearAnswersOnStart: clearAnswers,
-        ),
-      ),
+      pageBuilder: (_, __, ___) =>
+          ChangeNotifierProvider<ComplianceQuizController>.value(
+            value: _quizController,
+            child: WelcomeQuizScreen(
+              track: track,
+              trackAssignmentUuid: widget.trackAssignmentUuid,
+              trainingModuleUuid: trainingModuleUuid,
+              clearAnswersOnStart: clearAnswers,
+            ),
+          ),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
 
         return FadeTransition(
           opacity: curvedAnimation,
@@ -413,7 +452,9 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
   ) async {
     final detail = _controller.detail;
     final hasNextTrackItem = await _hasNextTrackItem();
-    final primaryActionText = hasNextTrackItem ? 'Next Module' : 'View Certificate';
+    final primaryActionText = hasNextTrackItem
+        ? 'Next Module'
+        : 'View Certificate';
     if (!mounted) {
       return null;
     }
@@ -475,7 +516,10 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
       return;
     }
 
-    final welcomeAction = await _openWelcomeQuiz(track, trainingModuleUuid: trainingModuleUuid);
+    final welcomeAction = await _openWelcomeQuiz(
+      track,
+      trainingModuleUuid: trainingModuleUuid,
+    );
     if (!mounted) {
       return;
     }
@@ -523,7 +567,10 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
         return;
       }
 
-      final welcomeAction = await _openWelcomeQuiz(track, trainingModuleUuid: trainingModuleUuid);
+      final welcomeAction = await _openWelcomeQuiz(
+        track,
+        trainingModuleUuid: trainingModuleUuid,
+      );
       if (!mounted) {
         return;
       }
@@ -564,7 +611,9 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
     final learningTrack = _currentTrack;
     final detail = _controller.detail;
     final trainingModuleUuid = detail?.trainingModuleUuid.trim();
-    if (learningTrack == null || trainingModuleUuid == null || trainingModuleUuid.isEmpty) {
+    if (learningTrack == null ||
+        trainingModuleUuid == null ||
+        trainingModuleUuid.isEmpty) {
       return;
     }
 
@@ -624,7 +673,10 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
 
                 final didPause = await _quizController
                     .pauseQuiz(trackAssignmentUuid: widget.trackAssignmentUuid)
-                    .timeout(const Duration(seconds: 10), onTimeout: () => false);
+                    .timeout(
+                      const Duration(seconds: 10),
+                      onTimeout: () => false,
+                    );
 
                 if (!mounted) {
                   return;
@@ -749,7 +801,10 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
       pageBuilder: (_, __, ___) => CertificateScreen(
         title: 'Congratulations!',
         description:
-            resolvedCertificate?.trackName ?? detail?.title ?? _currentTrack?.displayName ?? '',
+            resolvedCertificate?.trackName ??
+            detail?.title ??
+            _currentTrack?.displayName ??
+            '',
         score:
             resolvedCertificate?.displayPercentage ??
             result?.displayScore ??
@@ -758,7 +813,10 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
         certificateUrl: resolvedCertificate?.certificate,
       ),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
 
         return FadeTransition(
           opacity: curvedAnimation,
@@ -842,7 +900,8 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
         quizController.isSubmittingQuiz ||
         quizController.isLoadingQuizResult ||
         _isCompletingQuizSubmit;
-    final canSubmitQuiz = _selectedTabIndex != 2 || quizController.hasAnsweredAllQuestions;
+    final canSubmitQuiz =
+        _selectedTabIndex != 2 || quizController.hasAnsweredAllQuestions;
 
     return PopScope(
       canPop: !_shouldPromptPauseQuiz,
@@ -885,8 +944,8 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _TrainingOverviewCard(
-                        track: learningTrack,
                         detail: detail,
+                        currentModuleNumber: _currentModuleNumber,
                         moduleCount: _moduleCount,
                       ),
                       const SizedBox(height: 6),
@@ -910,13 +969,15 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
                   ),
                 ),
               ),
-        bottomNavigationBar: learningTrack == null || _isLoadingFreshTracks || isLoading
+        bottomNavigationBar:
+            learningTrack == null || _isLoadingFreshTracks || isLoading
             ? null
             : _BottomActions(
                 onTrackModulesPressed: _handleTrackModulesPressed,
                 onTakeQuizPressed: () => _handleTakeQuizPressed(learningTrack),
                 isTakeQuizEnabled:
-                    (_selectedTabIndex == 1 || _selectedTabIndex == 2) && canSubmitQuiz,
+                    (_selectedTabIndex == 1 || _selectedTabIndex == 2) &&
+                    canSubmitQuiz,
                 takeQuizLabel: _selectedTabIndex == 2
                     ? AppStrings.trainingSubmitQuiz
                     : AppStrings.trainingTakeQuiz,
@@ -929,13 +990,13 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
 
 class _TrainingOverviewCard extends StatelessWidget {
   const _TrainingOverviewCard({
-    required this.track,
     required this.detail,
+    required this.currentModuleNumber,
     required this.moduleCount,
   });
 
-  final LearningTrackModuleDetail track;
   final ComplianceTrackItemDetail detail;
+  final int currentModuleNumber;
   final int moduleCount;
 
   @override
@@ -957,7 +1018,10 @@ class _TrainingOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           AppTextView.body(
-            'Video ${detail.position} of $moduleCount',
+            AppStrings.trainingVideoPositionLabel(
+              currentModuleNumber,
+              moduleCount,
+            ),
             color: AppColors.textSecondary,
             fontSize: 14,
           ),
@@ -986,7 +1050,9 @@ class _TrainingOverviewCard extends StatelessWidget {
               value: (detail.quizCompletionPercentage.clamp(0, 100)) / 100,
               minHeight: 7,
               backgroundColor: AppColors.textPrimary,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.progressColor),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.progressColor,
+              ),
             ),
           ),
         ],
@@ -1005,7 +1071,9 @@ GetComplianceTrackItemDetailUseCase createGetComplianceTrackItemDetailUseCase(
   return GetComplianceTrackItemDetailUseCase(repository);
 }
 
-GetComplianceQuizUseCase createGetComplianceQuizUseCase(ComplianceRepositoryImpl repository) {
+GetComplianceQuizUseCase createGetComplianceQuizUseCase(
+  ComplianceRepositoryImpl repository,
+) {
   return GetComplianceQuizUseCase(repository);
 }
 
@@ -1015,15 +1083,21 @@ GetComplianceQuizResultUseCase createGetComplianceQuizResultUseCase(
   return GetComplianceQuizResultUseCase(repository);
 }
 
-StartComplianceQuizUseCase createStartComplianceQuizUseCase(ComplianceRepositoryImpl repository) {
+StartComplianceQuizUseCase createStartComplianceQuizUseCase(
+  ComplianceRepositoryImpl repository,
+) {
   return StartComplianceQuizUseCase(repository);
 }
 
-PauseComplianceQuizUseCase createPauseComplianceQuizUseCase(ComplianceRepositoryImpl repository) {
+PauseComplianceQuizUseCase createPauseComplianceQuizUseCase(
+  ComplianceRepositoryImpl repository,
+) {
   return PauseComplianceQuizUseCase(repository);
 }
 
-SubmitComplianceQuizUseCase createSubmitComplianceQuizUseCase(ComplianceRepositoryImpl repository) {
+SubmitComplianceQuizUseCase createSubmitComplianceQuizUseCase(
+  ComplianceRepositoryImpl repository,
+) {
   return SubmitComplianceQuizUseCase(repository);
 }
 
@@ -1093,8 +1167,12 @@ class _BottomActions extends StatelessWidget {
                 text: takeQuizLabel,
                 onPressed: isTakeQuizEnabled ? onTakeQuizPressed : null,
                 isLoading: isTakeQuizLoading,
-                backgroundColor: isTakeQuizEnabled ? AppColors.secondaryColor : AppColors.grey1,
-                textColor: isTakeQuizEnabled ? AppColors.textPrimary : AppColors.grey2,
+                backgroundColor: isTakeQuizEnabled
+                    ? AppColors.secondaryColor
+                    : AppColors.grey1,
+                textColor: isTakeQuizEnabled
+                    ? AppColors.textPrimary
+                    : AppColors.grey2,
               ),
             ),
           ],

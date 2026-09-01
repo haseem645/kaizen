@@ -34,6 +34,11 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
 
+                "clearTrainingUploadNotifications" -> {
+                    trainingUploadNotificationBridge.clearNotifications()
+                    result.success(null)
+                }
+
                 "consumePendingCancelledTrainingUploadTaskIds" -> {
                     result.success(
                         trainingUploadNotificationBridge.consumePendingCancelledTaskIds(),

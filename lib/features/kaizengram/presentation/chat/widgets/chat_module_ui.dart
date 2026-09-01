@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/widgets/app_text_view.dart';
 
-const Color kaizengramChatScreenSurfaceColor = Color(0xFF111317);
-const Color kaizengramChatCardSurfaceColor = Color(0xFF1B1E27);
+const Color kaizengramChatScreenSurfaceColor = AppColors.hex111317;
+const Color kaizengramChatCardSurfaceColor = AppColors.hex1b1e27;
 
 class KaizengramChatSheetHandle extends StatelessWidget {
   const KaizengramChatSheetHandle({super.key});
@@ -52,7 +52,7 @@ class KaizengramChatPrimaryButton extends StatelessWidget {
             alignment: Alignment.center,
             child: AppTextView.body3(
               label,
-              color: const Color(0xFF0B1520),
+              color: AppColors.hex0b1520,
               fontWeight: FontWeight.w800,
             ),
           ),

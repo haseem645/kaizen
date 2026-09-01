@@ -93,20 +93,29 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SeatProfileController>();
+    final shouldShowCreateAction =
+        !controller.isInitialLoading && !controller.isListLoading;
 
     return DrawerMainScreen(
       title: AppStrings.seatProfileTitle,
       selectedMenu: AppMenuType.seatProfiles,
       centerTitle: true,
-      appBarActions: <Widget>[
-        _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
-      ],
       child: SafeArea(
         top: false,
         bottom: false,
-        child: controller.isInitialLoading
-            ? FastCircularProgressIndicator()
-            : _buildContent(context, controller),
+        child: Column(
+          children: [
+            Expanded(
+              child: controller.isInitialLoading
+                  ? Center(child: FastCircularProgressIndicator())
+                  : _buildContent(context, controller),
+            ),
+            if (shouldShowCreateAction)
+              _SeatProfileCreateAction(
+                onTap: () => _openCreateSeatProfile(context),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -115,7 +124,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     final items = controller.visibleItems;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 1),
       child: Column(
         children: [
           SeatProfileSearchBar(
@@ -300,7 +309,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   }
 
   Future<void> _openCreateSeatProfile(BuildContext context) async {
-    if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+    if (!AppManager.instance.currentUserCanOpenSeatProfileCreateFlow) {
       return;
     }
 
@@ -344,22 +353,43 @@ class _SeatProfileCreateAction extends StatelessWidget {
     return ListenableBuilder(
       listenable: AppManager.instance,
       builder: (context, _) {
-        if (!AppManager.instance.currentUserCanCreateSeatProfiles) {
+        if (!AppManager.instance.currentUserCanOpenSeatProfileCreateFlow) {
           return const SizedBox.shrink();
         }
 
-        return Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: AppGradientActionButton(
-            label: AppStrings.seatProfileCreateAction,
-            icon: Icons.add_rounded,
-            iconSize: 14,
-            textSize: 12,
-            minHeight: 34,
-            borderRadius: 10,
-            iconSpacing: 6,
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            onTap: onTap,
+        return Container(
+          height: 70,
+          decoration: BoxDecoration(
+            color: AppColors.mainBg,
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                spreadRadius: 20,
+                blurRadius: 20,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(32, 12, 32, 0),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: double.infinity,
+              child: AppGradientActionButton(
+                label: AppStrings.seatProfileCreateAction,
+                icon: Icons.add_rounded,
+                iconSize: 16,
+                textSize: 14,
+                minHeight: 40,
+                borderRadius: 10,
+                iconSpacing: 8,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                onTap: onTap,
+              ),
+            ),
           ),
         );
       },
@@ -521,7 +551,7 @@ class _CardForwardArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedRotation(
-      turns: isExpanded ? 0.25 : 0,
+      turns: isExpanded ? 0.5 : 0,
       duration: const Duration(milliseconds: 220),
       child: Container(
         width: 32,
@@ -534,9 +564,9 @@ class _CardForwardArrow extends StatelessWidget {
           ),
         ),
         child: const Icon(
-          Icons.arrow_forward_ios_rounded,
+          Icons.keyboard_arrow_down_rounded,
           color: AppColors.textSecondary,
-          size: 14,
+          size: 20,
         ),
       ),
     );

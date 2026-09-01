@@ -9,11 +9,15 @@ class ApiEndPoints {
   static const String version = '/api/v1/';
   static const String parentPrefix = 'parent_';
   static const String login = 'accounts/login/';
-  static const String setActiveOrganization = 'accounts/set_active_organization/';
+  static const String passwordReset = 'password_reset/';
+  static const String passwordConfirm = 'password_confirm/';
+  static const String setActiveOrganization =
+      'accounts/set_active_organization/';
   static const String refreshToken = 'accounts/token/refresh/';
   static const String userDetail = 'accounts/user_detail/';
   static const String companyDetail = 'company_detail/';
-  static const String myLearningTracks = 'learning_compliance/track_assignments/my_tracks/';
+  static const String myLearningTracks =
+      'learning_compliance/track_assignments/my_tracks/';
   static const String complianceDocumentTypes = 'compliance/document_type/';
   static const String myDocumentCompliances =
       'compliance/document_compliance_assignments/my_document_compliances/';
@@ -22,17 +26,20 @@ class ApiEndPoints {
   static const String organizations = 'organizations/';
   static const String images = 'image/';
   static const String allDepartments = 'department/all_departments/';
-  static const String organizationHierarchy = 'department/organization_hierarchy/';
+  static const String organizationHierarchy =
+      'department/organization_hierarchy/';
   static const String parentDepartments = '${parentPrefix}department/';
   static const String generatePreSignedUrl = 'generate_pre_signed_url/';
   static const String quarterlyAudit = 'quarterly_audit/';
   static const String quarterlyAuditMyAudits = 'quarterly_audit/my_audits/';
-  static const String quarterlyAuditPerformanceSnapshot = 'quarterly_audit/performance_snapshot/';
+  static const String quarterlyAuditPerformanceSnapshot =
+      'quarterly_audit/performance_snapshot/';
   static const String quarterlyAuditMyPerformanceSnapshot =
       'quarterly_audit/my_performance_snapshot/';
   static const String subordinateJobs = 'job/subordinate_jobs/';
   static const String favoriteSubordinate = 'profiles/favorite_subordinate/';
-  static const String unfavoriteSubordinate = 'profiles/unfavorite_subordinate/';
+  static const String unfavoriteSubordinate =
+      'profiles/unfavorite_subordinate/';
 
   static String quarterlyAuditDetails(String profileJobId) {
     return 'quarterly_audit/profile_job/$profileJobId/audits/';
@@ -74,7 +81,9 @@ class ApiEndPoints {
     return 'audit_report/certified_report/$certifiedReportUuid/';
   }
 
-  static String auditReportCertifiedReportDownloadPdf(String certifiedReportUuid) {
+  static String auditReportCertifiedReportDownloadPdf(
+    String certifiedReportUuid,
+  ) {
     return 'audit_report/certified_report/$certifiedReportUuid/download_pdf/';
   }
 
@@ -117,7 +126,8 @@ class ApiEndPoints {
     return 'job_category_description/$descriptionId/';
   }
 
-  static const String seatProfileCategoryTrainings = 'job/jobs_categories_descriptions/';
+  static const String seatProfileCategoryTrainings =
+      'job/jobs_categories_descriptions/';
   static const String trainingModules = 'training_modules/';
   static const String trainingModulesAll = 'training_modules/all/';
 
@@ -133,12 +143,28 @@ class ApiEndPoints {
     return 'training_modules/$moduleId/document/';
   }
 
+  static String trainingModuleAssignment(String moduleId) {
+    return 'training_modules/$moduleId/assignment/';
+  }
+
+  static String trainingDocument(String documentId) {
+    return 'training_document/$documentId/';
+  }
+
   static String trainingModuleQuestions(String moduleId) {
     return 'training_modules/$moduleId/questions/';
   }
 
   static String addTrainingModuleQuestion(String moduleId) {
     return 'training_modules/$moduleId/add_question/';
+  }
+
+  static String addTrainingModuleAssignment(String moduleId) {
+    return 'training_modules/$moduleId/add_assignment/';
+  }
+
+  static String trainingAssignment(String assignmentId) {
+    return 'training_assignment/$assignmentId/';
   }
 
   static String addTrainingModuleVideo(String moduleId) {
@@ -294,7 +320,10 @@ class ApiEndPoints {
     );
   }
 
-  static String resolveEndpoint(String endpoint, {bool allowParentPrefix = true}) {
+  static String resolveEndpoint(
+    String endpoint, {
+    bool allowParentPrefix = true,
+  }) {
     final normalizedEndpoint = endpoint.trim();
     if (normalizedEndpoint.isEmpty || !allowParentPrefix) {
       return normalizedEndpoint;

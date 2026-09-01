@@ -177,7 +177,7 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
   }
 
   Widget _buildDepartmentStrip(PaygradesController controller) {
-    final items = controller.isOwner
+    final items = controller.hasGlobalDepartmentAccess
         ? <DepartmentOption>[
             const DepartmentOption(id: 'all', name: 'ALL'),
             ...controller.departments.map(
@@ -196,7 +196,8 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, index) => controller.isOwner && index == 0
+        separatorBuilder: (_, index) =>
+            controller.hasGlobalDepartmentAccess && index == 0
             ? Row(
                 children: [
                   const SizedBox(width: 8),
@@ -444,7 +445,7 @@ class _CardForwardArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedRotation(
-      turns: isExpanded ? 0.25 : 0,
+      turns: isExpanded ? 0.5 : 0,
       duration: const Duration(milliseconds: 220),
       child: Container(
         width: 32,
@@ -457,9 +458,9 @@ class _CardForwardArrow extends StatelessWidget {
           ),
         ),
         child: const Icon(
-          Icons.arrow_forward_ios_rounded,
+          Icons.keyboard_arrow_down_rounded,
           color: AppColors.textSecondary,
-          size: 14,
+          size: 20,
         ),
       ),
     );

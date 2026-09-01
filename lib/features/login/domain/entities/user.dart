@@ -1,4 +1,5 @@
 import 'user_hierarchy_membership.dart';
+import 'user_role_utils.dart';
 
 class User {
   final String? uuid;
@@ -37,102 +38,7 @@ class User {
   final String? dateOfBirth;
   final List<UserHierarchyMembership>? hierarchyMemberships;
 
-  List<String> get normalizedRoles =>
-      _normalizeRoles(roles: roles, hierarchyMemberships: hierarchyMemberships);
-  bool get hasOwnerOverrideAccess {
-    final availableRoles = normalizedRoles.toSet();
-    return isOwner == true || availableRoles.contains('owner');
-  }
-
-  bool get canManageAnyTrainingModules {
-    if (hasOwnerOverrideAccess) {
-      return true;
-    }
-
-    for (final membership
-        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
-      if (membership.canManageTrainingModules) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  bool get canCreateSeatProfiles {
-    final availableRoles = normalizedRoles.toSet();
-    return hasOwnerOverrideAccess ||
-        availableRoles.contains('csuite') ||
-        availableRoles.contains('dept_lead') ||
-        availableRoles.contains('team_lead');
-  }
-
-  bool get canAccessAuditTeamMembers {
-    final availableRoles = normalizedRoles.toSet();
-    return hasOwnerOverrideAccess ||
-        availableRoles.contains('dept_lead') ||
-        availableRoles.contains('team_lead');
-  }
-
-  bool get canAccessSandbox {
-    return hasOwnerOverrideAccess || hasSandboxAccess == true;
-  }
-
-  bool occupiesSeatProfile(String seatProfileId) {
-    final normalizedSeatProfileId = seatProfileId.trim();
-    if (normalizedSeatProfileId.isEmpty) {
-      return false;
-    }
-
-    for (final membership
-        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
-      if (membership.job?.uuid.trim() == normalizedSeatProfileId) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  bool canManageTrainingForSeatProfile({
-    required String seatProfileId,
-    String? departmentId,
-  }) {
-    final normalizedSeatProfileId = seatProfileId.trim();
-    if (normalizedSeatProfileId.isEmpty) {
-      return false;
-    }
-
-    if (hasOwnerOverrideAccess) {
-      return true;
-    }
-
-    if (occupiesSeatProfile(normalizedSeatProfileId)) {
-      return false;
-    }
-
-    final normalizedDepartmentId = departmentId?.trim() ?? '';
-    for (final membership
-        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
-      if (!membership.canManageTrainingModules) {
-        continue;
-      }
-
-      if (membership.manageableSeatProfileIds.contains(
-        normalizedSeatProfileId,
-      )) {
-        return true;
-      }
-
-      if (normalizedDepartmentId.isNotEmpty &&
-          membership.normalizedRole == 'dept_lead' &&
-          membership.departmentUuid?.trim() == normalizedDepartmentId) {
-        return true;
-      }
-    }
-
-    return false;
-  }
+  List<String> get normalizedRoles => _normalizeRoles(roles: roles);
 
   User({
     this.uuid,
@@ -440,15 +346,12 @@ class User {
         .toList(growable: false);
   }
 
-  static List<String> _normalizeRoles({
-    List<String>? roles,
-    List<UserHierarchyMembership>? hierarchyMemberships,
-  }) {
+  static List<String> _normalizeRoles({List<String>? roles}) {
     final normalizedRoles = <String>[];
     final seenRoles = <String>{};
 
     void addRole(String? rawRole) {
-      final normalizedRole = rawRole?.trim().toLowerCase() ?? '';
+      final normalizedRole = normalizeUserRole(rawRole);
       if (normalizedRole.isEmpty || !seenRoles.add(normalizedRole)) {
         return;
       }
@@ -458,11 +361,6 @@ class User {
 
     for (final role in roles ?? const <String>[]) {
       addRole(role);
-    }
-
-    for (final membership
-        in hierarchyMemberships ?? const <UserHierarchyMembership>[]) {
-      addRole(membership.role);
     }
 
     return List<String>.unmodifiable(normalizedRoles);

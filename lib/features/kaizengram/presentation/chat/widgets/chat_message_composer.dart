@@ -21,7 +21,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 const double _chatComposerCornerRadius = 12;
 const double _chatComposerControlHeight = 48;
 const double _chatComposerActionWidth = 48;
-const Color _chatComposerSurfaceColor = Color(0xFF24283D);
+const Color _chatComposerSurfaceColor = AppColors.surfaceDark3;
 
 //////
 class KaizengramChatMessageComposer extends StatefulWidget {
@@ -79,7 +79,7 @@ class _KaizengramChatMessageComposerState
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
           decoration: BoxDecoration(
-            color: const Color(0xFF1B1E27),
+            color: AppColors.hex1b1e27,
             border: Border(
               top: BorderSide(
                 color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -95,7 +95,7 @@ class _KaizengramChatMessageComposerState
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF24283D),
+                    color: AppColors.surfaceDark3,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -168,7 +168,7 @@ class _KaizengramChatMessageComposerState
                 Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF24283D),
+                    color: AppColors.surfaceDark3,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -458,7 +458,7 @@ class _DraftMediaPreviewStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFF24283D),
+        color: AppColors.surfaceDark3,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.06),
@@ -533,7 +533,7 @@ class _DraftMediaPreviewCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                color: const Color(0xFF111317),
+                color: AppColors.hex111317,
                 child: attachment.isPdf
                     ? _DraftPdfPreviewCard(
                         attachment: attachment,

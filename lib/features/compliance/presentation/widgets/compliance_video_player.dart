@@ -24,6 +24,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
     this.showSeekBar = true,
     this.showDuration = true,
     this.fillBounds = false,
+    this.topRightActions = const <Widget>[],
   });
 
   final String videoUrl;
@@ -35,14 +36,15 @@ class ComplianceVideoPlayer extends StatefulWidget {
   final bool showSeekBar;
   final bool showDuration;
   final bool fillBounds;
+  final List<Widget> topRightActions;
 
   @override
   State<ComplianceVideoPlayer> createState() => _ComplianceVideoPlayerState();
 }
 
-class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
+class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
+    with AutomaticKeepAliveClientMixin<ComplianceVideoPlayer> {
   static const _cacheMaxAge = Duration(days: 30);
-  static const _playbackStartWaitTimeout = Duration(milliseconds: 900);
 
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
@@ -59,7 +61,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   void initState() {
     super.initState();
     _showThumbnailPreview = _hasThumbnail;
-    _warmUpVideoCache();
     _setupController();
   }
 
@@ -79,7 +80,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       _currentViewType = VideoViewType.textureView;
       _didRetryWithPlatformView = false;
       _disposeController();
-      _warmUpVideoCache();
       _setupController();
     }
   }
@@ -88,12 +88,6 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
   void dispose() {
     _disposeController();
     super.dispose();
-  }
-
-  void _warmUpVideoCache() {
-    unawaited(
-      VideoPlaybackService.warmUp(widget.videoUrl, cacheMaxAge: _cacheMaxAge),
-    );
   }
 
   void _setupController() {
@@ -113,7 +107,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     VideoPlayerController? controller;
 
     try {
-      controller = await VideoPlaybackService.createInitializedController(
+      controller = await VideoPlaybackService.acquireInitializedController(
         widget.videoUrl,
         localFilePath: widget.localVideoPath,
         cacheMaxAge: _cacheMaxAge,
@@ -124,14 +118,14 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       }
 
       if (!mounted || !_isActiveGeneration(generation)) {
-        await controller.dispose();
+        await VideoPlaybackService.releaseController(controller);
         return;
       }
 
       await controller.setLooping(false);
       await controller.setVolume(1);
       if (!mounted || !_isActiveGeneration(generation)) {
-        await controller.dispose();
+        await VideoPlaybackService.releaseController(controller);
         return;
       }
 
@@ -140,7 +134,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       });
     } catch (error) {
       if (controller != null) {
-        await controller.dispose();
+        await VideoPlaybackService.releaseController(controller);
       }
       if (_shouldRetryWithPlatformView(viewType, generation)) {
         _currentViewType = VideoViewType.platformView;
@@ -191,9 +185,12 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     _isScrubbing = false;
     _scrubPositionMillis = null;
     if (controller != null) {
-      unawaited(controller.dispose());
+      unawaited(VideoPlaybackService.releaseController(controller));
     }
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   bool get _hasThumbnail {
     return CustomFunctions.resolveImageUrl(widget.thumbnailLink) != null;
@@ -265,15 +262,11 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       await controller.seekTo(Duration.zero);
     }
 
+    unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
     await controller.play();
-    await _waitForPlaybackToStart(controller, initialPosition: position);
-    if (_showThumbnailPreview && mounted) {
-      setState(() {
-        _showThumbnailPreview = false;
-      });
-    }
     if (mounted) {
       setState(() {
+        _showThumbnailPreview = false;
         _isPreparingPlayback = false;
       });
     }
@@ -338,45 +331,9 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     );
   }
 
-  Future<void> _waitForPlaybackToStart(
-    VideoPlayerController controller, {
-    required Duration initialPosition,
-  }) async {
-    final value = controller.value;
-    if (_hasPlaybackStarted(value, initialPosition)) {
-      return;
-    }
-
-    final completer = Completer<void>();
-    late VoidCallback listener;
-    listener = () {
-      final nextValue = controller.value;
-      if (_hasPlaybackStarted(nextValue, initialPosition)) {
-        controller.removeListener(listener);
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
-      }
-    };
-
-    controller.addListener(listener);
-    try {
-      await completer.future.timeout(
-        _playbackStartWaitTimeout,
-        onTimeout: () {},
-      );
-    } finally {
-      controller.removeListener(listener);
-    }
-  }
-
-  bool _hasPlaybackStarted(VideoPlayerValue value, Duration initialPosition) {
-    return value.position > initialPosition ||
-        (value.isPlaying && !value.isBuffering);
-  }
-
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = _controller;
 
     return FutureBuilder<void>(
@@ -586,22 +543,31 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
         Positioned(
           top: 10,
           right: 10,
-          child: GestureDetector(
-            onTap: _openFullScreenVideo,
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
-                shape: BoxShape.circle,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _openFullScreenVideo,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    '${AppStrings.imagePath}expand.svg',
+                    width: 35,
+                    height: 35,
+                  ),
+                ),
               ),
-              child: SvgPicture.asset(
-                '${AppStrings.imagePath}expand.svg',
-                width: 35,
-                height: 35,
-              ),
-            ),
+              for (final action in widget.topRightActions) ...[
+                const SizedBox(width: 8),
+                action,
+              ],
+            ],
           ),
         ),
         Positioned(
@@ -674,10 +640,18 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
     final currentMillis = position.inMilliseconds
         .clamp(0, duration.inMilliseconds)
         .toDouble();
+    final bufferedMillis = _resolvedBufferedMillis(
+      controllerValue,
+      maxMillis: maxMillis,
+      currentMillis: currentMillis,
+    );
 
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
         activeTrackColor: AppColors.secondaryColor,
+        secondaryActiveTrackColor: AppColors.textPrimary.withValues(
+          alpha: 0.55,
+        ),
         inactiveTrackColor: AppColors.textPrimary.withValues(alpha: 0.35),
         thumbColor: AppColors.textPrimary,
         overlayColor: AppColors.secondaryColor.withValues(alpha: 0.18),
@@ -686,6 +660,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
       ),
       child: Slider(
         value: currentMillis,
+        secondaryTrackValue: bufferedMillis,
         min: 0,
         max: maxMillis,
         onChangeStart:
@@ -716,6 +691,31 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer> {
               },
       ),
     );
+  }
+
+  double? _resolvedBufferedMillis(
+    VideoPlayerValue? controllerValue, {
+    required double maxMillis,
+    required double currentMillis,
+  }) {
+    if (controllerValue == null || controllerValue.buffered.isEmpty) {
+      return null;
+    }
+
+    var bufferedEndMillis = 0.0;
+    for (final range in controllerValue.buffered) {
+      final rangeEndMillis = range.end.inMilliseconds.toDouble();
+      if (rangeEndMillis > bufferedEndMillis) {
+        bufferedEndMillis = rangeEndMillis;
+      }
+    }
+
+    final clampedBufferedMillis = bufferedEndMillis.clamp(0.0, maxMillis);
+    if (clampedBufferedMillis <= currentMillis) {
+      return null;
+    }
+
+    return clampedBufferedMillis;
   }
 
   Duration _resolvedDisplayedPosition(VideoPlayerValue? controllerValue) {

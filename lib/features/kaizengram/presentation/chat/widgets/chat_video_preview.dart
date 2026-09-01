@@ -1,9 +1,10 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/video_playback_service.dart';
 import '../../widgets/kaizengram_notifier_state.dart';
 
 class ChatVideoPreview extends StatefulWidget {
@@ -38,6 +39,7 @@ class _ChatVideoPreviewState extends State<ChatVideoPreview>
     with KaizengramNotifierState<ChatVideoPreview> {
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
+  int _initializationGeneration = 0;
 
   @override
   void initState() {
@@ -63,38 +65,58 @@ class _ChatVideoPreviewState extends State<ChatVideoPreview>
   }
 
   void _setupController() {
-    final controller = widget.videoPath.startsWith('http')
-        ? VideoPlayerController.networkUrl(Uri.parse(widget.videoPath))
-        : VideoPlayerController.file(File(widget.videoPath));
+    final generation = ++_initializationGeneration;
+    _initializeFuture = _initializeController(generation).catchError((_) {
+      if (mounted && generation == _initializationGeneration) {
+        notifyView();
+      }
+    });
+  }
+
+  Future<void> _initializeController(int generation) async {
+    final isNetworkVideo = widget.videoPath.startsWith('http');
+    final controller = await VideoPlaybackService.acquireInitializedController(
+      isNetworkVideo ? widget.videoPath : null,
+      localFilePath: isNetworkVideo ? null : widget.videoPath,
+    );
+    if (controller == null) {
+      throw StateError('Unable to resolve video source');
+    }
+
+    if (!mounted || generation != _initializationGeneration) {
+      await VideoPlaybackService.releaseController(controller);
+      return;
+    }
+
+    await controller.setLooping(false);
+    await controller.setVolume(widget.muted ? 0 : 1);
+    if (!mounted || generation != _initializationGeneration) {
+      await VideoPlaybackService.releaseController(controller);
+      return;
+    }
+
+    controller.addListener(_handleVideoChanged);
     _controller = controller;
-    _initializeFuture = controller
-        .initialize()
-        .then((_) async {
-          await controller.setLooping(false);
-          await controller.setVolume(widget.muted ? 0 : 1);
-          controller.addListener(_handleVideoChanged);
-          if (widget.autoPlay) {
-            await controller.play();
-          }
-          if (mounted) {
-            notifyView();
-          }
-        })
-        .catchError((_) {
-          if (mounted) {
-            notifyView();
-          }
-        });
+    if (widget.autoPlay) {
+      unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
+      await controller.play();
+    }
+    if (mounted && generation == _initializationGeneration) {
+      notifyView();
+    }
   }
 
   void _disposeController() {
+    _initializationGeneration++;
     final controller = _controller;
     if (controller != null) {
       controller.removeListener(_handleVideoChanged);
     }
     _controller = null;
     _initializeFuture = null;
-    controller?.dispose();
+    if (controller != null) {
+      unawaited(VideoPlaybackService.releaseController(controller));
+    }
   }
 
   void _handleVideoChanged() {
@@ -132,6 +154,7 @@ class _ChatVideoPreviewState extends State<ChatVideoPreview>
       await controller.seekTo(Duration.zero);
     }
 
+    unawaited(VideoPlaybackService.prepareAudiblePlaybackAudioSession());
     await controller.play();
   }
 
@@ -251,7 +274,7 @@ class _ChatVideoPreviewFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 160,
-      color: const Color(0xFF111317),
+      color: AppColors.hex111317,
       alignment: Alignment.center,
       child: const Icon(
         Icons.videocam_rounded,

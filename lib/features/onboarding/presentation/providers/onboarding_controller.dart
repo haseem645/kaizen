@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_error.dart';
@@ -10,6 +11,7 @@ import '../../../../core/network/api_processor.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/services/file_uploader.dart';
 import '../../../../core/utils/custom_functions.dart';
+import '../../../../routes/app_router.dart';
 import '../../../login/domain/entities/login_response.dart';
 import '../../../login/domain/entities/user.dart';
 
@@ -46,6 +48,7 @@ class OnboardingController extends ChangeNotifier {
   bool _isConfirmPasswordHidden = true;
   bool _isCompleted = false;
   bool _isDeepLinkExpired = false;
+  bool _hasHandledCompletionNavigation = false;
   String _email = '';
   String? _errorMessage;
   User? _resolvedUser;
@@ -60,10 +63,57 @@ class OnboardingController extends ChangeNotifier {
   bool get isDeepLinkExpired => _isDeepLinkExpired;
   String get email => _email;
   String? get errorMessage => _errorMessage;
+  String get setPasswordDisplayEmail =>
+      _email.isEmpty ? AppStrings.profileValueUnavailable : _email;
+  bool get shouldNavigateToLogin =>
+      _isCompleted && !_hasHandledCompletionNavigation;
 
   bool get hasLocalProfileImageToUpload {
     final path = _profileImagePath?.trim();
     return _hasSelectedNewProfileImage && path != null && path.isNotEmpty;
+  }
+
+  bool isSetPasswordKeyboardOpen(double bottomInset) {
+    return bottomInset > 0;
+  }
+
+  EdgeInsets resolveSetPasswordContentPadding(double bottomInset) {
+    return EdgeInsets.fromLTRB(
+      32,
+      isSetPasswordKeyboardOpen(bottomInset) ? 24 : 32,
+      32,
+      bottomInset + 32,
+    );
+  }
+
+  double resolveSetPasswordHeaderSpacing(double bottomInset) {
+    return isSetPasswordKeyboardOpen(bottomInset) ? 12 : 28;
+  }
+
+  double resolveSetPasswordFormSpacing(double bottomInset) {
+    return isSetPasswordKeyboardOpen(bottomInset) ? 48 : 120;
+  }
+
+  double resolveSetPasswordActionSpacing(double bottomInset) {
+    return isSetPasswordKeyboardOpen(bottomInset) ? 32 : 60;
+  }
+
+  double resolveSetPasswordMinHeight({
+    required double maxHeight,
+    required EdgeInsets contentPadding,
+  }) {
+    return (maxHeight - contentPadding.vertical)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+  }
+
+  void navigateToLoginAfterCompletion(BuildContext context) {
+    if (!shouldNavigateToLogin || !context.mounted) {
+      return;
+    }
+
+    _hasHandledCompletionNavigation = true;
+    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.login);
   }
 
   String _resolveStoredAccessToken() {
@@ -437,26 +487,57 @@ class OnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? validatePassword(String? value) {
-    final password = value?.trim() ?? '';
+  bool _hasPasswordLetter(String password) {
+    return RegExp(r'[A-Za-z]').hasMatch(password);
+  }
+
+  bool _hasPasswordNumber(String password) {
+    return RegExp(r'\d').hasMatch(password);
+  }
+
+  String? _validatePasswordRequirements(
+    String password, {
+    required bool isConfirmation,
+  }) {
     if (password.isEmpty) {
-      return 'Please enter a password.';
+      return isConfirmation
+          ? AppStrings.authEnterConfirmPassword
+          : AppStrings.loginEnterPassword;
     }
     if (password.length < 8) {
-      return 'Password must be at least 8 characters.';
+      return AppStrings.authPasswordMinLength;
+    }
+    if (!_hasPasswordLetter(password)) {
+      return AppStrings.authPasswordLetterRequired;
+    }
+    if (!_hasPasswordNumber(password)) {
+      return AppStrings.authPasswordNumberRequired;
     }
     return null;
   }
 
+  String? validatePassword(String? value) {
+    final password = value?.trim() ?? '';
+    return _validatePasswordRequirements(password, isConfirmation: false);
+  }
+
   String? validateConfirmPassword(String? value) {
     final confirmPassword = value?.trim() ?? '';
-    if (confirmPassword.isEmpty) {
-      return 'Please confirm your password.';
+    final requirementError = _validatePasswordRequirements(
+      confirmPassword,
+      isConfirmation: true,
+    );
+    if (requirementError != null) {
+      return requirementError;
     }
     if (confirmPassword != passwordController.text.trim()) {
-      return 'Passwords do not match.';
+      return AppStrings.authPasswordsDoNotMatch;
     }
     return null;
+  }
+
+  Future<void> submitSetPassword() async {
+    await completeOnboarding();
   }
 
   Future<bool> completeOnboarding() async {
@@ -478,7 +559,7 @@ class OnboardingController extends ChangeNotifier {
       final authToken = _resolveStoredAccessToken();
       final userId = _resolveUserId(user);
       if (user == null || authToken.isEmpty || userId.isEmpty) {
-        _errorMessage = 'Unable to set password right now.';
+        _errorMessage = AppStrings.authSetPasswordUnableToUpdate;
         return false;
       }
 
@@ -497,13 +578,14 @@ class OnboardingController extends ChangeNotifier {
       );
 
       await AppPreference.clearTokens();
+      _hasHandledCompletionNavigation = false;
       _isCompleted = true;
       return true;
     } on ApiError catch (error) {
       _errorMessage = error.message;
       return false;
     } catch (_) {
-      _errorMessage = 'Unable to set password right now.';
+      _errorMessage = AppStrings.authSetPasswordUnableToUpdate;
       return false;
     } finally {
       _isSubmitting = false;

@@ -96,7 +96,7 @@ class _ComplianceScreenViewState extends State<_ComplianceScreenView> {
     _controller = context.read<ComplianceController>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
+      if (!mounted || widget.module != ComplianceTabType.learningTrack) {
         return;
       }
 
@@ -106,28 +106,33 @@ class _ComplianceScreenViewState extends State<_ComplianceScreenView> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<ComplianceController>();
-    final state = controller.state;
+    final isLearningTrackModule =
+        widget.module == ComplianceTabType.learningTrack;
+    final isOverviewLoading = isLearningTrackModule
+        ? context.select<ComplianceController, bool>(
+            (controller) => controller.state.isLoading,
+          )
+        : false;
 
     return DrawerMainScreen(
-      title: widget.module == ComplianceTabType.learningTrack
+      title: isLearningTrackModule
           ? AppStrings.homeLearningTracks
           : AppStrings.homeCompliance,
-      selectedMenu: widget.module == ComplianceTabType.learningTrack
+      selectedMenu: isLearningTrackModule
           ? AppMenuType.learningTracks
           : AppMenuType.compliance,
       centerTitle: true,
       child: SafeArea(
         top: false,
         bottom: false,
-        child: state.isLoading
+        child: isOverviewLoading
             ? FastCircularProgressIndicator()
-            : _buildContent(controller),
+            : _buildContent(),
       ),
     );
   }
 
-  Widget _buildContent(ComplianceController controller) {
+  Widget _buildContent() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 1),
       child: widget.module == ComplianceTabType.learningTrack

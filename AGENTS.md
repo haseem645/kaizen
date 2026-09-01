@@ -100,6 +100,10 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 - **Owner Override**: Treat `User.isOwner == true` as a master-access override for app permissions. Owner users must not lose Create, Edit, manage, or team-access actions because of seat-scoped, hierarchy-scoped, or role-list checks.
 - **Permission Helper Source**: Put owner-first permission rules in shared user/app permission helpers before feature screens consume them. Do not re-encode owner exceptions ad hoc inside individual widgets when a shared helper can own the rule.
+- **Hierarchy Matching**: When resolving managed-profile permissions from organisation hierarchy JSON, match the logged-in user against the hierarchy node `profile.uuid`, `profile.user_uuid`, or `profile.email`, and treat only that matched node's direct `children` as managed profiles for seat-scoped training permissions.
+- **Department Scope**: Seat profile create/edit permissions must be checked against the matched hierarchy membership `department_uuid`; do not broaden seat-profile edit access from department names, unrelated descendants, or generic lead-role checks alone.
+- **Role Aliases**: Treat API role aliases such as `c_suite` and `csuite` as the same role before permission checks.
+- **Create Entry Vs Scope Enforcement**: For Seat Profile and LMS, keep the outer create entry points available to any account with at least one non-`team_member` role, then enforce the stricter department and managed-seat permission checks only after the create flow opens.
 
 ## Feature-Specific Best Practices
 
