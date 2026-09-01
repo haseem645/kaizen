@@ -29,6 +29,10 @@ import '../features/organizations/presentation/pages/organizations_screen.dart';
 import '../features/paygrades/presentation/pages/paygrade_detail_screen.dart';
 import '../features/paygrades/presentation/pages/paygrades_screen.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
+import '../features/questions_feedback/domain/entities/feedback_author.dart';
+import '../features/questions_feedback/domain/entities/feedback_post.dart';
+import '../features/questions_feedback/presentation/pages/questions_feedback_detail_screen.dart';
+import '../features/questions_feedback/presentation/pages/questions_feedback_screen.dart';
 import '../features/seat_profile/domain/entities/department.dart';
 import '../features/seat_profile/domain/entities/seat_profile_detail.dart';
 import '../features/seat_profile/presentation/models/seat_profile_form_initial_data.dart';
@@ -71,6 +75,8 @@ class AppRouter {
   static const String kaizenGpt = '/kaizen-gpt';
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
+  static const String questionsFeedback = '/questions-feedback';
+  static const String questionsFeedbackDetail = '/questions-feedback/detail';
   static const String checkInDetails = '/check-in-details';
   static const String checkInDescriptionsList = '/check-in-details/single';
   static const String checkInReport = '/check-in-report';
@@ -79,6 +85,20 @@ class AppRouter {
   static const String complianceTraining = '/compliance/training';
   static const String complianceNextVideoQuiz =
       '/compliance/training/next-quiz-video';
+
+  static bool isPublicRoute(String? routeName) {
+    switch (routeName) {
+      case splash:
+      case login:
+      case forgotPassword:
+      case loginSetPassword:
+      case onboarding:
+      case onboardingPassword:
+        return true;
+      default:
+        return false;
+    }
+  }
 
   static String get defaultAuthenticatedRouteName {
     return AppPreference.getUseParentApiEndpoints()
@@ -287,6 +307,31 @@ class AppRouter {
         );
       case profile:
         return _buildRoute(settings: settings, builder: (_) => ProfileScreen());
+      case questionsFeedback:
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => const QuestionsFeedbackScreen(),
+        );
+      case questionsFeedbackDetail:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => QuestionsFeedbackDetailScreen(
+            post: args is QuestionsFeedbackDetailRouteArgs
+                ? args.post
+                : const FeedbackPost(
+                    id: '',
+                    title: '',
+                    status: '',
+                    isLiked: false,
+                    likeCount: 0,
+                    commentCount: 0,
+                    description: '',
+                    attachments: <String>[],
+                    author: FeedbackAuthor(id: '', name: '', imageUrl: null),
+                  ),
+          ),
+        );
       case checkInDetails:
         final args = settings.arguments;
         return _buildRoute(
@@ -413,6 +458,12 @@ class ComplianceDetailRouteArgs {
   const ComplianceDetailRouteArgs({required this.track});
 
   final LearningTrackModuleDetail track;
+}
+
+class QuestionsFeedbackDetailRouteArgs {
+  const QuestionsFeedbackDetailRouteArgs({required this.post});
+
+  final FeedbackPost post;
 }
 
 class ComplianceTracksRouteArgs {

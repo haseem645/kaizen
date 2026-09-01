@@ -25,6 +25,7 @@ class ApiEndPoints {
   static const String payGrade = 'pay_grade/';
   static const String organizations = 'organizations/';
   static const String images = 'image/';
+  static const String feedbacks = 'feedbacks/';
   static const String allDepartments = 'department/all_departments/';
   static const String organizationHierarchy =
       'department/organization_hierarchy/';
@@ -44,6 +45,17 @@ class ApiEndPoints {
   static String quarterlyAuditDetails(String profileJobId) {
     return 'quarterly_audit/profile_job/$profileJobId/audits/';
   }
+
+  static String feedbackComments(String feedbackId) =>
+      'feedbacks/$feedbackId/comments/';
+
+  static String addFeedbackComment(String feedbackId) =>
+      'feedbacks/$feedbackId/add_comment/';
+
+  static String feedbackComment(String commentId) => 'comments/$commentId/';
+
+  static String editFeedbackComment(String commentId) =>
+      'feedbacks/comments/$commentId/';
 
   static String userById(String userId) {
     return 'users/$userId/';
@@ -221,6 +233,10 @@ class ApiEndPoints {
 
   static String payGradeItem(String paygradeId) {
     return 'pay_grade/$paygradeId/';
+  }
+
+  static String feedbackLike(String feedbackId) {
+    return 'feedbacks/$feedbackId/like/';
   }
 
   static String departmentDetail(String departmentId) {

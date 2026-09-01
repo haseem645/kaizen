@@ -7,6 +7,7 @@ import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/services/deep_link_service.dart';
 import 'package:sparrowkaizen/core/widgets/billing_banner.dart';
 import 'package:sparrowkaizen/core/widgets/organization_conflict_dialog.dart';
+import 'package:sparrowkaizen/features/questions_feedback/presentation/widgets/questions_feedback_shortcut_button.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_video_upload_banner.dart';
 
 import 'core/constants/app_fonts.dart';
@@ -114,26 +115,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             title: AppStrings.appTitle,
             theme: baseTheme.copyWith(
               textTheme: baseTheme.textTheme.apply(fontFamily: AppFonts.inter),
-              primaryTextTheme: baseTheme.primaryTextTheme.apply(
-                fontFamily: AppFonts.inter,
-              ),
+              primaryTextTheme: baseTheme.primaryTextTheme.apply(fontFamily: AppFonts.inter),
             ),
             builder: (context, child) {
               return Stack(
                 children: [
                   child ?? const SizedBox.shrink(),
                   if (appManager.showBillingBanner) const BillingBanner(),
-                  if (_showTrainingVideoUploadBanner)
-                    const TrainingVideoUploadBanner(),
-                  if (appManager.showOrganizationBanner)
-                    const OrganizationConflictDialog(),
+                  if (_showTrainingVideoUploadBanner) const TrainingVideoUploadBanner(),
+                  QuestionsFeedbackShortcutButton(currentRouteName: appManager.currentRouteName),
+                  if (appManager.showOrganizationBanner) const OrganizationConflictDialog(),
                 ],
               );
             },
             debugShowCheckedModeBanner: false,
-            navigatorObservers: <NavigatorObserver>[
-              _AppRouteObserver(appManager),
-            ],
+            navigatorObservers: <NavigatorObserver>[_AppRouteObserver(appManager)],
             initialRoute: AppRouter.splash,
             onGenerateRoute: AppRouter.onGenerateRoute,
           );

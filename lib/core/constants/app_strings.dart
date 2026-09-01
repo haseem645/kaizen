@@ -1948,4 +1948,122 @@ class AppStrings {
   static String selectedMediaLabel(int count, int maxCount) {
     return 'Selected attachments ($count/$maxCount)';
   }
+
+  static const String questionsFeedbackScreenTitle = 'Questions & Feedback';
+  static const String questionsFeedbackTriggerTooltip =
+      'Open Questions & Feedback';
+  static const String questionsFeedbackHeroTitle =
+      'Need help or want to share feedback?';
+  static const String questionsFeedbackHeroDescription =
+      'Capture a question, suggestion, or blocker in one place and open it as an email draft when you are ready.';
+  static const String questionsFeedbackOrganizationLabel = 'Organization';
+  static const String questionsFeedbackTypeSectionTitle =
+      'What would you like to share?';
+  static const String questionsFeedbackTypeSectionSubtitle =
+      'Choose the flow that best matches what you need right now.';
+  static const String questionsFeedbackQuestionType = 'Question';
+  static const String questionsFeedbackFeedbackType = 'Feedback';
+  static const String questionsFeedbackRecipientLabel = 'Send to';
+  static const String questionsFeedbackOptionalLabel = 'Optional';
+  static const String questionsFeedbackRecipientHint = 'Add an email address';
+  static const String questionsFeedbackNameLabel = 'Your name';
+  static const String questionsFeedbackNameHint = 'Enter your name';
+  static const String questionsFeedbackEmailLabel = 'Your email';
+  static const String questionsFeedbackEmailHint = 'Enter your email';
+  static const String questionsFeedbackSubjectLabel = 'Subject';
+  static const String questionsFeedbackQuestionSubjectHint =
+      'What do you need help with?';
+  static const String questionsFeedbackFeedbackSubjectHint =
+      'What would you like to improve?';
+  static const String questionsFeedbackMessageLabel = 'Details';
+  static const String questionsFeedbackQuestionMessageHint =
+      'Share the context, steps, and what you expected to happen.';
+  static const String questionsFeedbackFeedbackMessageHint =
+      'Tell us what worked, what did not, and what should change.';
+  static const String questionsFeedbackEmailDraftHelper =
+      'This opens your device email composer with the draft prefilled.';
+  static const String questionsFeedbackClearAction = 'Clear';
+  static const String questionsFeedbackOpenDraftAction = 'Open Email Draft';
+  static const String questionsFeedbackInvalidEmailMessage =
+      'Enter a valid email address.';
+  static const String questionsFeedbackSubjectRequiredMessage =
+      'Add a short subject before continuing.';
+  static const String questionsFeedbackMessageRequiredMessage =
+      'Share a few details before continuing.';
+  static const String questionsFeedbackEmailDraftOpenedMessage =
+      'Email draft opened.';
+  static const String questionsFeedbackEmailDraftFailedMessage =
+      'Unable to open an email draft on this device right now.';
+  static const String questionsFeedbackDraftClearedMessage = 'Draft cleared.';
+  static const String questionsFeedbackCommunityPosts = 'Community posts';
+  static const String questionsFeedbackPostSingular = 'post';
+  static const String questionsFeedbackPostPlural = 'posts';
+  static const String questionsFeedbackSearchTooltip = 'Search feedback posts';
+  static const String questionsFeedbackSearchHint = 'Search posts';
+  static const String questionsFeedbackCreateTooltip = 'Create feedback post';
+  static const String questionsFeedbackRequestedStatus = 'Requested';
+  static const String questionsFeedbackAttachmentSingular = 'attachment';
+  static const String questionsFeedbackAttachmentPlural = 'attachments';
+  static const String questionsFeedbackCommentSingular = 'comment';
+  static const String questionsFeedbackCommentPlural = 'comments';
+  static const String questionsFeedbackLikeSingular = 'like';
+  static const String questionsFeedbackLikePlural = 'likes';
+  static const String questionsFeedbackDetailTitle = 'Feedback post';
+  static const String questionsFeedbackCommentsTitle = 'Comments';
+  static const String questionsFeedbackNoPosts = 'No community posts yet.';
+  static const String questionsFeedbackLoadFailed =
+      'Unable to load community posts right now.';
+  static const String questionsFeedbackRetryAction = 'Retry';
+  static const String questionsFeedbackCreateUnavailable =
+      'Creating feedback posts is not available yet.';
+  static const String questionsFeedbackAddAction = 'Add';
+  static const String questionsFeedbackCreatePostTitle =
+      'Ask a question or share an idea';
+  static const String questionsFeedbackPostTitleLabel = 'Title';
+  static const String questionsFeedbackPostTitleHint = 'Add a short title';
+  static const String questionsFeedbackDescriptionLabel = 'Description';
+  static const String questionsFeedbackDescriptionHint =
+      'Describe your question or feedback';
+  static const String questionsFeedbackAttachmentsLabel = 'Images';
+  static const String questionsFeedbackAddImagesAction = 'Add images';
+  static const String questionsFeedbackCreatePostAction = 'Post';
+  static const String questionsFeedbackTitleRequired = 'Enter a title.';
+  static const String questionsFeedbackDescriptionRequired =
+      'Enter a description.';
+  static const String questionsFeedbackCreatePostFailed =
+      'Unable to create the post right now. Please try again.';
+  static String questionsFeedbackImageLimit(int limit) => 'Up to $limit images';
+  static String questionsFeedbackImageAttachmentCount(int count, int limit) =>
+      '$count/$limit';
+  static String questionsFeedbackImagePageIndicator(int current, int total) =>
+      '$current/$total';
+  static const String questionsFeedbackLikeAction = 'Like';
+  static const String questionsFeedbackLikedAction = 'Liked';
+  static const String questionsFeedbackCommentAction = 'Comment';
+  static const String questionsFeedbackReplyAction = 'Reply';
+  static const String questionsFeedbackViewRepliesAction = 'View Replies';
+  static const String questionsFeedbackHideRepliesAction = 'Hide Replies';
+  static const String questionsFeedbackEditAction = 'Edit';
+  static const String questionsFeedbackDeleteAction = 'Delete';
+  static const String questionsFeedbackDeleteCommentTitle = 'Delete comment?';
+  static const String questionsFeedbackDeleteCommentMessage =
+      'This comment will be permanently removed.';
+  static const String questionsFeedbackConfirmDeleteAction = 'Yes, delete';
+  static const String questionsFeedbackCommentDeleteFailed =
+      'Unable to delete the comment right now. Please try again.';
+  static const String questionsFeedbackCommentEditFailed =
+      'Unable to edit the comment right now. Please try again.';
+  static const String questionsFeedbackJustNow = 'Just now';
+  static String questionsFeedbackMinutesAgo(int count) => '$count min ago';
+  static String questionsFeedbackHoursAgo(int count) => '$count h ago';
+  static String questionsFeedbackDaysAgo(int count) => '$count d ago';
+  static const String questionsFeedbackAddCommentHint = 'Add a Comment';
+  static String questionsFeedbackReplyToHint(String name) => 'Reply to $name';
+  static const String questionsFeedbackCancelAction = 'Cancel';
+  static const String questionsFeedbackCommentSendFailed =
+      'Unable to add the comment right now. Please try again.';
+  static const String questionsFeedbackLikeUpdateFailed =
+      'Unable to update the like right now. Please try again.';
+  static const String questionsFeedbackCommentsUnavailable =
+      'Comments will appear here when they are available.';
 }

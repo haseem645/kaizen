@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
 class AppBackButton extends StatelessWidget {
   const AppBackButton({super.key, this.onPressed});
 
   static const double iconSize = 24;
-  static const String assetPath = 'lib/assets/images/back.svg';
+  static const String assetPath = '${AppStrings.imagePath}back.svg';
 
   final VoidCallback? onPressed;
 
