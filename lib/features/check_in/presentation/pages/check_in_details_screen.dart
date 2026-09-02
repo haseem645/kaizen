@@ -106,9 +106,6 @@ class _CheckInDetailsScreenView extends StatelessWidget {
     final controller = context.watch<CheckInController>();
     final state = controller.state;
     final details = state.details;
-    final shouldHideBottomAction =
-        details != null && _shouldForceViewOnly(controller, details);
-
     return Scaffold(
       backgroundColor: AppColors.mainBg,
       body: SafeArea(
@@ -181,7 +178,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
                 ),
               ),
             ),
-            if (!state.isLoading && state.isOwner && !shouldHideBottomAction)
+            if (!state.isLoading)
               _buildNewAuditButton(
                 context,
                 details,
@@ -491,7 +488,6 @@ class _CheckInDetailsScreenView extends StatelessWidget {
               .where((audit) => audit.totalRatings > 0)
               .toList(growable: false)
         : details.audits;
-    final shouldForceViewOnly = _shouldForceViewOnly(controller, details);
 
     if (visibleAudits.isEmpty) {
       return const Center(
@@ -508,8 +504,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
       itemBuilder: (context, index) {
         final audit = visibleAudits[index];
         final actionLabel =
-            !shouldForceViewOnly &&
-                CustomFunctions.isAuditWithinContinueWindow(audit.date)
+            CustomFunctions.isAuditWithinContinueWindow(details.lastAuditDate)
             ? AppStrings.continueAction
             : AppStrings.view;
 
@@ -711,10 +706,6 @@ class _CheckInDetailsScreenView extends StatelessWidget {
     AuditDetails details,
     bool shouldStartNewAudit,
   ) async {
-    if (!context.read<CheckInController>().state.isOwner) {
-      return;
-    }
-
     if (context.read<AppManager>().showBillingBanner) {
       await showDialog<void>(
         context: context,
@@ -818,41 +809,11 @@ class _CheckInDetailsScreenView extends StatelessWidget {
     return allocatedProfileUuid.isEmpty ? null : allocatedProfileUuid;
   }
 
-  bool _shouldForceViewOnly(
-    CheckInController controller,
-    AuditDetails details,
-  ) {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
-      return true;
-    }
-
-    final selectedProfileUuid = _resolveActiveProfileUuid(controller, details);
-    if (selectedProfileUuid == null) {
-      return false;
-    }
-
-    return selectedProfileUuid != details.profileUuid.trim();
-  }
-
   bool _shouldStartNewAuditForBottomAction(AuditDetails details) {
-    final defaultShouldStartNewAudit = CustomFunctions.shouldStartNewAudit(
-      details,
-    );
-    if (!defaultShouldStartNewAudit) {
-      return false;
-    }
-
-    final hasNoAuditRows = details.audits.isEmpty;
-    final hasSeatAuditToday = CustomFunctions.isSameDate(
+    return !CustomFunctions.isSameDate(
       details.lastAuditDate,
       CustomFunctions.apiDateString(),
     );
-
-    if (hasNoAuditRows && hasSeatAuditToday) {
-      return false;
-    }
-
-    return true;
   }
 
   String? _resolveSelectedProfileName(

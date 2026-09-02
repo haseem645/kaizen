@@ -128,13 +128,13 @@ class AppDrawer extends StatelessWidget {
         isSelected: selectedMenu == AppMenuType.compliance,
         onTap: onComplianceTap,
       ),
-      _buildDrawerItem(
-        context,
-        icon: Icons.auto_awesome_outlined,
-        title: AppStrings.homeAi,
-        isSelected: selectedMenu == AppMenuType.kaizenGpt,
-        onTap: onKaizenGptTap,
-      ),
+      // _buildDrawerItem(
+      //   context,
+      //   icon: Icons.auto_awesome_outlined,
+      //   title: AppStrings.homeAi,
+      //   isSelected: selectedMenu == AppMenuType.kaizenGpt,
+      //   onTap: onKaizenGptTap,
+      // ),
       _buildDrawerItem(
         context,
         icon: Icons.verified_user_outlined,
