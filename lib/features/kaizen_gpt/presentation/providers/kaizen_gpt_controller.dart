@@ -14,10 +14,18 @@ import '../../../../core/utils/custom_functions.dart';
 
 class KaizenGptController extends ChangeNotifier {
   static const Duration _speechPause = Duration(milliseconds: 2200);
-  static const Duration _assistantPlaybackIdleWindow = Duration(milliseconds: 1200);
-  static const Duration _assistantPostAudioGuardWindow = Duration(milliseconds: 500);
-  static const Duration _assistantStaleActivityWindow = Duration(milliseconds: 1500);
-  static const Duration _assistantTurnIdleSpeechWindow = Duration(milliseconds: 800);
+  static const Duration _assistantPlaybackIdleWindow = Duration(
+    milliseconds: 1200,
+  );
+  static const Duration _assistantPostAudioGuardWindow = Duration(
+    milliseconds: 500,
+  );
+  static const Duration _assistantStaleActivityWindow = Duration(
+    milliseconds: 1500,
+  );
+  static const Duration _assistantTurnIdleSpeechWindow = Duration(
+    milliseconds: 800,
+  );
   static const Duration _audioIdleTimeout = Duration(seconds: 25);
   static const int _audioSampleRate = 16000;
   static const int _defaultAssistantPlaybackSampleRate = 24000;
@@ -30,14 +38,19 @@ class KaizenGptController extends ChangeNotifier {
   static const int _vadRedemptionFrames = 24;
   static const int _vadPreSpeechPadFrames = 6;
   static const int _vadEndSpeechPadFrames = 8;
-  static const Duration _assistantSocketTokenRefreshLeadTime = Duration(seconds: 45);
+  static const Duration _assistantSocketTokenRefreshLeadTime = Duration(
+    seconds: 45,
+  );
 
   final List<KaizenGptMessage> _messages = <KaizenGptMessage>[];
   final TextEditingController _promptController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final SocketManager _socketManager = SocketManager.instance;
   final PlayerStream _player = PlayerStream();
-  final VadHandler _vadHandler = VadHandler.create(isDebug: false, onLog: _vadLog);
+  final VadHandler _vadHandler = VadHandler.create(
+    isDebug: false,
+    onLog: _vadLog,
+  );
 
   StreamSubscription<SocketEventMessage>? _socketEventsSubscription;
   StreamSubscription<Object>? _socketErrorsSubscription;
@@ -46,7 +59,8 @@ class KaizenGptController extends ChangeNotifier {
   StreamSubscription<List<double>>? _vadSpeechEndSubscription;
   StreamSubscription<void>? _vadMisfireSubscription;
   StreamSubscription<String>? _vadErrorSubscription;
-  StreamSubscription<({List<double> samples, bool isFinal})>? _vadChunkSubscription;
+  StreamSubscription<({List<double> samples, bool isFinal})>?
+  _vadChunkSubscription;
 
   bool _isMicMuted = true;
   bool _isSpeakerMuted = true;
@@ -99,7 +113,8 @@ class KaizenGptController extends ChangeNotifier {
     debugPrint('[KaizenGptVAD] $message');
   }
 
-  List<KaizenGptMessage> get messages => List<KaizenGptMessage>.unmodifiable(_messages);
+  List<KaizenGptMessage> get messages =>
+      List<KaizenGptMessage>.unmodifiable(_messages);
   TextEditingController get promptController => _promptController;
   ScrollController get scrollController => _scrollController;
   bool get isMicMuted => _isMicMuted;
@@ -143,7 +158,8 @@ class KaizenGptController extends ChangeNotifier {
   String get transcriptText {
     final lines = <String>[
       ..._messages.map(
-        (message) => message.isUser ? 'You: ${message.text}' : 'AI: ${message.text}',
+        (message) =>
+            message.isUser ? 'You: ${message.text}' : 'AI: ${message.text}',
       ),
     ];
 
@@ -181,8 +197,12 @@ class KaizenGptController extends ChangeNotifier {
 
   Future<void> initializeAssistantSocket() async {
     _log('initializeAssistantSocket called');
-    _socketEventsSubscription ??= _socketManager.events.listen(_handleSocketEvent);
-    _socketErrorsSubscription ??= _socketManager.errors.listen(_handleSocketError);
+    _socketEventsSubscription ??= _socketManager.events.listen(
+      _handleSocketEvent,
+    );
+    _socketErrorsSubscription ??= _socketManager.errors.listen(
+      _handleSocketError,
+    );
 
     await _initializeAudioStreams();
 
@@ -276,7 +296,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     try {
-      final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
       final decoded = jsonDecode(payload);
       if (decoded is! Map<String, dynamic>) {
         return null;
@@ -307,7 +329,10 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     if (!_isPlayerInitialized) {
-      await _player.initialize(sampleRate: _assistantPlaybackSampleRate, showLogs: false);
+      await _player.initialize(
+        sampleRate: _assistantPlaybackSampleRate,
+        showLogs: false,
+      );
       await _player.usePhoneSpeaker(!_isSpeakerMuted);
       _lastAppliedSpeakerRoute = !_isSpeakerMuted;
       _playerStatusSubscription ??= _player.status.listen((status) {
@@ -317,7 +342,8 @@ class KaizenGptController extends ChangeNotifier {
           return;
         }
 
-        if (status == SoundStreamStatus.Stopped || status == SoundStreamStatus.Unset) {
+        if (status == SoundStreamStatus.Stopped ||
+            status == SoundStreamStatus.Unset) {
           _isPlayerStarted = false;
           _assistantPlaybackStartedAt = null;
           _assistantPlaybackExpectedUntilAt = null;
@@ -375,7 +401,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     _log('Initializing VAD handler');
-    _vadRealSpeechStartSubscription ??= _vadHandler.onRealSpeechStart.listen((_) {
+    _vadRealSpeechStartSubscription ??= _vadHandler.onRealSpeechStart.listen((
+      _,
+    ) {
       unawaited(_handleVadRealSpeechStart());
     });
     _vadSpeechEndSubscription ??= _vadHandler.onSpeechEnd.listen((_) {
@@ -493,7 +521,9 @@ class KaizenGptController extends ChangeNotifier {
     try {
       await _initializeAudioStreams();
       _clearStaleAssistantTurnState();
-      if (_isAssistantBusyForUserTurn && !_isResponding && !_isAssistantTurnActive) {
+      if (_isAssistantBusyForUserTurn &&
+          !_isResponding &&
+          !_isAssistantTurnActive) {
         _log('Clearing assistant tail state before starting microphone capture');
         _finishAssistantTurn(resetInterruptState: true, stopPlayback: false);
       }
@@ -565,7 +595,9 @@ class KaizenGptController extends ChangeNotifier {
     try {
       if (_isSpeakerMuted) {
         await _stopPlayer();
-      } else if (_acceptAssistantAudioChunks || _isResponding || _isAssistantTurnActive) {
+      } else if (_acceptAssistantAudioChunks ||
+          _isResponding ||
+          _isAssistantTurnActive) {
         await _applySpeakerRoute();
         await _ensurePlayerStarted();
         _markAudioActivity();
@@ -632,7 +664,9 @@ class KaizenGptController extends ChangeNotifier {
     _log('Player started');
   }
 
-  Future<void> _configureAssistantPlaybackSampleRateIfNeeded(int? sampleRate) async {
+  Future<void> _configureAssistantPlaybackSampleRateIfNeeded(
+    int? sampleRate,
+  ) async {
     if (sampleRate == null || sampleRate <= 0) {
       return;
     }
@@ -648,14 +682,19 @@ class KaizenGptController extends ChangeNotifier {
 
     _assistantPlaybackSampleRate = sampleRate;
     if (_isPlayerInitialized) {
-      await _player.initialize(sampleRate: _assistantPlaybackSampleRate, showLogs: false);
+      await _player.initialize(
+        sampleRate: _assistantPlaybackSampleRate,
+        showLogs: false,
+      );
       _lastAppliedSpeakerRoute = null;
       await _applySpeakerRoute();
     }
 
     _assistantPlaybackStartedAt = null;
     _assistantPlaybackExpectedUntilAt = null;
-    _log('Assistant playback sample rate configured to $_assistantPlaybackSampleRate Hz');
+    _log(
+      'Assistant playback sample rate configured to $_assistantPlaybackSampleRate Hz',
+    );
   }
 
   Future<void> _handleVadRealSpeechStart() async {
@@ -693,7 +732,9 @@ class KaizenGptController extends ChangeNotifier {
           'VAD speech start detected during assistant tail window; reclaiming mic for next utterance',
         );
         _finishAssistantTurn(resetInterruptState: true, stopPlayback: true);
-        await _beginFreshUserTurn(initialAudioChunks: _consumeBufferedVadChunks());
+        await _beginFreshUserTurn(
+          initialAudioChunks: _consumeBufferedVadChunks(),
+        );
         return;
       }
 
@@ -711,7 +752,9 @@ class KaizenGptController extends ChangeNotifier {
       return;
     }
 
-    _log('VAD detected speech end; starting grace window before sending stt_end');
+    _log(
+      'VAD detected speech end; starting grace window before sending stt_end',
+    );
     _markAudioActivity();
     _restartSilenceTimer();
   }
@@ -759,7 +802,9 @@ class KaizenGptController extends ChangeNotifier {
       _markAudioActivity();
 
       if (!_isSocketConnected || _socketManager.assistantSocket == null) {
-        _log('_beginFreshUserTurn proceeding without ready socket; reconnecting in background');
+        _log(
+          '_beginFreshUserTurn proceeding without ready socket; reconnecting in background',
+        );
         unawaited(_connectAssistantSocketIfNeeded());
       }
 
@@ -832,7 +877,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     try {
-      _socketManager.sendAssistantMessage(const <String, dynamic>{'type': 'interrupt'});
+      _socketManager.sendAssistantMessage(const <String, dynamic>{
+        'type': 'interrupt',
+      });
       _log('interrupt event sent');
     } catch (error) {
       _log('interrupt event failed but was ignored: $error');
@@ -843,7 +890,8 @@ class KaizenGptController extends ChangeNotifier {
     final conversationId = _activeConversationId?.trim();
     if (conversationId != null && conversationId.isNotEmpty) {
       _messages.removeWhere(
-        (message) => !message.isUser && message.conversationId == conversationId,
+        (message) =>
+            !message.isUser && message.conversationId == conversationId,
       );
     } else if (_messages.isNotEmpty && !_messages.last.isUser) {
       _messages.removeLast();
@@ -887,12 +935,18 @@ class KaizenGptController extends ChangeNotifier {
       _bufferVadChunk(chunk);
       _socketErrorMessage = '$error';
       _log('Failed to send microphone chunk to socket: $error');
-      _handleAssistantSocketInterruption('audio chunk send failure', reconnectIfMicActive: true);
+      _handleAssistantSocketInterruption(
+        'audio chunk send failure',
+        reconnectIfMicActive: true,
+      );
       notifyListeners();
     }
   }
 
-  void _handleAssistantSocketInterruption(String reason, {required bool reconnectIfMicActive}) {
+  void _handleAssistantSocketInterruption(
+    String reason, {
+    required bool reconnectIfMicActive,
+  }) {
     _log('Assistant socket interrupted: $reason');
     _isSocketConnected = false;
     _isConnectingSocket = false;
@@ -905,7 +959,9 @@ class KaizenGptController extends ChangeNotifier {
     }
   }
 
-  void _handleVadChunkEmission(({List<double> samples, bool isFinal}) chunkData) {
+  void _handleVadChunkEmission(
+    ({List<double> samples, bool isFinal}) chunkData,
+  ) {
     if (_isMicMuted || chunkData.samples.isEmpty) {
       return;
     }
@@ -977,7 +1033,10 @@ class KaizenGptController extends ChangeNotifier {
         currentIndex >= 0 &&
         currentIndex < _messages.length &&
         _messages[currentIndex].isUser) {
-      _messages[currentIndex] = KaizenGptMessage(text: transcript, isUser: true);
+      _messages[currentIndex] = KaizenGptMessage(
+        text: transcript,
+        isUser: true,
+      );
       _liveUserTranscript = '';
       _log('Updated current user transcript message');
       notifyListeners();
@@ -1001,14 +1060,20 @@ class KaizenGptController extends ChangeNotifier {
         return;
       }
 
-      await _stopMicrophoneCapture(sendSttEnd: true, muteMic: false, keepVadActive: true);
+      await _stopMicrophoneCapture(
+        sendSttEnd: true,
+        muteMic: false,
+        keepVadActive: true,
+      );
     });
   }
 
   void scrollToBottom() {}
 
   void _handleSocketEvent(SocketEventMessage event) {
-    _log('Socket event received: ${event.event}, dataType=${event.data.runtimeType}');
+    _log(
+      'Socket event received: ${event.event}, dataType=${event.data.runtimeType}',
+    );
 
     final eventName = _normalizeAssistantType(event.event);
     switch (eventName) {
@@ -1017,7 +1082,9 @@ class KaizenGptController extends ChangeNotifier {
         _isConnectingSocket = false;
         _socketErrorMessage = null;
         if (_isStreamingUserAudio && !_hasSentSttStart) {
-          _log('assistant_connect received while user turn is active; sending pending stt_start');
+          _log(
+            'assistant_connect received while user turn is active; sending pending stt_start',
+          );
           _sendSttStartEvent();
           if (_hasSentSttStart) {
             _sendBufferedUserAudioChunks(_consumeBufferedVadChunks());
@@ -1044,7 +1111,9 @@ class KaizenGptController extends ChangeNotifier {
       case 'text_chunk':
       case 'ai_done':
       case 'error':
-        _handleAssistantMessage(_assistantPayloadFromSocketEvent(eventName, event.data));
+        _handleAssistantMessage(
+          _assistantPayloadFromSocketEvent(eventName, event.data),
+        );
         return;
       default:
         _log('Unhandled socket event ignored: ${event.event}');
@@ -1054,13 +1123,19 @@ class KaizenGptController extends ChangeNotifier {
 
   void _handleSocketError(Object error) {
     _log('Socket error received: $error');
-    _handleAssistantSocketInterruption('socket error: $error', reconnectIfMicActive: true);
+    _handleAssistantSocketInterruption(
+      'socket error: $error',
+      reconnectIfMicActive: true,
+    );
     _finishAssistantTurn(resetInterruptState: true, stopPlayback: true);
     _socketErrorMessage = '$error';
     notifyListeners();
   }
 
-  Map<String, dynamic> _assistantPayloadFromSocketEvent(String type, dynamic data) {
+  Map<String, dynamic> _assistantPayloadFromSocketEvent(
+    String type,
+    dynamic data,
+  ) {
     if (data is Map) {
       return <String, dynamic>{...data, 'type': type};
     }
@@ -1098,7 +1173,9 @@ class KaizenGptController extends ChangeNotifier {
 
     if (payload is! Map) {
       if (_isStreamingUserAudio) {
-        _log('Assistant non-map message ignored because user audio is currently streaming');
+        _log(
+          'Assistant non-map message ignored because user audio is currently streaming',
+        );
         return;
       }
       _log('Assistant payload is not a map and not audio. Ignoring');
@@ -1117,7 +1194,9 @@ class KaizenGptController extends ChangeNotifier {
           _log('voice_ready ignored because current response was interrupted');
           return;
         }
-        _assistantResponseSampleRateHint = _extractAssistantAudioSampleRate(payload);
+        _assistantResponseSampleRateHint = _extractAssistantAudioSampleRate(
+          payload,
+        );
         _log('voice_ready received');
         _assistantPlaybackIdleTimer?.cancel();
         _hasSentInterruptForCurrentResponse = false;
@@ -1136,7 +1215,8 @@ class KaizenGptController extends ChangeNotifier {
         _commitLiveUserTranscript();
         _activeConversationId = payload['conversation_id']?.toString().trim();
         _assistantResponseSampleRateHint =
-            _extractAssistantAudioSampleRate(payload) ?? _assistantResponseSampleRateHint;
+            _extractAssistantAudioSampleRate(payload) ??
+            _assistantResponseSampleRateHint;
         _isIgnoringInterruptedAssistantResponse = false;
         _hasSentInterruptForCurrentResponse = false;
         _isResponding = true;
@@ -1161,7 +1241,8 @@ class KaizenGptController extends ChangeNotifier {
         final completedAt = _assistantResponseCompletedAt;
         final isLateChunkAfterDone =
             completedAt != null &&
-            DateTime.now().difference(completedAt) < _assistantStaleActivityWindow;
+            DateTime.now().difference(completedAt) <
+                _assistantStaleActivityWindow;
         if (!isLateChunkAfterDone) {
           _acceptAssistantAudioChunks = true;
           _lastAssistantActivityAt = DateTime.now();
@@ -1176,7 +1257,9 @@ class KaizenGptController extends ChangeNotifier {
         return;
       case 'ai_done':
         if (_isIgnoringInterruptedAssistantResponse) {
-          _log('ai_done ignored because interrupted response is being discarded');
+          _log(
+            'ai_done ignored because interrupted response is being discarded',
+          );
           return;
         }
         _commitLiveUserTranscript();
@@ -1188,14 +1271,17 @@ class KaizenGptController extends ChangeNotifier {
         return;
       case 'error':
         _socketErrorMessage =
-            payload['error']?.toString().trim() ?? 'Assistant socket returned an unknown error.';
+            payload['error']?.toString().trim() ??
+            'Assistant socket returned an unknown error.';
         _finishAssistantTurn(resetInterruptState: true, stopPlayback: true);
         _log('Socket error payload received: $_socketErrorMessage');
         notifyListeners();
         return;
       default:
         if (_isStreamingUserAudio) {
-          _log('Assistant payload ignored because user audio is currently streaming');
+          _log(
+            'Assistant payload ignored because user audio is currently streaming',
+          );
           return;
         }
         _log('Unhandled assistant payload type="$type"');
@@ -1208,7 +1294,9 @@ class KaizenGptController extends ChangeNotifier {
     _assistantAudioChunkQueue = _assistantAudioChunkQueue
         .then((_) async {
           if (generation != _assistantAudioQueueGeneration) {
-            _log('Assistant audio chunk dropped because playback queue was reset');
+            _log(
+              'Assistant audio chunk dropped because playback queue was reset',
+            );
             return;
           }
 
@@ -1219,7 +1307,10 @@ class KaizenGptController extends ChangeNotifier {
         });
   }
 
-  Future<void> _handleAssistantAudioChunk(Uint8List chunk, {required int generation}) async {
+  Future<void> _handleAssistantAudioChunk(
+    Uint8List chunk, {
+    required int generation,
+  }) async {
     _log('Assistant audio chunk received. bytes=${chunk.length}');
     if (generation != _assistantAudioQueueGeneration) {
       _log('Assistant audio chunk ignored because playback queue was reset');
@@ -1227,12 +1318,16 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     if (_isStreamingUserAudio) {
-      _log('Assistant audio chunk ignored because user audio is currently streaming');
+      _log(
+        'Assistant audio chunk ignored because user audio is currently streaming',
+      );
       return;
     }
 
     if (_isIgnoringInterruptedAssistantResponse) {
-      _log('Assistant audio chunk ignored because current response was interrupted');
+      _log(
+        'Assistant audio chunk ignored because current response was interrupted',
+      );
       return;
     }
 
@@ -1254,7 +1349,9 @@ class KaizenGptController extends ChangeNotifier {
       }
 
       if (generation != _assistantAudioQueueGeneration) {
-        _log('Assistant audio chunk dropped after normalization because playback queue was reset');
+        _log(
+          'Assistant audio chunk dropped after normalization because playback queue was reset',
+        );
         return;
       }
 
@@ -1284,14 +1381,17 @@ class KaizenGptController extends ChangeNotifier {
   Future<Uint8List> _normalizeAssistantAudioChunk(Uint8List chunk) async {
     final parsedChunk = _parseAssistantAudioChunk(chunk);
     if (!_hasConfiguredPlaybackForCurrentResponse) {
-      final playbackSampleRate = parsedChunk.sampleRate ?? _assistantResponseSampleRateHint;
+      final playbackSampleRate =
+          parsedChunk.sampleRate ?? _assistantResponseSampleRateHint;
       await _configureAssistantPlaybackSampleRateIfNeeded(playbackSampleRate);
       _hasConfiguredPlaybackForCurrentResponse = true;
     }
     return parsedChunk.bytes;
   }
 
-  ({Uint8List bytes, int? sampleRate}) _parseAssistantAudioChunk(Uint8List chunk) {
+  ({Uint8List bytes, int? sampleRate}) _parseAssistantAudioChunk(
+    Uint8List chunk,
+  ) {
     if (chunk.lengthInBytes < 12) {
       return (bytes: chunk, sampleRate: null);
     }
@@ -1310,7 +1410,10 @@ class KaizenGptController extends ChangeNotifier {
     int? dataOffset;
 
     while (offset + 8 <= chunk.lengthInBytes) {
-      final chunkId = ascii.decode(chunk.sublist(offset, offset + 4), allowInvalid: true);
+      final chunkId = ascii.decode(
+        chunk.sublist(offset, offset + 4),
+        allowInvalid: true,
+      );
       final chunkSize = byteData.getUint32(offset + 4, Endian.little);
       final nextOffset = offset + 8 + chunkSize + (chunkSize.isOdd ? 1 : 0);
       if (nextOffset > chunk.lengthInBytes) {
@@ -1336,7 +1439,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     if (channelCount != null && channelCount != 1) {
-      _log('Assistant audio is not mono (channels=$channelCount). Playback may be distorted.');
+      _log(
+        'Assistant audio is not mono (channels=$channelCount). Playback may be distorted.',
+      );
     }
 
     if (bitsPerSample != null && bitsPerSample != 16) {
@@ -1349,7 +1454,10 @@ class KaizenGptController extends ChangeNotifier {
       return (bytes: chunk, sampleRate: sampleRate);
     }
 
-    return (bytes: Uint8List.sublistView(chunk, dataOffset), sampleRate: sampleRate);
+    return (
+      bytes: Uint8List.sublistView(chunk, dataOffset),
+      sampleRate: sampleRate,
+    );
   }
 
   int? _extractAssistantAudioSampleRate(Map payload) {
@@ -1370,7 +1478,9 @@ class KaizenGptController extends ChangeNotifier {
 
     final audioPayload = payload['audio'];
     if (audioPayload is Map) {
-      return _extractAssistantAudioSampleRate(Map<String, dynamic>.from(audioPayload));
+      return _extractAssistantAudioSampleRate(
+        Map<String, dynamic>.from(audioPayload),
+      );
     }
 
     return null;
@@ -1390,7 +1500,9 @@ class KaizenGptController extends ChangeNotifier {
   }
 
   void _handleTranscriptPayload(dynamic rawData) {
-    final payload = rawData is Map ? rawData : _normalizeAssistantPayload(rawData);
+    final payload = rawData is Map
+        ? rawData
+        : _normalizeAssistantPayload(rawData);
     if (payload is! Map) {
       _log('Transcript payload ignored because it is not a map');
       return;
@@ -1409,7 +1521,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     final isFinal =
-        payload['is_final'] == true || payload['isFinal'] == true || payload['final'] == true;
+        payload['is_final'] == true ||
+        payload['isFinal'] == true ||
+        payload['final'] == true;
 
     if (normalizedTranscript.trim().isNotEmpty) {
       _liveUserTranscript = normalizedTranscript;
@@ -1448,7 +1562,10 @@ class KaizenGptController extends ChangeNotifier {
     return false;
   }
 
-  void _finishAssistantTurn({required bool resetInterruptState, required bool stopPlayback}) {
+  void _finishAssistantTurn({
+    required bool resetInterruptState,
+    required bool stopPlayback,
+  }) {
     _invalidateAssistantAudioQueue();
     _assistantPlaybackIdleTimer?.cancel();
     _isResponding = false;
@@ -1551,7 +1668,8 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     final normalizedConversationId = conversationId?.trim();
-    if (normalizedConversationId != null && normalizedConversationId.isNotEmpty) {
+    if (normalizedConversationId != null &&
+        normalizedConversationId.isNotEmpty) {
       _activeConversationId = normalizedConversationId;
     }
 
@@ -1573,7 +1691,11 @@ class KaizenGptController extends ChangeNotifier {
       _log('Concatenated assistant text chunk onto existing message');
     } else {
       _messages.add(
-        KaizenGptMessage(text: chunk, isUser: false, conversationId: _activeConversationId),
+        KaizenGptMessage(
+          text: chunk,
+          isUser: false,
+          conversationId: _activeConversationId,
+        ),
       );
       _log('Added new assistant text message');
     }
@@ -1600,12 +1722,14 @@ class KaizenGptController extends ChangeNotifier {
         return false;
       }
 
-      return DateTime.now().difference(lastActivityAt) < _assistantStaleActivityWindow;
+      return DateTime.now().difference(lastActivityAt) <
+          _assistantStaleActivityWindow;
     }
 
     final now = DateTime.now();
     final lastAudioAt = _lastAssistantAudioChunkAt;
-    if (lastAudioAt != null && now.difference(lastAudioAt) < _assistantPostAudioGuardWindow) {
+    if (lastAudioAt != null &&
+        now.difference(lastAudioAt) < _assistantPostAudioGuardWindow) {
       return true;
     }
 
@@ -1628,17 +1752,20 @@ class KaizenGptController extends ChangeNotifier {
     final now = DateTime.now();
     final expectedPlaybackUntil = _assistantPlaybackExpectedUntilAt;
     if (expectedPlaybackUntil != null &&
-        now.difference(expectedPlaybackUntil) < _assistantPostAudioGuardWindow) {
+        now.difference(expectedPlaybackUntil) <
+            _assistantPostAudioGuardWindow) {
       return true;
     }
 
     final lastAudioAt = _lastAssistantAudioChunkAt;
-    if (lastAudioAt != null && now.difference(lastAudioAt) < _assistantTurnIdleSpeechWindow) {
+    if (lastAudioAt != null &&
+        now.difference(lastAudioAt) < _assistantTurnIdleSpeechWindow) {
       return true;
     }
 
     final lastActivityAt = _lastAssistantActivityAt;
-    if (lastActivityAt != null && now.difference(lastActivityAt) < _assistantTurnIdleSpeechWindow) {
+    if (lastActivityAt != null &&
+        now.difference(lastActivityAt) < _assistantTurnIdleSpeechWindow) {
       return true;
     }
 
@@ -1651,21 +1778,27 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     final sampleCount = byteLength / 2;
-    final durationMs = (sampleCount / _assistantPlaybackSampleRate * 1000).ceil();
+    final durationMs = (sampleCount / _assistantPlaybackSampleRate * 1000)
+        .ceil();
     if (durationMs <= 0) {
       return;
     }
 
     final now = DateTime.now();
     final currentExpectedUntil = _assistantPlaybackExpectedUntilAt;
-    final startsAt = currentExpectedUntil != null && currentExpectedUntil.isAfter(now)
+    final startsAt =
+        currentExpectedUntil != null && currentExpectedUntil.isAfter(now)
         ? currentExpectedUntil
         : now;
-    _assistantPlaybackExpectedUntilAt = startsAt.add(Duration(milliseconds: durationMs));
+    _assistantPlaybackExpectedUntilAt = startsAt.add(
+      Duration(milliseconds: durationMs),
+    );
   }
 
   bool get _hasStaleAssistantPlaybackState {
-    if (!_acceptAssistantAudioChunks || _isResponding || _isAssistantTurnActive) {
+    if (!_acceptAssistantAudioChunks ||
+        _isResponding ||
+        _isAssistantTurnActive) {
       return false;
     }
 
@@ -1726,7 +1859,9 @@ class KaizenGptController extends ChangeNotifier {
   void _scheduleAudioIdleShutdownIfNeeded() {
     _cancelAudioIdleTimer();
 
-    if (!_hasEnabledAudioOutputOrInput || _isMicToggleInProgress || _isSpeakerToggleInProgress) {
+    if (!_hasEnabledAudioOutputOrInput ||
+        _isMicToggleInProgress ||
+        _isSpeakerToggleInProgress) {
       return;
     }
 
@@ -1736,7 +1871,9 @@ class KaizenGptController extends ChangeNotifier {
     final delay = remaining.isNegative ? Duration.zero : remaining;
 
     _audioIdleTimer = Timer(delay, () async {
-      if (!_hasEnabledAudioOutputOrInput || _isMicToggleInProgress || _isSpeakerToggleInProgress) {
+      if (!_hasEnabledAudioOutputOrInput ||
+          _isMicToggleInProgress ||
+          _isSpeakerToggleInProgress) {
         return;
       }
 
@@ -1753,12 +1890,18 @@ class KaizenGptController extends ChangeNotifier {
   }
 
   Future<void> _shutdownIdleAudioAfterInactivity() async {
-    if (!_hasEnabledAudioOutputOrInput || _isMicToggleInProgress || _isSpeakerToggleInProgress) {
+    if (!_hasEnabledAudioOutputOrInput ||
+        _isMicToggleInProgress ||
+        _isSpeakerToggleInProgress) {
       return;
     }
 
     if (!_isMicMuted) {
-      await _stopMicrophoneCapture(sendSttEnd: false, muteMic: true, keepVadActive: false);
+      await _stopMicrophoneCapture(
+        sendSttEnd: false,
+        muteMic: true,
+        keepVadActive: false,
+      );
     }
 
     if (!_isSpeakerMuted) {
@@ -1782,7 +1925,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     try {
-      _socketManager.sendAssistantMessage(const <String, dynamic>{'type': 'stt_start'});
+      _socketManager.sendAssistantMessage(const <String, dynamic>{
+        'type': 'stt_start',
+      });
       _hasSentSttStart = true;
       _log('stt_start event sent');
     } catch (error) {
@@ -1798,7 +1943,9 @@ class KaizenGptController extends ChangeNotifier {
 
     if (!_hasSentSttStart) {
       if (_isStreamingUserAudio) {
-        _log('_sendSttEndEvent attempting to restore stt_start on current socket before stt_end');
+        _log(
+          '_sendSttEndEvent attempting to restore stt_start on current socket before stt_end',
+        );
         await _connectAssistantSocketIfNeeded();
         _sendSttStartEvent();
         if (_hasSentSttStart) {
@@ -1808,7 +1955,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     if (!_hasSentSttStart) {
-      _log('_sendSttEndEvent skipped: stt_start was not sent for current user turn');
+      _log(
+        '_sendSttEndEvent skipped: stt_start was not sent for current user turn',
+      );
       return false;
     }
 
@@ -1823,7 +1972,9 @@ class KaizenGptController extends ChangeNotifier {
     }
 
     try {
-      _socketManager.sendAssistantMessage(const <String, dynamic>{'type': 'stt_end'});
+      _socketManager.sendAssistantMessage(const <String, dynamic>{
+        'type': 'stt_end',
+      });
       _hasSentSttEndForCurrentUtterance = true;
       _hasSentSttStart = false;
       _log('stt_end event sent');
@@ -1836,7 +1987,11 @@ class KaizenGptController extends ChangeNotifier {
 }
 
 class KaizenGptMessage {
-  const KaizenGptMessage({required this.text, required this.isUser, this.conversationId});
+  const KaizenGptMessage({
+    required this.text,
+    required this.isUser,
+    this.conversationId,
+  });
 
   final String text;
   final bool isUser;
