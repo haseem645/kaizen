@@ -2044,6 +2044,12 @@ class AppStrings {
   static const String questionsFeedbackViewRepliesAction = 'View Replies';
   static const String questionsFeedbackHideRepliesAction = 'Hide Replies';
   static const String questionsFeedbackEditAction = 'Edit';
+  static const String questionsFeedbackEditCommentTitle = 'Edit comment';
+  static const String questionsFeedbackEditPostTitle = 'Edit post';
+  static const String questionsFeedbackDeletePostTitle = 'Delete post?';
+  static const String questionsFeedbackDeletePostMessage =
+      'This post will be permanently removed.';
+  static const String questionsFeedbackSaveAction = 'Save';
   static const String questionsFeedbackDeleteAction = 'Delete';
   static const String questionsFeedbackDeleteCommentTitle = 'Delete comment?';
   static const String questionsFeedbackDeleteCommentMessage =
@@ -2051,8 +2057,12 @@ class AppStrings {
   static const String questionsFeedbackConfirmDeleteAction = 'Yes, delete';
   static const String questionsFeedbackCommentDeleteFailed =
       'Unable to delete the comment right now. Please try again.';
+  static const String questionsFeedbackPostDeleteFailed =
+      'Unable to delete the post right now. Please try again.';
   static const String questionsFeedbackCommentEditFailed =
       'Unable to edit the comment right now. Please try again.';
+  static const String questionsFeedbackPostEditFailed =
+      'Unable to edit the post right now. Please try again.';
   static const String questionsFeedbackJustNow = 'Just now';
   static String questionsFeedbackMinutesAgo(int count) => '$count min ago';
   static String questionsFeedbackHoursAgo(int count) => '$count h ago';

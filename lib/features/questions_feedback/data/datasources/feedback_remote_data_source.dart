@@ -53,6 +53,24 @@ class FeedbackRemoteDataSource {
     );
   }
 
+  Future<void> updateFeedbackPost({
+    required String feedbackId,
+    required String title,
+    required String description,
+  }) => _apiCallExecutor.processApi<void>(
+    apiCallType: ApiCallType.patch,
+    endpoint: ApiEndPoints.feedbackPost(feedbackId),
+    parameters: <String, dynamic>{'title': title, 'description': description},
+    decoder: (_) {},
+  );
+
+  Future<void> deleteFeedbackPost({required String feedbackId}) =>
+      _apiCallExecutor.processApi<void>(
+        apiCallType: ApiCallType.delete,
+        endpoint: ApiEndPoints.feedbackPost(feedbackId),
+        decoder: (_) {},
+      );
+
   Future<FeedbackCommentPageModel> getFeedbackComments({
     required String feedbackId,
     required int page,

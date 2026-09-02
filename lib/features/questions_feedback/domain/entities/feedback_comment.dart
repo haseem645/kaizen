@@ -11,7 +11,7 @@ class FeedbackComment {
 
   final String id;
   final String content;
-  final FeedbackAuthor author;
+  final FeedbackAuthor? author;
   final int replyCount;
   final String createdAt;
 

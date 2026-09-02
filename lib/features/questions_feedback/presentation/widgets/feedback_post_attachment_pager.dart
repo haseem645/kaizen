@@ -144,10 +144,14 @@ class _FeedbackFullScreenImageViewerState
                 child: Center(
                   child: InteractiveViewer(
                     minScale: 1,
-                    maxScale: 4,
-                    child: _FeedbackNetworkImage(
-                      url: widget.imageUrls[index],
-                      fit: BoxFit.contain,
+                    maxScale: 6,
+                    boundaryMargin: const EdgeInsets.all(80),
+                    clipBehavior: Clip.none,
+                    child: SizedBox.expand(
+                      child: _FeedbackNetworkImage(
+                        url: widget.imageUrls[index],
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),

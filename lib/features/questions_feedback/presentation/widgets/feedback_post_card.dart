@@ -21,83 +21,79 @@ class FeedbackPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.hex14182a,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.3),
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.hex14182a,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.fieldBorder.withValues(alpha: 0.3),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: AppTextView.title1(
-                      post.title,
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AppTextView.title1(
+                    post.title,
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 8),
-                  _FeedbackStatusChip(status: post.status),
-                  const SizedBox(width: 12),
-                  _LikeCount(
-                    post: post,
-                    isUpdatingLike: isUpdatingLike,
-                    onTap: onLikeTap,
-                  ),
-                ],
-              ),
-              if (post.description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                AppTextView.body(
-                  post.description,
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                  height: 1.4,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 8),
+                _FeedbackStatusChip(status: post.status),
+                const SizedBox(width: 12),
+                _LikeCount(
+                  post: post,
+                  isUpdatingLike: isUpdatingLike,
+                  onTap: onLikeTap,
                 ),
               ],
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 16,
-                runSpacing: 6,
-                children: [
-                  _PostMetadata(
-                    icon: Icons.photo_library_outlined,
-                    label: _pluralize(
-                      post.attachments.length,
-                      AppStrings.questionsFeedbackAttachmentSingular,
-                      AppStrings.questionsFeedbackAttachmentPlural,
-                    ),
-                    count: post.attachments.length,
-                  ),
-                  _PostMetadata(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: _pluralize(
-                      post.commentCount,
-                      AppStrings.questionsFeedbackCommentSingular,
-                      AppStrings.questionsFeedbackCommentPlural,
-                    ),
-                    count: post.commentCount,
-                  ),
-                ],
+            ),
+            if (post.description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              AppTextView.body(
+                post.description,
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                _PostMetadata(
+                  icon: Icons.photo_library_outlined,
+                  label: _pluralize(
+                    post.attachments.length,
+                    AppStrings.questionsFeedbackAttachmentSingular,
+                    AppStrings.questionsFeedbackAttachmentPlural,
+                  ),
+                  count: post.attachments.length,
+                ),
+                _PostMetadata(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: _pluralize(
+                    post.commentCount,
+                    AppStrings.questionsFeedbackCommentSingular,
+                    AppStrings.questionsFeedbackCommentPlural,
+                  ),
+                  count: post.commentCount,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

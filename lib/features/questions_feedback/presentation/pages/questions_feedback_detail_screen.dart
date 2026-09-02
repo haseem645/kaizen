@@ -7,6 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_back_button.dart';
+import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_full_screen.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -33,8 +34,11 @@ class QuestionsFeedbackDetailScreen extends StatelessWidget {
         update: (_, repository, __) => GetFeedbackPostsUseCase(repository),
       ),
       ChangeNotifierProvider<QuestionsFeedbackDetailController>(
-        create: (context) =>
-            QuestionsFeedbackDetailController(context.read<GetFeedbackPostsUseCase>(), post),
+        create: (context) => QuestionsFeedbackDetailController(
+          context.read<GetFeedbackPostsUseCase>(),
+          post,
+          currentUser: AppManager.instance.currentUser,
+        ),
       ),
     ],
     child: const _DetailView(),
@@ -214,6 +218,36 @@ class _ActionRow extends StatelessWidget {
           ),
         ),
       ),
+      if (controller.canModifyPost)
+        PopupMenuButton<String>(
+          padding: EdgeInsets.zero,
+          color: AppColors.hex252a40,
+          icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+          onSelected: (value) {
+            if (value == AppStrings.questionsFeedbackEditAction) {
+              _showPostEditSheet(context);
+            } else if (value == AppStrings.questionsFeedbackDeleteAction) {
+              _confirmPostDelete(context);
+            }
+          },
+          itemBuilder: (_) => const <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              value: AppStrings.questionsFeedbackEditAction,
+              child: _CommentMenuItem(
+                icon: Icons.edit_outlined,
+                label: AppStrings.questionsFeedbackEditAction,
+              ),
+            ),
+            PopupMenuItem<String>(
+              value: AppStrings.questionsFeedbackDeleteAction,
+              child: _CommentMenuItem(
+                icon: Icons.delete_outline_rounded,
+                label: AppStrings.questionsFeedbackDeleteAction,
+                color: AppColors.red1,
+              ),
+            ),
+          ],
+        ),
     ],
   );
   Future<void> _like(BuildContext context) async {
@@ -222,6 +256,42 @@ class _ActionRow extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackLikeUpdateFailed)));
+  }
+
+  Future<void> _showPostEditSheet(BuildContext context) async {
+    controller.startEditingPost();
+    final didSave = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditPostBottomSheet(controller: controller),
+    );
+
+    if (didSave != true) {
+      controller.cancelPostEditing();
+    }
+  }
+
+  Future<void> _confirmPostDelete(BuildContext context) async {
+    final didDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => _DeletePostDialog(controller: controller),
+    );
+    if (!context.mounted) {
+      return;
+    }
+    if (didDelete == true) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (didDelete == false) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackPostDeleteFailed)));
+    }
   }
 }
 
@@ -263,7 +333,7 @@ class _Comments extends StatelessWidget {
         _Comment(
           comment: comment,
           onReply: () =>
-              controller.showComposer(parentId: comment.id, parentAuthorName: comment.author.name),
+              controller.showComposer(parentId: comment.id, parentAuthorName: comment.author?.name),
           isReplyComposerVisible:
               controller.isComposerVisible && controller.replyParentId == comment.id,
           controller: controller,
@@ -366,225 +436,243 @@ class _Comment extends StatelessWidget {
   final QuestionsFeedbackDetailController controller;
   final bool showReplyAction;
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 14),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _Avatar(imageUrl: CustomFunctions.resolveImageUrl(comment.author.imageUrl)),
-        const SizedBox(width: 8),
-        Flexible(
-          child: FractionallySizedBox(
-            widthFactor: 0.8,
-            alignment: Alignment.centerLeft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.hex252a40,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+  Widget build(BuildContext context) {
+    final isDeletedComment = comment.author == null;
+    final canModifyComment = controller.canModifyComment(comment);
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Avatar(imageUrl: CustomFunctions.resolveImageUrl(comment.author?.imageUrl)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: FractionallySizedBox(
+              widthFactor: 0.8,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onLongPressStart: canModifyComment
+                        ? (details) => _showCommentActions(context, details.globalPosition)
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.hex252a40,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: AppTextView.body1(
-                              comment.author.name,
+                          if (!isDeletedComment) ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextView.body1(
+                                    comment.author!.name,
+                                    color: AppColors.textPrimary,
+                                    fontSize: 13,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                AppTextView.body(
+                                  _timeAgo(comment.createdAt),
+                                  color: AppColors.textSecondary,
+                                  fontSize: 10,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                          ],
+                          if (controller.isEditingComment(comment.id))
+                            TextField(
+                              controller: controller.editCommentController,
+                              minLines: 1,
+                              maxLines: 3,
+                              cursorColor: AppColors.textPrimary,
+                              cursorHeight: 15,
+                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                            )
+                          else if (isDeletedComment)
+                            Text(
+                              comment.content,
+                              style: const TextStyle(
+                                color: AppColors.grey1,
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            )
+                          else
+                            AppTextView.body(
+                              comment.content,
                               color: AppColors.textPrimary,
                               fontSize: 13,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 5),
-                          AppTextView.body(
-                            _timeAgo(comment.createdAt),
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
-                          ),
-                          const SizedBox(width: 3),
-                          PopupMenuButton<String>(
-                            padding: EdgeInsets.zero,
-                            color: AppColors.hex252a40,
-                            child: const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Icon(
-                                Icons.more_horiz_rounded,
-                                color: AppColors.textSecondary,
-                                size: 18,
-                              ),
+                          if (controller.isEditingComment(comment.id))
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: controller.isSavingEdit
+                                      ? null
+                                      : controller.cancelEditing,
+                                  style: _compactCommentActionStyle,
+                                  child: const Text(AppStrings.questionsFeedbackCancelAction),
+                                ),
+                                IconButton(
+                                  onPressed: controller.isSavingEdit
+                                      ? null
+                                      : () => _saveCommentEdit(context),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                                  icon: controller.isSavingEdit
+                                      ? SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: FastCircularProgressIndicator(),
+                                        )
+                                      : const Icon(
+                                          Icons.check_rounded,
+                                          color: AppColors.secondaryColor,
+                                          size: 20,
+                                        ),
+                                ),
+                              ],
                             ),
-                            onSelected: (value) {
-                              if (value == AppStrings.questionsFeedbackEditAction) {
-                                controller.startEditing(comment);
-                              } else if (value == AppStrings.questionsFeedbackDeleteAction) {
-                                _confirmDelete(context, controller, comment.id);
-                              }
-                            },
-                            itemBuilder: (_) => const <PopupMenuEntry<String>>[
-                              PopupMenuItem<String>(
-                                value: AppStrings.questionsFeedbackEditAction,
-                                child: _CommentMenuItem(
-                                  icon: Icons.edit_outlined,
-                                  label: AppStrings.questionsFeedbackEditAction,
-                                ),
-                              ),
-                              PopupMenuItem<String>(
-                                value: AppStrings.questionsFeedbackDeleteAction,
-                                child: _CommentMenuItem(
-                                  icon: Icons.delete_outline_rounded,
-                                  label: AppStrings.questionsFeedbackDeleteAction,
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 5),
-                      if (controller.isEditingComment(comment.id))
-                        TextField(
-                          controller: controller.editCommentController,
-                          minLines: 1,
-                          maxLines: 3,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                        )
-                      else
-                        AppTextView.body(
-                          comment.content,
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                        ),
-                      if (controller.isEditingComment(comment.id))
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: controller.isSavingEdit ? null : controller.cancelEditing,
-                              style: _compactCommentActionStyle,
-                              child: const Text(AppStrings.questionsFeedbackCancelAction),
-                            ),
-                            IconButton(
-                              onPressed: controller.isSavingEdit
-                                  ? null
-                                  : () => _saveEdit(context, controller),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-                              icon: controller.isSavingEdit
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: FastCircularProgressIndicator(),
-                                    )
-                                  : const Icon(
-                                      Icons.check_rounded,
-                                      color: AppColors.secondaryColor,
-                                      size: 20,
-                                    ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-                if (showReplyAction) const SizedBox(height: 6),
-                if (showReplyAction)
-                  TextButton.icon(
-                    onPressed: onReply,
-                    style: _compactCommentActionStyle,
-                    icon: const Icon(Icons.reply_rounded, color: AppColors.textSecondary, size: 15),
-                    label: const AppTextView.body1(
-                      AppStrings.questionsFeedbackReplyAction,
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
                     ),
                   ),
-                if (showReplyAction && isReplyComposerVisible) ...[
-                  const SizedBox(height: 6),
-                  _Composer(controller: controller),
-                ],
-                if (comment.replyCount > 0) const SizedBox(height: 6),
-                if (comment.replyCount > 0)
-                  TextButton.icon(
-                    onPressed: controller.isLoadingReplies(comment.id)
-                        ? null
-                        : () => controller.toggleReplies(comment.id),
-                    style: _compactCommentActionStyle,
-                    icon: Icon(
-                      controller.isRepliesVisible(comment.id)
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.textSecondary,
-                      size: 16,
-                    ),
-                    label: AppTextView.body1(
-                      controller.isRepliesVisible(comment.id)
-                          ? AppStrings.questionsFeedbackHideRepliesAction
-                          : AppStrings.questionsFeedbackViewRepliesAction,
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                if (controller.isRepliesVisible(comment.id) &&
-                    controller.isLoadingReplies(comment.id))
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: SizedBox(width: 16, height: 16, child: FastCircularProgressIndicator()),
-                  ),
-                if (controller.isRepliesVisible(comment.id))
-                  for (final reply in controller.repliesFor(comment.id))
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12),
-                      child: _Comment(
-                        comment: reply,
-                        onReply: () => controller.showComposer(parentId: reply.id),
-                        isReplyComposerVisible:
-                            controller.isComposerVisible && controller.replyParentId == reply.id,
-                        controller: controller,
-                        showReplyAction: false,
+                  if (showReplyAction) const SizedBox(height: 6),
+                  if (showReplyAction)
+                    TextButton.icon(
+                      onPressed: onReply,
+                      style: _compactCommentActionStyle,
+                      icon: const Icon(
+                        Icons.reply_rounded,
+                        color: AppColors.textSecondary,
+                        size: 15,
+                      ),
+                      label: const AppTextView.body1(
+                        AppStrings.questionsFeedbackReplyAction,
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
                       ),
                     ),
-              ],
+                  if (showReplyAction && isReplyComposerVisible) ...[
+                    const SizedBox(height: 6),
+                    _Composer(controller: controller),
+                  ],
+                  if (comment.replyCount > 0) const SizedBox(height: 6),
+                  if (comment.replyCount > 0)
+                    TextButton.icon(
+                      onPressed: controller.isLoadingReplies(comment.id)
+                          ? null
+                          : () => controller.toggleReplies(comment.id),
+                      style: _compactCommentActionStyle,
+                      icon: Icon(
+                        controller.isRepliesVisible(comment.id)
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.textSecondary,
+                        size: 16,
+                      ),
+                      label: AppTextView.body1(
+                        controller.isRepliesVisible(comment.id)
+                            ? AppStrings.questionsFeedbackHideRepliesAction
+                            : AppStrings.questionsFeedbackViewRepliesAction,
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  if (controller.isRepliesVisible(comment.id) &&
+                      controller.isLoadingReplies(comment.id))
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: FastCircularProgressIndicator(),
+                      ),
+                    ),
+                  if (controller.isRepliesVisible(comment.id))
+                    for (final reply in controller.repliesFor(comment.id))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: _Comment(
+                          comment: reply,
+                          onReply: () => controller.showComposer(parentId: reply.id),
+                          isReplyComposerVisible:
+                              controller.isComposerVisible && controller.replyParentId == reply.id,
+                          controller: controller,
+                          showReplyAction: false,
+                        ),
+                      ),
+                ],
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCommentActions(BuildContext context, Offset globalPosition) async {
+    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final selectedAction = await showMenu<String>(
+      context: context,
+      color: AppColors.hex252a40,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: const <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          value: AppStrings.questionsFeedbackEditAction,
+          child: _CommentMenuItem(
+            icon: Icons.edit_outlined,
+            label: AppStrings.questionsFeedbackEditAction,
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: AppStrings.questionsFeedbackDeleteAction,
+          child: _CommentMenuItem(
+            icon: Icons.delete_outline_rounded,
+            label: AppStrings.questionsFeedbackDeleteAction,
+            color: AppColors.red1,
           ),
         ),
       ],
-    ),
-  );
+    );
+
+    if (!context.mounted || selectedAction == null) {
+      return;
+    }
+    if (selectedAction == AppStrings.questionsFeedbackEditAction) {
+      controller.startEditing(comment);
+    } else if (selectedAction == AppStrings.questionsFeedbackDeleteAction) {
+      _confirmDelete(context, controller, comment.id);
+    }
+  }
 
   Future<void> _confirmDelete(
     BuildContext context,
     QuestionsFeedbackDetailController controller,
     String commentId,
   ) async {
-    final shouldDelete = await showDialog<bool>(
+    final didDelete = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(AppStrings.questionsFeedbackDeleteCommentTitle),
-        content: const Text(AppStrings.questionsFeedbackDeleteCommentMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(AppStrings.questionsFeedbackCancelAction),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(AppStrings.questionsFeedbackConfirmDeleteAction),
-          ),
-        ],
-      ),
+      builder: (_) => _DeleteCommentDialog(controller: controller, commentId: commentId),
     );
-    if (shouldDelete != true) return;
-    final didDelete = await controller.deleteComment(commentId);
-    if (!context.mounted || didDelete) return;
+    if (!context.mounted || didDelete != false) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -592,9 +680,11 @@ class _Comment extends StatelessWidget {
       );
   }
 
-  Future<void> _saveEdit(BuildContext context, QuestionsFeedbackDetailController controller) async {
+  Future<void> _saveCommentEdit(BuildContext context) async {
     final didSave = await controller.saveEditing();
-    if (!context.mounted || didSave) return;
+    if (!context.mounted || didSave) {
+      return;
+    }
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackCommentEditFailed)));
@@ -602,16 +692,239 @@ class _Comment extends StatelessWidget {
 }
 
 class _CommentMenuItem extends StatelessWidget {
-  const _CommentMenuItem({required this.icon, required this.label});
+  const _CommentMenuItem({
+    required this.icon,
+    required this.label,
+    this.color = AppColors.textPrimary,
+  });
   final IconData icon;
   final String label;
+  final Color color;
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(icon, color: AppColors.textPrimary, size: 18),
+      Icon(icon, color: color, size: 18),
       const SizedBox(width: 10),
-      AppTextView.body1(label, color: AppColors.textPrimary, fontSize: 13),
+      AppTextView.body1(label, color: color, fontSize: 13),
     ],
+  );
+}
+
+class _EditPostBottomSheet extends StatelessWidget {
+  const _EditPostBottomSheet({required this.controller});
+
+  final QuestionsFeedbackDetailController controller;
+
+  Future<void> _save(BuildContext context) async {
+    FocusScope.of(context).unfocus();
+    final didSave = await controller.savePostEditing();
+    if (!context.mounted) {
+      return;
+    }
+    if (didSave) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackPostEditFailed)));
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: controller,
+    builder: (context, _) {
+      final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+      return PopScope<Object?>(
+        canPop: !controller.isSavingPostEdit,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.fieldBorder.withValues(alpha: .32),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const AppTextView.body1(
+                      AppStrings.questionsFeedbackEditPostTitle,
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    const SizedBox(height: 14),
+                    _PostEditField(
+                      controller: controller.editPostTitleController,
+                      label: AppStrings.questionsFeedbackPostTitleLabel,
+                      maxLines: 1,
+                      onChanged: controller.onPostEditChanged,
+                    ),
+                    const SizedBox(height: 12),
+                    _PostEditField(
+                      controller: controller.editPostDescriptionController,
+                      label: AppStrings.questionsFeedbackDescriptionLabel,
+                      minLines: 3,
+                      maxLines: 5,
+                      onChanged: controller.onPostEditChanged,
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: controller.isSavingPostEdit
+                              ? null
+                              : () => Navigator.of(context).pop(false),
+                          child: const AppTextView.body1(
+                            AppStrings.questionsFeedbackCancelAction,
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: controller.canSavePostEdit ? () => _save(context) : null,
+                          child: controller.isSavingPostEdit
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: FastCircularProgressIndicator(),
+                                )
+                              : const AppTextView.body1(
+                                  AppStrings.questionsFeedbackSaveAction,
+                                  color: AppColors.secondaryColor,
+                                  fontSize: 13,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _PostEditField extends StatelessWidget {
+  const _PostEditField({
+    required this.controller,
+    required this.label,
+    required this.onChanged,
+    this.minLines,
+    this.maxLines = 1,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final ValueChanged<String> onChanged;
+  final int? minLines;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    onChanged: onChanged,
+    minLines: minLines,
+    maxLines: maxLines,
+    cursorColor: AppColors.textPrimary,
+    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+    decoration: InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+      filled: true,
+      fillColor: AppColors.hex252a40,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+    ),
+  );
+}
+
+class _DeleteCommentDialog extends StatelessWidget {
+  const _DeleteCommentDialog({required this.controller, required this.commentId});
+
+  final QuestionsFeedbackDetailController controller;
+  final String commentId;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return AppConfirmationDialog(
+          title: AppStrings.questionsFeedbackDeleteCommentTitle,
+          description: AppStrings.questionsFeedbackDeleteCommentMessage,
+          confirmText: AppStrings.questionsFeedbackConfirmDeleteAction,
+          cancelText: AppStrings.questionsFeedbackCancelAction,
+          isConfirmLoading: controller.isDeletingComment(commentId),
+          onCancelCallback: () async {
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+          onConfirmCallback: () async {
+            final didDelete = await controller.deleteComment(commentId);
+            if (context.mounted) {
+              Navigator.of(context).pop(didDelete);
+            }
+          },
+        );
+      },
+    );
+  }
+}
+
+class _DeletePostDialog extends StatelessWidget {
+  const _DeletePostDialog({required this.controller});
+
+  final QuestionsFeedbackDetailController controller;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: controller,
+    builder: (context, _) => AppConfirmationDialog(
+      title: AppStrings.questionsFeedbackDeletePostTitle,
+      description: AppStrings.questionsFeedbackDeletePostMessage,
+      confirmText: AppStrings.questionsFeedbackConfirmDeleteAction,
+      cancelText: AppStrings.questionsFeedbackCancelAction,
+      isConfirmLoading: controller.isDeletingPost,
+      onCancelCallback: () async {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      onConfirmCallback: () async {
+        final didDelete = await controller.deletePost();
+        if (context.mounted) {
+          Navigator.of(context).pop(didDelete);
+        }
+      },
+    ),
   );
 }
 
@@ -646,10 +959,17 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CircleAvatar(
     radius: 17,
-    backgroundColor: AppColors.hex252a40,
+    backgroundColor: imageUrl == null ? AppColors.secondaryColor : AppColors.hex252a40,
     backgroundImage: imageUrl == null ? null : NetworkImage(imageUrl!),
     child: imageUrl == null
-        ? const Icon(Icons.person_outline_rounded, color: AppColors.textSecondary, size: 18)
+        ? const Text(
+            'U',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          )
         : null,
   );
 }

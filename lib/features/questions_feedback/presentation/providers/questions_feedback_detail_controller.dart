@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../../../login/domain/entities/user.dart';
 import '../../domain/entities/feedback_comment.dart';
 import '../../domain/entities/feedback_post.dart';
 import '../../domain/usecases/get_feedback_posts_usecase.dart';
 
 class QuestionsFeedbackDetailController extends ChangeNotifier {
-  QuestionsFeedbackDetailController(this._useCase, FeedbackPost post)
-    : _post = post,
-      commentController = TextEditingController();
+  QuestionsFeedbackDetailController(
+    this._useCase,
+    FeedbackPost post, {
+    User? currentUser,
+  }) : _post = post,
+       _currentUser = currentUser,
+       commentController = TextEditingController();
 
   static const int _commentPageSize = 10;
 
   final GetFeedbackPostsUseCase _useCase;
+  final User? _currentUser;
   final TextEditingController commentController;
   final TextEditingController editCommentController = TextEditingController();
+  final TextEditingController editPostTitleController = TextEditingController();
+  final TextEditingController editPostDescriptionController =
+      TextEditingController();
   FeedbackPost _post;
   List<FeedbackComment> _comments = const <FeedbackComment>[];
   final Map<String, List<FeedbackComment>> _repliesByParentId =
@@ -30,6 +39,8 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   String? _replyAuthorName;
   String? _editingCommentId;
   bool _isSavingEdit = false;
+  bool _isSavingPostEdit = false;
+  bool _isDeletingPost = false;
   bool _hasNextCommentPage = true;
   int _currentCommentPage = 0;
 
@@ -45,6 +56,8 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   String? get replyAuthorName => _replyAuthorName;
   String? get editingCommentId => _editingCommentId;
   bool get isSavingEdit => _isSavingEdit;
+  bool get isSavingPostEdit => _isSavingPostEdit;
+  bool get isDeletingPost => _isDeletingPost;
   bool isEditingComment(String commentId) => _editingCommentId == commentId;
   bool get canSendComment =>
       commentController.text.trim().isNotEmpty && !_isSendingComment;
@@ -61,6 +74,24 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
       _expandedReplyParentIds.contains(parentId);
   bool isDeletingComment(String commentId) =>
       _deletingCommentIds.contains(commentId);
+  bool get canModifyPost => _canModifyAuthor(_post.author.id);
+  bool canModifyComment(FeedbackComment comment) {
+    return _canModifyAuthor(comment.author?.id);
+  }
+
+  bool _canModifyAuthor(String? authorId) {
+    final normalizedAuthorId = _normalizeIdentifier(authorId);
+    if (normalizedAuthorId.isEmpty) {
+      return false;
+    }
+
+    final currentUserIds = <String>{
+      _normalizeIdentifier(_currentUser?.userUuid),
+      _normalizeIdentifier(_currentUser?.uuid),
+    }..removeWhere((identifier) => identifier.isEmpty);
+
+    return currentUserIds.contains(normalizedAuthorId);
+  }
 
   Future<void> initialize() async {
     if (_isCommentsLoading || _comments.isNotEmpty) {
@@ -105,6 +136,69 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void startEditingPost() {
+    editPostTitleController.text = _post.title;
+    editPostDescriptionController.text = _post.description;
+    notifyListeners();
+  }
+
+  void cancelPostEditing() {
+    editPostTitleController.clear();
+    editPostDescriptionController.clear();
+    notifyListeners();
+  }
+
+  void onPostEditChanged(String _) => notifyListeners();
+
+  bool get canSavePostEdit =>
+      editPostTitleController.text.trim().isNotEmpty &&
+      editPostDescriptionController.text.trim().isNotEmpty &&
+      !_isSavingPostEdit;
+
+  Future<bool> savePostEditing() async {
+    final title = editPostTitleController.text.trim();
+    final description = editPostDescriptionController.text.trim();
+    if (title.isEmpty || description.isEmpty || _isSavingPostEdit) {
+      return false;
+    }
+
+    _isSavingPostEdit = true;
+    notifyListeners();
+    try {
+      await _useCase.updatePost(
+        feedbackId: _post.id,
+        title: title,
+        description: description,
+      );
+      _post = _post.copyWith(title: title, description: description);
+      cancelPostEditing();
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _isSavingPostEdit = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deletePost() async {
+    if (_isDeletingPost) {
+      return false;
+    }
+
+    _isDeletingPost = true;
+    notifyListeners();
+    try {
+      await _useCase.deletePost(feedbackId: _post.id);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _isDeletingPost = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> saveEditing() async {
     final commentId = _editingCommentId;
     final content = editCommentController.text.trim();
@@ -112,13 +206,18 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
     _isSavingEdit = true;
     notifyListeners();
     try {
-      final updated = await _useCase.updateComment(
+      await _useCase.updateComment(commentId: commentId, content: content);
+      _comments = _replaceComment(
+        _comments,
         commentId: commentId,
         content: content,
       );
-      _comments = _replaceComment(_comments, updated);
       for (final entry in _repliesByParentId.entries.toList()) {
-        _repliesByParentId[entry.key] = _replaceComment(entry.value, updated);
+        _repliesByParentId[entry.key] = _replaceComment(
+          entry.value,
+          commentId: commentId,
+          content: content,
+        );
       }
       cancelEditing();
       return true;
@@ -129,10 +228,15 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   }
 
   List<FeedbackComment> _replaceComment(
-    List<FeedbackComment> comments,
-    FeedbackComment updated,
-  ) => List<FeedbackComment>.unmodifiable(
-    comments.map((comment) => comment.id == updated.id ? updated : comment),
+    List<FeedbackComment> comments, {
+    required String commentId,
+    required String content,
+  }) => List<FeedbackComment>.unmodifiable(
+    comments.map(
+      (comment) => comment.id == commentId
+          ? comment.copyWith(content: content)
+          : comment,
+    ),
   );
 
   Future<bool> toggleLike() async {
@@ -299,10 +403,16 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
     );
   }
 
+  static String _normalizeIdentifier(String? value) {
+    return value?.trim().toLowerCase() ?? '';
+  }
+
   @override
   void dispose() {
     commentController.dispose();
     editCommentController.dispose();
+    editPostTitleController.dispose();
+    editPostDescriptionController.dispose();
     super.dispose();
   }
 }

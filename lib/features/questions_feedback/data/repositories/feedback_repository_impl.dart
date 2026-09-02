@@ -36,6 +36,21 @@ class FeedbackRepositoryImpl implements FeedbackRepository {
   }
 
   @override
+  Future<void> updateFeedbackPost({
+    required String feedbackId,
+    required String title,
+    required String description,
+  }) => _remoteDataSource.updateFeedbackPost(
+    feedbackId: feedbackId,
+    title: title,
+    description: description,
+  );
+
+  @override
+  Future<void> deleteFeedbackPost({required String feedbackId}) =>
+      _remoteDataSource.deleteFeedbackPost(feedbackId: feedbackId);
+
+  @override
   Future<FeedbackPost?> createFeedbackPost(FeedbackPostCreateDraft draft) {
     return _remoteDataSource.createFeedbackPost(draft);
   }

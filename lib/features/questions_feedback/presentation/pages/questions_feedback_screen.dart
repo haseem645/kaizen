@@ -175,11 +175,17 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
     );
   }
 
-  void _openPostDetail(FeedbackPost post) {
-    Navigator.of(context).pushNamed(
+  Future<void> _openPostDetail(FeedbackPost post) async {
+    await Navigator.of(context).pushNamed<void>(
       AppRouter.questionsFeedbackDetail,
       arguments: QuestionsFeedbackDetailRouteArgs(post: post),
     );
+
+    if (!mounted) {
+      return;
+    }
+
+    await _controller.refresh();
   }
 
   Future<void> _handleLikeTap(String postId) async {

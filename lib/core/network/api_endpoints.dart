@@ -52,7 +52,10 @@ class ApiEndPoints {
   static String addFeedbackComment(String feedbackId) =>
       'feedbacks/$feedbackId/add_comment/';
 
-  static String feedbackComment(String commentId) => 'comments/$commentId/';
+  static String feedbackComment(String commentId) =>
+      'feedbacks/comments/$commentId/';
+
+  static String feedbackPost(String feedbackId) => 'feedbacks/$feedbackId/';
 
   static String editFeedbackComment(String commentId) =>
       'feedbacks/comments/$commentId/';

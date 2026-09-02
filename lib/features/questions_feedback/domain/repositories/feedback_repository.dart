@@ -16,6 +16,14 @@ abstract class FeedbackRepository {
     required bool isLiked,
   });
 
+  Future<void> updateFeedbackPost({
+    required String feedbackId,
+    required String title,
+    required String description,
+  });
+
+  Future<void> deleteFeedbackPost({required String feedbackId});
+
   Future<FeedbackPost?> createFeedbackPost(FeedbackPostCreateDraft draft);
 
   Future<FeedbackCommentPage> getFeedbackComments({

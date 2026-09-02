@@ -33,6 +33,19 @@ class GetFeedbackPostsUseCase {
     return _repository.createFeedbackPost(draft);
   }
 
+  Future<void> updatePost({
+    required String feedbackId,
+    required String title,
+    required String description,
+  }) => _repository.updateFeedbackPost(
+    feedbackId: feedbackId,
+    title: title,
+    description: description,
+  );
+
+  Future<void> deletePost({required String feedbackId}) =>
+      _repository.deleteFeedbackPost(feedbackId: feedbackId);
+
   Future<FeedbackCommentPage> getComments({
     required String feedbackId,
     required int page,

@@ -15,11 +15,9 @@ class FeedbackCommentModel extends FeedbackComment {
     return FeedbackCommentModel(
       id: json['uuid']?.toString() ?? '',
       content: json['content']?.toString() ?? '',
-      author: FeedbackAuthorModel.fromApiJson(
-        authorJson is Map<String, dynamic>
-            ? authorJson
-            : const <String, dynamic>{},
-      ),
+      author: authorJson is Map<String, dynamic>
+          ? FeedbackAuthorModel.fromApiJson(authorJson)
+          : null,
       replyCount: _readInt(json['reply_count']),
       createdAt: json['created_at']?.toString() ?? '',
     );

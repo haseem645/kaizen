@@ -23,15 +23,21 @@ class FeedbackPost {
   final List<String> attachments;
   final FeedbackAuthor author;
 
-  FeedbackPost copyWith({bool? isLiked, int? likeCount, int? commentCount}) {
+  FeedbackPost copyWith({
+    String? title,
+    String? description,
+    bool? isLiked,
+    int? likeCount,
+    int? commentCount,
+  }) {
     return FeedbackPost(
       id: id,
-      title: title,
+      title: title ?? this.title,
       status: status,
       isLiked: isLiked ?? this.isLiked,
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
-      description: description,
+      description: description ?? this.description,
       attachments: attachments,
       author: author,
     );
