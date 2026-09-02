@@ -504,7 +504,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
       itemBuilder: (context, index) {
         final audit = visibleAudits[index];
         final actionLabel =
-            CustomFunctions.isAuditWithinContinueWindow(details.lastAuditDate)
+            CustomFunctions.isAuditWithinContinueWindow(audit.date)
             ? AppStrings.continueAction
             : AppStrings.view;
 
