@@ -29,6 +29,8 @@ class FeedbackPost {
     bool? isLiked,
     int? likeCount,
     int? commentCount,
+    List<String>? attachments,
+    FeedbackAuthor? author,
   }) {
     return FeedbackPost(
       id: id,
@@ -38,8 +40,8 @@ class FeedbackPost {
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
       description: description ?? this.description,
-      attachments: attachments,
-      author: author,
+      attachments: attachments ?? this.attachments,
+      author: author ?? this.author,
     );
   }
 }

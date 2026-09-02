@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
@@ -783,10 +785,18 @@ class _EditPostBottomSheet extends StatelessWidget {
                     _PostEditField(
                       controller: controller.editPostDescriptionController,
                       label: AppStrings.questionsFeedbackDescriptionLabel,
-                      minLines: 3,
-                      maxLines: 5,
+                      minLines: 5,
+                      maxLines: 8,
+                      attachmentCount: controller.editPostAttachmentCount,
+                      canAttach: controller.canAddEditPostAttachments,
+                      onAttachmentTap: controller.pickEditPostAttachments,
                       onChanged: controller.onPostEditChanged,
                     ),
+                    if (controller.post.attachments.isNotEmpty ||
+                        controller.editPostAttachments.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _EditAttachmentPreviewStrip(controller: controller),
+                    ],
                     const SizedBox(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -836,6 +846,9 @@ class _PostEditField extends StatelessWidget {
     required this.onChanged,
     this.minLines,
     this.maxLines = 1,
+    this.attachmentCount,
+    this.canAttach = false,
+    this.onAttachmentTap,
   });
 
   final TextEditingController controller;
@@ -843,26 +856,177 @@ class _PostEditField extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final int? minLines;
   final int maxLines;
+  final int? attachmentCount;
+  final bool canAttach;
+  final Future<void> Function()? onAttachmentTap;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    onChanged: onChanged,
-    minLines: minLines,
-    maxLines: maxLines,
-    cursorColor: AppColors.textPrimary,
-    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-    decoration: InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-      filled: true,
-      fillColor: AppColors.hex252a40,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          minLines: minLines,
+          maxLines: maxLines,
+          cursorColor: AppColors.textPrimary,
+          cursorHeight: 15,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            filled: true,
+            fillColor: AppColors.hex252a40,
+            contentPadding: EdgeInsets.fromLTRB(12, 16, attachmentCount == null ? 12 : 82, 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        if (attachmentCount != null)
+          Positioned(
+            right: 38,
+            bottom: 12,
+            child: AppTextView.body(
+              AppStrings.questionsFeedbackImageAttachmentCount(
+                attachmentCount!,
+                QuestionsFeedbackDetailController.maxEditImageAttachments,
+              ),
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        if (attachmentCount != null)
+          Positioned(
+            right: 6,
+            bottom: 6,
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: canAttach ? onAttachmentTap : null,
+                icon: const Icon(
+                  Icons.attach_file_rounded,
+                  color: AppColors.secondaryColor,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _EditAttachmentPreviewStrip extends StatelessWidget {
+  const _EditAttachmentPreviewStrip({required this.controller});
+
+  final QuestionsFeedbackDetailController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final existingAttachmentCount = controller.post.attachments.length;
+    return SizedBox(
+      height: 76,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: existingAttachmentCount + controller.editPostAttachments.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          if (index < existingAttachmentCount) {
+            return _ExistingAttachmentThumbnail(imageUrl: controller.post.attachments[index]);
+          }
+
+          final selectedAttachmentIndex = index - existingAttachmentCount;
+          return _EditAttachmentThumbnail(
+            bytes: controller.editPostAttachments[selectedAttachmentIndex].bytes,
+            onRemove: controller.isSavingPostEdit
+                ? null
+                : () => controller.removeEditPostAttachment(selectedAttachmentIndex),
+          );
+        },
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _ExistingAttachmentThumbnail extends StatelessWidget {
+  const _ExistingAttachmentThumbnail({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedImageUrl = CustomFunctions.resolveImageUrl(imageUrl);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        width: 68,
+        height: 68,
+        child: resolvedImageUrl == null
+            ? const ColoredBox(
+                color: AppColors.hex252a40,
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+              )
+            : Image.network(
+                resolvedImageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const ColoredBox(
+                  color: AppColors.hex252a40,
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _EditAttachmentThumbnail extends StatelessWidget {
+  const _EditAttachmentThumbnail({required this.bytes, this.onRemove});
+
+  final Uint8List bytes;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.memory(bytes, width: 68, height: 68, fit: BoxFit.cover),
+        ),
+        Positioned(
+          top: -8,
+          right: -8,
+          child: Material(
+            color: AppColors.secondaryColor,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onRemove,
+              child: const SizedBox(
+                width: 20,
+                height: 20,
+                child: Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _DeleteCommentDialog extends StatelessWidget {

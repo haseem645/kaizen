@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import 'app_text_view.dart';
+import 'fast_circular_progress.dart';
 
 class AppGradientActionButton extends StatelessWidget {
   const AppGradientActionButton({
@@ -16,9 +17,14 @@ class AppGradientActionButton extends StatelessWidget {
     this.borderRadius = 14,
     this.minHeight = 48,
     this.iconSpacing = 10,
-    this.gradientColors = const <Color>[AppColors.purple1, AppColors.secondaryColor],
+    this.gradientColors = const <Color>[
+      AppColors.purple1,
+      AppColors.secondaryColor,
+    ],
     this.borderColor,
     this.boxShadows,
+    this.isLoading = false,
+    this.showIcon = true,
   });
 
   final String label;
@@ -34,15 +40,19 @@ class AppGradientActionButton extends StatelessWidget {
   final List<Color> gradientColors;
   final Color? borderColor;
   final List<BoxShadow>? boxShadows;
+  final bool isLoading;
+  final bool showIcon;
 
   @override
   Widget build(BuildContext context) {
-    final isEnabled = onTap != null;
+    final isEnabled = onTap != null && !isLoading;
+    final isVisuallyActive = isEnabled || isLoading;
     final resolvedBorderRadius = BorderRadius.circular(borderRadius);
-    final resolvedBorderColor = borderColor ?? AppColors.lightPurple1.withValues(alpha: 0.35);
+    final resolvedBorderColor =
+        borderColor ?? AppColors.lightPurple1.withValues(alpha: 0.35);
     final resolvedBoxShadows =
         boxShadows ??
-        (isEnabled
+        (isVisuallyActive
             ? <BoxShadow>[
                 BoxShadow(
                   color: AppColors.purple1.withValues(alpha: 0.36),
@@ -60,12 +70,12 @@ class AppGradientActionButton extends StatelessWidget {
             : const <BoxShadow>[]);
 
     return Opacity(
-      opacity: isEnabled ? 1 : 0.58,
+      opacity: isVisuallyActive ? 1 : 0.58,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: resolvedBorderRadius,
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: minHeight),
             child: Ink(
@@ -80,22 +90,30 @@ class AppGradientActionButton extends StatelessWidget {
                 border: Border.all(color: resolvedBorderColor),
                 boxShadow: resolvedBoxShadows,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(icon, color: AppColors.textPrimary, size: iconSize),
-                  SizedBox(width: iconSpacing),
-                  AppTextView.body(
-                    label,
-                    color: AppColors.textPrimary,
-                    fontWeight: fontWeight,
-                    fontSize: textSize,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+              child: isLoading
+                  ? FastCircularProgressIndicator(width: 18, height: 18)
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        if (showIcon) ...<Widget>[
+                          Icon(
+                            icon,
+                            color: AppColors.textPrimary,
+                            size: iconSize,
+                          ),
+                          SizedBox(width: iconSpacing),
+                        ],
+                        AppTextView.body(
+                          label,
+                          color: AppColors.textPrimary,
+                          fontWeight: fontWeight,
+                          fontSize: textSize,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
             ),
           ),
         ),

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../providers/questions_feedback_controller.dart';
 import '../questions_feedback_overlay_visibility.dart';
@@ -103,15 +103,20 @@ class FeedbackPostCreateSheet extends StatelessWidget {
                 _AttachmentPreviewStrip(controller: controller),
               ],
               const SizedBox(height: 22),
-              AppButton(
-                text: AppStrings.questionsFeedbackCreatePostAction,
-                onPressed: controller.isCreatingPost
-                    ? null
-                    : () => _submit(context, controller),
-                isLoading: controller.isCreatingPost,
-                minimumHeight: 44,
-                textSize: 14,
-                borderRadius: 10,
+              SizedBox(
+                width: double.infinity,
+                child: AppGradientActionButton(
+                  label: AppStrings.questionsFeedbackCreatePostAction,
+                  icon: Icons.send_rounded,
+                  iconSize: 18,
+                  textSize: 14,
+                  minHeight: 44,
+                  borderRadius: 10,
+                  isLoading: controller.isCreatingPost,
+                  onTap: controller.isCreatingPost
+                      ? null
+                      : () => _submit(context, controller),
+                ),
               ),
             ],
           ),

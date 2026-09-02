@@ -1,6 +1,7 @@
 import '../../domain/entities/feedback_post_page.dart';
 import '../../domain/entities/feedback_post.dart';
 import '../../domain/entities/feedback_post_create_draft.dart';
+import '../../domain/entities/feedback_image_attachment.dart';
 import '../../domain/entities/feedback_comment.dart';
 import '../../domain/entities/feedback_comment_page.dart';
 import '../../domain/repositories/feedback_repository.dart';
@@ -36,14 +37,17 @@ class FeedbackRepositoryImpl implements FeedbackRepository {
   }
 
   @override
-  Future<void> updateFeedbackPost({
+  Future<FeedbackPost?> updateFeedbackPost({
     required String feedbackId,
     required String title,
     required String description,
+    List<FeedbackImageAttachment> attachments =
+        const <FeedbackImageAttachment>[],
   }) => _remoteDataSource.updateFeedbackPost(
     feedbackId: feedbackId,
     title: title,
     description: description,
+    attachments: attachments,
   );
 
   @override

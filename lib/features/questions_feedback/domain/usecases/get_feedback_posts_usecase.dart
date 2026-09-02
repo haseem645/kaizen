@@ -1,6 +1,7 @@
 import '../entities/feedback_post_page.dart';
 import '../entities/feedback_post.dart';
 import '../entities/feedback_post_create_draft.dart';
+import '../entities/feedback_image_attachment.dart';
 import '../entities/feedback_comment.dart';
 import '../entities/feedback_comment_page.dart';
 import '../repositories/feedback_repository.dart';
@@ -33,14 +34,17 @@ class GetFeedbackPostsUseCase {
     return _repository.createFeedbackPost(draft);
   }
 
-  Future<void> updatePost({
+  Future<FeedbackPost?> updatePost({
     required String feedbackId,
     required String title,
     required String description,
+    List<FeedbackImageAttachment> attachments =
+        const <FeedbackImageAttachment>[],
   }) => _repository.updateFeedbackPost(
     feedbackId: feedbackId,
     title: title,
     description: description,
+    attachments: attachments,
   );
 
   Future<void> deletePost({required String feedbackId}) =>

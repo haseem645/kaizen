@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 
 import '../../../login/domain/entities/user.dart';
 import '../../domain/entities/feedback_comment.dart';
+import '../../domain/entities/feedback_image_attachment.dart';
 import '../../domain/entities/feedback_post.dart';
 import '../../domain/usecases/get_feedback_posts_usecase.dart';
 
@@ -15,6 +18,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
        commentController = TextEditingController();
 
   static const int _commentPageSize = 10;
+  static const int maxEditImageAttachments = 5;
 
   final GetFeedbackPostsUseCase _useCase;
   final User? _currentUser;
@@ -23,8 +27,11 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   final TextEditingController editPostTitleController = TextEditingController();
   final TextEditingController editPostDescriptionController =
       TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
   FeedbackPost _post;
   List<FeedbackComment> _comments = const <FeedbackComment>[];
+  List<FeedbackImageAttachment> _editPostAttachments =
+      const <FeedbackImageAttachment>[];
   final Map<String, List<FeedbackComment>> _repliesByParentId =
       <String, List<FeedbackComment>>{};
   final Set<String> _loadingReplyParentIds = <String>{};
@@ -58,6 +65,12 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   bool get isSavingEdit => _isSavingEdit;
   bool get isSavingPostEdit => _isSavingPostEdit;
   bool get isDeletingPost => _isDeletingPost;
+  List<FeedbackImageAttachment> get editPostAttachments =>
+      List<FeedbackImageAttachment>.unmodifiable(_editPostAttachments);
+  int get editPostAttachmentCount =>
+      _post.attachments.length + _editPostAttachments.length;
+  bool get canAddEditPostAttachments =>
+      !_isSavingPostEdit && editPostAttachmentCount < maxEditImageAttachments;
   bool isEditingComment(String commentId) => _editingCommentId == commentId;
   bool get canSendComment =>
       commentController.text.trim().isNotEmpty && !_isSendingComment;
@@ -137,20 +150,86 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   }
 
   void startEditingPost() {
+    if (!canModifyPost) {
+      return;
+    }
     editPostTitleController.text = _post.title;
     editPostDescriptionController.text = _post.description;
+    _editPostAttachments = const <FeedbackImageAttachment>[];
     notifyListeners();
   }
 
   void cancelPostEditing() {
     editPostTitleController.clear();
     editPostDescriptionController.clear();
+    _editPostAttachments = const <FeedbackImageAttachment>[];
+    notifyListeners();
+  }
+
+  Future<void> pickEditPostAttachments() async {
+    if (!canModifyPost || !canAddEditPostAttachments) {
+      return;
+    }
+
+    final remaining = maxEditImageAttachments - editPostAttachmentCount;
+    final selectedImages = await _imagePicker.pickMultiImage(
+      imageQuality: 85,
+      limit: remaining,
+    );
+    if (selectedImages.isEmpty) {
+      return;
+    }
+
+    final attachments = <FeedbackImageAttachment>[..._editPostAttachments];
+    for (final image in selectedImages) {
+      if (_post.attachments.length + attachments.length ==
+          maxEditImageAttachments) {
+        break;
+      }
+
+      final bytes = await image.readAsBytes();
+      if (bytes.isEmpty) {
+        continue;
+      }
+
+      final fileName = image.name.trim().isEmpty
+          ? 'attachment_${_post.attachments.length + attachments.length + 1}.jpg'
+          : image.name.trim();
+      attachments.add(
+        FeedbackImageAttachment(
+          fileName: fileName,
+          bytes: bytes,
+          contentType:
+              lookupMimeType(fileName, headerBytes: bytes) ?? 'image/jpeg',
+        ),
+      );
+    }
+
+    _editPostAttachments = List<FeedbackImageAttachment>.unmodifiable(
+      attachments,
+    );
+    notifyListeners();
+  }
+
+  void removeEditPostAttachment(int index) {
+    if (_isSavingPostEdit ||
+        index < 0 ||
+        index >= _editPostAttachments.length) {
+      return;
+    }
+
+    final attachments = List<FeedbackImageAttachment>.of(_editPostAttachments)
+      ..removeAt(index);
+    _editPostAttachments = List<FeedbackImageAttachment>.unmodifiable(
+      attachments,
+    );
     notifyListeners();
   }
 
   void onPostEditChanged(String _) => notifyListeners();
 
   bool get canSavePostEdit =>
+      canModifyPost &&
       editPostTitleController.text.trim().isNotEmpty &&
       editPostDescriptionController.text.trim().isNotEmpty &&
       !_isSavingPostEdit;
@@ -158,19 +237,34 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   Future<bool> savePostEditing() async {
     final title = editPostTitleController.text.trim();
     final description = editPostDescriptionController.text.trim();
-    if (title.isEmpty || description.isEmpty || _isSavingPostEdit) {
+    if (!canModifyPost ||
+        title.isEmpty ||
+        description.isEmpty ||
+        _isSavingPostEdit) {
       return false;
     }
 
     _isSavingPostEdit = true;
     notifyListeners();
     try {
-      await _useCase.updatePost(
+      final updatedPost = await _useCase.updatePost(
         feedbackId: _post.id,
         title: title,
         description: description,
+        attachments: _editPostAttachments,
       );
-      _post = _post.copyWith(title: title, description: description);
+      final responseAttachments = updatedPost?.attachments;
+      final responseAuthor = updatedPost?.author;
+      _post = (updatedPost ?? _post).copyWith(
+        title: title,
+        description: description,
+        attachments: responseAttachments?.isNotEmpty == true
+            ? responseAttachments
+            : _post.attachments,
+        author: responseAuthor?.id.trim().isNotEmpty == true
+            ? responseAuthor
+            : _post.author,
+      );
       cancelPostEditing();
       return true;
     } catch (_) {
@@ -182,7 +276,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   }
 
   Future<bool> deletePost() async {
-    if (_isDeletingPost) {
+    if (!canModifyPost || _isDeletingPost) {
       return false;
     }
 

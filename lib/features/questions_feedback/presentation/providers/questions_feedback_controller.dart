@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -22,7 +20,6 @@ class QuestionsFeedbackController extends ChangeNotifier {
 
   static const int _pageSize = 10;
   static const int maxImageAttachments = 5;
-  static const Duration _searchDebounceDuration = Duration(milliseconds: 400);
 
   final GetFeedbackPostsUseCase _getFeedbackPostsUseCase;
   final TextEditingController searchController;
@@ -47,7 +44,6 @@ class QuestionsFeedbackController extends ChangeNotifier {
   List<FeedbackImageAttachment> _createAttachments =
       const <FeedbackImageAttachment>[];
   final Set<String> _updatingLikePostIds = <String>{};
-  Timer? _searchDebounceTimer;
   bool _hasPendingSearchRefresh = false;
 
   bool get isInitialLoading => _isInitialLoading;
@@ -57,7 +53,9 @@ class QuestionsFeedbackController extends ChangeNotifier {
   bool get isSearchActive => _isSearchActive;
   bool get isCreatingPost => _isCreatingPost;
   bool get hasNextPage => _hasNextPage;
-  bool get hasSearchText => _searchQuery.isNotEmpty;
+  bool get hasSearchText => searchController.text.trim().isNotEmpty;
+  bool get isShowingSearchResults => _searchQuery.isNotEmpty;
+  String get searchQuery => _searchQuery;
   int get totalCount => _totalCount;
   String? get errorMessage => _errorMessage;
   List<FeedbackPost> get posts => List<FeedbackPost>.unmodifiable(_posts);
@@ -93,26 +91,29 @@ class QuestionsFeedbackController extends ChangeNotifier {
   }
 
   void updateSearchQuery(String value) {
-    final query = value.trim();
-    if (_searchQuery == query) {
-      return;
-    }
-
-    _searchQuery = query;
     notifyListeners();
-    _scheduleSearchRefresh();
   }
 
   Future<void> clearSearch() async {
-    _searchDebounceTimer?.cancel();
+    final shouldReloadPosts =
+        _searchQuery.isNotEmpty || searchController.text.trim().isNotEmpty;
     searchController.clear();
-    if (_searchQuery.isEmpty) {
+    _searchQuery = '';
+    if (!shouldReloadPosts) {
       notifyListeners();
       return;
     }
 
-    _searchQuery = '';
-    notifyListeners();
+    await _performSearch();
+  }
+
+  Future<void> submitSearch() async {
+    final query = searchController.text.trim();
+    if (query.isEmpty) {
+      return;
+    }
+
+    _searchQuery = query;
     await _performSearch();
   }
 
@@ -191,6 +192,8 @@ class QuestionsFeedbackController extends ChangeNotifier {
         ),
       );
       // Read back the server's post so attachment URLs come from its source of truth.
+      _searchQuery = '';
+      searchController.clear();
       await _loadPage(1, replace: true);
       _clearCreateDraft();
       return FeedbackPostCreateResult.created;
@@ -258,6 +261,7 @@ class QuestionsFeedbackController extends ChangeNotifier {
     } finally {
       _isInitialLoading = false;
       notifyListeners();
+      await _runPendingSearchIfNeeded();
     }
   }
 
@@ -266,6 +270,7 @@ class QuestionsFeedbackController extends ChangeNotifier {
         _isRefreshing ||
         _isLoadingMore ||
         _isSearchLoading) {
+      _hasPendingSearchRefresh = true;
       return;
     }
 
@@ -280,6 +285,7 @@ class QuestionsFeedbackController extends ChangeNotifier {
     } finally {
       _isRefreshing = false;
       notifyListeners();
+      await _runPendingSearchIfNeeded();
     }
   }
 
@@ -302,6 +308,7 @@ class QuestionsFeedbackController extends ChangeNotifier {
     } finally {
       _isLoadingMore = false;
       notifyListeners();
+      await _runPendingSearchIfNeeded();
     }
   }
 
@@ -338,24 +345,11 @@ class QuestionsFeedbackController extends ChangeNotifier {
     }
   }
 
-  void _scheduleSearchRefresh({bool immediate = false}) {
-    _searchDebounceTimer?.cancel();
-    if (immediate) {
-      unawaited(_performSearch());
-      return;
-    }
-
-    _searchDebounceTimer = Timer(_searchDebounceDuration, () {
-      unawaited(_performSearch());
-    });
-  }
-
   Future<void> _performSearch() async {
     if (_isInitialLoading ||
         _isRefreshing ||
         _isLoadingMore ||
         _isSearchLoading) {
-      _hasPendingSearchRefresh = true;
       return;
     }
 
@@ -374,15 +368,20 @@ class QuestionsFeedbackController extends ChangeNotifier {
       notifyListeners();
     }
 
-    if (_hasPendingSearchRefresh) {
-      _hasPendingSearchRefresh = false;
-      _scheduleSearchRefresh(immediate: true);
+    await _runPendingSearchIfNeeded();
+  }
+
+  Future<void> _runPendingSearchIfNeeded() async {
+    if (!_hasPendingSearchRefresh) {
+      return;
     }
+
+    _hasPendingSearchRefresh = false;
+    await _performSearch();
   }
 
   @override
   void dispose() {
-    _searchDebounceTimer?.cancel();
     searchController.dispose();
     createTitleController.dispose();
     createDescriptionController.dispose();

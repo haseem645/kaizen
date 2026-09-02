@@ -25,21 +25,15 @@ class QuestionsFeedbackScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<FeedbackRemoteDataSource>(
-          create: (_) => createFeedbackRemoteDataSource(),
-        ),
+        Provider<FeedbackRemoteDataSource>(create: (_) => createFeedbackRemoteDataSource()),
         ProxyProvider<FeedbackRemoteDataSource, FeedbackRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createFeedbackRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createFeedbackRepository(remoteDataSource),
         ),
         ProxyProvider<FeedbackRepositoryImpl, GetFeedbackPostsUseCase>(
-          update: (_, repository, __) =>
-              createGetFeedbackPostsUseCase(repository),
+          update: (_, repository, __) => createGetFeedbackPostsUseCase(repository),
         ),
         ChangeNotifierProvider<QuestionsFeedbackController>(
-          create: (context) => QuestionsFeedbackController(
-            context.read<GetFeedbackPostsUseCase>(),
-          ),
+          create: (context) => QuestionsFeedbackController(context.read<GetFeedbackPostsUseCase>()),
         ),
       ],
       child: const _QuestionsFeedbackView(),
@@ -65,9 +59,7 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
     _scrollController = ScrollController()..addListener(_handleScroll);
     _searchFocusNode = FocusNode();
     _controller = context.read<QuestionsFeedbackController>();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _controller.initialize(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _controller.initialize());
   }
 
   @override
@@ -80,8 +72,7 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
   }
 
   void _handleScroll() {
-    if (!_scrollController.hasClients ||
-        _scrollController.position.extentAfter > 320) {
+    if (!_scrollController.hasClients || _scrollController.position.extentAfter > 320) {
       return;
     }
 
@@ -106,6 +97,7 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
                 searchFocusNode: _searchFocusNode,
                 onSearchTap: _openSearch,
                 onSearchBack: _closeSearch,
+                onSearchSubmit: controller.submitSearch,
               ),
 
               Padding(
@@ -115,7 +107,13 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
                     const SizedBox(height: 48),
                     AppDotDivider(),
                     const SizedBox(height: 16),
-                    _CommunityPostsHeading(totalCount: controller.totalCount),
+                    _CommunityPostsHeading(
+                      totalCount: controller.totalCount,
+                      searchQuery: controller.isShowingSearchResults
+                          ? controller.searchQuery
+                          : null,
+                      onClearSearch: controller.clearSearch,
+                    ),
                     const SizedBox(height: 12),
                     Expanded(child: _buildPostList(controller)),
                     _QuestionsFeedbackAddAction(onTap: _openCreateSheet),
@@ -142,10 +140,15 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
       );
     }
 
-    if (controller.posts.isEmpty) {
-      return const _FeedbackMessageView(
-        message: AppStrings.questionsFeedbackNoPosts,
+    if (controller.posts.isEmpty && controller.isShowingSearchResults) {
+      return _NoSearchResultsView(
+        onClearSearch: controller.clearSearch,
+        onAskQuestion: _openCreateSheet,
       );
+    }
+
+    if (controller.posts.isEmpty) {
+      return const _FeedbackMessageView(message: AppStrings.questionsFeedbackNoPosts);
     }
 
     return RefreshIndicator(
@@ -196,11 +199,7 @@ class _QuestionsFeedbackViewState extends State<_QuestionsFeedbackView> {
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(AppStrings.questionsFeedbackLikeUpdateFailed),
-        ),
-      );
+      ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackLikeUpdateFailed)));
   }
 
   void _openSearch() {
@@ -228,12 +227,14 @@ class _QuestionsFeedbackTopBar extends StatelessWidget {
     required this.searchFocusNode,
     required this.onSearchTap,
     required this.onSearchBack,
+    required this.onSearchSubmit,
   });
 
   final QuestionsFeedbackController controller;
   final FocusNode searchFocusNode;
   final VoidCallback onSearchTap;
   final Future<void> Function() onSearchBack;
+  final Future<void> Function() onSearchSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -255,24 +256,14 @@ class _QuestionsFeedbackTopBar extends StatelessWidget {
               cursorHeight: 16,
               decoration: const InputDecoration(
                 hintText: AppStrings.questionsFeedbackSearchHint,
-                hintStyle: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                ),
+                hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 border: InputBorder.none,
                 isDense: true,
               ),
             ),
           ),
           if (controller.hasSearchText)
-            IconButton(
-              onPressed: controller.clearSearch,
-              icon: const Icon(
-                Icons.close_rounded,
-                color: AppColors.textSecondary,
-                size: 22,
-              ),
-            ),
+            _SearchSubmitButton(isLoading: controller.isSearchLoading, onTap: onSearchSubmit),
         ],
       );
     }
@@ -299,11 +290,7 @@ class _QuestionsFeedbackTopBar extends StatelessWidget {
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-  });
+  const _HeaderIconButton({required this.icon, required this.tooltip, required this.onTap});
 
   final IconData icon;
   final String tooltip;
@@ -324,6 +311,38 @@ class _HeaderIconButton extends StatelessWidget {
             width: 38,
             height: 38,
             child: Icon(icon, color: AppColors.textPrimary, size: 20),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchSubmitButton extends StatelessWidget {
+  const _SearchSubmitButton({required this.isLoading, required this.onTap});
+
+  final bool isLoading;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.purple1,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: isLoading ? null : onTap,
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textPrimary),
+                  )
+                : const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 21),
           ),
         ),
       ),
@@ -356,6 +375,7 @@ class _QuestionsFeedbackAddAction extends StatelessWidget {
         child: AppGradientActionButton(
           label: AppStrings.questionsFeedbackAddAction,
           icon: Icons.add_rounded,
+          showIcon: false,
           iconSize: 16,
           textSize: 14,
           minHeight: 40,
@@ -370,40 +390,203 @@ class _QuestionsFeedbackAddAction extends StatelessWidget {
 }
 
 class _CommunityPostsHeading extends StatelessWidget {
-  const _CommunityPostsHeading({required this.totalCount});
+  const _CommunityPostsHeading({required this.totalCount, this.searchQuery, this.onClearSearch});
 
   final int totalCount;
+  final String? searchQuery;
+  final Future<void> Function()? onClearSearch;
 
   @override
   Widget build(BuildContext context) {
+    final isShowingSearchResults = searchQuery != null;
     final postLabel = totalCount == 1
         ? AppStrings.questionsFeedbackPostSingular
         : AppStrings.questionsFeedbackPostPlural;
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
-          child: AppTextView.title1(
-            AppStrings.questionsFeedbackCommunityPosts,
-            color: AppColors.textPrimary,
-            fontSize: 16,
+        Row(
+          children: [
+            Expanded(
+              child: AppTextView.title1(
+                isShowingSearchResults
+                    ? AppStrings.questionsFeedbackSearchResults
+                    : AppStrings.questionsFeedbackCommunityPosts,
+                color: AppColors.textPrimary,
+                fontSize: 16,
+              ),
+            ),
+            AppTextView.body(
+              '$totalCount $postLabel',
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ],
+        ),
+        if (isShowingSearchResults) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppColors.hex252a40,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.purple1.withValues(alpha: 0.55)),
+                  ),
+                  child: AppTextView.body(
+                    AppStrings.questionsFeedbackShowingResultsFor(searchQuery!),
+                    color: AppColors.lightPurple1,
+                    fontSize: 12,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Material(
+                color: AppColors.hex252a40,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onClearSearch,
+                  child: const SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 18),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        AppTextView.body(
-          '$totalCount $postLabel',
-          color: AppColors.textSecondary,
-          fontSize: 12,
-        ),
+        ],
       ],
     );
   }
 }
 
+class _NoSearchResultsView extends StatelessWidget {
+  const _NoSearchResultsView({required this.onClearSearch, required this.onAskQuestion});
+
+  final Future<void> Function() onClearSearch;
+  final VoidCallback onAskQuestion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: CustomPaint(
+          foregroundPainter: const _DashedRoundedBorderPainter(),
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 42),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(
+                    color: AppColors.hex252a40,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.search_rounded, color: AppColors.lightPurple1, size: 34),
+                ),
+                const SizedBox(height: 22),
+                const AppTextView.title(
+                  AppStrings.questionsFeedbackNoMatchingFeedback,
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                const AppTextView.body(
+                  AppStrings.questionsFeedbackNoMatchingFeedbackMessage,
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    SizedBox(
+                      height: 40,
+                      child: OutlinedButton(
+                        onPressed: onClearSearch,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.lightPurple1,
+                          side: const BorderSide(color: AppColors.lightPurple1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                        ),
+                        child: const Text(AppStrings.clearSearch),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 40,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: const LinearGradient(
+                            colors: <Color>[AppColors.purple1, AppColors.secondaryColor],
+                          ),
+                        ),
+                        child: TextButton(
+                          onPressed: onAskQuestion,
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                          ),
+                          child: const Text(AppStrings.questionsFeedbackAskQuestionAction),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedRoundedBorderPainter extends CustomPainter {
+  const _DashedRoundedBorderPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(24)));
+    final paint = Paint()
+      ..color = AppColors.textSecondary.withValues(alpha: 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    for (final metric in path.computeMetrics()) {
+      for (var distance = 0.0; distance < metric.length; distance += 12) {
+        canvas.drawPath(
+          metric.extractPath(distance, (distance + 6).clamp(0, metric.length)),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRoundedBorderPainter oldDelegate) => false;
+}
+
 class _FeedbackMessageView extends StatelessWidget {
-  const _FeedbackMessageView({
-    required this.message,
-    this.actionLabel,
-    this.onActionTap,
-  });
+  const _FeedbackMessageView({required this.message, this.actionLabel, this.onActionTap});
 
   final String message;
   final String? actionLabel;

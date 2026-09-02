@@ -1,6 +1,7 @@
 import '../entities/feedback_post_page.dart';
 import '../entities/feedback_post.dart';
 import '../entities/feedback_post_create_draft.dart';
+import '../entities/feedback_image_attachment.dart';
 import '../entities/feedback_comment.dart';
 import '../entities/feedback_comment_page.dart';
 
@@ -16,10 +17,12 @@ abstract class FeedbackRepository {
     required bool isLiked,
   });
 
-  Future<void> updateFeedbackPost({
+  Future<FeedbackPost?> updateFeedbackPost({
     required String feedbackId,
     required String title,
     required String description,
+    List<FeedbackImageAttachment> attachments =
+        const <FeedbackImageAttachment>[],
   });
 
   Future<void> deleteFeedbackPost({required String feedbackId});

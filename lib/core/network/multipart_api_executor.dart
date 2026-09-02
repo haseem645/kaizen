@@ -37,11 +37,13 @@ class MultipartApiExecutor {
     required Map<String, String> fields,
     required List<MultipartApiFile> files,
     required Response Function(dynamic json) decoder,
+    String method = 'POST',
   }) async {
     final response = await _send(
       endpoint: endpoint,
       fields: fields,
       files: files,
+      method: method,
     );
     if (response.statusCode < 200 || response.statusCode > 299) {
       throw ApiError.requestFailed(response.statusCode);
@@ -66,6 +68,7 @@ class MultipartApiExecutor {
     required String endpoint,
     required Map<String, String> fields,
     required List<MultipartApiFile> files,
+    required String method,
   }) async {
     final resolvedEndpoint = ApiEndPoints.resolveEndpoint(endpoint);
     final uri = Uri.parse(
@@ -73,7 +76,7 @@ class MultipartApiExecutor {
     );
 
     Future<http.Response> sendWithToken(String token) async {
-      final request = http.MultipartRequest('POST', uri)..fields.addAll(fields);
+      final request = http.MultipartRequest(method, uri)..fields.addAll(fields);
       if (token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
       }

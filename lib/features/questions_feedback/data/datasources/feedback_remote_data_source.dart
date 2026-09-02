@@ -2,6 +2,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_processor.dart';
 import '../../../../core/network/multipart_api_executor.dart';
+import '../../domain/entities/feedback_image_attachment.dart';
 import '../../domain/entities/feedback_post_create_draft.dart';
 import '../models/feedback_post_model.dart';
 import '../models/feedback_post_page_model.dart';
@@ -53,16 +54,42 @@ class FeedbackRemoteDataSource {
     );
   }
 
-  Future<void> updateFeedbackPost({
+  Future<FeedbackPostModel?> updateFeedbackPost({
     required String feedbackId,
     required String title,
     required String description,
-  }) => _apiCallExecutor.processApi<void>(
-    apiCallType: ApiCallType.patch,
-    endpoint: ApiEndPoints.feedbackPost(feedbackId),
-    parameters: <String, dynamic>{'title': title, 'description': description},
-    decoder: (_) {},
-  );
+    List<FeedbackImageAttachment> attachments =
+        const <FeedbackImageAttachment>[],
+  }) {
+    if (attachments.isEmpty) {
+      return _apiCallExecutor.processApi<FeedbackPostModel?>(
+        apiCallType: ApiCallType.patch,
+        endpoint: ApiEndPoints.feedbackPost(feedbackId),
+        parameters: <String, dynamic>{
+          'title': title,
+          'description': description,
+        },
+        decoder: _decodeUpdatedPost,
+      );
+    }
+
+    return _multipartApiExecutor.process<FeedbackPostModel?>(
+      method: 'PATCH',
+      endpoint: ApiEndPoints.feedbackPost(feedbackId),
+      fields: <String, String>{'title': title, 'description': description},
+      files: attachments
+          .map(
+            (attachment) => MultipartApiFile(
+              fieldName: 'attachments',
+              fileName: attachment.fileName,
+              bytes: attachment.bytes,
+              contentType: attachment.contentType,
+            ),
+          )
+          .toList(growable: false),
+      decoder: _decodeUpdatedPost,
+    );
+  }
 
   Future<void> deleteFeedbackPost({required String feedbackId}) =>
       _apiCallExecutor.processApi<void>(
@@ -162,6 +189,21 @@ class FeedbackRemoteDataSource {
       },
     );
   }
+}
+
+FeedbackPostModel? _decodeUpdatedPost(dynamic json) {
+  if (json is! Map<String, dynamic>) {
+    return null;
+  }
+
+  final postJson = json.containsKey('uuid')
+      ? json
+      : json['data'] is Map<String, dynamic>
+      ? json['data'] as Map<String, dynamic>
+      : json['feedback'] is Map<String, dynamic>
+      ? json['feedback'] as Map<String, dynamic>
+      : null;
+  return postJson == null ? null : FeedbackPostModel.fromApiJson(postJson);
 }
 
 Map<String, dynamic> _extractCreatedPostJson(dynamic json) {

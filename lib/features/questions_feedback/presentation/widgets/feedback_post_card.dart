@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_text_view.dart';
+import '../../domain/entities/feedback_author.dart';
 import '../../domain/entities/feedback_post.dart';
 
 class FeedbackPostCard extends StatelessWidget {
@@ -73,15 +75,17 @@ class FeedbackPostCard extends StatelessWidget {
               spacing: 16,
               runSpacing: 6,
               children: [
-                _PostMetadata(
-                  icon: Icons.photo_library_outlined,
-                  label: _pluralize(
-                    post.attachments.length,
-                    AppStrings.questionsFeedbackAttachmentSingular,
-                    AppStrings.questionsFeedbackAttachmentPlural,
+                _PostAuthor(author: post.author),
+                if (post.attachments.isNotEmpty)
+                  _PostMetadata(
+                    icon: Icons.photo_library_outlined,
+                    label: _pluralize(
+                      post.attachments.length,
+                      AppStrings.questionsFeedbackAttachmentSingular,
+                      AppStrings.questionsFeedbackAttachmentPlural,
+                    ),
+                    count: post.attachments.length,
                   ),
-                  count: post.attachments.length,
-                ),
                 _PostMetadata(
                   icon: Icons.chat_bubble_outline_rounded,
                   label: _pluralize(
@@ -101,6 +105,53 @@ class FeedbackPostCard extends StatelessWidget {
 
   String _pluralize(int count, String singular, String plural) {
     return count == 1 ? singular : plural;
+  }
+}
+
+class _PostAuthor extends StatelessWidget {
+  const _PostAuthor({required this.author});
+
+  final FeedbackAuthor author;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = CustomFunctions.resolveImageUrl(author.imageUrl);
+    final firstName = author.name.trim().split(RegExp(r'\s+')).first;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 156),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: imageUrl == null
+                ? AppColors.secondaryColor
+                : AppColors.hex252a40,
+            backgroundImage: imageUrl == null ? null : NetworkImage(imageUrl),
+            child: imageUrl == null
+                ? const Text(
+                    'U',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: AppTextView.body(
+              firstName,
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
