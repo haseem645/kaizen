@@ -12,6 +12,7 @@ class CheckInState {
     this.isLoading = true,
     this.isOwner = true,
     this.isActualOwner = false,
+    this.isSelfAudit = false,
     this.mainList,
     this.isLoadingMore = false,
     this.isAuditActionLoading = false,
@@ -48,6 +49,7 @@ class CheckInState {
   final bool isLoading;
   final bool isOwner;
   final bool isActualOwner;
+  final bool isSelfAudit;
   final AuditMainList? mainList;
   final bool isLoadingMore;
   final bool isAuditActionLoading;
@@ -84,6 +86,7 @@ class CheckInState {
     bool? isLoading,
     bool? isOwner,
     bool? isActualOwner,
+    bool? isSelfAudit,
     AuditMainList? mainList,
     bool? isLoadingMore,
     bool? isAuditActionLoading,
@@ -137,6 +140,7 @@ class CheckInState {
       isLoading: isLoading ?? this.isLoading,
       isOwner: isOwner ?? this.isOwner,
       isActualOwner: isActualOwner ?? this.isActualOwner,
+      isSelfAudit: isSelfAudit ?? this.isSelfAudit,
       mainList: clearMainList ? null : mainList ?? this.mainList,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       isAuditActionLoading: isAuditActionLoading ?? this.isAuditActionLoading,

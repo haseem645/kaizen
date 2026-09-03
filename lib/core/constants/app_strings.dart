@@ -946,7 +946,10 @@ class AppStrings {
   static const String auditVideo = 'Video';
   static const String auditUpload = 'Upload';
   static const String auditScreenRecording = 'Screen Recording';
-
+  static const String auditUnableToLoadDescriptionDetails =
+      'Unable to load description details right now.';
+  static const String auditUnableToUpdateRating =
+      'Unable to update rating right now.';
   static const String auditTakePhoto = 'Take a photo';
   static const String auditCapturePhotoComment =
       'Capture a photo for this audit comment';

@@ -294,8 +294,7 @@ class _CheckInMediaCommentsBottomSheetState
                       ),
                     ),
                   ],
-                  if (!widget.isReadOnly ||
-                      (widget.canReply && state.isReplying))
+                  if (widget.canReply)
                     _SendMessageBar(
                       controller: _messageController,
                       isReplying: state.isReplying,

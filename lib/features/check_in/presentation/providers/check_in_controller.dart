@@ -13,6 +13,7 @@ import '../../../../core/utils/custom_functions.dart';
 import '../../data/datasources/audit_remote_data_source.dart';
 import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/audit_description_audit.dart';
+import '../../domain/entities/audit_details.dart';
 import '../../domain/entities/audit_list.dart';
 import '../../domain/entities/audit_main_list.dart';
 import '../../domain/entities/audit_member.dart';
@@ -397,6 +398,7 @@ class CheckInController extends ChangeNotifier {
         isLoading: true,
         isOwner: isOwner,
         isActualOwner: isActualOwner,
+        isSelfAudit: false,
         selectedStatus: selectedStatus,
         searchQuery: '',
         selectedAuditYear: currentYearQuarter.year,
@@ -524,6 +526,7 @@ class CheckInController extends ChangeNotifier {
         isLoading: true,
         isOwner: isOwner,
         isActualOwner: isActualOwner,
+        isSelfAudit: false,
         selectedAuditYear: resolvedYear,
         selectedAuditQuarter: resolvedQuarter,
         selectedYearQuarter: selectedYearQuarterLabel,
@@ -549,7 +552,11 @@ class CheckInController extends ChangeNotifier {
         quarter: resolvedQuarter,
         profileUuid: profileUuid,
       );
-      _state = _state.copyWith(isLoading: false, details: details);
+      _state = _state.copyWith(
+        isLoading: false,
+        details: details,
+        isSelfAudit: _isSelfAudit(details, user),
+      );
       notifyListeners();
     } catch (error) {
       _state = _state.copyWith(isLoading: false);
@@ -2485,6 +2492,18 @@ class CheckInController extends ChangeNotifier {
 
   bool _isActualOwner(User? user) {
     return AppPermissionUtils.hasOwnerOverrideAccess(user);
+  }
+
+  bool _isSelfAudit(AuditDetails details, User? user) {
+    final currentProfileUuid = user?.uuid?.trim() ?? '';
+    if (currentProfileUuid.isEmpty) {
+      return false;
+    }
+
+    return details.profileUuid.trim() == currentProfileUuid ||
+        details.profiles.any(
+          (profile) => profile.uuid.trim() == currentProfileUuid,
+        );
   }
 
   @override

@@ -32,6 +32,7 @@ class SingleDescriptionDetails extends StatefulWidget {
     required this.date,
     required this.isOwner,
     this.isViewOnly = false,
+    this.isSelfAudit = false,
     this.onAuditUpdated,
   });
 
@@ -40,6 +41,7 @@ class SingleDescriptionDetails extends StatefulWidget {
   final String date;
   final bool isOwner;
   final bool isViewOnly;
+  final bool isSelfAudit;
   final Future<void> Function()? onAuditUpdated;
 
   @override
@@ -252,6 +254,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
                               date: widget.date,
                               isOwner: widget.isOwner,
                               isViewOnly: widget.isViewOnly,
+                              isSelfAudit: widget.isSelfAudit,
                               auditDescriptionFuture: auditDescriptionFuture,
                               onSubmitAudit: _submitDescriptionAudit,
                             ),
@@ -261,6 +264,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
                               date: widget.date,
                               isOwner: widget.isOwner,
                               isViewOnly: widget.isViewOnly,
+                              isSelfAudit: widget.isSelfAudit,
                               auditDescriptionFuture: auditDescriptionFuture,
                               onCommentsChanged:
                                   _refreshAuditDescriptionSilently,
@@ -678,6 +682,13 @@ bool _canEditSingleDescriptionAudit({
       CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
+bool _canCommentOnSingleDescriptionAudit({
+  required bool isViewOnly,
+  required String date,
+}) {
+  return !isViewOnly && CustomFunctions.isAuditWithinContinueWindow(date);
+}
+
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
 
 class _PassSelectionCard extends StatefulWidget {
@@ -686,6 +697,7 @@ class _PassSelectionCard extends StatefulWidget {
     required this.date,
     required this.isOwner,
     required this.isViewOnly,
+    required this.isSelfAudit,
     required this.auditDescriptionFuture,
     required this.onSubmitAudit,
   });
@@ -694,6 +706,7 @@ class _PassSelectionCard extends StatefulWidget {
   final String date;
   final bool isOwner;
   final bool isViewOnly;
+  final bool isSelfAudit;
   final Future<AuditDescriptionAudit> auditDescriptionFuture;
   final Future<void> Function(String descriptionId, Map<String, int> audit)
   onSubmitAudit;
@@ -739,11 +752,13 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final canEditBlocks = _canEditSingleDescriptionAudit(
-      isViewOnly: widget.isViewOnly,
-      isOwner: widget.isOwner,
-      date: widget.date,
-    );
+    final canEditBlocks =
+        _canEditSingleDescriptionAudit(
+          isViewOnly: widget.isViewOnly,
+          isOwner: widget.isOwner,
+          date: widget.date,
+        ) &&
+        !widget.isSelfAudit;
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {
@@ -813,7 +828,8 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? AppColors.green1
                               : AppColors.green1.withValues(alpha: 0.5),
                           count: great,
-                          showDecrementControl: widget.isOwner,
+                          showDecrementControl:
+                              widget.isOwner && !widget.isSelfAudit,
                           onTapCount: canEditBlocks
                               ? () => _incrementRating(_PassBlockState.great)
                               : null,
@@ -828,7 +844,8 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? AppColors.orange1
                               : AppColors.orange1.withValues(alpha: 0.5),
                           count: almostThere,
-                          showDecrementControl: widget.isOwner,
+                          showDecrementControl:
+                              widget.isOwner && !widget.isSelfAudit,
                           onTapCount: canEditBlocks
                               ? () => _incrementRating(
                                   _PassBlockState.almostThere,
@@ -847,7 +864,8 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
                               ? AppColors.red1
                               : AppColors.red1.withValues(alpha: 0.5),
                           count: needsImprovement,
-                          showDecrementControl: widget.isOwner,
+                          showDecrementControl:
+                              widget.isOwner && !widget.isSelfAudit,
                           onTapCount: canEditBlocks
                               ? () => _incrementRating(
                                   _PassBlockState.needsImprovement,
@@ -1014,6 +1032,7 @@ class _CommentsCard extends StatefulWidget {
     required this.date,
     required this.isOwner,
     required this.isViewOnly,
+    required this.isSelfAudit,
     required this.auditDescriptionFuture,
     required this.onCommentsChanged,
     required this.onCommentsSheetClosed,
@@ -1025,6 +1044,7 @@ class _CommentsCard extends StatefulWidget {
   final String date;
   final bool isOwner;
   final bool isViewOnly;
+  final bool isSelfAudit;
   final Future<AuditDescriptionAudit> auditDescriptionFuture;
   final Future<void> Function() onCommentsChanged;
   final VoidCallback onCommentsSheetClosed;
@@ -1055,16 +1075,18 @@ class _CommentsCardState extends State<_CommentsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final canCreateComments = _canEditSingleDescriptionAudit(
+    final canManageComments =
+        _canEditSingleDescriptionAudit(
+          isViewOnly: widget.isViewOnly,
+          isOwner: widget.isOwner,
+          date: widget.date,
+        ) &&
+        !widget.isSelfAudit;
+    final canCreateComments = _canCommentOnSingleDescriptionAudit(
       isViewOnly: widget.isViewOnly,
-      isOwner: widget.isOwner,
       date: widget.date,
     );
-    final canManageComments =
-        !widget.isViewOnly &&
-        widget.isOwner &&
-        !CustomFunctions.isDateBeforeToday(widget.date);
-    final canReplyToComments = !widget.isViewOnly && widget.isOwner;
+    final canReplyToComments = canCreateComments;
     return FutureBuilder<AuditDescriptionAudit>(
       future: widget.auditDescriptionFuture,
       builder: (context, snapshot) {

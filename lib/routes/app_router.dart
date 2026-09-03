@@ -322,6 +322,9 @@ class AppRouter {
                 args is CheckInDescriptionsListRouteArgs
                 ? args.requireDescriptionSelection
                 : false,
+            isSelfAudit: args is CheckInDescriptionsListRouteArgs
+                ? args.isSelfAudit
+                : false,
           ),
         );
       case checkInReport:
@@ -506,6 +509,7 @@ class CheckInDescriptionsListRouteArgs {
     this.year,
     this.quarter,
     this.requireDescriptionSelection = false,
+    this.isSelfAudit = false,
   });
 
   final String quarterlyAuditId;
@@ -514,6 +518,7 @@ class CheckInDescriptionsListRouteArgs {
   final int? year;
   final int? quarter;
   final bool requireDescriptionSelection;
+  final bool isSelfAudit;
 }
 
 class CheckInReportRouteArgs {

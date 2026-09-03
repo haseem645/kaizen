@@ -54,6 +54,7 @@ class QuarterlyAuditDescription {
     required this.pass,
     required this.noPass,
     required this.hasAudit,
+    required this.auditUuid,
     required this.milestoneDay,
     required this.lastAuditDate,
     required this.confidenceLevel,
@@ -72,6 +73,7 @@ class QuarterlyAuditDescription {
   final int pass;
   final int noPass;
   final bool hasAudit;
+  final String auditUuid;
   final String milestoneDay;
   final String? lastAuditDate;
   final double confidenceLevel;

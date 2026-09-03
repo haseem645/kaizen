@@ -178,7 +178,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
                 ),
               ),
             ),
-            if (!state.isLoading)
+            if (!state.isLoading && !state.isSelfAudit)
               _buildNewAuditButton(
                 context,
                 details,
@@ -480,6 +480,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
     CheckInController controller,
     AuditDetails details,
   ) {
+    final isSelfAudit = controller.state.isSelfAudit;
     final isPastLastAuditDate = CustomFunctions.isDateBeforeToday(
       details.lastAuditDate,
     );
@@ -508,91 +509,86 @@ class _CheckInDetailsScreenView extends StatelessWidget {
             ? AppStrings.continueAction
             : AppStrings.view;
 
-        return Material(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => _openSingleAuditDetails(context, details, audit.date),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.grey2.withValues(alpha: 0.6),
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _openSingleAuditDetails(context, details, audit.date),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.6)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppTextView.body1(
+                      CustomFunctions.formatDate(audit.date),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        AppTextView.body2('Ratings: ', color: Colors.grey),
+                        _buildRatingBadge(
+                          value: audit.great,
+                          color: AppColors.green1,
+                        ),
+                        _buildRatingBadge(
+                          value: audit.almostThere,
+                          color: AppColors.orange1,
+                        ),
+                        _buildRatingBadge(
+                          value: audit.needsImprovement,
+                          color: AppColors.red1,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppTextView.body1(
-                        CustomFunctions.formatDate(audit.date),
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          AppTextView.body2('Ratings: ', color: Colors.grey),
-                          _buildRatingBadge(
-                            value: audit.great,
-                            color: AppColors.green1,
-                          ),
-                          _buildRatingBadge(
-                            value: audit.almostThere,
-                            color: AppColors.orange1,
-                          ),
-                          _buildRatingBadge(
-                            value: audit.needsImprovement,
-                            color: AppColors.red1,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      _openSingleAuditDetails(context, details, audit.date);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.secondaryColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: EdgeInsets.only(
-                        left: 12,
-                        right: 12,
-                        top: 7,
-                        bottom: 7,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppTextView.body2(
-                            actionLabel,
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.north_east,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
+                GestureDetector(
+                  onTap: () {
+                    _openSingleAuditDetails(context, details, audit.date);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: EdgeInsets.only(
+                      left: 12,
+                      right: 12,
+                      top: 7,
+                      bottom: 7,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppTextView.body2(
+                          isSelfAudit ? AppStrings.view : actionLabel,
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.north_east,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -634,6 +630,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
         year: year,
         quarter: quarter,
         requireDescriptionSelection: requireDescriptionSelection,
+        isSelfAudit: context.read<CheckInController>().state.isSelfAudit,
       ),
     );
 
@@ -717,7 +714,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
 
     final todayDate = CustomFunctions.apiDateString();
     final controller = context.read<CheckInController>();
-    if (controller.state.isAuditActionLoading) {
+    if (controller.state.isAuditActionLoading || controller.state.isSelfAudit) {
       return;
     }
 

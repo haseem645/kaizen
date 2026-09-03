@@ -1,22 +1,67 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/constants/app_colors.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
+import 'package:sparrowkaizen/core/widgets/app_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/data/datasources/audit_remote_data_source.dart';
 import 'package:sparrowkaizen/features/check_in/data/repositories/audit_repository_impl.dart';
+import 'package:sparrowkaizen/features/check_in/domain/entities/audit_description_audit.dart';
 import 'package:sparrowkaizen/features/check_in/domain/entities/audit_profile.dart';
 import 'package:sparrowkaizen/features/check_in/domain/entities/quarterly_audit.dart';
 import 'package:sparrowkaizen/features/check_in/domain/usecases/get_audit_overview_usecase.dart';
 import 'package:sparrowkaizen/features/check_in/domain/usecases/get_quarterly_audit_usecase.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/providers/check_in_controller.dart';
+import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_media_comment_bottom_sheet.dart';
 import 'package:sparrowkaizen/routes/app_router.dart';
 
 import 'View_all_team_members.dart';
 import 'check_in_single_description.dart';
+
+bool _canEditSingleDescriptionAudit({
+  required bool isViewOnly,
+  required bool isOwner,
+  required String date,
+}) {
+  return !isViewOnly &&
+      isOwner &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
+}
+
+bool _canCommentOnSingleDescriptionAudit({
+  required bool isViewOnly,
+  required String date,
+}) {
+  return !isViewOnly && CustomFunctions.isAuditWithinContinueWindow(date);
+}
+
+enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
+
+class _PassSelectionViewState {
+  const _PassSelectionViewState({
+    required this.blocks,
+    required this.hasLocalChanges,
+  });
+
+  final List<_PassBlockState> blocks;
+  final bool hasLocalChanges;
+
+  _PassSelectionViewState copyWith({
+    List<_PassBlockState>? blocks,
+    bool? hasLocalChanges,
+  }) {
+    return _PassSelectionViewState(
+      blocks: blocks ?? this.blocks,
+      hasLocalChanges: hasLocalChanges ?? this.hasLocalChanges,
+    );
+  }
+}
 
 class CheckInDescriptionsListScreen extends StatelessWidget {
   const CheckInDescriptionsListScreen({
@@ -27,6 +72,7 @@ class CheckInDescriptionsListScreen extends StatelessWidget {
     this.year,
     this.quarter,
     this.requireDescriptionSelection = false,
+    this.isSelfAudit = false,
   });
 
   final String quarterlyAuditId;
@@ -35,6 +81,7 @@ class CheckInDescriptionsListScreen extends StatelessWidget {
   final int? year;
   final int? quarter;
   final bool requireDescriptionSelection;
+  final bool isSelfAudit;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +129,7 @@ class CheckInDescriptionsListScreen extends StatelessWidget {
         year: year,
         quarter: quarter,
         requireDescriptionSelection: requireDescriptionSelection,
+        isSelfAudit: isSelfAudit,
       ),
     );
   }
@@ -96,6 +144,7 @@ class _CheckInDescriptionsListView extends StatefulWidget {
     this.year,
     this.quarter,
     required this.requireDescriptionSelection,
+    required this.isSelfAudit,
   });
 
   final String date;
@@ -104,6 +153,7 @@ class _CheckInDescriptionsListView extends StatefulWidget {
   final int? year;
   final int? quarter;
   final bool requireDescriptionSelection;
+  final bool isSelfAudit;
 
   @override
   State<_CheckInDescriptionsListView> createState() =>
@@ -133,7 +183,8 @@ class _CheckInDescriptionsListViewState
         oldWidget.year != widget.year ||
         oldWidget.quarter != widget.quarter ||
         oldWidget.requireDescriptionSelection !=
-            widget.requireDescriptionSelection;
+            widget.requireDescriptionSelection ||
+        oldWidget.isSelfAudit != widget.isSelfAudit;
     if (!didIdentityChange) {
       return;
     }
@@ -406,6 +457,7 @@ class _CheckInDescriptionsListViewState
             date: widget.date,
             isOwner: auditController.state.isOwner,
             isViewOnly: audit.isMismatch,
+            isSelfAudit: widget.isSelfAudit,
             onAuditUpdated: () async {
               await auditController.refreshSingleAuditDetails(
                 quarterlyAuditId: audit.uuid,
@@ -663,7 +715,22 @@ class _CheckInDescriptionsListViewState
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final description = filteredDescriptions[index];
-                      return _buildDescriptionCard(context, audit, description);
+                      return _CheckInDescriptionCard(
+                        key: ValueKey('${audit.uuid}:${description.uuid}'),
+                        audit: audit,
+                        description: description,
+                        date: widget.date,
+                        isOwner: context
+                            .read<CheckInController>()
+                            .state
+                            .isOwner,
+                        isSelfAudit: widget.isSelfAudit,
+                        onOpenDetails: () => _openDescriptionDetails(
+                          context,
+                          audit,
+                          description,
+                        ),
+                      );
                     },
                   ),
           ),
@@ -1102,133 +1169,575 @@ class _CheckInDescriptionsListViewState
     _filtersNotifier.value = const _CheckInDescriptionsListFiltersState();
   }
 
-  Widget _buildDescriptionCard(
-    BuildContext context,
-    QuarterlyAudit audit,
-    QuarterlyAuditDescription description,
-  ) {
-    final auditFactorType = CustomFunctions.capitalizeFirstLetter(
-      description.auditFactorType,
+  Widget _buildAvatar(double size, String? imageUrl) {
+    final resolvedImageUrl = CustomFunctions.resolveImageUrl(imageUrl);
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        image: DecorationImage(
+          image: resolvedImageUrl == null
+              ? const AssetImage('${AppStrings.imagePath}dumy_pic.png')
+              : NetworkImage(resolvedImageUrl),
+          fit: BoxFit.cover,
+        ),
+      ),
     );
-    final descriptionText = description.description.isEmpty
-        ? 'No description available.'
-        : description.description;
+  }
+}
+
+class _CheckInDescriptionCard extends StatefulWidget {
+  const _CheckInDescriptionCard({
+    super.key,
+    required this.audit,
+    required this.description,
+    required this.date,
+    required this.isOwner,
+    required this.onOpenDetails,
+    required this.isSelfAudit,
+  });
+
+  final QuarterlyAudit audit;
+  final QuarterlyAuditDescription description;
+  final String date;
+  final bool isOwner;
+  final VoidCallback onOpenDetails;
+  final bool isSelfAudit;
+
+  @override
+  State<_CheckInDescriptionCard> createState() =>
+      _CheckInDescriptionCardState();
+}
+
+class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
+  static const Duration _submitDebounceDuration = Duration(milliseconds: 180);
+
+  late final ValueNotifier<_PassSelectionViewState> _viewStateNotifier;
+  late final ValueNotifier<bool> _isMediaCommentCreatedNotifier;
+  Timer? _submitDebounceTimer;
+  Timer? _mediaCommentSuccessTimer;
+  Future<AuditDescriptionAudit>? _auditDescriptionFuture;
+  late Map<String, int> _lastSyncedAuditCounts;
+  var _editRevision = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSyncedAuditCounts = _auditCountsFromDescription(widget.description);
+    _viewStateNotifier = ValueNotifier<_PassSelectionViewState>(
+      _PassSelectionViewState(
+        blocks: _blocksFromCounts(_lastSyncedAuditCounts),
+        hasLocalChanges: false,
+      ),
+    );
+    _isMediaCommentCreatedNotifier = ValueNotifier<bool>(false);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CheckInDescriptionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.description.uuid != widget.description.uuid ||
+        oldWidget.audit.uuid != widget.audit.uuid ||
+        oldWidget.date != widget.date) {
+      _resetCardState();
+      return;
+    }
+
+    _syncFromDescriptionSummary();
+  }
+
+  @override
+  void dispose() {
+    _submitDebounceTimer?.cancel();
+    _mediaCommentSuccessTimer?.cancel();
+    _viewStateNotifier.dispose();
+    _isMediaCommentCreatedNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canEditBlocks =
+        _canEditSingleDescriptionAudit(
+          isViewOnly: widget.audit.isMismatch,
+          isOwner: widget.isOwner,
+          date: widget.date,
+        ) &&
+        !widget.isSelfAudit;
+    final canCreateComments = _canCommentOnSingleDescriptionAudit(
+      isViewOnly: widget.audit.isMismatch,
+      date: widget.date,
+    );
+    final auditFactorType = CustomFunctions.capitalizeFirstLetter(
+      widget.description.auditFactorType,
+    );
+    final descriptionText = widget.description.description.isEmpty
+        ? AppStrings.auditNoDescriptionAvailable
+        : widget.description.description;
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: () => _openDescriptionDetails(context, audit, description),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(14, 8, 8, 14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.transparent, width: 1.4),
-        ),
-        child: Stack(
-          children: [
-            Column(
+      onTap: widget.onOpenDetails,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isMediaCommentCreatedNotifier,
+        builder: (context, isMediaCommentCreated, _) {
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.transparent, width: 1.4),
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                AppTextView.body1(
-                  descriptionText,
-                  color: AppColors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 18),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppTextView.body3(
-                      'Confidence: ${_formatConfidence(description.confidenceLevel)}%',
-                      fontSize: 11,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: AppTextView.body1(
+                        descriptionText,
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    if (canCreateComments) ...[
+                      const SizedBox(width: 8),
+                      _CommentIconButton(
+                        isEnabled: true,
+                        icon: Icons.camera_alt_outlined,
+                        onTap: _openCreateCommentDialog,
+                      ),
+                    ],
                     const SizedBox(width: 8),
-                    _buildDescriptionRatingBadge(
-                      value: description.great,
-                      color: AppColors.green1,
-                    ),
-                    const SizedBox(width: 5),
-                    _buildDescriptionRatingBadge(
-                      value: description.almostThere,
-                      color: AppColors.orange1,
-                    ),
-                    const SizedBox(width: 5),
-                    _buildDescriptionRatingBadge(
-                      value: description.needsImprovement,
-                      color: AppColors.red1,
-                    ),
-
-                    const Spacer(),
-                    _buildPillLabel(
-                      auditFactorType.isEmpty ? 'Audit' : auditFactorType,
-                      isCompact: true,
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                        color: isMediaCommentCreated
+                            ? AppColors.green1
+                            : AppColors.secondaryColor.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: isMediaCommentCreated
+                            ? Colors.white
+                            : AppColors.secondaryColor,
+                        size: 15,
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                ValueListenableBuilder<_PassSelectionViewState>(
+                  valueListenable: _viewStateNotifier,
+                  builder: (context, viewState, _) {
+                    final counts = _auditCountsFromBlocks(viewState.blocks);
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SelectionCounter(
+                          color: canEditBlocks
+                              ? AppColors.green1
+                              : AppColors.green1.withValues(alpha: 0.5),
+                          count: counts['great'] ?? 0,
+                          showDecrementControl:
+                              widget.isOwner && !widget.isSelfAudit,
+                          onTapCount: canEditBlocks
+                              ? () => _incrementRating(_PassBlockState.great)
+                              : null,
+                          onTapArrow: canEditBlocks
+                              ? () => _decrementRating(_PassBlockState.great)
+                              : null,
+                          canEditBlocks: canEditBlocks,
+                        ),
+                        const SizedBox(width: 8),
+                        _SelectionCounter(
+                          color: canEditBlocks
+                              ? AppColors.orange1
+                              : AppColors.orange1.withValues(alpha: 0.5),
+                          count: counts['almost_there'] ?? 0,
+                          showDecrementControl:
+                              widget.isOwner && !widget.isSelfAudit,
+                          onTapCount: canEditBlocks
+                              ? () => _incrementRating(
+                                  _PassBlockState.almostThere,
+                                )
+                              : null,
+                          onTapArrow: canEditBlocks
+                              ? () => _decrementRating(
+                                  _PassBlockState.almostThere,
+                                )
+                              : null,
+                          canEditBlocks: canEditBlocks,
+                        ),
+                        const SizedBox(width: 8),
+                        _SelectionCounter(
+                          color: canEditBlocks
+                              ? AppColors.red1
+                              : AppColors.red1.withValues(alpha: 0.5),
+                          count: counts['needs_improvement'] ?? 0,
+                          showDecrementControl:
+                              widget.isOwner && !widget.isSelfAudit,
+                          onTapCount: canEditBlocks
+                              ? () => _incrementRating(
+                                  _PassBlockState.needsImprovement,
+                                )
+                              : null,
+                          onTapArrow: canEditBlocks
+                              ? () => _decrementRating(
+                                  _PassBlockState.needsImprovement,
+                                )
+                              : null,
+                          canEditBlocks: canEditBlocks,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: _DescriptionAuditTypePill(
+                              text: auditFactorType.isEmpty
+                                  ? AppStrings.checkInTitle
+                                  : auditFactorType,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 25,
-                height: 25,
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryColor.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: AppColors.secondaryColor,
-                  size: 15,
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildDescriptionRatingBadge({
-    required int value,
-    required Color color,
-  }) {
-    return Container(
-      alignment: Alignment.center,
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: AppTextView.body4(
-        '$value',
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w700,
-      ),
+  Map<String, int> _auditCountsFromDescription(
+    QuarterlyAuditDescription description,
+  ) {
+    return <String, int>{
+      'great': description.great,
+      'almost_there': description.almostThere,
+      'needs_improvement': description.needsImprovement,
+    };
+  }
+
+  Map<String, int> _auditCountsFromBlocks(List<_PassBlockState> blocks) {
+    return <String, int>{
+      'great': blocks.where((block) => block == _PassBlockState.great).length,
+      'almost_there': blocks
+          .where((block) => block == _PassBlockState.almostThere)
+          .length,
+      'needs_improvement': blocks
+          .where((block) => block == _PassBlockState.needsImprovement)
+          .length,
+    };
+  }
+
+  List<_PassBlockState> _blocksFromCounts(Map<String, int> counts) {
+    final great = counts['great'] ?? 0;
+    final almostThere = counts['almost_there'] ?? 0;
+    final needsImprovement = counts['needs_improvement'] ?? 0;
+    final blocks = <_PassBlockState>[
+      for (var index = 0; index < great; index += 1) _PassBlockState.great,
+      for (var index = 0; index < almostThere; index += 1)
+        _PassBlockState.almostThere,
+      for (var index = 0; index < needsImprovement; index += 1)
+        _PassBlockState.needsImprovement,
+    ];
+    if (blocks.isEmpty) {
+      blocks.add(_PassBlockState.defaultValue);
+    }
+    return blocks;
+  }
+
+  void _resetCardState() {
+    _submitDebounceTimer?.cancel();
+    _auditDescriptionFuture = null;
+    _editRevision = 0;
+    _lastSyncedAuditCounts = _auditCountsFromDescription(widget.description);
+    _viewStateNotifier.value = _PassSelectionViewState(
+      blocks: _blocksFromCounts(_lastSyncedAuditCounts),
+      hasLocalChanges: false,
     );
   }
 
-  String _formatConfidence(double value) {
-    final rounded = value % 1 == 0
-        ? value.toInt().toString()
-        : value.toStringAsFixed(1);
-    return rounded;
+  void _syncFromDescriptionSummary() {
+    final summaryCounts = _auditCountsFromDescription(widget.description);
+    if (_sameAuditCounts(_lastSyncedAuditCounts, summaryCounts)) {
+      return;
+    }
+
+    _lastSyncedAuditCounts = summaryCounts;
+    final currentState = _viewStateNotifier.value;
+    if (currentState.hasLocalChanges) {
+      return;
+    }
+
+    _viewStateNotifier.value = _PassSelectionViewState(
+      blocks: _blocksFromCounts(summaryCounts),
+      hasLocalChanges: false,
+    );
   }
 
-  Widget _buildPillLabel(String text, {bool isCompact = false}) {
+  bool _sameAuditCounts(Map<String, int> left, Map<String, int> right) {
+    return (left['great'] ?? 0) == (right['great'] ?? 0) &&
+        (left['almost_there'] ?? 0) == (right['almost_there'] ?? 0) &&
+        (left['needs_improvement'] ?? 0) == (right['needs_improvement'] ?? 0);
+  }
+
+  void _decrementRating(_PassBlockState state) {
+    final currentState = _viewStateNotifier.value;
+    final updatedBlocks = List<_PassBlockState>.from(currentState.blocks);
+    final index = updatedBlocks.lastIndexOf(state);
+    if (index < 0) {
+      return;
+    }
+
+    updatedBlocks.removeAt(index);
+    _editRevision += 1;
+    _viewStateNotifier.value = _PassSelectionViewState(
+      blocks: _normalizeDefaultBlocks(updatedBlocks),
+      hasLocalChanges: true,
+    );
+    _scheduleAuditSubmission();
+  }
+
+  void _incrementRating(_PassBlockState state) {
+    final currentState = _viewStateNotifier.value;
+    final updatedBlocks = List<_PassBlockState>.from(currentState.blocks)
+      ..removeWhere((block) => block == _PassBlockState.defaultValue)
+      ..add(state);
+    _editRevision += 1;
+    _viewStateNotifier.value = _PassSelectionViewState(
+      blocks: updatedBlocks,
+      hasLocalChanges: true,
+    );
+    _scheduleAuditSubmission();
+  }
+
+  List<_PassBlockState> _normalizeDefaultBlocks(List<_PassBlockState> blocks) {
+    final hasSelectedBlock = blocks.any(
+      (block) => block != _PassBlockState.defaultValue,
+    );
+    if (hasSelectedBlock) {
+      return blocks;
+    }
+
+    return <_PassBlockState>[_PassBlockState.defaultValue];
+  }
+
+  void _scheduleAuditSubmission() {
+    _submitDebounceTimer?.cancel();
+    _submitDebounceTimer = Timer(_submitDebounceDuration, () {
+      if (!mounted) {
+        return;
+      }
+
+      _submitDescriptionAudit(
+        _auditCountsFromBlocks(_viewStateNotifier.value.blocks),
+        _editRevision,
+      );
+    });
+  }
+
+  Future<void> _submitDescriptionAudit(
+    Map<String, int> audit,
+    int submissionRevision,
+  ) async {
+    try {
+      final controller = context.read<CheckInController>();
+      final descriptionId = await _resolveAuditUuid();
+
+      final response = await controller.submitAuditDescriptionSelection(
+        descriptionId: descriptionId,
+        audit: audit,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      // The submit response can omit its audit list, so retain the payload
+      // that the API just accepted instead of briefly rendering zero counts.
+      _lastSyncedAuditCounts = Map<String, int>.from(audit);
+      _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(response);
+      if (submissionRevision != _editRevision) {
+        return;
+      }
+
+      _viewStateNotifier.value = _PassSelectionViewState(
+        blocks: _blocksFromCounts(_lastSyncedAuditCounts),
+        hasLocalChanges: false,
+      );
+    } catch (error) {
+      debugPrint('Unable to submit description audit from list: $error');
+      if (!mounted || submissionRevision != _editRevision) {
+        return;
+      }
+
+      _revertToLastSyncedState();
+      _showSnackBar(AppStrings.auditUnableToUpdateRating);
+    }
+  }
+
+  Future<void> _openCreateCommentDialog() async {
+    try {
+      final auditUuid = await _resolveAuditUuid();
+      if (!mounted) {
+        return;
+      }
+
+      final didCreateMediaComment = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) {
+          return _DescriptionMediaTypeSelectionBottomSheet(
+            onTypeSelected: (selectedType) =>
+                _openSelectedMediaCommentDialog(auditUuid, selectedType),
+          );
+        },
+      );
+      if (didCreateMediaComment == true && mounted) {
+        _animateMediaCommentCreated();
+      }
+    } catch (error) {
+      debugPrint('Unable to resolve audit uuid for media comment: $error');
+      if (!mounted) {
+        return;
+      }
+
+      _showSnackBar(AppStrings.auditUnableToLoadDescriptionDetails);
+    }
+  }
+
+  Future<String> _resolveAuditUuid() async {
+    final auditUuid = widget.description.auditUuid.trim();
+    if (auditUuid.isNotEmpty) {
+      return auditUuid;
+    }
+
+    final inFlightRequest = _auditDescriptionFuture;
+    final auditDescription = inFlightRequest != null
+        ? await inFlightRequest
+        : await _loadAuditDescriptionForUuid();
+    final resolvedAuditUuid = auditDescription.uuid.trim();
+    if (resolvedAuditUuid.isEmpty) {
+      throw StateError('Audit description uuid is empty.');
+    }
+
+    return resolvedAuditUuid;
+  }
+
+  Future<AuditDescriptionAudit> _loadAuditDescriptionForUuid() async {
+    final quarterlyAuditId = widget.audit.uuid.trim();
+    final descriptionId = widget.description.uuid.trim();
+    final date = widget.date.trim();
+    if (quarterlyAuditId.isEmpty || descriptionId.isEmpty || date.isEmpty) {
+      throw StateError('Audit description is missing required identifiers.');
+    }
+
+    final future = context.read<CheckInController>().loadAuditDescription(
+      quarterlyAuditId: quarterlyAuditId,
+      descriptionId: descriptionId,
+      date: date,
+    );
+    _auditDescriptionFuture = future;
+
+    try {
+      final auditDescription = await future;
+      _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(
+        auditDescription,
+      );
+      return auditDescription;
+    } catch (_) {
+      _auditDescriptionFuture = null;
+      rethrow;
+    }
+  }
+
+  Future<bool> _openSelectedMediaCommentDialog(
+    String auditUuid,
+    DescriptionMediaCommentContentType selectedType,
+  ) async {
+    final didSave = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return DescriptionMediaCommentBottomSheet(
+          contentType: selectedType,
+          onSave: (comment, mediaFile, mediaType) =>
+              _saveCommentWithMedia(auditUuid, comment, mediaFile, mediaType),
+        );
+      },
+    );
+
+    if (didSave != true || !mounted) {
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<void> _saveCommentWithMedia(
+    String descriptionId,
+    String comment,
+    File? mediaFile,
+    String? mediaType,
+  ) async {
+    await context.read<CheckInController>().createAuditDescriptionMediaComment(
+      descriptionId: descriptionId,
+      comment: comment,
+      mediaFile: mediaFile,
+      mediaType: mediaType,
+    );
+  }
+
+  void _animateMediaCommentCreated() {
+    _mediaCommentSuccessTimer?.cancel();
+    _isMediaCommentCreatedNotifier.value = true;
+    _mediaCommentSuccessTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        _isMediaCommentCreatedNotifier.value = false;
+      }
+    });
+  }
+
+  void _revertToLastSyncedState() {
+    _viewStateNotifier.value = _PassSelectionViewState(
+      blocks: _blocksFromCounts(_lastSyncedAuditCounts),
+      hasLocalChanges: false,
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _DescriptionAuditTypePill extends StatelessWidget {
+  const _DescriptionAuditTypePill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.orange1,
         borderRadius: BorderRadius.circular(50),
@@ -1243,20 +1752,277 @@ class _CheckInDescriptionsListViewState
       ),
     );
   }
+}
 
-  Widget _buildAvatar(double size, String? imageUrl) {
-    final resolvedImageUrl = CustomFunctions.resolveImageUrl(imageUrl);
+class _SelectionCounter extends StatelessWidget {
+  const _SelectionCounter({
+    required this.color,
+    required this.count,
+    this.onTapCount,
+    this.onTapArrow,
+    required this.canEditBlocks,
+    required this.showDecrementControl,
+  });
 
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        image: DecorationImage(
-          image: resolvedImageUrl == null
-              ? const AssetImage('${AppStrings.imagePath}dumy_pic.png')
-              : NetworkImage(resolvedImageUrl),
-          fit: BoxFit.cover,
+  final Color color;
+  final int count;
+  final VoidCallback? onTapCount;
+  final VoidCallback? onTapArrow;
+  final bool canEditBlocks;
+  final bool showDecrementControl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTapCount,
+          child: Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: AppTextView.body2(
+              '$count',
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        if (showDecrementControl) ...[
+          const SizedBox(height: 5),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTapArrow,
+            child: Container(
+              width: 30,
+              height: 20,
+              decoration: BoxDecoration(
+                color: canEditBlocks
+                    ? AppColors.grey1
+                    : AppColors.grey1.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                canEditBlocks
+                    ? Icons.keyboard_arrow_down_rounded
+                    : Icons.lock_rounded,
+                color: Colors.white,
+                size: canEditBlocks ? 22 : 14,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CommentIconButton extends StatelessWidget {
+  const _CommentIconButton({
+    required this.isEnabled,
+    required this.icon,
+    this.onTap,
+  });
+
+  final bool isEnabled;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isEnabled ? AppColors.secondaryColor : AppColors.grey1;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.6)),
+          ),
+          child: Icon(icon, color: color, size: 14),
+        ),
+      ),
+    );
+  }
+}
+
+class _DescriptionMediaTypeSelectionBottomSheet extends StatefulWidget {
+  const _DescriptionMediaTypeSelectionBottomSheet({
+    required this.onTypeSelected,
+  });
+
+  final Future<bool> Function(DescriptionMediaCommentContentType selectedType)
+  onTypeSelected;
+
+  @override
+  State<_DescriptionMediaTypeSelectionBottomSheet> createState() =>
+      _DescriptionMediaTypeSelectionBottomSheetState();
+}
+
+class _DescriptionMediaTypeSelectionBottomSheetState
+    extends State<_DescriptionMediaTypeSelectionBottomSheet> {
+  static const _availableTypes = <DescriptionMediaCommentContentType>[
+    DescriptionMediaCommentContentType.photo,
+    DescriptionMediaCommentContentType.video,
+    DescriptionMediaCommentContentType.upload,
+  ];
+
+  late final ValueNotifier<bool> _isOpeningChildSheetNotifier =
+      ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _isOpeningChildSheetNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isOpeningChildSheetNotifier,
+      builder: (context, isOpeningChildSheet, _) {
+        return SafeArea(
+          top: false,
+          bottom: false,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(18, 14, 18, bottomPadding + 24),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 46,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const AppTextView.body1(
+                  AppStrings.auditSelectMediaType,
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+                const SizedBox(height: 14),
+                for (
+                  var index = 0;
+                  index < _availableTypes.length;
+                  index += 1
+                ) ...[
+                  _MediaTypeOption(
+                    title: _mediaTypeTitle(_availableTypes[index]),
+                    onTap: isOpeningChildSheet
+                        ? null
+                        : () => _openChildSheet(_availableTypes[index]),
+                  ),
+                  if (index != _availableTypes.length - 1)
+                    const SizedBox(height: 10),
+                ],
+                const SizedBox(height: 18),
+                AppButton(
+                  text: AppStrings.done,
+                  onPressed: isOpeningChildSheet
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _mediaTypeTitle(DescriptionMediaCommentContentType type) {
+    return switch (type) {
+      DescriptionMediaCommentContentType.photo => AppStrings.auditPhoto,
+      DescriptionMediaCommentContentType.video => AppStrings.auditVideo,
+      DescriptionMediaCommentContentType.upload => AppStrings.auditUpload,
+      DescriptionMediaCommentContentType.screenRecording =>
+        AppStrings.auditScreenRecording,
+    };
+  }
+
+  Future<void> _openChildSheet(
+    DescriptionMediaCommentContentType selectedType,
+  ) async {
+    if (_isOpeningChildSheetNotifier.value) {
+      return;
+    }
+
+    _isOpeningChildSheetNotifier.value = true;
+    try {
+      final didSave = await widget.onTypeSelected(selectedType);
+      if (didSave && mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      _isOpeningChildSheetNotifier.value = false;
+    }
+  }
+}
+
+class _MediaTypeOption extends StatelessWidget {
+  const _MediaTypeOption({required this.title, required this.onTap});
+
+  final String title;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.grey2.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: AppTextView.body2(
+                  title,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textPrimary,
+                size: 22,
+              ),
+            ],
+          ),
         ),
       ),
     );
