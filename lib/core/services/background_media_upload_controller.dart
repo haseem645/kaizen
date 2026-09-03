@@ -9,7 +9,6 @@ import '../constants/app_strings.dart';
 import '../network/api_error.dart';
 import '../utils/custom_functions.dart';
 import '../utils/operation_cancellation_token.dart';
-import 'background_media_upload_system_notification_bridge.dart';
 import 'file_uploader.dart';
 
 const Object _unsetBackgroundMediaUploadField = Object();
@@ -368,10 +367,7 @@ class BackgroundMediaUploadController extends ChangeNotifier {
   int _nextTaskId = 0;
   int _terminalEventSequence = 0;
   bool _hasPendingNotification = false;
-  bool _isConsumingNotificationCancellationRequests = false;
   String? _startErrorMessage;
-  String _lastSystemNotificationSignature = '';
-  Timer? _notificationCancellationPollingTimer;
 
   String? get startErrorMessage => _startErrorMessage;
   int get latestTerminalEventSequence => _terminalEventSequence;
@@ -654,8 +650,6 @@ class BackgroundMediaUploadController extends ChangeNotifier {
   }
 
   void _notifyListenersSafely() {
-    _syncSystemNotifications();
-    _syncNotificationCancellationPolling();
     if (_hasPendingNotification) {
       return;
     }
@@ -677,108 +671,5 @@ class BackgroundMediaUploadController extends ChangeNotifier {
     scheduler.addPostFrameCallback((_) {
       dispatchNotification();
     });
-  }
-
-  void _syncSystemNotifications() {
-    final notificationPayloads = visibleTasks
-        .map(_buildSystemNotificationPayload)
-        .toList(growable: false);
-    final signature = notificationPayloads
-        .map(
-          (payload) => [
-            payload['taskId'],
-            payload['status'],
-            payload['title'],
-            payload['message'],
-            payload['progressPercent'],
-            payload['canCancel'],
-            payload['isOngoing'],
-          ].join('|'),
-        )
-        .join('||');
-    if (signature == _lastSystemNotificationSignature) {
-      return;
-    }
-
-    _lastSystemNotificationSignature = signature;
-    BackgroundMediaUploadSystemNotificationBridge.instance.queueSync(
-      notificationPayloads,
-    );
-  }
-
-  Map<String, Object?> _buildSystemNotificationPayload(
-    BackgroundMediaUploadTask task,
-  ) {
-    final progressPercent = task.progressValue == null
-        ? null
-        : (task.progressValue! * 100).clamp(0, 100).round();
-    final notificationProgressPercent = progressPercent == null
-        ? null
-        : Platform.isIOS
-        ? ((progressPercent / 10).round() * 10).clamp(0, 100)
-        : progressPercent;
-    final subjectLabel = task.presentation.subjectLabel.trim().isNotEmpty
-        ? task.presentation.subjectLabel.trim()
-        : task.sourceFileName;
-    final bannerMessage = task.bannerMessage.trim();
-    final detailLabel = task.bannerDetail?.trim();
-    final messageParts = <String>[subjectLabel];
-    if (task.isFailed) {
-      if (bannerMessage.isNotEmpty && bannerMessage != subjectLabel) {
-        messageParts.add(bannerMessage);
-      }
-    } else if (detailLabel != null && detailLabel.isNotEmpty) {
-      messageParts.add(detailLabel);
-    } else if (bannerMessage.isNotEmpty && bannerMessage != subjectLabel) {
-      messageParts.add(bannerMessage);
-    }
-
-    return <String, Object?>{
-      'taskId': task.taskId,
-      'status': task.status.name,
-      'title': task.bannerTitle,
-      'message': messageParts.join(' • '),
-      'progressPercent': notificationProgressPercent,
-      'canCancel': task.canCancel,
-      'isOngoing': task.isActive,
-    };
-  }
-
-  void _syncNotificationCancellationPolling() {
-    final shouldPoll = _tasksById.values.any((task) => task.canCancel);
-    if (!shouldPoll) {
-      _notificationCancellationPollingTimer?.cancel();
-      _notificationCancellationPollingTimer = null;
-      return;
-    }
-
-    _notificationCancellationPollingTimer ??= Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        unawaited(_consumePendingNotificationCancellationRequests());
-      },
-    );
-  }
-
-  Future<void> _consumePendingNotificationCancellationRequests() async {
-    if (_isConsumingNotificationCancellationRequests) {
-      return;
-    }
-
-    _isConsumingNotificationCancellationRequests = true;
-    try {
-      final pendingTaskIds = await BackgroundMediaUploadSystemNotificationBridge
-          .instance
-          .consumePendingCancelledTaskIds();
-      if (pendingTaskIds.isEmpty) {
-        return;
-      }
-
-      for (final taskId in pendingTaskIds) {
-        cancelUpload(taskId);
-      }
-    } finally {
-      _isConsumingNotificationCancellationRequests = false;
-    }
   }
 }

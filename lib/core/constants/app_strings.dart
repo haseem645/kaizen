@@ -624,13 +624,6 @@ class AppStrings {
   static const String backgroundUploadContinues = 'You can keep using the app.';
   static const String trainingReturnToLessonToAddThumbnail =
       'Return to the lesson to add a thumbnail.';
-  static const String trainingUploadNotificationChannelName =
-      'Training uploads';
-  static const String trainingUploadNotificationChannelDescription =
-      'Shows progress for training video uploads.';
-  static const String backgroundUploadNotificationChannelName = 'Uploads';
-  static const String backgroundUploadNotificationChannelDescription =
-      'Shows progress for background uploads.';
   static const String trainingVideoUploadAlreadyInProgress =
       'A training video upload is already in progress.';
   static const String trainingModuleVideoUploadAlreadyInProgress =
@@ -681,10 +674,6 @@ class AppStrings {
       'Tap to view all uploads.';
   static const String trainingVideoUploadsTapToCollapse =
       'Tap to hide upload details.';
-  static String trainingUploadProgressLabel(int percent) {
-    return '$percent% uploaded';
-  }
-
   static String backgroundUploadProgressLabel(int percent) {
     return '$percent% uploaded';
   }
