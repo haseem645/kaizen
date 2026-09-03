@@ -28,7 +28,9 @@ class QuestionsFeedbackDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MultiProvider(
     providers: [
-      Provider<FeedbackRemoteDataSource>(create: (_) => createFeedbackRemoteDataSource()),
+      Provider<FeedbackRemoteDataSource>(
+        create: (_) => createFeedbackRemoteDataSource(),
+      ),
       ProxyProvider<FeedbackRemoteDataSource, FeedbackRepositoryImpl>(
         update: (_, source, __) => FeedbackRepositoryImpl(source),
       ),
@@ -93,7 +95,10 @@ class _DetailViewState extends State<_DetailView> {
                     children: [
                       _PostSummary(post: post),
                       const SizedBox(height: 14),
-                      const AppDotDivider(color: AppColors.hex51597a, opacity: .55),
+                      const AppDotDivider(
+                        color: AppColors.hex51597a,
+                        opacity: .55,
+                      ),
                       _ActionRow(controller: controller),
                       const SizedBox(height: 12),
                       _Comments(controller: controller),
@@ -140,7 +145,11 @@ class _PostSummary extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: AppTextView.title1(post.title, color: AppColors.textPrimary, fontSize: 18),
+              child: AppTextView.title1(
+                post.title,
+                color: AppColors.textPrimary,
+                fontSize: 18,
+              ),
             ),
             const SizedBox(width: 10),
             _Status(label: status),
@@ -193,14 +202,18 @@ class _ActionRow extends StatelessWidget {
           onPressed: () => _like(context),
           icon: Icon(
             controller.post.isLiked ? Icons.favorite : Icons.favorite_border,
-            color: controller.post.isLiked ? AppColors.red1 : AppColors.textSecondary,
+            color: controller.post.isLiked
+                ? AppColors.red1
+                : AppColors.textSecondary,
             size: 20,
           ),
           label: AppTextView.body1(
             controller.post.isLiked
                 ? AppStrings.questionsFeedbackLikedAction
                 : AppStrings.questionsFeedbackLikeAction,
-            color: controller.post.isLiked ? AppColors.red1 : AppColors.textSecondary,
+            color: controller.post.isLiked
+                ? AppColors.red1
+                : AppColors.textSecondary,
             fontSize: 13,
           ),
         ),
@@ -224,7 +237,10 @@ class _ActionRow extends StatelessWidget {
         PopupMenuButton<String>(
           padding: EdgeInsets.zero,
           color: AppColors.hex252a40,
-          icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+          icon: const Icon(
+            Icons.more_vert_rounded,
+            color: AppColors.textSecondary,
+          ),
           onSelected: (value) {
             if (value == AppStrings.questionsFeedbackEditAction) {
               _showPostEditSheet(context);
@@ -257,7 +273,11 @@ class _ActionRow extends StatelessWidget {
     if (!context.mounted || ok) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackLikeUpdateFailed)));
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.questionsFeedbackLikeUpdateFailed),
+        ),
+      );
   }
 
   Future<void> _showPostEditSheet(BuildContext context) async {
@@ -292,7 +312,11 @@ class _ActionRow extends StatelessWidget {
     if (didDelete == false) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackPostDeleteFailed)));
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(AppStrings.questionsFeedbackPostDeleteFailed),
+          ),
+        );
     }
   }
 }
@@ -306,7 +330,11 @@ class _Comments extends StatelessWidget {
     children: [
       Row(
         children: [
-          const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.textPrimary, size: 22),
+          const Icon(
+            Icons.chat_bubble_outline_rounded,
+            color: AppColors.textPrimary,
+            size: 22,
+          ),
           const SizedBox(width: 8),
           const Expanded(
             child: AppTextView.title1(
@@ -334,10 +362,13 @@ class _Comments extends StatelessWidget {
       for (final comment in controller.comments)
         _Comment(
           comment: comment,
-          onReply: () =>
-              controller.showComposer(parentId: comment.id, parentAuthorName: comment.author?.name),
+          onReply: () => controller.showComposer(
+            parentId: comment.id,
+            parentAuthorName: comment.author?.name,
+          ),
           isReplyComposerVisible:
-              controller.isComposerVisible && controller.replyParentId == comment.id,
+              controller.isComposerVisible &&
+              controller.replyParentId == comment.id,
           controller: controller,
           showReplyAction: true,
         ),
@@ -359,7 +390,8 @@ class _Composer extends StatelessWidget {
     children: [
       _Avatar(
         imageUrl: CustomFunctions.resolveImageUrl(
-          AppManager.instance.currentUser?.imageUrl ?? AppManager.instance.currentUser?.image,
+          AppManager.instance.currentUser?.imageUrl ??
+              AppManager.instance.currentUser?.image,
         ),
       ),
       const SizedBox(width: 8),
@@ -380,12 +412,20 @@ class _Composer extends StatelessWidget {
                 maxLines: 3,
                 cursorColor: AppColors.textPrimary,
                 cursorHeight: 15,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                ),
                 decoration: InputDecoration(
                   hintText: controller.replyAuthorName == null
                       ? AppStrings.questionsFeedbackAddCommentHint
-                      : AppStrings.questionsFeedbackReplyToHint(controller.replyAuthorName!),
-                  hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      : AppStrings.questionsFeedbackReplyToHint(
+                          controller.replyAuthorName!,
+                        ),
+                  hintStyle: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                   border: InputBorder.none,
                   isDense: true,
                 ),
@@ -394,18 +434,33 @@ class _Composer extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextButton(
-                    onPressed: controller.isSendingComment ? null : controller.cancelComposer,
+                    onPressed: controller.isSendingComment
+                        ? null
+                        : controller.cancelComposer,
                     style: _compactCommentActionStyle,
                     child: const Text(AppStrings.questionsFeedbackCancelAction),
                   ),
                   IconButton(
-                    onPressed: controller.canSendComment ? () => _send(context) : null,
+                    onPressed: controller.canSendComment
+                        ? () => _send(context)
+                        : null,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                    constraints: const BoxConstraints.tightFor(
+                      width: 28,
+                      height: 28,
+                    ),
                     visualDensity: VisualDensity.compact,
                     icon: controller.isSendingComment
-                        ? SizedBox(width: 18, height: 18, child: FastCircularProgressIndicator())
-                        : const Icon(Icons.send_rounded, color: AppColors.secondaryColor, size: 20),
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: FastCircularProgressIndicator(),
+                          )
+                        : const Icon(
+                            Icons.send_rounded,
+                            color: AppColors.secondaryColor,
+                            size: 20,
+                          ),
                   ),
                 ],
               ),
@@ -420,7 +475,11 @@ class _Composer extends StatelessWidget {
     if (!context.mounted || ok) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackCommentSendFailed)));
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.questionsFeedbackCommentSendFailed),
+        ),
+      );
   }
 }
 
@@ -446,7 +505,9 @@ class _Comment extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Avatar(imageUrl: CustomFunctions.resolveImageUrl(comment.author?.imageUrl)),
+          _Avatar(
+            imageUrl: CustomFunctions.resolveImageUrl(comment.author?.imageUrl),
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: FractionallySizedBox(
@@ -457,7 +518,10 @@ class _Comment extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onLongPressStart: canModifyComment
-                        ? (details) => _showCommentActions(context, details.globalPosition)
+                        ? (details) => _showCommentActions(
+                            context,
+                            details.globalPosition,
+                          )
                         : null,
                     child: Container(
                       padding: const EdgeInsets.all(10),
@@ -497,7 +561,10 @@ class _Comment extends StatelessWidget {
                               maxLines: 3,
                               cursorColor: AppColors.textPrimary,
                               cursorHeight: 15,
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                              ),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 isDense: true,
@@ -527,19 +594,25 @@ class _Comment extends StatelessWidget {
                                       ? null
                                       : controller.cancelEditing,
                                   style: _compactCommentActionStyle,
-                                  child: const Text(AppStrings.questionsFeedbackCancelAction),
+                                  child: const Text(
+                                    AppStrings.questionsFeedbackCancelAction,
+                                  ),
                                 ),
                                 IconButton(
                                   onPressed: controller.isSavingEdit
                                       ? null
                                       : () => _saveCommentEdit(context),
                                   padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 28,
+                                    height: 28,
+                                  ),
                                   icon: controller.isSavingEdit
                                       ? SizedBox(
                                           width: 18,
                                           height: 18,
-                                          child: FastCircularProgressIndicator(),
+                                          child:
+                                              FastCircularProgressIndicator(),
                                         )
                                       : const Icon(
                                           Icons.check_rounded,
@@ -611,9 +684,11 @@ class _Comment extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 12),
                         child: _Comment(
                           comment: reply,
-                          onReply: () => controller.showComposer(parentId: reply.id),
+                          onReply: () =>
+                              controller.showComposer(parentId: reply.id),
                           isReplyComposerVisible:
-                              controller.isComposerVisible && controller.replyParentId == reply.id,
+                              controller.isComposerVisible &&
+                              controller.replyParentId == reply.id,
                           controller: controller,
                           showReplyAction: false,
                         ),
@@ -627,8 +702,12 @@ class _Comment extends StatelessWidget {
     );
   }
 
-  Future<void> _showCommentActions(BuildContext context, Offset globalPosition) async {
-    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+  Future<void> _showCommentActions(
+    BuildContext context,
+    Offset globalPosition,
+  ) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
     final selectedAction = await showMenu<String>(
       context: context,
       color: AppColors.hex252a40,
@@ -672,13 +751,16 @@ class _Comment extends StatelessWidget {
   ) async {
     final didDelete = await showDialog<bool>(
       context: context,
-      builder: (_) => _DeleteCommentDialog(controller: controller, commentId: commentId),
+      builder: (_) =>
+          _DeleteCommentDialog(controller: controller, commentId: commentId),
     );
     if (!context.mounted || didDelete != false) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(content: Text(AppStrings.questionsFeedbackCommentDeleteFailed)),
+        const SnackBar(
+          content: Text(AppStrings.questionsFeedbackCommentDeleteFailed),
+        ),
       );
   }
 
@@ -689,7 +771,11 @@ class _Comment extends StatelessWidget {
     }
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackCommentEditFailed)));
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.questionsFeedbackCommentEditFailed),
+        ),
+      );
   }
 }
 
@@ -730,7 +816,11 @@ class _EditPostBottomSheet extends StatelessWidget {
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text(AppStrings.questionsFeedbackPostEditFailed)));
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.questionsFeedbackPostEditFailed),
+        ),
+      );
   }
 
   @override
@@ -792,7 +882,7 @@ class _EditPostBottomSheet extends StatelessWidget {
                       onAttachmentTap: controller.pickEditPostAttachments,
                       onChanged: controller.onPostEditChanged,
                     ),
-                    if (controller.post.attachments.isNotEmpty ||
+                    if (controller.editExistingAttachmentUrls.isNotEmpty ||
                         controller.editPostAttachments.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _EditAttachmentPreviewStrip(controller: controller),
@@ -813,7 +903,9 @@ class _EditPostBottomSheet extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         TextButton(
-                          onPressed: controller.canSavePostEdit ? () => _save(context) : null,
+                          onPressed: controller.canSavePostEdit
+                              ? () => _save(context)
+                              : null,
                           child: controller.isSavingPostEdit
                               ? SizedBox(
                                   width: 18,
@@ -874,10 +966,18 @@ class _PostEditField extends StatelessWidget {
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             labelText: label,
-            labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            labelStyle: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
             filled: true,
             fillColor: AppColors.hex252a40,
-            contentPadding: EdgeInsets.fromLTRB(12, 16, attachmentCount == null ? 12 : 82, 16),
+            contentPadding: EdgeInsets.fromLTRB(
+              12,
+              16,
+              attachmentCount == null ? 12 : 82,
+              16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -928,24 +1028,40 @@ class _EditAttachmentPreviewStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final existingAttachmentCount = controller.post.attachments.length;
+    final existingAttachmentCount =
+        controller.editExistingAttachmentUrls.length;
     return SizedBox(
       height: 76,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: existingAttachmentCount + controller.editPostAttachments.length,
+        itemCount:
+            existingAttachmentCount + controller.editPostAttachments.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           if (index < existingAttachmentCount) {
-            return _ExistingAttachmentThumbnail(imageUrl: controller.post.attachments[index]);
+            return Padding(
+              padding: const EdgeInsets.only(top: 8, right: 8),
+              child: _ExistingAttachmentThumbnail(
+                imageUrl: controller.editExistingAttachmentUrls[index],
+                onRemove: controller.isSavingPostEdit
+                    ? null
+                    : () => controller.removeExistingEditPostAttachment(index),
+              ),
+            );
           }
 
           final selectedAttachmentIndex = index - existingAttachmentCount;
-          return _EditAttachmentThumbnail(
-            bytes: controller.editPostAttachments[selectedAttachmentIndex].bytes,
-            onRemove: controller.isSavingPostEdit
-                ? null
-                : () => controller.removeEditPostAttachment(selectedAttachmentIndex),
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, right: 8),
+            child: _EditAttachmentThumbnail(
+              bytes:
+                  controller.editPostAttachments[selectedAttachmentIndex].bytes,
+              onRemove: controller.isSavingPostEdit
+                  ? null
+                  : () => controller.removeEditPostAttachment(
+                      selectedAttachmentIndex,
+                    ),
+            ),
           );
         },
       ),
@@ -954,40 +1070,47 @@ class _EditAttachmentPreviewStrip extends StatelessWidget {
 }
 
 class _ExistingAttachmentThumbnail extends StatelessWidget {
-  const _ExistingAttachmentThumbnail({required this.imageUrl});
+  const _ExistingAttachmentThumbnail({required this.imageUrl, this.onRemove});
 
   final String imageUrl;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
     final resolvedImageUrl = CustomFunctions.resolveImageUrl(imageUrl);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        width: 68,
-        height: 68,
-        child: resolvedImageUrl == null
-            ? const ColoredBox(
-                color: AppColors.hex252a40,
-                child: Icon(
-                  Icons.image_not_supported_outlined,
-                  color: AppColors.textSecondary,
-                  size: 20,
-                ),
-              )
-            : Image.network(
-                resolvedImageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const ColoredBox(
-                  color: AppColors.hex252a40,
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: AppColors.textSecondary,
-                    size: 20,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 68,
+            height: 68,
+            child: resolvedImageUrl == null
+                ? const ColoredBox(
+                    color: AppColors.hex252a40,
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                  )
+                : Image.network(
+                    resolvedImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const ColoredBox(
+                      color: AppColors.hex252a40,
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-      ),
+          ),
+        ),
+        _AttachmentRemoveButton(onRemove: onRemove),
+      ],
     );
   }
 }
@@ -1007,30 +1130,46 @@ class _EditAttachmentThumbnail extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: Image.memory(bytes, width: 68, height: 68, fit: BoxFit.cover),
         ),
-        Positioned(
-          top: -8,
-          right: -8,
-          child: Material(
-            color: AppColors.secondaryColor,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onRemove,
-              child: const SizedBox(
-                width: 20,
-                height: 20,
-                child: Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 16),
-              ),
-            ),
-          ),
-        ),
+        _AttachmentRemoveButton(onRemove: onRemove),
       ],
     );
   }
 }
 
+class _AttachmentRemoveButton extends StatelessWidget {
+  const _AttachmentRemoveButton({this.onRemove});
+
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    top: -8,
+    right: -8,
+    child: Material(
+      color: AppColors.secondaryColor,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onRemove,
+        child: const SizedBox(
+          width: 20,
+          height: 20,
+          child: Icon(
+            Icons.close_rounded,
+            color: AppColors.textPrimary,
+            size: 16,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _DeleteCommentDialog extends StatelessWidget {
-  const _DeleteCommentDialog({required this.controller, required this.commentId});
+  const _DeleteCommentDialog({
+    required this.controller,
+    required this.commentId,
+  });
 
   final QuestionsFeedbackDetailController controller;
   final String commentId;
@@ -1097,7 +1236,9 @@ String _timeAgo(String createdAt) {
   if (milliseconds == null) {
     return AppStrings.questionsFeedbackJustNow;
   }
-  final difference = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(milliseconds));
+  final difference = DateTime.now().difference(
+    DateTime.fromMillisecondsSinceEpoch(milliseconds),
+  );
   if (difference.inMinutes < 1) {
     return AppStrings.questionsFeedbackJustNow;
   }
@@ -1123,7 +1264,9 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CircleAvatar(
     radius: 17,
-    backgroundColor: imageUrl == null ? AppColors.secondaryColor : AppColors.hex252a40,
+    backgroundColor: imageUrl == null
+        ? AppColors.secondaryColor
+        : AppColors.hex252a40,
     backgroundImage: imageUrl == null ? null : NetworkImage(imageUrl!),
     child: imageUrl == null
         ? const Text(

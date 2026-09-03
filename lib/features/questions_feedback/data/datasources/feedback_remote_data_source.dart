@@ -1,7 +1,14 @@
+import 'dart:async';
+
+import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
+
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_processor.dart';
 import '../../../../core/network/multipart_api_executor.dart';
+import '../../../../core/preference/app_preference.dart';
+import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/feedback_image_attachment.dart';
 import '../../domain/entities/feedback_post_create_draft.dart';
 import '../models/feedback_post_model.dart';
@@ -42,6 +49,17 @@ class FeedbackRemoteDataSource {
     );
   }
 
+  Future<FeedbackPostModel> getFeedbackPost({required String feedbackId}) {
+    return _apiCallExecutor.processApi<FeedbackPostModel>(
+      apiCallType: ApiCallType.get,
+      endpoint: ApiEndPoints.feedbackPost(feedbackId),
+      decoder: (json) {
+        final postJson = _extractFeedbackPostJson(json);
+        return FeedbackPostModel.fromApiJson(postJson);
+      },
+    );
+  }
+
   Future<void> updateFeedbackPostLike({
     required String feedbackId,
     required bool isLiked,
@@ -60,14 +78,25 @@ class FeedbackRemoteDataSource {
     required String description,
     List<FeedbackImageAttachment> attachments =
         const <FeedbackImageAttachment>[],
-  }) {
-    if (attachments.isEmpty) {
+    List<String> retainedAttachmentUrls = const <String>[],
+    bool clearAttachments = false,
+  }) async {
+    final retainedAttachments = await _downloadAttachments(
+      retainedAttachmentUrls,
+    );
+    final formAttachments = <FeedbackImageAttachment>[
+      ...retainedAttachments,
+      ...attachments,
+    ];
+
+    if (formAttachments.isEmpty) {
       return _apiCallExecutor.processApi<FeedbackPostModel?>(
         apiCallType: ApiCallType.patch,
         endpoint: ApiEndPoints.feedbackPost(feedbackId),
         parameters: <String, dynamic>{
           'title': title,
           'description': description,
+          if (clearAttachments) 'attachments': <String>[],
         },
         decoder: _decodeUpdatedPost,
       );
@@ -77,7 +106,7 @@ class FeedbackRemoteDataSource {
       method: 'PATCH',
       endpoint: ApiEndPoints.feedbackPost(feedbackId),
       fields: <String, String>{'title': title, 'description': description},
-      files: attachments
+      files: formAttachments
           .map(
             (attachment) => MultipartApiFile(
               fieldName: 'attachments',
@@ -89,6 +118,50 @@ class FeedbackRemoteDataSource {
           .toList(growable: false),
       decoder: _decodeUpdatedPost,
     );
+  }
+
+  Future<List<FeedbackImageAttachment>> _downloadAttachments(
+    List<String> attachmentUrls,
+  ) async {
+    final token = AppPreference.getAuthToken().trim();
+    final headers = token.isEmpty
+        ? const <String, String>{}
+        : <String, String>{'Authorization': 'Bearer $token'};
+    final attachments = <FeedbackImageAttachment>[];
+
+    for (var index = 0; index < attachmentUrls.length; index++) {
+      final resolvedUrl = CustomFunctions.resolveImageUrl(
+        attachmentUrls[index],
+      );
+      if (resolvedUrl == null) {
+        throw const ApiError.invalidUrl();
+      }
+
+      final response = await http
+          .get(Uri.parse(resolvedUrl), headers: headers)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode < 200 || response.statusCode > 299) {
+        throw ApiError.requestFailed(response.statusCode);
+      }
+
+      final pathSegments = Uri.parse(resolvedUrl).pathSegments;
+      final fileName = pathSegments.isEmpty || pathSegments.last.isEmpty
+          ? 'attachment_${index + 1}.jpg'
+          : pathSegments.last;
+      final contentType =
+          response.headers['content-type']?.split(';').first ??
+          lookupMimeType(fileName, headerBytes: response.bodyBytes) ??
+          'image/jpeg';
+      attachments.add(
+        FeedbackImageAttachment(
+          fileName: fileName,
+          bytes: response.bodyBytes,
+          contentType: contentType,
+        ),
+      );
+    }
+
+    return attachments;
   }
 
   Future<void> deleteFeedbackPost({required String feedbackId}) =>
@@ -195,15 +268,29 @@ FeedbackPostModel? _decodeUpdatedPost(dynamic json) {
   if (json is! Map<String, dynamic>) {
     return null;
   }
+  try {
+    return FeedbackPostModel.fromApiJson(_extractFeedbackPostJson(json));
+  } on ApiError {
+    return null;
+  }
+}
 
-  final postJson = json.containsKey('uuid')
-      ? json
-      : json['data'] is Map<String, dynamic>
-      ? json['data'] as Map<String, dynamic>
-      : json['feedback'] is Map<String, dynamic>
-      ? json['feedback'] as Map<String, dynamic>
-      : null;
-  return postJson == null ? null : FeedbackPostModel.fromApiJson(postJson);
+Map<String, dynamic> _extractFeedbackPostJson(dynamic json) {
+  if (json is! Map<String, dynamic>) {
+    throw const ApiError.invalidResponse();
+  }
+  if (json.containsKey('uuid')) {
+    return json;
+  }
+
+  for (final key in const <String>['data', 'result', 'feedback', 'post']) {
+    final value = json[key];
+    if (value is Map<String, dynamic>) {
+      return _extractFeedbackPostJson(value);
+    }
+  }
+
+  throw const ApiError.invalidResponse();
 }
 
 Map<String, dynamic> _extractCreatedPostJson(dynamic json) {

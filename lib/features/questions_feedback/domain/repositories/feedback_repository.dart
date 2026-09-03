@@ -12,6 +12,8 @@ abstract class FeedbackRepository {
     String search = '',
   });
 
+  Future<FeedbackPost> getFeedbackPost({required String feedbackId});
+
   Future<void> updateFeedbackPostLike({
     required String feedbackId,
     required bool isLiked,
@@ -23,6 +25,8 @@ abstract class FeedbackRepository {
     required String description,
     List<FeedbackImageAttachment> attachments =
         const <FeedbackImageAttachment>[],
+    List<String> retainedAttachmentUrls = const <String>[],
+    bool clearAttachments = false,
   });
 
   Future<void> deleteFeedbackPost({required String feedbackId});

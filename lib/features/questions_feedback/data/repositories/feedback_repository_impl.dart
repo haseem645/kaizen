@@ -26,6 +26,10 @@ class FeedbackRepositoryImpl implements FeedbackRepository {
   }
 
   @override
+  Future<FeedbackPost> getFeedbackPost({required String feedbackId}) =>
+      _remoteDataSource.getFeedbackPost(feedbackId: feedbackId);
+
+  @override
   Future<void> updateFeedbackPostLike({
     required String feedbackId,
     required bool isLiked,
@@ -43,11 +47,15 @@ class FeedbackRepositoryImpl implements FeedbackRepository {
     required String description,
     List<FeedbackImageAttachment> attachments =
         const <FeedbackImageAttachment>[],
+    List<String> retainedAttachmentUrls = const <String>[],
+    bool clearAttachments = false,
   }) => _remoteDataSource.updateFeedbackPost(
     feedbackId: feedbackId,
     title: title,
     description: description,
     attachments: attachments,
+    retainedAttachmentUrls: retainedAttachmentUrls,
+    clearAttachments: clearAttachments,
   );
 
   @override

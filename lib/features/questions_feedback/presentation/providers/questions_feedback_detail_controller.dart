@@ -30,6 +30,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   final ImagePicker _imagePicker = ImagePicker();
   FeedbackPost _post;
   List<FeedbackComment> _comments = const <FeedbackComment>[];
+  List<String> _editExistingAttachmentUrls = const <String>[];
   List<FeedbackImageAttachment> _editPostAttachments =
       const <FeedbackImageAttachment>[];
   final Map<String, List<FeedbackComment>> _repliesByParentId =
@@ -67,8 +68,10 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   bool get isDeletingPost => _isDeletingPost;
   List<FeedbackImageAttachment> get editPostAttachments =>
       List<FeedbackImageAttachment>.unmodifiable(_editPostAttachments);
+  List<String> get editExistingAttachmentUrls =>
+      List<String>.unmodifiable(_editExistingAttachmentUrls);
   int get editPostAttachmentCount =>
-      _post.attachments.length + _editPostAttachments.length;
+      _editExistingAttachmentUrls.length + _editPostAttachments.length;
   bool get canAddEditPostAttachments =>
       !_isSavingPostEdit && editPostAttachmentCount < maxEditImageAttachments;
   bool isEditingComment(String commentId) => _editingCommentId == commentId;
@@ -155,6 +158,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
     }
     editPostTitleController.text = _post.title;
     editPostDescriptionController.text = _post.description;
+    _editExistingAttachmentUrls = List<String>.unmodifiable(_post.attachments);
     _editPostAttachments = const <FeedbackImageAttachment>[];
     notifyListeners();
   }
@@ -162,6 +166,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   void cancelPostEditing() {
     editPostTitleController.clear();
     editPostDescriptionController.clear();
+    _editExistingAttachmentUrls = const <String>[];
     _editPostAttachments = const <FeedbackImageAttachment>[];
     notifyListeners();
   }
@@ -182,7 +187,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
 
     final attachments = <FeedbackImageAttachment>[..._editPostAttachments];
     for (final image in selectedImages) {
-      if (_post.attachments.length + attachments.length ==
+      if (_editExistingAttachmentUrls.length + attachments.length ==
           maxEditImageAttachments) {
         break;
       }
@@ -193,7 +198,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
       }
 
       final fileName = image.name.trim().isEmpty
-          ? 'attachment_${_post.attachments.length + attachments.length + 1}.jpg'
+          ? 'attachment_${_editExistingAttachmentUrls.length + attachments.length + 1}.jpg'
           : image.name.trim();
       attachments.add(
         FeedbackImageAttachment(
@@ -226,6 +231,19 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeExistingEditPostAttachment(int index) {
+    if (_isSavingPostEdit ||
+        index < 0 ||
+        index >= _editExistingAttachmentUrls.length) {
+      return;
+    }
+
+    final attachmentUrls = List<String>.of(_editExistingAttachmentUrls)
+      ..removeAt(index);
+    _editExistingAttachmentUrls = List<String>.unmodifiable(attachmentUrls);
+    notifyListeners();
+  }
+
   void onPostEditChanged(String _) => notifyListeners();
 
   bool get canSavePostEdit =>
@@ -252,15 +270,30 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
         title: title,
         description: description,
         attachments: _editPostAttachments,
+        retainedAttachmentUrls: _editExistingAttachmentUrls,
+        clearAttachments:
+            _post.attachments.isNotEmpty && editPostAttachmentCount == 0,
       );
-      final responseAttachments = updatedPost?.attachments;
-      final responseAuthor = updatedPost?.author;
-      _post = (updatedPost ?? _post).copyWith(
+      FeedbackPost? refreshedPost;
+      try {
+        refreshedPost = await _useCase.getPost(feedbackId: _post.id);
+      } catch (_) {
+        // The successful update remains valid if the optional read-back fails.
+      }
+      final postFromServer = refreshedPost ?? updatedPost;
+      final responseAttachments = postFromServer?.attachments;
+      final responseAuthor = postFromServer?.author;
+      final removedAttachmentUrls = _post.attachments
+          .where((url) => !_editExistingAttachmentUrls.contains(url))
+          .toSet();
+      _post = (postFromServer ?? _post).copyWith(
         title: title,
         description: description,
-        attachments: responseAttachments?.isNotEmpty == true
-            ? responseAttachments
-            : _post.attachments,
+        attachments:
+            responseAttachments
+                ?.where((url) => !removedAttachmentUrls.contains(url))
+                .toList(growable: false) ??
+            _editExistingAttachmentUrls,
         author: responseAuthor?.id.trim().isNotEmpty == true
             ? responseAuthor
             : _post.author,

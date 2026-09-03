@@ -30,6 +30,9 @@ class GetFeedbackPostsUseCase {
     );
   }
 
+  Future<FeedbackPost> getPost({required String feedbackId}) =>
+      _repository.getFeedbackPost(feedbackId: feedbackId);
+
   Future<FeedbackPost?> createPost(FeedbackPostCreateDraft draft) {
     return _repository.createFeedbackPost(draft);
   }
@@ -40,11 +43,15 @@ class GetFeedbackPostsUseCase {
     required String description,
     List<FeedbackImageAttachment> attachments =
         const <FeedbackImageAttachment>[],
+    List<String> retainedAttachmentUrls = const <String>[],
+    bool clearAttachments = false,
   }) => _repository.updateFeedbackPost(
     feedbackId: feedbackId,
     title: title,
     description: description,
     attachments: attachments,
+    retainedAttachmentUrls: retainedAttachmentUrls,
+    clearAttachments: clearAttachments,
   );
 
   Future<void> deletePost({required String feedbackId}) =>
