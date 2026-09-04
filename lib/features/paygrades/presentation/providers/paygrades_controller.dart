@@ -152,7 +152,7 @@ class PaygradesController extends ChangeNotifier {
       departmentId: _selectedDepartmentId == 'all'
           ? null
           : _selectedDepartmentId,
-      name: _searchQuery.trim(),
+      title: _searchQuery.trim().isEmpty ? null : _searchQuery.trim(),
     );
     _currentPage = page;
     _hasNextPage = response.hasNextPage && response.items.isNotEmpty;

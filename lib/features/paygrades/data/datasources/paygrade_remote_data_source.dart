@@ -16,14 +16,17 @@ class PaygradeRemoteDataSource {
     int pageSize = 10,
     String? departmentId,
     String name = '',
+    String? title,
   }) {
     return _apiCallExecutor.processApi<PaygradePageModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.payGrade,
       parameters: {
-        if ((departmentId ?? '').trim().isNotEmpty)
+        if (title != null) 'department': departmentId?.trim() ?? '',
+        if (title != null) 'title': title.trim(),
+        if (title == null && (departmentId ?? '').trim().isNotEmpty)
           'department': departmentId!.trim(),
-        if (name.trim().isNotEmpty) 'name': name.trim(),
+        if (title == null && name.trim().isNotEmpty) 'name': name.trim(),
         'page': page,
         'page_size': pageSize,
       },
