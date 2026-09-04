@@ -14,6 +14,7 @@ import '../../data/datasources/audit_remote_data_source.dart';
 import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/audit_description_audit.dart';
 import '../../domain/entities/audit_list.dart';
+import '../../domain/entities/audit_job_option.dart';
 import '../../domain/entities/audit_main_list.dart';
 import '../../domain/entities/audit_member.dart';
 import '../../domain/entities/audit_member_status.dart';
@@ -69,11 +70,15 @@ class CheckInController extends ChangeNotifier {
   CheckInState _state = const CheckInState();
   AuditMainList? _activeMainListCache;
   AuditMainList? _myCheckInMainListCache;
+  AuditMainList? _defaultActiveMainListCache;
+  AuditMainList? _defaultMyCheckInMainListCache;
   Timer? _mainListSearchDebounceTimer;
   Timer? _teamMembersSearchDebounceTimer;
   String _teamMembersSearchQuery = '';
   bool _isSeatProfileFilterLoading = false;
   List<String> _seatProfileOptions = const <String>[];
+  Map<String, String> _seatProfileJobUuids = const <String, String>{};
+  String? _selectedSeatProfileJobUuid;
   bool _hasPendingMainListSearchRefresh = false;
   bool _hasPendingTeamMembersSearchRefresh = false;
   final Map<String, _CachedCertifiedReportPdfUrl> _certifiedReportPdfUrlCache =
@@ -369,7 +374,13 @@ class CheckInController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _seatProfileOptions = await auditRepository.getSubordinateJobTitles();
+      final options = await auditRepository.getSubordinateJobOptions();
+      _seatProfileOptions = options
+          .map((option) => option.title)
+          .toList(growable: false);
+      _seatProfileJobUuids = <String, String>{
+        for (final AuditJobOption option in options) option.title: option.uuid,
+      };
     } catch (error) {
       _logRecoverableError('ensureSeatProfileOptionsLoaded', error);
     } finally {
@@ -388,10 +399,10 @@ class CheckInController extends ChangeNotifier {
           : AuditMemberStatus.deactivated;
       final currentYearQuarter = CustomFunctions.currentYearQuarter();
 
-      _activeMainListCache = null;
-      _myCheckInMainListCache = null;
+      _clearMainListCaches(clearDefaultCaches: true);
       _resetMainListSearchState();
       _resetTeamMembersSearchState();
+      _selectedSeatProfileJobUuid = null;
 
       _state = _state.copyWith(
         isLoading: true,
@@ -404,12 +415,16 @@ class CheckInController extends ChangeNotifier {
         isLoadingMore: false,
         clearMainList: true,
         clearSelectedYearQuarter: true,
+        clearSelectedSeatProfile: true,
       );
       notifyListeners();
 
       final mainList = isOwner && isActualOwner
           ? await _loadTeamMembers(page: 1, pageSize: 12)
           : await _preloadNonOwnerLists(page: 1, pageSize: 12);
+      if (isOwner && isActualOwner) {
+        _cacheMainList(selectedStatus, mainList, updateDefaultCache: true);
+      }
       _state = _state.copyWith(isLoading: false, mainList: mainList);
       notifyListeners();
     } catch (error) {
@@ -449,7 +464,11 @@ class CheckInController extends ChangeNotifier {
         results: [...currentList.results, ...nextList.results],
       );
 
-      _cacheList(_state.selectedStatus, mergedList);
+      _cacheMainList(
+        _state.selectedStatus,
+        mergedList,
+        updateDefaultCache: !_hasMainListSearchQuery(),
+      );
 
       _state = _state.copyWith(isLoadingMore: false, mainList: mergedList);
       notifyListeners();
@@ -668,8 +687,7 @@ class CheckInController extends ChangeNotifier {
           ? null
           : '$resolvedYear - Q$resolvedQuarter';
 
-      _activeMainListCache = null;
-      _myCheckInMainListCache = null;
+      _clearMainListCaches(clearDefaultCaches: true);
       _resetMainListSearchState();
       _resetTeamMembersSearchState();
 
@@ -709,7 +727,11 @@ class CheckInController extends ChangeNotifier {
         try {
           teamMembers = _sortedMainList(await teamMembersFuture);
           if (teamMembers != null) {
-            _cacheList(_state.selectedStatus, teamMembers);
+            _cacheMainList(
+              _state.selectedStatus,
+              teamMembers,
+              updateDefaultCache: true,
+            );
           }
         } catch (error) {
           _logRecoverableError(
@@ -1084,8 +1106,13 @@ class CheckInController extends ChangeNotifier {
       return;
     }
 
-    final cachedList = _cachedListFor(status);
+    final cachedList =
+        _cachedListFor(status) ??
+        (!_hasMainListSearchQuery() ? _defaultCachedListFor(status) : null);
     if (cachedList != null) {
+      if (!_hasMainListSearchQuery()) {
+        _restoreDefaultMainListCaches();
+      }
       _state = _state.copyWith(isLoading: false, mainList: cachedList);
       notifyListeners();
       return;
@@ -1093,7 +1120,11 @@ class CheckInController extends ChangeNotifier {
 
     try {
       final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
-      _cacheList(status, mainList);
+      _cacheMainList(
+        status,
+        mainList,
+        updateDefaultCache: !_hasMainListSearchQuery(),
+      );
       _state = _state.copyWith(isLoading: false, mainList: mainList);
       notifyListeners();
     } catch (error) {
@@ -1115,27 +1146,69 @@ class CheckInController extends ChangeNotifier {
   }
 
   void updateSearchQuery(String query) {
-    if (_state.searchQuery == query) {
+    final hasSearchQuery = query.trim().isNotEmpty;
+    final nextQuery = hasSearchQuery ? query : '';
+    if (_state.searchQuery == nextQuery) {
       return;
     }
 
-    _activeMainListCache = null;
-    _myCheckInMainListCache = null;
-    _state = _state.copyWith(searchQuery: query);
+    _cancelPendingMainListSearchRefresh();
+
+    if (!hasSearchQuery) {
+      final restoredMainList = _restoreDefaultMainListCaches();
+      _state = _state.copyWith(
+        searchQuery: '',
+        isLoading: false,
+        isLoadingMore: false,
+        mainList: restoredMainList ?? _state.mainList,
+      );
+      notifyListeners();
+
+      if (restoredMainList != null) {
+        return;
+      }
+
+      _scheduleMainListSearchRefresh(immediate: true);
+      return;
+    }
+
+    _clearMainListCaches();
+    _state = _state.copyWith(searchQuery: nextQuery, isLoadingMore: false);
     notifyListeners();
     _scheduleMainListSearchRefresh();
   }
 
   Future<void> resetSearch({bool showLoader = true}) async {
     _cancelPendingMainListSearchRefresh();
+    final restoredMainList = _restoreDefaultMainListCaches();
+
     if (_state.searchQuery.trim().isEmpty) {
+      if (restoredMainList == null) {
+        return;
+      }
+
+      _state = _state.copyWith(
+        searchQuery: '',
+        isLoading: false,
+        isLoadingMore: false,
+        mainList: restoredMainList,
+      );
+      notifyListeners();
       return;
     }
 
-    _activeMainListCache = null;
-    _myCheckInMainListCache = null;
-    _state = _state.copyWith(searchQuery: '');
+    _state = _state.copyWith(
+      searchQuery: '',
+      isLoading: false,
+      isLoadingMore: false,
+      mainList: restoredMainList ?? _state.mainList,
+    );
     notifyListeners();
+
+    if (restoredMainList != null) {
+      return;
+    }
+
     await _refreshMainListSearchResults(showLoader: showLoader);
   }
 
@@ -1168,7 +1241,13 @@ class CheckInController extends ChangeNotifier {
 
   Future<void> applyFilters({String? yearQuarter, String? seatProfile}) async {
     final shouldClearSeatProfile = seatProfile == null || seatProfile.isEmpty;
+    if (!shouldClearSeatProfile && _seatProfileJobUuids.isEmpty) {
+      await ensureSeatProfileOptionsLoaded();
+    }
     final resolvedSeatProfile = shouldClearSeatProfile ? null : seatProfile;
+    final resolvedSeatProfileJobUuid = shouldClearSeatProfile
+        ? null
+        : _seatProfileJobUuids[resolvedSeatProfile];
     final resolvedYearQuarter = (yearQuarter == null || yearQuarter.isEmpty)
         ? selectedAuditYearQuarterLabel
         : yearQuarter;
@@ -1186,24 +1265,33 @@ class CheckInController extends ChangeNotifier {
         (parsedYearQuarter.year != selectedAuditYear ||
             parsedYearQuarter.quarter != selectedAuditQuarter);
 
-    if (_state.selectedSeatProfile == resolvedSeatProfile &&
+    final isSeatProfileChanged =
+        _state.selectedSeatProfile != resolvedSeatProfile ||
+        _selectedSeatProfileJobUuid != resolvedSeatProfileJobUuid;
+
+    if (!isSeatProfileChanged &&
         _state.selectedYearQuarter == resolvedYearQuarterChip &&
         !isPeriodChanged) {
       return;
     }
 
-    if (isPeriodChanged) {
+    if (isPeriodChanged || isSeatProfileChanged) {
+      final selectedPeriod = parsedYearQuarter;
+      if (selectedPeriod == null) {
+        return;
+      }
+
       _cancelPendingMainListSearchRefresh();
-      _activeMainListCache = null;
-      _myCheckInMainListCache = null;
+      _clearMainListCaches(clearDefaultCaches: true);
+      _selectedSeatProfileJobUuid = resolvedSeatProfileJobUuid;
 
       _state = _state.copyWith(
         selectedSeatProfile: resolvedSeatProfile,
         clearSelectedSeatProfile: shouldClearSeatProfile,
         selectedYearQuarter: resolvedYearQuarterChip,
         clearSelectedYearQuarter: shouldClearYearQuarterChip,
-        selectedAuditYear: parsedYearQuarter.year,
-        selectedAuditQuarter: parsedYearQuarter.quarter,
+        selectedAuditYear: selectedPeriod.year,
+        selectedAuditQuarter: selectedPeriod.quarter,
         isLoading: true,
         isLoadingMore: false,
         clearMainList: true,
@@ -1215,7 +1303,11 @@ class CheckInController extends ChangeNotifier {
           page: 1,
           pageSize: 12,
         );
-        _cacheList(_state.selectedStatus, mainList);
+        _cacheMainList(
+          _state.selectedStatus,
+          mainList,
+          updateDefaultCache: !_hasMainListSearchQuery(),
+        );
         _state = _state.copyWith(isLoading: false, mainList: mainList);
         notifyListeners();
       } catch (error) {
@@ -1244,8 +1336,7 @@ class CheckInController extends ChangeNotifier {
     }
 
     _cancelPendingMainListSearchRefresh();
-    _activeMainListCache = null;
-    _myCheckInMainListCache = null;
+    _clearMainListCaches(clearDefaultCaches: true);
 
     _state = _state.copyWith(
       selectedAuditYear: currentYearQuarter.year,
@@ -1259,7 +1350,11 @@ class CheckInController extends ChangeNotifier {
 
     try {
       final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
-      _cacheList(_state.selectedStatus, mainList);
+      _cacheMainList(
+        _state.selectedStatus,
+        mainList,
+        updateDefaultCache: !_hasMainListSearchQuery(),
+      );
       _state = _state.copyWith(isLoading: false, mainList: mainList);
       notifyListeners();
     } catch (error) {
@@ -1269,13 +1364,15 @@ class CheckInController extends ChangeNotifier {
     }
   }
 
-  void clearSeatProfileFilter() {
+  Future<void> clearSeatProfileFilter() {
     if (_state.selectedSeatProfile == null) {
-      return;
+      return Future<void>.value();
     }
 
-    _state = _state.copyWith(clearSelectedSeatProfile: true);
-    notifyListeners();
+    return applyFilters(
+      yearQuarter: selectedAuditYearQuarterLabel,
+      seatProfile: null,
+    );
   }
 
   void setAuditActionLoading(bool value) {
@@ -2063,8 +2160,7 @@ class CheckInController extends ChangeNotifier {
 
   Future<void> _refreshMainListSearchResults({required bool showLoader}) async {
     final requestKey = _mainListRequestKey;
-    _activeMainListCache = null;
-    _myCheckInMainListCache = null;
+    _clearMainListCaches();
 
     _state = _state.copyWith(isLoading: showLoader, isLoadingMore: false);
     notifyListeners();
@@ -2072,10 +2168,16 @@ class CheckInController extends ChangeNotifier {
     try {
       final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
       if (requestKey != _mainListRequestKey) {
+        _state = _state.copyWith(isLoading: false, isLoadingMore: false);
+        notifyListeners();
         return;
       }
 
-      _cacheList(_state.selectedStatus, mainList);
+      _cacheMainList(
+        _state.selectedStatus,
+        mainList,
+        updateDefaultCache: !_hasMainListSearchQuery(),
+      );
       _state = _state.copyWith(
         isLoading: false,
         isLoadingMore: false,
@@ -2084,6 +2186,8 @@ class CheckInController extends ChangeNotifier {
       notifyListeners();
     } catch (error) {
       if (requestKey != _mainListRequestKey) {
+        _state = _state.copyWith(isLoading: false, isLoadingMore: false);
+        notifyListeners();
         return;
       }
 
@@ -2118,7 +2222,7 @@ class CheckInController extends ChangeNotifier {
 
   String get _mainListRequestKey {
     return '${_state.selectedStatus.name}|${_state.searchQuery.trim()}|'
-        '$selectedAuditYear|$selectedAuditQuarter';
+        '$selectedAuditYear|$selectedAuditQuarter|$_selectedSeatProfileJobUuid';
   }
 
   void _scheduleTeamMembersSearchRefresh({bool immediate = false}) {
@@ -2349,8 +2453,16 @@ class CheckInController extends ChangeNotifier {
       ),
     ]);
 
-    _activeMainListCache = results[0];
-    _myCheckInMainListCache = results[1];
+    _cacheMainList(
+      AuditMemberStatus.active,
+      results[0],
+      updateDefaultCache: true,
+    );
+    _cacheMainList(
+      AuditMemberStatus.deactivated,
+      results[1],
+      updateDefaultCache: true,
+    );
 
     return _state.selectedStatus == AuditMemberStatus.deactivated
         ? results[1]
@@ -2371,6 +2483,7 @@ class CheckInController extends ChangeNotifier {
       search: trimmedSearch == null || trimmedSearch.isEmpty
           ? null
           : trimmedSearch,
+      jobUuid: _selectedSeatProfileJobUuid,
     );
   }
 
@@ -2402,8 +2515,7 @@ class CheckInController extends ChangeNotifier {
     }
 
     _cancelPendingMainListSearchRefresh();
-    _activeMainListCache = null;
-    _myCheckInMainListCache = null;
+    _clearMainListCaches(clearDefaultCaches: true);
 
     _state = _state.copyWith(
       selectedAuditYear: resolvedYear,
@@ -2416,7 +2528,11 @@ class CheckInController extends ChangeNotifier {
     notifyListeners();
 
     final mainList = await _loadListForSelectedStatus(page: 1, pageSize: 12);
-    _cacheList(_state.selectedStatus, mainList);
+    _cacheMainList(
+      _state.selectedStatus,
+      mainList,
+      updateDefaultCache: !_hasMainListSearchQuery(),
+    );
     _state = _state.copyWith(isLoading: false, mainList: mainList);
     notifyListeners();
   }
@@ -2427,6 +2543,30 @@ class CheckInController extends ChangeNotifier {
         : _activeMainListCache;
   }
 
+  AuditMainList? _defaultCachedListFor(AuditMemberStatus status) {
+    return status == AuditMemberStatus.deactivated
+        ? _defaultMyCheckInMainListCache
+        : _defaultActiveMainListCache;
+  }
+
+  void _cacheMainList(
+    AuditMemberStatus status,
+    AuditMainList list, {
+    bool updateDefaultCache = false,
+  }) {
+    _cacheList(status, list);
+    if (!updateDefaultCache) {
+      return;
+    }
+
+    if (status == AuditMemberStatus.deactivated) {
+      _defaultMyCheckInMainListCache = list;
+      return;
+    }
+
+    _defaultActiveMainListCache = list;
+  }
+
   void _cacheList(AuditMemberStatus status, AuditMainList list) {
     if (status == AuditMemberStatus.deactivated) {
       _myCheckInMainListCache = list;
@@ -2434,6 +2574,27 @@ class CheckInController extends ChangeNotifier {
     }
 
     _activeMainListCache = list;
+  }
+
+  AuditMainList? _restoreDefaultMainListCaches() {
+    _activeMainListCache = _defaultActiveMainListCache;
+    _myCheckInMainListCache = _defaultMyCheckInMainListCache;
+    return _defaultCachedListFor(_state.selectedStatus);
+  }
+
+  void _clearMainListCaches({bool clearDefaultCaches = false}) {
+    _activeMainListCache = null;
+    _myCheckInMainListCache = null;
+    if (!clearDefaultCaches) {
+      return;
+    }
+
+    _defaultActiveMainListCache = null;
+    _defaultMyCheckInMainListCache = null;
+  }
+
+  bool _hasMainListSearchQuery([String? query]) {
+    return (query ?? _state.searchQuery).trim().isNotEmpty;
   }
 
   _ParsedYearQuarter? _parseYearQuarterLabel(String value) {

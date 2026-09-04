@@ -11,6 +11,7 @@ import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../training/domain/entities/seat_description_training.dart';
 import '../../domain/entities/audit_profile.dart';
+import '../../domain/entities/audit_job_option.dart';
 import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/seat_description_final_audit_report.dart';
 import '../models/audit_description_audit_model.dart';
@@ -42,6 +43,7 @@ class AuditRemoteDataSource {
     required int year,
     required int quarter,
     String? search,
+    String? jobUuid,
   }) {
     return _apiCallExecutor.processApi<AuditMainListModel>(
       apiCallType: ApiCallType.get,
@@ -50,6 +52,7 @@ class AuditRemoteDataSource {
       parameters: {
         'page': page,
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (jobUuid != null && jobUuid.trim().isNotEmpty) 'job': jobUuid.trim(),
         'page_size': pageSize,
         'year': year,
         'quarter': quarter,
@@ -171,7 +174,14 @@ class AuditRemoteDataSource {
   }
 
   Future<List<String>> getSubordinateJobTitles() {
-    return _apiCallExecutor.processApi<List<String>>(
+    return getSubordinateJobOptions().then(
+      (options) =>
+          options.map((option) => option.title).toList(growable: false),
+    );
+  }
+
+  Future<List<AuditJobOption>> getSubordinateJobOptions() {
+    return _apiCallExecutor.processApi<List<AuditJobOption>>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.subordinateJobs,
       authToken: AppPreference.getAuthToken(),
@@ -180,18 +190,31 @@ class AuditRemoteDataSource {
           throw const ApiError.invalidResponse();
         }
 
-        final titles =
+        final options =
             json
                 .whereType<Map<String, dynamic>>()
-                .map((item) => item['title'])
-                .whereType<String>()
-                .map((title) => title.trim())
-                .where((title) => title.isNotEmpty)
-                .toSet()
+                .map((item) {
+                  final nestedJob = item['job'] is Map<String, dynamic>
+                      ? item['job'] as Map<String, dynamic>
+                      : null;
+                  final uuid =
+                      item['uuid']?.toString().trim() ??
+                      item['job_uuid']?.toString().trim() ??
+                      nestedJob?['uuid']?.toString().trim() ??
+                      '';
+                  final title =
+                      item['title']?.toString().trim() ??
+                      nestedJob?['title']?.toString().trim() ??
+                      '';
+                  return AuditJobOption(uuid: uuid, title: title);
+                })
+                .where(
+                  (option) => option.uuid.isNotEmpty && option.title.isNotEmpty,
+                )
                 .toList(growable: false)
-              ..sort();
+              ..sort((left, right) => left.title.compareTo(right.title));
 
-        return titles;
+        return options;
       },
     );
   }

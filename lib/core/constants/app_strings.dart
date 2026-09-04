@@ -491,7 +491,7 @@ class AppStrings {
   static const String performanceReportPaygradeStatusUpcoming = 'Upcoming';
   static const String performanceReportPaygradeAdvancementRequirementsTitle =
       'Advancement Requirements';
-  static const String performanceSnapshotNoReports = 'No reports available.';
+  static const String performanceSnapshotNoReports = 'No profiles available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
   static const String performanceSnapshotDataUnavailable =
       'Data not available.';
@@ -929,6 +929,7 @@ class AppStrings {
   static const String auditHideComments = 'Hide comments';
   static const String auditExpandComments = 'Tap here to expand comments';
   static const String auditAddComment = 'Add Comment';
+  static const String auditCommentOnly = 'Comment Only';
   static const String auditShowLess = 'Show Less';
   static const String auditSelectMediaType = 'Select Media Type';
   static const String auditPhoto = 'Photo';

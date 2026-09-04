@@ -1146,6 +1146,7 @@ class _CommentsCardState extends State<_CommentsCard> {
                             mediaList: media,
                             isReadOnly: !canManageComments,
                             canReply: canReplyToComments,
+                            canDelete: canCreateComments,
                             onCommentsChanged: widget.onCommentsChanged,
                             onSheetClosed: widget.onCommentsSheetClosed,
                           );
@@ -1222,6 +1223,18 @@ class _CommentsCardState extends State<_CommentsCard> {
     return didSave ?? false;
   }
 
+  Future<bool> _openTextOnlyCommentDialog(AuditDescriptionAudit audit) async {
+    final didSave = await showDialog<bool>(
+      context: context,
+      builder: (_) => _CreateTextCommentDialog(
+        onSave: (comment) =>
+            widget.onSaveCommentWithoutMedia(audit.uuid, comment),
+      ),
+    );
+
+    return didSave ?? false;
+  }
+
   Future<bool> _openScreenRecordingCommentDialog(
     AuditDescriptionAudit audit,
   ) async {
@@ -1266,6 +1279,7 @@ class _CommentsCardState extends State<_CommentsCard> {
         return _MediaTypeSelectionBottomSheet(
           onTypeSelected: (selectedType) =>
               _openSelectedMediaCommentDialog(audit, selectedType),
+          onCommentOnlySelected: () => _openTextOnlyCommentDialog(audit),
         );
       },
     );
@@ -1454,7 +1468,7 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
     try {
       await widget.onSave(comment);
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (error) {
       debugPrint('Unable to create text comment: $error');
@@ -1470,6 +1484,7 @@ class _CommentMediaCard extends StatelessWidget {
     required this.mediaList,
     required this.isReadOnly,
     required this.canReply,
+    required this.canDelete,
     required this.onCommentsChanged,
     required this.onSheetClosed,
   });
@@ -1479,6 +1494,7 @@ class _CommentMediaCard extends StatelessWidget {
   final List<AuditDescriptionMedia> mediaList;
   final bool isReadOnly;
   final bool canReply;
+  final bool canDelete;
   final Future<void> Function() onCommentsChanged;
   final VoidCallback onSheetClosed;
 
@@ -1536,6 +1552,7 @@ class _CommentMediaCard extends StatelessWidget {
         mediaList: mediaList,
         isReadOnly: isReadOnly,
         canReply: canReply,
+        canDelete: canDelete,
         onMediaChanged: onCommentsChanged,
       ),
     );
@@ -1803,10 +1820,14 @@ class _SeeAllAction extends StatelessWidget {
 }
 
 class _MediaTypeSelectionBottomSheet extends StatefulWidget {
-  const _MediaTypeSelectionBottomSheet({required this.onTypeSelected});
+  const _MediaTypeSelectionBottomSheet({
+    required this.onTypeSelected,
+    required this.onCommentOnlySelected,
+  });
 
   final Future<bool> Function(DescriptionMediaCommentContentType selectedType)
   onTypeSelected;
+  final Future<bool> Function() onCommentOnlySelected;
 
   @override
   State<_MediaTypeSelectionBottomSheet> createState() =>
@@ -1863,6 +1884,11 @@ class _MediaTypeSelectionBottomSheetState
                   fontWeight: FontWeight.w700,
                 ),
                 const SizedBox(height: 14),
+                _MediaTypeOption(
+                  title: AppStrings.auditCommentOnly,
+                  onTap: isOpeningChildSheet ? null : _openCommentOnlyDialog,
+                ),
+                const SizedBox(height: 10),
                 _MediaTypeOption(
                   title: AppStrings.auditPhoto,
                   onTap: isOpeningChildSheet
@@ -1923,6 +1949,22 @@ class _MediaTypeSelectionBottomSheetState
     _isOpeningChildSheetNotifier.value = true;
     try {
       final didSave = await widget.onTypeSelected(selectedType);
+      if (didSave && mounted) {
+        Navigator.of(context).pop();
+      }
+    } finally {
+      _isOpeningChildSheetNotifier.value = false;
+    }
+  }
+
+  Future<void> _openCommentOnlyDialog() async {
+    if (_isOpeningChildSheetNotifier.value) {
+      return;
+    }
+
+    _isOpeningChildSheetNotifier.value = true;
+    try {
+      final didSave = await widget.onCommentOnlySelected();
       if (didSave && mounted) {
         Navigator.of(context).pop();
       }

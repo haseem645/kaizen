@@ -118,9 +118,7 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
       child: SafeArea(
         top: false,
         bottom: false,
-        child: state.isLoading && state.mainList == null
-            ? FastCircularProgressIndicator()
-            : _buildContent(controller, state),
+        child: _buildContent(controller, state),
       ),
     );
   }
@@ -185,7 +183,9 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
           ],
         ],
         const SizedBox(height: 18),
-        if (members.isEmpty)
+        if (state.isLoading && state.mainList == null)
+          Center(child: FastCircularProgressIndicator())
+        else if (members.isEmpty)
           _buildEmptyCheckInState(state.selectedStatus)
         else ...[
           for (var index = 0; index < members.length; index++) ...[

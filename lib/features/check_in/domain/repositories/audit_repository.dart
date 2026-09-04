@@ -3,6 +3,7 @@ import '../entities/audit_details.dart';
 import '../entities/audit_evaluation_chart.dart';
 import '../entities/audit_list.dart';
 import '../entities/audit_main_list.dart';
+import '../entities/audit_job_option.dart';
 import '../entities/audit_profile.dart';
 import '../entities/performance_report.dart';
 import '../entities/quarterly_audit.dart';
@@ -18,6 +19,7 @@ abstract class AuditRepository {
     required int year,
     required int quarter,
     String? search,
+    String? jobUuid,
   });
 
   Future<AuditMainList> getAuditTeamMembers({
@@ -49,6 +51,8 @@ abstract class AuditRepository {
   });
 
   Future<List<String>> getSubordinateJobTitles();
+
+  Future<List<AuditJobOption>> getSubordinateJobOptions();
 
   Future<PerformanceReport> getPerformanceReportOverview({
     required AuditProfile profile,

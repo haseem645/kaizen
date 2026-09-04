@@ -4,6 +4,7 @@ import '../../domain/entities/audit_details.dart';
 import '../../domain/entities/audit_evaluation_chart.dart';
 import '../../domain/entities/audit_list.dart';
 import '../../domain/entities/audit_main_list.dart';
+import '../../domain/entities/audit_job_option.dart';
 import '../../domain/entities/audit_profile.dart';
 import '../../domain/entities/performance_report.dart';
 import '../../domain/entities/quarterly_audit.dart';
@@ -25,6 +26,7 @@ class AuditRepositoryImpl implements AuditRepository {
     required int year,
     required int quarter,
     String? search,
+    String? jobUuid,
   }) {
     return _remoteDataSource.getAuditMainList(
       page: page,
@@ -32,6 +34,7 @@ class AuditRepositoryImpl implements AuditRepository {
       year: year,
       quarter: quarter,
       search: search,
+      jobUuid: jobUuid,
     );
   }
 
@@ -98,6 +101,11 @@ class AuditRepositoryImpl implements AuditRepository {
   @override
   Future<List<String>> getSubordinateJobTitles() {
     return _remoteDataSource.getSubordinateJobTitles();
+  }
+
+  @override
+  Future<List<AuditJobOption>> getSubordinateJobOptions() {
+    return _remoteDataSource.getSubordinateJobOptions();
   }
 
   @override
