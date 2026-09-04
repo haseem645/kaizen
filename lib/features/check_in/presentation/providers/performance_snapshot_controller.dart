@@ -29,6 +29,8 @@ class PerformanceSnapshotController extends ChangeNotifier {
   PerformanceSnapshotTab _selectedTab = PerformanceSnapshotTab.myReports;
   PagedAuditData _reportsData = const PagedAuditData();
   PagedAuditData _myReportsData = const PagedAuditData();
+  PagedAuditData? _defaultReportsData;
+  PagedAuditData? _defaultMyReportsData;
   bool _canAccessTeamReports = false;
   bool _isActualOwner = false;
   bool _isInitializing = true;
@@ -91,6 +93,8 @@ class PerformanceSnapshotController extends ChangeNotifier {
       searchController.clear();
       _reportsData = const PagedAuditData();
       _myReportsData = const PagedAuditData();
+      _defaultReportsData = null;
+      _defaultMyReportsData = null;
       final user = await AppPreference.getUser();
       _canAccessTeamReports = AppPermissionUtils.canAccessAuditTeamMembers(
         user,
@@ -179,7 +183,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
             query: _searchQuery.trim(),
           );
       if (isStaleRequest) {
-        _reportsData = currentData.copyWith(
+        _reportsData = _reportsData.copyWith(
           isLoading: false,
           isLoadingMore: false,
         );
@@ -196,6 +200,9 @@ class PerformanceSnapshotController extends ChangeNotifier {
         items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
         query: requestQuery,
       );
+      if (requestQuery.isEmpty) {
+        _defaultReportsData = _reportsData;
+      }
     } catch (error) {
       final isStaleRequest =
           requestKey !=
@@ -204,7 +211,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
             query: _searchQuery.trim(),
           );
       if (isStaleRequest) {
-        _reportsData = currentData.copyWith(
+        _reportsData = _reportsData.copyWith(
           isLoading: false,
           isLoadingMore: false,
         );
@@ -261,7 +268,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
             query: _searchQuery.trim(),
           );
       if (isStaleRequest) {
-        _myReportsData = currentData.copyWith(
+        _myReportsData = _myReportsData.copyWith(
           isLoading: false,
           isLoadingMore: false,
         );
@@ -278,6 +285,9 @@ class PerformanceSnapshotController extends ChangeNotifier {
         items: loadMore ? [...currentData.items, ...parsedItems] : parsedItems,
         query: requestQuery,
       );
+      if (requestQuery.isEmpty) {
+        _defaultMyReportsData = _myReportsData;
+      }
       _myReportsErrorMessage = null;
     } on ApiError catch (error) {
       final isStaleRequest =
@@ -287,7 +297,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
             query: _searchQuery.trim(),
           );
       if (isStaleRequest) {
-        _myReportsData = currentData.copyWith(
+        _myReportsData = _myReportsData.copyWith(
           isLoading: false,
           isLoadingMore: false,
         );
@@ -320,7 +330,7 @@ class PerformanceSnapshotController extends ChangeNotifier {
             query: _searchQuery.trim(),
           );
       if (isStaleRequest) {
-        _myReportsData = currentData.copyWith(
+        _myReportsData = _myReportsData.copyWith(
           isLoading: false,
           isLoadingMore: false,
         );
@@ -394,24 +404,47 @@ class PerformanceSnapshotController extends ChangeNotifier {
   }
 
   void updateSearchQuery(String value) {
-    if (_searchQuery == value) {
+    final nextQuery = value.trim().isEmpty ? '' : value;
+    if (_searchQuery == nextQuery) {
       return;
     }
 
-    _searchQuery = value;
+    _cancelPendingSearchRefresh();
+    _searchQuery = nextQuery;
+
+    if (nextQuery.isEmpty) {
+      final defaultData = _defaultDataForSelectedTab;
+      if (defaultData != null) {
+        _setDataForSelectedTab(defaultData);
+      }
+      notifyListeners();
+
+      if (defaultData != null) {
+        return;
+      }
+
+      _scheduleSearchRefresh(immediate: true);
+      return;
+    }
+
     notifyListeners();
     _scheduleSearchRefresh();
   }
 
   Future<void> resetSearch({bool showLoader = true}) async {
     _cancelPendingSearchRefresh();
-    if (_searchQuery.trim().isEmpty) {
+    final defaultData = _defaultDataForSelectedTab;
+    _searchQuery = '';
+    searchController.clear();
+    if (defaultData != null) {
+      _setDataForSelectedTab(defaultData);
+    }
+    notifyListeners();
+
+    if (defaultData != null) {
       return;
     }
 
-    _searchQuery = '';
-    searchController.clear();
-    notifyListeners();
     await _refreshSearchResults(showLoader: showLoader);
   }
 
@@ -722,6 +755,20 @@ class PerformanceSnapshotController extends ChangeNotifier {
   void _cancelPendingSearchRefresh() {
     _searchDebounceTimer?.cancel();
     _hasPendingSearchRefresh = false;
+  }
+
+  PagedAuditData? get _defaultDataForSelectedTab =>
+      _selectedTab == PerformanceSnapshotTab.reports
+      ? _defaultReportsData
+      : _defaultMyReportsData;
+
+  void _setDataForSelectedTab(PagedAuditData data) {
+    if (_selectedTab == PerformanceSnapshotTab.reports) {
+      _reportsData = data;
+      return;
+    }
+
+    _myReportsData = data;
   }
 
   bool _currentDataMatchesSearch() {
