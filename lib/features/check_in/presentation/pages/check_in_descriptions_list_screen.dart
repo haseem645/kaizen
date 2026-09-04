@@ -443,6 +443,7 @@ class _CheckInDescriptionsListViewState
     BuildContext context,
     QuarterlyAudit audit,
     QuarterlyAuditDescription description,
+    Map<String, int> initialRatingCounts,
   ) async {
     final auditController = context.read<CheckInController>();
     auditController.selectQuarterlyAuditDescription(description.uuid);
@@ -458,6 +459,7 @@ class _CheckInDescriptionsListViewState
             isOwner: auditController.state.isOwner,
             isViewOnly: audit.isMismatch,
             isSelfAudit: widget.isSelfAudit,
+            initialRatingCounts: initialRatingCounts,
             onAuditUpdated: () async {
               await auditController.refreshSingleAuditDetails(
                 quarterlyAuditId: audit.uuid,
@@ -467,15 +469,6 @@ class _CheckInDescriptionsListViewState
           ),
         ),
       ),
-    );
-
-    if (!context.mounted) {
-      return;
-    }
-
-    await context.read<CheckInController>().refreshSingleAuditDetails(
-      quarterlyAuditId: audit.uuid,
-      date: widget.date,
     );
   }
 
@@ -725,11 +718,13 @@ class _CheckInDescriptionsListViewState
                             .state
                             .isOwner,
                         isSelfAudit: widget.isSelfAudit,
-                        onOpenDetails: () => _openDescriptionDetails(
-                          context,
-                          audit,
-                          description,
-                        ),
+                        onOpenDetails: (initialRatingCounts) =>
+                            _openDescriptionDetails(
+                              context,
+                              audit,
+                              description,
+                              initialRatingCounts,
+                            ),
                       );
                     },
                   ),
@@ -1203,7 +1198,7 @@ class _CheckInDescriptionCard extends StatefulWidget {
   final QuarterlyAuditDescription description;
   final String date;
   final bool isOwner;
-  final VoidCallback onOpenDetails;
+  final ValueChanged<Map<String, int>> onOpenDetails;
   final bool isSelfAudit;
 
   @override
@@ -1220,6 +1215,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   Timer? _mediaCommentSuccessTimer;
   Future<AuditDescriptionAudit>? _auditDescriptionFuture;
   late Map<String, int> _lastSyncedAuditCounts;
+  var _isAwaitingServerCountConfirmation = false;
   var _editRevision = 0;
 
   @override
@@ -1279,7 +1275,9 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: widget.onOpenDetails,
+      onTap: () => widget.onOpenDetails(
+        _auditCountsFromBlocks(_viewStateNotifier.value.blocks),
+      ),
       child: ValueListenableBuilder<bool>(
         valueListenable: _isMediaCommentCreatedNotifier,
         builder: (context, isMediaCommentCreated, _) {
@@ -1466,6 +1464,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     _submitDebounceTimer?.cancel();
     _auditDescriptionFuture = null;
     _editRevision = 0;
+    _isAwaitingServerCountConfirmation = false;
     _lastSyncedAuditCounts = _auditCountsFromDescription(widget.description);
     _viewStateNotifier.value = _PassSelectionViewState(
       blocks: _blocksFromCounts(_lastSyncedAuditCounts),
@@ -1475,16 +1474,23 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
 
   void _syncFromDescriptionSummary() {
     final summaryCounts = _auditCountsFromDescription(widget.description);
-    if (_sameAuditCounts(_lastSyncedAuditCounts, summaryCounts)) {
-      return;
-    }
-
-    _lastSyncedAuditCounts = summaryCounts;
     final currentState = _viewStateNotifier.value;
     if (currentState.hasLocalChanges) {
       return;
     }
 
+    if (_isAwaitingServerCountConfirmation) {
+      if (_sameAuditCounts(_lastSyncedAuditCounts, summaryCounts)) {
+        _isAwaitingServerCountConfirmation = false;
+      }
+      return;
+    }
+
+    if (_sameAuditCounts(_lastSyncedAuditCounts, summaryCounts)) {
+      return;
+    }
+
+    _lastSyncedAuditCounts = summaryCounts;
     _viewStateNotifier.value = _PassSelectionViewState(
       blocks: _blocksFromCounts(summaryCounts),
       hasLocalChanges: false,
@@ -1569,13 +1575,15 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
         return;
       }
 
-      // The submit response can omit its audit list, so retain the payload
-      // that the API just accepted instead of briefly rendering zero counts.
-      _lastSyncedAuditCounts = Map<String, int>.from(audit);
-      _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(response);
       if (submissionRevision != _editRevision) {
         return;
       }
+
+      // The submit response can omit its audit list, so retain the payload
+      // that the API just accepted instead of briefly rendering zero counts.
+      _lastSyncedAuditCounts = Map<String, int>.from(audit);
+      _isAwaitingServerCountConfirmation = true;
+      _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(response);
 
       _viewStateNotifier.value = _PassSelectionViewState(
         blocks: _blocksFromCounts(_lastSyncedAuditCounts),
@@ -1716,6 +1724,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   }
 
   void _revertToLastSyncedState() {
+    _isAwaitingServerCountConfirmation = false;
     _viewStateNotifier.value = _PassSelectionViewState(
       blocks: _blocksFromCounts(_lastSyncedAuditCounts),
       hasLocalChanges: false,
