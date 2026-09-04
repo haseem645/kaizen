@@ -3,7 +3,8 @@ class AppStrings {
   static const String appTitle = 'KaizenTeams';
   static const String apiInvalidUrl = 'Invalid URL';
   static const String apiInvalidResponse = 'Invalid response';
-  static const String apiRequestFailedPrefix = 'Request failed with status code:';
+  static const String apiRequestFailedPrefix =
+      'Request failed with status code:';
   static const String apiErrorPrefix = 'ApiError:';
   static const String apiUnableToConnectServer = 'Unable to connect to server.';
   static const String apiRequestTimedOut =
@@ -11,7 +12,8 @@ class AppStrings {
 
   static const String loginTitle = 'Sign In';
   static const String loginToYourAccount = 'Login to your account';
-  static const String enterProvidedCredentialsToContinue = 'Enter provided credentials to continue';
+  static const String enterProvidedCredentialsToContinue =
+      'Enter provided credentials to continue';
   static const String loginTo = 'Sign In';
   static const String kaizen = 'Kaizen';
   static const String teams = 'Teams';
@@ -24,14 +26,19 @@ class AppStrings {
   static const String loginButton = 'Login';
   static const String loginForgotPassword = 'Forgot Password?';
   static const String loginEnterEmail = 'Please enter your email.';
-  static const String loginEnterValidEmail = 'Please enter a valid email address.';
+  static const String loginEnterValidEmail =
+      'Please enter a valid email address.';
   static const String loginEnterPassword = 'Please enter your password.';
   static const String loginNoAccount = 'No account found for this email.';
   static const String loginIncorrectPassword = 'Incorrect password.';
-  static const String loginUnableToConnect = 'Unable to connect to the user database.';
-  static const String loginServiceUnavailable = 'Login service is unavailable right now.';
-  static const String loginInvalidUserData = 'Invalid user data received from database.';
-  static const String loginSomethingWentWrong = 'Something went wrong. Please try again.';
+  static const String loginUnableToConnect =
+      'Unable to connect to the user database.';
+  static const String loginServiceUnavailable =
+      'Login service is unavailable right now.';
+  static const String loginInvalidUserData =
+      'Invalid user data received from database.';
+  static const String loginSomethingWentWrong =
+      'Something went wrong. Please try again.';
   static const String userRecordIncomplete = 'User record is incomplete.';
   static const String authEmailLabel = 'Enter your email';
   static const String authForgotPasswordTitle = 'Forgot Password?';
@@ -56,9 +63,12 @@ class AppStrings {
       'Create a fresh password for your account so you can sign back in securely.';
   static const String authNewPasswordLabel = 'Enter your new password';
   static const String authConfirmPasswordLabel = 'Confirm your new password';
-  static const String authPasswordRequirementMinLength = 'Use 8 or more characters';
-  static const String authPasswordRequirementLetter = 'Use minimum of one letter';
-  static const String authPasswordRequirementNumber = 'Use minimum of one number';
+  static const String authPasswordRequirementMinLength =
+      'Use 8 or more characters';
+  static const String authPasswordRequirementLetter =
+      'Use minimum of one letter';
+  static const String authPasswordRequirementNumber =
+      'Use minimum of one number';
   static const String authUpdatePassword = 'Update Password';
   static const String authSetPasswordFailedTitle = 'Unable to Update Password';
   static const String authSetPasswordMissingToken =
@@ -70,33 +80,43 @@ class AppStrings {
   static const String authPasswordUpdatedTitle = 'Password Updated';
   static const String authPasswordUpdatedDescription =
       'Your password has been updated. You can now sign in with your new password.';
-  static const String authEnterConfirmPassword = 'Please confirm your password.';
-  static const String authPasswordMinLength = 'Password must be at least 8 characters.';
-  static const String authPasswordLetterRequired = 'Password must include at least one letter.';
-  static const String authPasswordNumberRequired = 'Password must include at least one number.';
+  static const String authEnterConfirmPassword =
+      'Please confirm your password.';
+  static const String authPasswordMinLength =
+      'Password must be at least 8 characters.';
+  static const String authPasswordLetterRequired =
+      'Password must include at least one letter.';
+  static const String authPasswordNumberRequired =
+      'Password must include at least one number.';
   static const String authPasswordsDoNotMatch = 'Passwords do not match.';
   static const String authRememberedPassword = 'Remembered your password?';
   static const String authBackToLogin = 'Back to Login';
   static const String authLogout = 'Logout';
-  static const String authLogoutConfirmationDescription = 'Are you sure you want to logout?';
+  static const String authLogoutConfirmationDescription =
+      'Are you sure you want to logout?';
   static const String onboardingTitle = 'Finish your setup';
   static const String onboardingSubtitle =
       'Complete your profile image and password before entering the app.';
   static const String onboardingSetPasswordTitle = 'Set Password';
-  static const String onboardingSetPasswordSubtitle = 'Please create a secure password to continue';
+  static const String onboardingSetPasswordSubtitle =
+      'Please create a secure password to continue';
   static const String onboardingSetPasswordEmailHint = 'Email';
   static const String onboardingSetPasswordPasswordHint = 'Enter password';
-  static const String onboardingSetPasswordConfirmPasswordHint = 'Confirm password';
-  static const String onboardingSetPasswordHelper = 'Use at least 8 characters.';
+  static const String onboardingSetPasswordConfirmPasswordHint =
+      'Confirm password';
+  static const String onboardingSetPasswordHelper =
+      'Use at least 8 characters.';
 
   static const String splashBrand = 'Chatting\nWorkspace';
   static const String splashTitle = 'Welcome to your\nOnboarding Envelope';
   static const String splashSubtitle =
       'Press next to take a look at your envelope and\nfill in all the required details';
-  static const String splashStartupFailed = 'Unable to finish startup right now. Please try again.';
+  static const String splashStartupFailed =
+      'Unable to finish startup right now. Please try again.';
   static const String homePlaceholder = 'Home screen is not available yet.';
   static const String homeTitle = 'Home';
-  static const String homeSubtitle = 'Use the drawer to navigate through compliance and audits.';
+  static const String homeSubtitle =
+      'Use the drawer to navigate through compliance and audits.';
   static const String homeKaizengram = 'Kaizengram';
   static const String homeAi = 'AI';
   static const String homeLearningTracks = 'Learning Tracks';
@@ -120,14 +140,18 @@ class AppStrings {
   static const String seatProfileCreateAccessDenied =
       'You are not allowed to create or edit seat profiles here.';
   static const String seatProfileAddDescriptionAction = 'Add Description';
-  static const String seatProfileAddSeatDescriptionAction = 'Add Seat Description';
-  static const String seatProfileGenerateDescriptionWithAiAction = 'Generate Description with AI';
+  static const String seatProfileAddSeatDescriptionAction =
+      'Add Seat Description';
+  static const String seatProfileGenerateDescriptionWithAiAction =
+      'Generate Description with AI';
   static const String seatProfileUpdateCategoryAction = 'Update Category';
-  static const String seatProfileAddOrUpdateSeatCategoryAction = 'Add Or Update Seat Category';
+  static const String seatProfileAddOrUpdateSeatCategoryAction =
+      'Add Or Update Seat Category';
   static const String seatProfileGenerateWithAiAction = 'Generate with AI';
   static const String seatProfileGenerateAction = 'Generate';
   static const String seatProfileRegenerateAction = 'Re-Generate';
-  static const String seatProfileGenerateSeatContentDialogTitle = 'Generate Seat Content';
+  static const String seatProfileGenerateSeatContentDialogTitle =
+      'Generate Seat Content';
   static const String seatProfileGenerateSeatContentDialogDescription =
       'Choose specificity and tone for the generated categories and descriptions.';
   static const String seatProfileGenerateSeatContentWarningTitle = 'Warning';
@@ -138,7 +162,8 @@ class AppStrings {
   static const String seatProfileGenerateSeatContentWarningInstruction =
       'Type REGENERATE to confirm and enable Re-Generate.';
   static const String seatProfileGenerateSeatContentWarningHint = 'REGENERATE';
-  static const String seatProfileGenerateSeatContentWarningKeyword = 'REGENERATE';
+  static const String seatProfileGenerateSeatContentWarningKeyword =
+      'REGENERATE';
   static const String seatProfileSpecificityLabel = 'Specificity';
   static const String seatProfileToneLabel = 'Tone';
   static const String seatProfileAiLow = 'Low';
@@ -147,15 +172,20 @@ class AppStrings {
   static const String seatProfileAiLayman = 'Layman';
   static const String seatProfileAiProfessional = 'Professional';
   static const String seatProfileAiTechnical = 'Technical';
-  static const String seatProfileManageCategoriesDialogTitle = 'Manage Seat Categories';
-  static const String seatProfileManageCategoriesSectionTitle = 'Category Name & Importance';
+  static const String seatProfileManageCategoriesDialogTitle =
+      'Manage Seat Categories';
+  static const String seatProfileManageCategoriesSectionTitle =
+      'Category Name & Importance';
   static const String seatProfileManageCategoriesDescription =
       'To start enter the category name and weight of that category. Categories reaching 100% means maximum limit';
   static const String seatProfileLoadedDescriptionsSubtitle =
       'Selected category descriptions are shown below.';
-  static const String seatProfileCategoryImportanceRemaining = 'Category Importance Remaining';
-  static const String seatProfileCategoryImportanceReached = 'Category Importance Reached';
-  static const String seatProfileCategoryImportanceExceeded = 'Category Importance Exceeded';
+  static const String seatProfileCategoryImportanceRemaining =
+      'Category Importance Remaining';
+  static const String seatProfileCategoryImportanceReached =
+      'Category Importance Reached';
+  static const String seatProfileCategoryImportanceExceeded =
+      'Category Importance Exceeded';
   static const String seatProfileCategoryNameColumn = 'Category Name';
   static const String seatProfileDescriptionNameColumn = 'Description Name';
   static const String seatProfileImportancePercentColumn = 'Importance %';
@@ -163,14 +193,18 @@ class AppStrings {
   static const String seatProfileCategoriesTotalLabel = 'Total';
   static const String seatProfileCategoryValidationNote =
       'Category name: max 3 words and 25 characters. Total importance is validated on save.';
-  static const String seatProfileSeatAdditionDialogTitle = 'Add Seat Description';
+  static const String seatProfileSeatAdditionDialogTitle =
+      'Add Seat Description';
   static const String seatProfileSeatAdditionDialogDescription =
       'Enter a seat description name for this category.';
-  static const String seatProfileSeatDescriptionNameLabel = 'Seat Description Name';
-  static const String seatProfileSeatDescriptionNameHint = 'Enter seat description name';
+  static const String seatProfileSeatDescriptionNameLabel =
+      'Seat Description Name';
+  static const String seatProfileSeatDescriptionNameHint =
+      'Enter seat description name';
   static const String seatProfileSeatDescriptionValidationNote =
       'Seat description name can be up to 7 words.';
-  static const String seatProfileEditDescriptionDialogTitle = 'Update Seat Description';
+  static const String seatProfileEditDescriptionDialogTitle =
+      'Update Seat Description';
   static const String seatProfileEditDescriptionDialogDescription =
       'Review and update the selected description details.';
   static const String seatProfileCreateDescriptionSheetDescription =
@@ -189,29 +223,36 @@ class AppStrings {
   static const String seatProfileCheckInNoCheckIn = 'No Check-In Found';
   static const String noCheckInDetailFound = 'No Check-In Details Found';
   static const String seatProfileNoneOption = 'None';
-  static const String seatProfileCategoriesSaveConfirmationTitle = 'Save Categories?';
+  static const String seatProfileCategoriesSaveConfirmationTitle =
+      'Save Categories?';
   static const String seatProfileCategoriesSaveConfirmationDescription =
       'Total importance is not 100%. Do you still want to save these categories?';
-  static const String seatProfileCategoryNameRequired = 'Please enter the category name.';
-  static const String seatProfileCategoryNameWordLimit = 'Category name must be 3 words or fewer.';
+  static const String seatProfileCategoryNameRequired =
+      'Please enter the category name.';
+  static const String seatProfileCategoryNameWordLimit =
+      'Category name must be 3 words or fewer.';
   static const String seatProfileCategoryNameCharacterLimit =
       'Category name must be 25 characters or fewer.';
-  static const String seatProfileDeleteDescriptionTitle = 'Delete Seat Description';
+  static const String seatProfileDeleteDescriptionTitle =
+      'Delete Seat Description';
   static const String seatProfileDeleteDescriptionAction = 'Delete';
-  static String seatProfileDeleteDescriptionDescription(String descriptionName) =>
-      'Delete "$descriptionName"? This action cannot be undone.';
+  static String seatProfileDeleteDescriptionDescription(
+    String descriptionName,
+  ) => 'Delete "$descriptionName"? This action cannot be undone.';
   static const String seatProfileCategoryImportanceRequired =
       'Please enter the category importance.';
   static const String seatProfileCategoryImportanceInvalid =
       'Please enter a valid importance percentage.';
   static const String seatProfileCategoryImportanceTotalExceeded =
       'Total category importance cannot be more than 100%.';
-  static const String seatProfileCategoriesLoadFailed = 'Unable to load seat categories right now.';
+  static const String seatProfileCategoriesLoadFailed =
+      'Unable to load seat categories right now.';
   static const String paygradesTitle = 'Paygrades';
   static const String paygradesDetailsTitle = 'Paygrade Details';
   static const String paygradesSearchHint = 'Search Paygrades';
   static const String paygradesNoItemsFound = 'No paygrades found.';
-  static const String paygradesNoDetailItemsFound = 'No paygrades found for this tab.';
+  static const String paygradesNoDetailItemsFound =
+      'No paygrades found for this tab.';
   static const String paygradesDepartment = 'Department';
   static const String paygradesUnit = 'Unit';
   static const String paygradesRate = 'Pay Rate (HR)';
@@ -219,8 +260,10 @@ class AppStrings {
   static const String paygradesLevel = 'Level';
   static const String paygradesDescription = 'Paygrade Specifics';
   static const String paygradesPromotionRequirement = 'Promotion Requirements';
-  static const String paygradesEmptyDescription = 'No paygrade specifics available.';
-  static const String paygradesEmptyPromotionRequirement = 'No promotion requirements available.';
+  static const String paygradesEmptyDescription =
+      'No paygrade specifics available.';
+  static const String paygradesEmptyPromotionRequirement =
+      'No promotion requirements available.';
   static const String paygradesPrimaryTab = 'Primary';
   static const String paygradesAncillaryTab = 'Ancillary';
   static const String paygradesPrimaryPaygrade = 'Primary Paygrade';
@@ -228,7 +271,8 @@ class AppStrings {
   static const String paygradesGenerateWithAiAction = 'Re-Generate With AI';
   static const String paygradesGenerateWithAiSubtitle =
       'Choose how many paygrades AI should generate.';
-  static const String paygradesGenerateSheetTitle = 'Re-Generate Paygrades With AI';
+  static const String paygradesGenerateSheetTitle =
+      'Re-Generate Paygrades With AI';
   static const String paygradesGenerateSheetDescription =
       'Choose how many paygrades should be generated for this seat.';
   static const String paygradesGenerateCountLabel = 'Number of Paygrades';
@@ -254,9 +298,11 @@ class AppStrings {
   static const String paygradesNameLabel = 'Name';
   static const String paygradesNameHint = 'Enter paygrade name';
   static const String paygradesDescriptionHint = 'Enter paygrade specifics';
-  static const String paygradesPromotionRequirementHint = 'Enter promotion requirements';
+  static const String paygradesPromotionRequirementHint =
+      'Enter promotion requirements';
   static const String paygradesNameRequired = 'Please enter the paygrade name.';
-  static const String paygradesCreateSuccess = 'Paygrade level created successfully.';
+  static const String paygradesCreateSuccess =
+      'Paygrade level created successfully.';
   static const String paygradesUpdateSuccess = 'Paygrade updated successfully.';
   static const String paygradesDeleteTitle = 'Delete Paygrade';
   static const String paygradesDeleteAction = 'Delete';
@@ -269,24 +315,30 @@ class AppStrings {
   static const String departmentsTitle = 'Departments';
   static const String departmentsSearchHint = 'Search Departments';
   static const String departmentsNoItemsFound = 'No departments found.';
-  static const String departmentsNoSearchResults = 'No departments match this search.';
+  static const String departmentsNoSearchResults =
+      'No departments match this search.';
   static const String departmentsEditTitle = 'Edit Department';
-  static const String departmentsEditDescription = 'Update the department name and color.';
+  static const String departmentsEditDescription =
+      'Update the department name and color.';
   static const String departmentsNameLabel = 'Department Name';
   static const String departmentsNameHint = 'Enter department name';
   static const String departmentsColorLabel = 'Department Color';
   static const String departmentsColorHexLabel = 'Color Hex';
   static const String departmentsSelectedColor = 'Selected Color';
-  static const String departmentsNameRequired = 'Please enter the department name.';
-  static const String departmentsColorInvalid = 'Please enter a valid hex color like #A67DFF.';
-  static const String departmentsUpdateSuccess = 'Department updated successfully.';
+  static const String departmentsNameRequired =
+      'Please enter the department name.';
+  static const String departmentsColorInvalid =
+      'Please enter a valid hex color like #A67DFF.';
+  static const String departmentsUpdateSuccess =
+      'Department updated successfully.';
   static const String departmentsRetryAction = 'Retry';
   static const String organizationsTitle = 'Organisations';
   static const String organizationsNoItemsFound = 'No organizations found.';
   static const String organizationsCurrentLabel = 'Current Organisation';
   static const String organizationsFetching = 'Fetching...';
   static const String organizationsChangeAction = 'Change';
-  static const String organizationsNoActiveOrganization = 'No active organisation';
+  static const String organizationsNoActiveOrganization =
+      'No active organisation';
   static const String organizationsSandboxNote =
       'Available organisations are being listed here. Please set active organisation from the given list';
   static const String organizationsBannerText =
@@ -294,7 +346,8 @@ class AppStrings {
   static const String organizationConflictChangedMessage =
       'Someone has changed Active Organisation';
 
-  static const String billingBannerText = 'Payment is required to keep using paid features';
+  static const String billingBannerText =
+      'Payment is required to keep using paid features';
   static const String paidFeaturesUnavailable = 'Paid Features Unavailable';
   static const String yourSubscriptionEnded =
       'Your organization\'s trial or subscription has ended. Upgrade your plan to create, edit, or delete content.';
@@ -311,18 +364,22 @@ class AppStrings {
   static const String seatProfilePaygradeMonthly = 'Monthly';
   static const String seatProfilePaygradeComission = 'Comission';
   static const String seatProfileCreatedSectionTitle = 'Seat Profile Created';
-  static const String seatProfileCreatedSuccess = 'Seat profile created successfully.';
+  static const String seatProfileCreatedSuccess =
+      'Seat profile created successfully.';
   static const String seatProfileDescriptionsCountLong =
       'Number of seat descriptions in the seat profile';
-  static const String seatProfileNoDepartmentsAvailable = 'No departments available right now.';
+  static const String seatProfileNoDepartmentsAvailable =
+      'No departments available right now.';
   static const String seatProfileAddDescriptionUnavailable =
       'Add Description flow is not available yet.';
   static const String seatProfileGenerateDescriptionUnavailable =
       'Generate Description with AI is not available yet.';
   static const String seatProfileAddOrUpdateSeatCategoryUnavailable =
       'Seat category flow is not available yet.';
-  static const String seatProfileNameRequired = 'Please enter the seat profile name.';
-  static const String seatProfileDepartmentRequired = 'Please select a department.';
+  static const String seatProfileNameRequired =
+      'Please enter the seat profile name.';
+  static const String seatProfileDepartmentRequired =
+      'Please select a department.';
   static const String seatProfilePrivilegedDepartmentRestricted =
       'Seat profiles cannot be created in the Privileged department.';
   static const String seatProfileDepartmentAccessDenied =
@@ -331,8 +388,9 @@ class AppStrings {
   static const String seatProfileNoItemsFound = 'No seat profiles found.';
   static const String seatProfileNoCategoriesFound = 'No categories found.';
   static const String seatProfileNoDescriptionsFound = 'No descriptions found.';
-  static String seatProfileLoadedDescriptionsForCategory(String categoryTitle) =>
-      'Descriptions from $categoryTitle';
+  static String seatProfileLoadedDescriptionsForCategory(
+    String categoryTitle,
+  ) => 'Descriptions from $categoryTitle';
   static const String seatProfileFilterTitle = 'Filter';
   static const String seatProfileFilterAll = 'All';
   static const String seatProfileDepartmentsTitle = 'Departments';
@@ -352,12 +410,14 @@ class AppStrings {
   static const String seatProfileSelectSeatProfile = 'Select Seat Profile';
   static const String seatProfileSelectCategory = 'Select Category';
   static const String seatProfileSelectDescription = 'Select Description';
-  static const String trainingSetupSelectionPrompt = 'Select Seat, Category\nand Description';
+  static const String trainingSetupSelectionPrompt =
+      'Select Seat, Category\nand Description';
   static const String trainingSetupSelectSeat = 'Select Seat';
   static const String trainingSetupSelectCategory = 'Select a category';
   static const String trainingSetupSelectDescription = 'Select a description';
   static const String trainingSetupSelectCategoryTitle = 'Select Category';
-  static const String trainingSetupSelectDescriptionTitle = 'Select Description';
+  static const String trainingSetupSelectDescriptionTitle =
+      'Select Description';
   static const String trainingSetupSearchSeat = 'Search Seat';
   static const String trainingSetupSearchCategory = 'Search Category';
   static const String trainingSetupSearchDescription = 'Search Description';
@@ -396,7 +456,8 @@ class AppStrings {
   static const String certify = 'Certify';
   static const String performanceReportUnavailable =
       'Performance report is not available right now.';
-  static const String performanceReportSelectedCategoryTitle = 'Selected Category';
+  static const String performanceReportSelectedCategoryTitle =
+      'Selected Category';
   static const String performanceReportCategoriesTitle = 'Categories';
   static const String performanceReportSelectCategory = 'Select Category';
   static const String performanceReportSelectCategoryDescription =
@@ -405,16 +466,22 @@ class AppStrings {
   static const String performanceReportNoCategoryDescriptions =
       'No descriptions available for this category.';
   static const String performanceReportCoreValuesTitle = 'Core Values';
-  static const String performanceReportCoreValueDetailsFallback = 'No details available yet.';
-  static const String performanceReportPaygradePipelineTitle = 'View Paygrade Pipeline';
+  static const String performanceReportCoreValueDetailsFallback =
+      'No details available yet.';
+  static const String performanceReportPaygradePipelineTitle =
+      'View Paygrade Pipeline';
   static const String sheetPaygradePipelineTitle = 'Paygrade Pipeline';
   static const String performanceReportPaygradePipelineSubtitle =
       'Follow the current grade and the next pay levels in one mobile-friendly timeline.';
-  static const String performanceReportPaygradePipelineEmpty = 'Paygrades not created yet.';
-  static const String performanceReportPaygradeCurrentGradeLabel = 'Current Position';
-  static const String performanceReportPaygradeCurrentPositionValueLabel = 'Current Position:';
+  static const String performanceReportPaygradePipelineEmpty =
+      'Paygrades not created yet.';
+  static const String performanceReportPaygradeCurrentGradeLabel =
+      'Current Position';
+  static const String performanceReportPaygradeCurrentPositionValueLabel =
+      'Current Position:';
   static const String performanceReportPaygradeCurrentPayLabel = 'Current Pay:';
-  static const String performanceReportPaygradeTotalLevelsLabel = 'Total Levels:';
+  static const String performanceReportPaygradeTotalLevelsLabel =
+      'Total Levels:';
   static const String performanceReportPaygradeLevelsLabel = 'Levels';
   static const String performanceReportPaygradeTapHint =
       'Tap a stage to review pay rate and advancement requirements.';
@@ -426,7 +493,8 @@ class AppStrings {
       'Advancement Requirements';
   static const String performanceSnapshotNoReports = 'No reports available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
-  static const String performanceSnapshotDataUnavailable = 'Data not available.';
+  static const String performanceSnapshotDataUnavailable =
+      'Data not available.';
   static const String performanceSnapshotFilterLoading = 'Loading jobs...';
   static const String performanceSnapshotAction = 'Report';
   static const String performanceSnapshotJob = 'Job';
@@ -441,7 +509,11 @@ class AppStrings {
   static const String auditSeatProfile = 'Seat Profile';
   static const String auditApplyFilters = 'Apply Filters';
   static const String auditSearchSeatProfile = 'Search Seat Profile';
-  static const List<String> auditMilestoneOptions = <String>['30 Days', '60 Days', '90 Days'];
+  static const List<String> auditMilestoneOptions = <String>[
+    '30 Days',
+    '60 Days',
+    '90 Days',
+  ];
   static const List<String> auditTimingOptions = <String>[
     'Available',
     'Wait',
@@ -461,7 +533,8 @@ class AppStrings {
   static const String complianceTrainingTitle = 'Training';
   static const String complianceSeatProfileTitle = 'Seat Profile';
   static const String done = 'Done';
-  static const String complianceMasteredBasics = "--- You've Mastered The Basics ---";
+  static const String complianceMasteredBasics =
+      "--- You've Mastered The Basics ---";
   static const String complianceNoTracksFound = 'No Learning Tracks Found';
   static const String complianceNoDocumentsFound = 'No Documents Found';
   static const String trainingVideoTab = 'Video';
@@ -469,7 +542,8 @@ class AppStrings {
   static const String trainingSopTab = 'SOP';
   static const String trainingQuizTab = 'Quiz';
   static const String trainingAssignmentTab = 'Assignment';
-  static const String trainingNoAssignmentAvailable = 'No assignment available.';
+  static const String trainingNoAssignmentAvailable =
+      'No assignment available.';
   static const String trainingCreateAssignment = 'Create Assignment';
   static const String trainingEditAssignment = 'Edit';
   static const String trainingGenerateQuiz = 'Generate Quiz';
@@ -483,15 +557,19 @@ class AppStrings {
   static const String trainingQuizNumberOfQuestions = 'No. of Questions';
   static const String trainingQuizOptionsPerQuestion = 'Options per Question';
   static const String trainingQuizDifficultyLevel = 'Difficulty Level';
-  static const String trainingQuizReplaceExistingQuestions = 'Replace Existing Questions';
+  static const String trainingQuizReplaceExistingQuestions =
+      'Replace Existing Questions';
   static const String trainingQuizDifficultyEasy = 'Easy';
   static const String trainingQuizDifficultyMedium = 'Medium';
   static const String trainingQuizDifficultyHard = 'Hard';
   static const String trainingQuizEnabled = 'On';
   static const String trainingQuizDisabled = 'Off';
-  static const String trainingQuizGeneratedSuccess = 'Quiz generated successfully.';
-  static String trainingVideoPositionLabel(int current, int total) => 'Video $current of $total';
-  static const String trainingSopGeneratedSuccess = 'SOP generated successfully.';
+  static const String trainingQuizGeneratedSuccess =
+      'Quiz generated successfully.';
+  static String trainingVideoPositionLabel(int current, int total) =>
+      'Video $current of $total';
+  static const String trainingSopGeneratedSuccess =
+      'SOP generated successfully.';
   static const String trainingCancel = 'Cancel';
   static const String trainingGenerateSop = 'Generate SOP';
   static const String trainingGenerateSopsWithAi = 'Generate SOPs with AI';
@@ -511,35 +589,43 @@ class AppStrings {
   static const String trainingDeleteQuestionAction = 'Delete';
   static const String trainingDeleteQuestionDescription =
       'Delete this question and all of its options? This action cannot be undone.';
-  static const String trainingQuestionDeletedSuccess = 'Question deleted successfully.';
+  static const String trainingQuestionDeletedSuccess =
+      'Question deleted successfully.';
   static const String trainingRemoveOption = 'Remove option';
   static const String trainingAddNewLesson = 'Add New Lesson';
   static const String trainingNewLesson = 'New Lesson';
   static const String trainingSelectedLesson = 'Selected Lesson';
   static const String trainingAllLessons = 'All Lessons';
   static const String trainingChooseLesson = 'Choose Lesson';
-  static const String trainingAddLessonPrompt = 'Tap Add New Lesson to create a training module.';
+  static const String trainingAddLessonPrompt =
+      'Tap Add New Lesson to create a training module.';
   static const String trainingReadOnlyAccessMessage =
       'You can view this training module, but create and edit actions are disabled for this seat profile.';
   static const String trainingDeleteModuleTitle = 'Delete Module';
   static const String trainingDeleteModuleAction = 'Delete';
-  static const String trainingModuleDeletedSuccess = 'Module deleted successfully.';
+  static const String trainingModuleDeletedSuccess =
+      'Module deleted successfully.';
   static const String trainingLessonTitle = 'Title';
   static const String trainingLessonTitleHint = 'Enter lesson title';
-  static const String trainingLessonCreatedSuccess = 'Lesson created successfully.';
+  static const String trainingLessonCreatedSuccess =
+      'Lesson created successfully.';
   static const String trainingUntitledLesson = 'Untitled Lesson';
   static const String trainingUploadVideo = 'Upload Video';
   static const String trainingUploadingVideo = 'Uploading';
   static const String trainingPreparingVideoUpload = 'Preparing training video';
   static const String trainingFinalizingVideoUpload = 'Finalizing video upload';
-  static const String trainingVideoUploadCompletedTitle = 'Training video uploaded';
-  static const String trainingVideoUploadFailedTitle = 'Training video upload failed';
-  static const String trainingBackgroundUploadContinues = 'You can keep using the app.';
+  static const String trainingVideoUploadCompletedTitle =
+      'Training video uploaded';
+  static const String trainingVideoUploadFailedTitle =
+      'Training video upload failed';
+  static const String trainingBackgroundUploadContinues =
+      'You can keep using the app.';
   static const String trainingFinalizingUploadDetail = 'Finalizing Upload...';
   static const String backgroundUploadContinues = 'You can keep using the app.';
   static const String trainingReturnToLessonToAddThumbnail =
       'Return to the lesson to add a thumbnail.';
-  static const String trainingUploadNotificationChannelName = 'Training uploads';
+  static const String trainingUploadNotificationChannelName =
+      'Training uploads';
   static const String trainingUploadNotificationChannelDescription =
       'Shows progress for training video uploads.';
   static const String backgroundUploadNotificationChannelName = 'Uploads';
@@ -554,7 +640,8 @@ class AppStrings {
   static const String trainingSelectVideoSourceHint =
       'Record a new video or upload one from your library.';
   static const String trainingRecordVideo = 'Shoot Video';
-  static const String trainingRecordVideoHint = 'Capture a video to attach to this lesson.';
+  static const String trainingRecordVideoHint =
+      'Capture a video to attach to this lesson.';
   static const String trainingRecentVideos = 'Recent Videos';
   static const String trainingNoGalleryVideos =
       'No gallery videos found yet. Use the camera tile to record one.';
@@ -564,7 +651,8 @@ class AppStrings {
       'Only the videos you selected are visible. Choose more videos from your device to expand this list.';
   static const String trainingSelectMoreVideos = 'Select More Videos';
   static const String trainingManageGalleryAccess = 'Manage Access';
-  static const String trainingUploadVideoHint = 'Choose a video to attach to this lesson.';
+  static const String trainingUploadVideoHint =
+      'Choose a video to attach to this lesson.';
   static const String trainingDeleteVideoTitle = 'Delete Video';
   static const String trainingDeleteVideoAction = 'Delete';
   static const String trainingVideoMoreActions = 'Video actions';
@@ -574,16 +662,25 @@ class AppStrings {
   static const String trainingAddThumbnailDescription =
       'Video uploaded successfully. Choose an image from your gallery to use as the thumbnail for this lesson.';
   static const String trainingSelectThumbnailAction = 'Choose Thumbnail';
-  static const String trainingSelectThumbnailHint = 'Select an image from gallery';
+  static const String trainingSelectThumbnailHint =
+      'Select an image from gallery';
   static const String trainingSkipThumbnailAction = 'Skip for now';
-  static const String trainingVideoUploadedSuccess = 'Video uploaded successfully.';
-  static const String trainingVideoDeletedSuccess = 'Video deleted successfully.';
-  static const String trainingThumbnailUpdatedSuccess = 'Thumbnail updated successfully.';
-  static const String trainingVideoUploadFailed = 'Failed to upload, Try Again!';
-  static const String trainingVideoDeleteFailed = 'Unable to delete video right now.';
-  static const String trainingThumbnailUploadFailed = 'Unable to update thumbnail right now.';
-  static const String trainingVideoUploadsTapToExpand = 'Tap to view all uploads.';
-  static const String trainingVideoUploadsTapToCollapse = 'Tap to hide upload details.';
+  static const String trainingVideoUploadedSuccess =
+      'Video uploaded successfully.';
+  static const String trainingVideoDeletedSuccess =
+      'Video deleted successfully.';
+  static const String trainingThumbnailUpdatedSuccess =
+      'Thumbnail updated successfully.';
+  static const String trainingVideoUploadFailed =
+      'Failed to upload, Try Again!';
+  static const String trainingVideoDeleteFailed =
+      'Unable to delete video right now.';
+  static const String trainingThumbnailUploadFailed =
+      'Unable to update thumbnail right now.';
+  static const String trainingVideoUploadsTapToExpand =
+      'Tap to view all uploads.';
+  static const String trainingVideoUploadsTapToCollapse =
+      'Tap to hide upload details.';
   static String trainingUploadProgressLabel(int percent) {
     return '$percent% uploaded';
   }
@@ -637,7 +734,8 @@ class AppStrings {
   static const String trainingTakeQuiz = 'Take Quiz';
   static const String trainingEditAction = 'Edit Assignment';
   static const String trainingSubmitQuiz = 'Submit Quiz';
-  static const String trainingNoModulesAvailable = 'No training modules available.';
+  static const String trainingNoModulesAvailable =
+      'No training modules available.';
   static const String trainingLibraryTitle = 'LMS';
   static const String trainingLibraryAllFilter = 'All';
   static const String trainingLibraryAllVideoLesson = 'All Video Lesson';
@@ -652,7 +750,8 @@ class AppStrings {
       'You do not have access to create training modules from this account.';
   static const String trainingLibrarySearchFieldTooltip = 'Choose search field';
   static const String trainingLibrarySearchFieldLabel = 'Search by';
-  static const String trainingLibraryNoModulesFound = 'No library modules found.';
+  static const String trainingLibraryNoModulesFound =
+      'No library modules found.';
   static const String trainingLibraryNoLessonsFound =
       'No training modules found in this library item.';
   static const String trainingLibraryRetry = 'Retry';
@@ -666,33 +765,44 @@ class AppStrings {
   static const String trainingNoVideoAvailable = 'No video available.';
   static const String trainingNoDocumentAvailable = 'No document available.';
   static const String trainingNoSopAvailable = 'No SOP available.';
-  static const String trainingNoQuizQuestionsAvailable = 'No quiz questions available.';
+  static const String trainingNoQuizQuestionsAvailable =
+      'No quiz questions available.';
   static const String trainingQuestionLabel = 'Question';
   static const String trainingQuestionHint = 'Enter the quiz question';
   static const String trainingQuestionOptionsLabel = 'Options';
   static const String trainingQuestionCorrectAnswerLabel = 'Correct Answer';
   static const String trainingQuestionSelectCorrectAnswerHint =
       'Tap the radio circle beside an option to mark it as correct.';
-  static const String trainingQuestionAddedSuccess = 'Question added successfully.';
+  static const String trainingQuestionAddedSuccess =
+      'Question added successfully.';
   static const String trainingQuestionSaveAction = 'Save Question';
   static const String trainingQuestionAddOption = 'Add Option';
-  static const String trainingQuestionRequired = 'Please enter a question before saving.';
-  static const String trainingQuestionMinOptionsRequired = 'Add at least 2 options.';
+  static const String trainingQuestionRequired =
+      'Please enter a question before saving.';
+  static const String trainingQuestionMinOptionsRequired =
+      'Add at least 2 options.';
   static const String trainingQuestionOptionsRequired =
       'Please fill in every option before saving.';
-  static const String trainingQuestionCorrectOptionRequired = 'Please select the correct option.';
-  static const String trainingNoTranscriptAvailable = 'No transcript available.';
+  static const String trainingQuestionCorrectOptionRequired =
+      'Please select the correct option.';
+  static const String trainingNoTranscriptAvailable =
+      'No transcript available.';
   static const String trainingNoSummaryAvailable = 'No summary available.';
-  static const String trainingNoSummaryAvailableSnackBar = 'No Summary Available';
-  static const String trainingModuleDetailsSavedSuccess = 'Training module updated successfully.';
+  static const String trainingNoSummaryAvailableSnackBar =
+      'No Summary Available';
+  static const String trainingModuleDetailsSavedSuccess =
+      'Training module updated successfully.';
   static const String trainingEditTextSheetDescription =
       'Update the text below and save your changes.';
   static const String trainingSummaryLabel = 'Summary';
-  static const String trainingSummaryHint = 'Write a short summary for this lesson.';
-  static const String trainingSummarySavedSuccess = 'Summary updated successfully.';
+  static const String trainingSummaryHint =
+      'Write a short summary for this lesson.';
+  static const String trainingSummarySavedSuccess =
+      'Summary updated successfully.';
   static const String trainingSaveAction = 'Save';
   static const String trainingSaveChangesAction = 'Save Changes';
-  static const String trainingFieldValueRequired = 'Please enter a value before saving.';
+  static const String trainingFieldValueRequired =
+      'Please enter a value before saving.';
   static const String trainingVisibilityLabel = 'Visibility';
   static const String trainingVisibilityAllDescription =
       'Learning module access to everyone company-wide (good for full company transparency)';
@@ -707,7 +817,8 @@ class AppStrings {
       'Write assignment instructions for this lesson.';
   static const String trainingAssignmentContentRequired =
       'Add both assignment title and description before saving.';
-  static const String trainingAssignmentSavedSuccess = 'Assignment updated successfully.';
+  static const String trainingAssignmentSavedSuccess =
+      'Assignment updated successfully.';
   static const String trainingFormattingLabel = 'Basic Editing';
   static const String trainingBoldAction = 'Bold';
   static const String trainingItalicAction = 'Italic';
@@ -721,12 +832,15 @@ class AppStrings {
   static String trainingEditFieldTitle(String fieldLabel) => 'Edit $fieldLabel';
   static String trainingLibraryLessonsCount(int count) =>
       '$count ${count == 1 ? 'Lesson' : 'Lessons'}';
-  static String trainingLessonPosition(int current, int total) => 'Lesson $current of $total';
+  static String trainingLessonPosition(int current, int total) =>
+      'Lesson $current of $total';
   static String trainingLessonCounter(int current, int total) =>
       '${current == 1 ? 'Lesson' : 'Lessons'} $current/$total';
-  static String trainingLibrarySearchHint(String filterLabel) => 'Search by $filterLabel';
+  static String trainingLibrarySearchHint(String filterLabel) =>
+      'Search by $filterLabel';
   static String trainingQuestionOptionLabel(int number) => 'Option $number';
-  static String trainingQuestionOptionHint(int number) => 'Enter option $number';
+  static String trainingQuestionOptionHint(int number) =>
+      'Enter option $number';
   static String trainingQuestionChoiceLabel(int number) => 'Choice $number';
   static String trainingDeleteModuleDescription(String moduleTitle) =>
       'Delete "$moduleTitle"? This action cannot be undone.';
@@ -744,7 +858,8 @@ class AppStrings {
   static const String uploadDoc = 'Upload Document';
   static const String uploadDocumentTitle = 'Upload Document';
   static const String rejectionReasonTitle = 'Rejection Reason';
-  static const String rejectionReasonBody = 'Lorem Ipsum Lorem ipsum Lorem Ipsum Lorem ipsum';
+  static const String rejectionReasonBody =
+      'Lorem Ipsum Lorem ipsum Lorem Ipsum Lorem ipsum';
   static const String clickToUploadDocument = 'Click to upload\nDocument';
   static const String uploadFileFormat = 'File Format: JPEG, PNG, JPG, PDF';
   static const String uploadMaxFileSize = 'Max file size is 20 MB';
@@ -757,17 +872,21 @@ class AppStrings {
   static const String trainingBackToTrackModules = 'Back to Track Modules';
   static const String trainingBackToLearningTrack = 'Back to Learning Track';
 
-  static String welcomeBackUser(String displayName) => 'Welcome back, $displayName!';
+  static String welcomeBackUser(String displayName) =>
+      'Welcome back, $displayName!';
 
   static String welcomeUser(String displayName) => 'Welcome, $displayName!';
 
   static String commentAsUser(String displayName) {
     final normalizedName = displayName.trim();
-    final firstName = normalizedName.isEmpty ? 'You' : normalizedName.split(RegExp(r'\s+')).first;
+    final firstName = normalizedName.isEmpty
+        ? 'You'
+        : normalizedName.split(RegExp(r'\s+')).first;
     return 'Comment as $firstName';
   }
 
-  static String apiRequestFailed(int statusCode) => '$apiRequestFailedPrefix $statusCode';
+  static String apiRequestFailed(int statusCode) =>
+      '$apiRequestFailedPrefix $statusCode';
 
   static const String cosmeticDentist = "Cosmetic Dentist";
   static const String claraBell = "Clara Bell";
@@ -786,7 +905,8 @@ class AppStrings {
   static const String noComment = "No Comment";
 
   // Statistics Section
-  static const String runningOverallPerformance = "Running Overall Performance Score";
+  static const String runningOverallPerformance =
+      "Running Overall Performance Score";
   static const String confidenceLevel = "Confidence Level";
 
   // Audit List Section
@@ -811,7 +931,8 @@ class AppStrings {
   static const String auditNoDescriptionAvailable = 'No description available.';
   static const String auditSeatDescription = 'Seat Description';
   static const String auditSeatSpecifics = 'Seat Specifics';
-  static const String auditNoSeatSpecificsAvailable = 'No seat specifics available.';
+  static const String auditNoSeatSpecificsAvailable =
+      'No seat specifics available.';
   static const String auditSelectPassNoPass = 'Select Pass/No Pass';
   static const String auditPass = 'Pass';
   static const String auditNoPass = 'No Pass';
@@ -827,10 +948,12 @@ class AppStrings {
   static const String auditScreenRecording = 'Screen Recording';
 
   static const String auditTakePhoto = 'Take a photo';
-  static const String auditCapturePhotoComment = 'Capture a photo for this audit comment';
+  static const String auditCapturePhotoComment =
+      'Capture a photo for this audit comment';
   static const String auditOpenCamera = 'Open Camera';
   static const String auditRecordVideo = 'Record a video';
-  static const String auditCaptureVideoComment = 'Capture a video using your camera';
+  static const String auditCaptureVideoComment =
+      'Capture a video using your camera';
   static const String auditOpenVideoCamera = 'Open Video Camera';
   static const String auditUploadMedia = 'Upload media';
   static const String auditUploadMediaChoice =
@@ -848,25 +971,31 @@ class AppStrings {
   static const String auditMarkupResetCrop = 'Reset crop';
   static const String auditMarkupCropHint =
       'Drag a corner to resize the crop area, or drag inside the box to move it.';
-  static const String auditMarkupImageLoadError = 'Unable to open this image for markup right now.';
-  static const String auditMarkupImageSaveError = 'Unable to save the marked image right now.';
+  static const String auditMarkupImageLoadError =
+      'Unable to open this image for markup right now.';
+  static const String auditMarkupImageSaveError =
+      'Unable to save the marked image right now.';
   static const String auditScreenRecordingPreview = 'Screen recording preview';
   static const String auditScreenRecordingPreviewHint =
       'Record a screen first, then it will appear here for playback before saving.';
-  static const String auditCameraPermissionPhoto = 'Camera permission is required to take a photo.';
+  static const String auditCameraPermissionPhoto =
+      'Camera permission is required to take a photo.';
   static const String auditPhotoLibraryPermissionImage =
       'Photo library permission is required to upload an image.';
   static const String auditCameraOpenError =
       'Unable to open the camera right now. Please try again.';
-  static const String auditPickImageError = 'Unable to pick an image right now. Please try again.';
+  static const String auditPickImageError =
+      'Unable to pick an image right now. Please try again.';
   static const String auditCameraPermissionVideo =
       'Camera permission is required to record a video.';
   static const String auditPhotoLibraryPermissionVideo =
       'Photo library permission is required to upload a video.';
   static const String auditRecordVideoError =
       'Unable to record a video right now. Please try again.';
-  static const String auditPickVideoError = 'Unable to pick a video right now. Please try again.';
-  static const String auditMediaUploadFailed = 'Unable to upload audit media right now.';
+  static const String auditPickVideoError =
+      'Unable to pick a video right now. Please try again.';
+  static const String auditMediaUploadFailed =
+      'Unable to upload audit media right now.';
   static const String auditMediaUploadAlreadyInProgress =
       'This audit item already has a media upload in progress.';
   static const String auditCommentMediaPreparing = 'Preparing comment media';
@@ -891,11 +1020,16 @@ class AppStrings {
   static const String auditStartRecording = 'Start Recording';
   static const String auditStopRecording = 'Stop Recording';
   static const String auditRecordingNotificationTitle = 'Screen recording';
-  static const String auditRecordingNotificationMessage = 'Recording in progress';
-  static const String auditStartRecordingError = 'Unable to start screen recording right now.';
-  static const String auditNoRecordingReturned = 'Recording finished but no video was returned.';
-  static const String auditRecordedVideoMissing = 'Recorded video could not be found.';
-  static const String auditStopRecordingError = 'Unable to stop screen recording right now.';
+  static const String auditRecordingNotificationMessage =
+      'Recording in progress';
+  static const String auditStartRecordingError =
+      'Unable to start screen recording right now.';
+  static const String auditNoRecordingReturned =
+      'Recording finished but no video was returned.';
+  static const String auditRecordedVideoMissing =
+      'Recorded video could not be found.';
+  static const String auditStopRecordingError =
+      'Unable to stop screen recording right now.';
   static const String auditStartScreenRecordingTitle = 'Start screen recording';
   static const String auditRecordingInProgress = 'Recording in progress';
   static const String auditRecordingPrompt =
@@ -910,21 +1044,28 @@ class AppStrings {
 
   // Kaizengram Power List
   static const String kaizengramPowerListTitle = 'Power List';
-  static const String kaizengramPowerListSubtitle = 'Insights across compliances and audits';
-  static const String kaizengramPowerListContinuedTitle = 'Power List Continued';
-  static const String kaizengramPowerListContinuedSubtitle = 'More highlights inside the feed';
+  static const String kaizengramPowerListSubtitle =
+      'Insights across compliances and audits';
+  static const String kaizengramPowerListContinuedTitle =
+      'Power List Continued';
+  static const String kaizengramPowerListContinuedSubtitle =
+      'More highlights inside the feed';
 
   // Kaizengram Power List Entries
-  static const String kaizengramLearningCompliancesTitle = 'Learning Compliances';
+  static const String kaizengramLearningCompliancesTitle =
+      'Learning Compliances';
   static const String kaizengramLearningCompliancesDue = '12 Due This Week';
-  static const String kaizengramDocumentCompliancesTitle = 'Document Compliances';
-  static const String kaizengramDocumentCompliancesPending = '8 Pending Uploads';
+  static const String kaizengramDocumentCompliancesTitle =
+      'Document Compliances';
+  static const String kaizengramDocumentCompliancesPending =
+      '8 Pending Uploads';
   static const String kaizengramCheckInsTitle = 'Check-ins';
   static const String kaizengramCheckInsActive = '5 Active Check-ins';
   static const String kaizengramCheckInReportsTitle = 'Check-in Reports';
   static const String kaizengramCheckInReportsReady = '3 Ready For Review';
   static const String kaizengramWeeklySocialPostTitle = 'Kaizengram';
-  static const String kaizengramWeeklySocialPostSubtitle = 'Weekly Check-In Note';
+  static const String kaizengramWeeklySocialPostSubtitle =
+      'Weekly Check-In Note';
   static const String kaizengramWeeklySocialAuthorOne = 'Jordan Miles';
   static const String kaizengramWeeklySocialAuthorTwo = 'Alyssa Grant';
   static const String kaizengramWeeklySocialChannelOne = '#weekly-check-in';
@@ -939,15 +1080,18 @@ class AppStrings {
   static const String kaizengramComposeSubtitle =
       'Share a quick win, follow-up, or proof with your team.';
   static const String kaizengramComposeSheetTitle = 'Write Post';
-  static const String kaizengramComposeSheetHint = 'Share a quick update with your team';
+  static const String kaizengramComposeSheetHint =
+      'Share a quick update with your team';
   static const String kaizengramComposeButtonPost = 'Post';
   static const String kaizengramComposeButtonCancel = 'Cancel';
   static const String kaizengramComposeTimeLabel = '1m';
   static const String kaizengramComposeSourceTitle = 'Add to Post';
   static const String kaizengramComposeActionImage = 'Image';
   static const String kaizengramComposeActionAttachment = 'Attachment';
-  static const String kaizengramComposeActionImageHint = 'Choose an image from your device.';
-  static const String kaizengramComposeActionAttachmentHint = 'Choose a PDF file from your device.';
+  static const String kaizengramComposeActionImageHint =
+      'Choose an image from your device.';
+  static const String kaizengramComposeActionAttachmentHint =
+      'Choose a PDF file from your device.';
 
   // Kaizengram Post Actions
   static const String kaizengramButtonComments = 'Comments';
@@ -962,11 +1106,14 @@ class AppStrings {
   static const String kaizengramNotificationsToday = 'Today';
   static const String kaizengramNotificationsThisWeek = 'This Week';
   static const String kaizengramNotificationsEarlier = 'Earlier';
-  static const String kaizengramNotificationsEmpty = 'No notifications are available yet.';
+  static const String kaizengramNotificationsEmpty =
+      'No notifications are available yet.';
   static const String kaizengramNotificationsUnableToLoad =
       'Unable to load notifications right now.';
-  static const String kaizengramNotificationsActorComplianceDesk = 'Compliance Desk';
-  static const String kaizengramNotificationsActorTrainingDesk = 'Training Desk';
+  static const String kaizengramNotificationsActorComplianceDesk =
+      'Compliance Desk';
+  static const String kaizengramNotificationsActorTrainingDesk =
+      'Training Desk';
   static const String kaizengramNotificationsActorReviewBoard = 'Review Board';
   static const String kaizengramNotificationsActorKaizenQa = 'Kaizen QA';
 
@@ -977,17 +1124,23 @@ class AppStrings {
   static const String kaizengramMediaFallbackMore = 'more...';
   static const String kaizengramLabelCheckInComments = 'Check-In Comments';
   static const String kaizengramNoImageThreadTitle = 'No Image Follow-Up';
-  static const String kaizengramNoImageThreadPlaceholder = 'No image attached to this thread.';
+  static const String kaizengramNoImageThreadPlaceholder =
+      'No image attached to this thread.';
 
   // Kaizengram Empty & Error States
-  static const String kaizengramMessageUnableLoadFeed = 'Unable to load Kaizen feed right now.';
-  static const String kaizengramMessageNoFeedItems = 'No feed items are available yet.';
+  static const String kaizengramMessageUnableLoadFeed =
+      'Unable to load Kaizen feed right now.';
+  static const String kaizengramMessageNoFeedItems =
+      'No feed items are available yet.';
 
   // Kaizengram Error Messages
-  static const String kaizengramErrorCannotAccessCompliance = 'You cannot access this compliance';
+  static const String kaizengramErrorCannotAccessCompliance =
+      'You cannot access this compliance';
   static const String kaizengramErrorRestrictedTitle = 'Restricted';
-  static const String kaizengramErrorPickImageFailed = 'Unable to pick image right now';
-  static const String kaizengramErrorPickAttachmentFailed = 'Unable to pick file right now';
+  static const String kaizengramErrorPickImageFailed =
+      'Unable to pick image right now';
+  static const String kaizengramErrorPickAttachmentFailed =
+      'Unable to pick file right now';
 
   // Kaizengram Comments Thread
   static const String kaizengramMessageShowReplies = 'Show replies';
@@ -996,7 +1149,9 @@ class AppStrings {
   /// Get the show/hide replies text with count.
   /// Example: "Show replies (5)" or "Hide replies"
   static String kaizengramRepliesToggleText(int count, bool isShowing) {
-    return isShowing ? kaizengramMessageHideReplies : '$kaizengramMessageShowReplies ($count)';
+    return isShowing
+        ? kaizengramMessageHideReplies
+        : '$kaizengramMessageShowReplies ($count)';
   }
 
   static String kaizengramNotificationAssigned(String title) {
@@ -1034,7 +1189,8 @@ class AppStrings {
   // Groups Strings
   static const String screenTitle = 'Group Posts';
   static const String searchHint = 'Search groups';
-  static const String heroTitle = 'Build focused spaces for wins, proof, and follow-up.';
+  static const String heroTitle =
+      'Build focused spaces for wins, proof, and follow-up.';
   static const String heroSubtitle =
       'Move recurring conversations out of the feed and into dedicated communities that feel easy to manage.';
   static const String createGroup = 'Create Group';
@@ -1072,10 +1228,14 @@ class AppStrings {
   static const String managedLabel = 'You manage this';
   static const String discoverTrendingBadge = 'Trending';
   static const String myGroupsScreenTitle = 'My Groups';
-  static const String yourGroupsSubtitle = 'Jump back into the communities you already joined.';
-  static const String groupsFeedSubtitle = 'Latest posts from the groups you joined.';
-  static const String yourActivitySubtitle = 'Recent updates from the groups you joined.';
-  static const String createGroupTileSubtitle = 'Start a new space for your team.';
+  static const String yourGroupsSubtitle =
+      'Jump back into the communities you already joined.';
+  static const String groupsFeedSubtitle =
+      'Latest posts from the groups you joined.';
+  static const String yourActivitySubtitle =
+      'Recent updates from the groups you joined.';
+  static const String createGroupTileSubtitle =
+      'Start a new space for your team.';
   static const String yourGroupsEmptySubtitle =
       'Create a group first, then your joined communities will show here.';
   static const String detailAboutHeader = 'Group Info';
@@ -1108,9 +1268,11 @@ class AppStrings {
       'Start a space for proof, playbooks, coaching, and weekly momentum.';
   static const String groupImageLabel = 'Group Image';
   static const String groupImageHint = 'Choose a picture for this group.';
-  static const String groupImageSelectedHint = 'Tap to change the current group image.';
+  static const String groupImageSelectedHint =
+      'Tap to change the current group image.';
   static const String groupBackgroundImageLabel = 'Background Image';
-  static const String groupBackgroundImageHint = 'Choose a background image for group details.';
+  static const String groupBackgroundImageHint =
+      'Choose a background image for group details.';
   static const String groupBackgroundImageSelectedHint =
       'Tap to change the current background image.';
   static const String nameLabel = 'Group Name';
@@ -1122,7 +1284,8 @@ class AppStrings {
   static const String createSubmit = 'Create';
   static const String createCancel = 'Cancel';
   static const String emptySearchTitle = 'No groups matched your search.';
-  static const String emptySearchSubtitle = 'Try another topic or clear the current search.';
+  static const String emptySearchSubtitle =
+      'Try another topic or clear the current search.';
   static const String clearSearch = 'Clear Search';
   static const String createPromptMessage =
       'Create your first group and keep recurring conversations in one place.';
@@ -1131,7 +1294,8 @@ class AppStrings {
   static const String commentInputHint = 'Write a comment';
   static const String postCommentAction = 'Post';
   static const String commentsEmptyTitle = 'No comments yet.';
-  static const String commentsEmptySubtitle = 'Start the conversation for this group post.';
+  static const String commentsEmptySubtitle =
+      'Start the conversation for this group post.';
   static const String currentUserCommentName = 'You';
   static const String justNowTimeLabel = 'Just now';
   static const String invitePeopleSheetTitle = 'Add People';
@@ -1150,10 +1314,13 @@ class AppStrings {
   static const String invitePeopleEmailInvalid = 'Enter a valid email address.';
   static const String invitePeopleEmptySelection =
       'Select at least one person or enter a valid email.';
-  static const String writePostSnackBar = 'Post composer will land here next in the flow.';
-  static const String inviteSnackBar = 'Invite flow is ready for the next implementation step.';
+  static const String writePostSnackBar =
+      'Post composer will land here next in the flow.';
+  static const String inviteSnackBar =
+      'Invite flow is ready for the next implementation step.';
   static const String manageSnackBar = 'Group controls can expand from here.';
-  static const String commentSnackBar = 'Group post comments can connect here in the next step.';
+  static const String commentSnackBar =
+      'Group post comments can connect here in the next step.';
   static const String likeSnackBar = 'Post likes can connect here next.';
   static const String profileScreenTitle = 'Profile';
   static const String profileGroupHeader = 'Current Group';
@@ -1510,7 +1677,11 @@ class AppStrings {
     return groupName;
   }
 
-  static String profileAboutSummary(String authorName, String groupName, String category) {
+  static String profileAboutSummary(
+    String authorName,
+    String groupName,
+    String category,
+  ) {
     return '$authorName keeps the team aligned by sharing proof, follow-up notes, and quick updates across $category work in $groupName.';
   }
 
@@ -1555,14 +1726,17 @@ class AppStrings {
       'Choose a group, channel, or one-to-one chat for this post.';
   static const String sharePostOriginLabel = 'Shared from Kaizengram';
   static const String sharePostLinkLabel = 'Link';
-  static const String sharePostEmptyState = 'Create a channel or one-to-one chat first.';
+  static const String sharePostEmptyState =
+      'Create a channel or one-to-one chat first.';
 
   // Chat Creation & Discovery
   static const String createChannelTitle = 'Create Channel';
-  static const String createChannelSubtitle = 'Set a name for the new Kaizengram channel.';
+  static const String createChannelSubtitle =
+      'Set a name for the new Kaizengram channel.';
   static const String createChannelImageLabel = 'Channel Image';
   static const String createChannelImageHint = 'Upload image for channel';
-  static const String createChannelImageSelectedHint = 'Tap to change the current channel image';
+  static const String createChannelImageSelectedHint =
+      'Tap to change the current channel image';
   static const String startDirectMessageTitle = 'Users';
   static const String startDirectMessageSubtitle =
       'Search and choose a user to begin a one-to-one chat.';
@@ -1576,8 +1750,10 @@ class AppStrings {
   static const String channelNameHint = 'Enter channel name';
   static const String usersTitle = 'Users';
   static const String deleteChannelTitle = 'Delete Channel';
-  static const String emptyMessages = 'No messages yet. Start the conversation.';
-  static const String noConversationSelected = 'Choose a channel or direct message from the list.';
+  static const String emptyMessages =
+      'No messages yet. Start the conversation.';
+  static const String noConversationSelected =
+      'Choose a channel or direct message from the list.';
   static const String noDirectMessages = 'Start a one-to-one chat.';
 
   // Chat Actions & Attachments
@@ -1616,26 +1792,34 @@ class AppStrings {
   static const String mediaMessageLabel = 'Attachments';
   static const String attachmentPickerTitle = 'Choose Attachment';
   static const String attachmentPickerMediaTitle = 'Photos & Videos';
-  static const String attachmentPickerMediaSubtitle = 'Pick images or videos from your device.';
+  static const String attachmentPickerMediaSubtitle =
+      'Pick images or videos from your device.';
   static const String attachmentPickerPdfTitle = 'PDF Document';
-  static const String attachmentPickerPdfSubtitle = 'Pick a PDF file from your documents.';
+  static const String attachmentPickerPdfSubtitle =
+      'Pick a PDF file from your documents.';
 
   // Chat Errors & Validation
   static const String emptyChannelNameError = 'Please enter a channel name.';
-  static const String duplicateChannelNameError = 'A channel with this name already exists.';
+  static const String duplicateChannelNameError =
+      'A channel with this name already exists.';
   static const String lastChannelError = 'At least one channel must remain.';
   static const String invalidEmailError = 'Please enter a valid email address.';
   static const String pickImageError = 'Unable to pick image right now.';
-  static const String pickChannelImageError = 'Unable to pick channel image right now.';
+  static const String pickChannelImageError =
+      'Unable to pick channel image right now.';
   static const String pickVideoError = 'Unable to pick video right now.';
-  static const String pickMediaError = 'Unable to open the attachment picker right now.';
+  static const String pickMediaError =
+      'Unable to open the attachment picker right now.';
   static const String mediaLimitError =
       'You can attach up to 3 images, videos, or PDF files in one message.';
   static const String duplicateUserError = 'This user is already in the list.';
-  static const String duplicateChannelUserError = 'This user is already in this channel.';
+  static const String duplicateChannelUserError =
+      'This user is already in this channel.';
   static const String noActiveChannelError = 'Choose a channel first.';
-  static const String cannotRemoveCurrentUserError = 'You cannot remove yourself.';
-  static const String addPeopleEmptySelectionError = 'Choose at least one person to add.';
+  static const String cannotRemoveCurrentUserError =
+      'You cannot remove yourself.';
+  static const String addPeopleEmptySelectionError =
+      'Choose at least one person to add.';
   static const String replyingToLabel = 'Replying to';
 
   // Chat Seed Users
@@ -1766,12 +1950,15 @@ class AppStrings {
   }
 
   static const String questionsFeedbackScreenTitle = 'Questions & Feedback';
-  static const String questionsFeedbackTriggerTooltip = 'Open Questions & Feedback';
-  static const String questionsFeedbackHeroTitle = 'Need help or want to share feedback?';
+  static const String questionsFeedbackTriggerTooltip =
+      'Open Questions & Feedback';
+  static const String questionsFeedbackHeroTitle =
+      'Need help or want to share feedback?';
   static const String questionsFeedbackHeroDescription =
       'Capture a question, suggestion, or blocker in one place and open it as an email draft when you are ready.';
   static const String questionsFeedbackOrganizationLabel = 'Organization';
-  static const String questionsFeedbackTypeSectionTitle = 'What would you like to share?';
+  static const String questionsFeedbackTypeSectionTitle =
+      'What would you like to share?';
   static const String questionsFeedbackTypeSectionSubtitle =
       'Choose the flow that best matches what you need right now.';
   static const String questionsFeedbackQuestionType = 'Question';
@@ -1784,8 +1971,10 @@ class AppStrings {
   static const String questionsFeedbackEmailLabel = 'Your email';
   static const String questionsFeedbackEmailHint = 'Enter your email';
   static const String questionsFeedbackSubjectLabel = 'Subject';
-  static const String questionsFeedbackQuestionSubjectHint = 'What do you need help with?';
-  static const String questionsFeedbackFeedbackSubjectHint = 'What would you like to improve?';
+  static const String questionsFeedbackQuestionSubjectHint =
+      'What do you need help with?';
+  static const String questionsFeedbackFeedbackSubjectHint =
+      'What would you like to improve?';
   static const String questionsFeedbackMessageLabel = 'Details';
   static const String questionsFeedbackQuestionMessageHint =
       'Share the context, steps, and what you expected to happen.';
@@ -1795,26 +1984,31 @@ class AppStrings {
       'This opens your device email composer with the draft prefilled.';
   static const String questionsFeedbackClearAction = 'Clear';
   static const String questionsFeedbackOpenDraftAction = 'Open Email Draft';
-  static const String questionsFeedbackInvalidEmailMessage = 'Enter a valid email address.';
+  static const String questionsFeedbackInvalidEmailMessage =
+      'Enter a valid email address.';
   static const String questionsFeedbackSubjectRequiredMessage =
       'Add a short subject before continuing.';
   static const String questionsFeedbackMessageRequiredMessage =
       'Share a few details before continuing.';
-  static const String questionsFeedbackEmailDraftOpenedMessage = 'Email draft opened.';
+  static const String questionsFeedbackEmailDraftOpenedMessage =
+      'Email draft opened.';
   static const String questionsFeedbackEmailDraftFailedMessage =
       'Unable to open an email draft on this device right now.';
   static const String questionsFeedbackDraftClearedMessage = 'Draft cleared.';
   static const String questionsFeedbackCommunityPosts = 'Community posts';
   static const String questionsFeedbackSearchResults = 'Search Results';
-  static String questionsFeedbackShowingResultsFor(String query) => 'Showing results for "$query"';
-  static const String questionsFeedbackNoMatchingFeedback = 'No matching feedback';
+  static String questionsFeedbackShowingResultsFor(String query) =>
+      'Showing results for "$query"';
+  static const String questionsFeedbackNoMatchingFeedback =
+      'No matching feedback';
   static const String questionsFeedbackNoMatchingFeedbackMessage =
       'Try a different search term, or ask the community for help.';
   static const String questionsFeedbackAskQuestionAction = 'Ask a question';
   static const String questionsFeedbackPostSingular = 'post';
   static const String questionsFeedbackPostPlural = 'posts';
   static const String questionsFeedbackSearchTooltip = 'Search feedback posts';
-  static const String questionsFeedbackSearchHint = 'Search feature, problem or question';
+  static const String questionsFeedbackSearchHint =
+      'Search feature, problem or question';
   static const String questionsFeedbackCreateTooltip = 'Create feedback post';
   static const String questionsFeedbackRequestedStatus = 'Requested';
   static const String questionsFeedbackAttachmentSingular = 'attachment';
@@ -1825,27 +2019,35 @@ class AppStrings {
   static const String questionsFeedbackLikePlural = 'likes';
   static const String questionsFeedbackDetailTitle = 'Feedback post';
   static const String questionsFeedbackCommentsTitle = 'Comments';
+  static const String questionsFeedbackNoCommentsMessage =
+      'No comments yet. Start the conversation.';
   static const String questionsFeedbackNoPosts = 'No community posts yet.';
-  static const String questionsFeedbackLoadFailed = 'Unable to load community posts right now.';
+  static const String questionsFeedbackLoadFailed =
+      'Unable to load community posts right now.';
   static const String questionsFeedbackRetryAction = 'Retry';
   static const String questionsFeedbackCreateUnavailable =
       'Creating feedback posts is not available yet.';
   static const String questionsFeedbackAddAction = 'Ask Question or Share Idea';
-  static const String questionsFeedbackCreatePostTitle = 'Ask a question or share an idea';
+  static const String questionsFeedbackCreatePostTitle =
+      'Ask a question or share an idea';
   static const String questionsFeedbackPostTitleLabel = 'Title';
   static const String questionsFeedbackPostTitleHint = 'Title Here...';
   static const String questionsFeedbackDescriptionLabel = 'Description';
-  static const String questionsFeedbackDescriptionHint = 'Describe your question or feedback';
+  static const String questionsFeedbackDescriptionHint =
+      'Describe your question or feedback';
   static const String questionsFeedbackAttachmentsLabel = 'Images';
   static const String questionsFeedbackAddImagesAction = 'Add images';
   static const String questionsFeedbackCreatePostAction = 'Post';
   static const String questionsFeedbackTitleRequired = 'Enter a title.';
-  static const String questionsFeedbackDescriptionRequired = 'Enter a description.';
+  static const String questionsFeedbackDescriptionRequired =
+      'Enter a description.';
   static const String questionsFeedbackCreatePostFailed =
       'Unable to create the post right now. Please try again.';
   static String questionsFeedbackImageLimit(int limit) => 'Up to $limit images';
-  static String questionsFeedbackImageAttachmentCount(int count, int limit) => '$count/$limit';
-  static String questionsFeedbackImagePageIndicator(int current, int total) => '$current/$total';
+  static String questionsFeedbackImageAttachmentCount(int count, int limit) =>
+      '$count/$limit';
+  static String questionsFeedbackImagePageIndicator(int current, int total) =>
+      '$current/$total';
   static const String questionsFeedbackLikeAction = 'Like';
   static const String questionsFeedbackLikedAction = 'Liked';
   static const String questionsFeedbackCommentAction = 'Comment';
@@ -1856,7 +2058,8 @@ class AppStrings {
   static const String questionsFeedbackEditCommentTitle = 'Edit comment';
   static const String questionsFeedbackEditPostTitle = 'Edit post';
   static const String questionsFeedbackDeletePostTitle = 'Delete post?';
-  static const String questionsFeedbackDeletePostMessage = 'This post will be permanently removed.';
+  static const String questionsFeedbackDeletePostMessage =
+      'This post will be permanently removed.';
   static const String questionsFeedbackSaveAction = 'Save';
   static const String questionsFeedbackDeleteAction = 'Delete';
   static const String questionsFeedbackDeleteCommentTitle = 'Delete comment?';

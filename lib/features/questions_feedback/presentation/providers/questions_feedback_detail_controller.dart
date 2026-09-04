@@ -48,6 +48,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   String? _editingCommentId;
   bool _isSavingEdit = false;
   bool _isSavingPostEdit = false;
+  bool _isPickingEditPostAttachments = false;
   bool _isDeletingPost = false;
   bool _hasNextCommentPage = true;
   int _currentCommentPage = 0;
@@ -65,6 +66,7 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   String? get editingCommentId => _editingCommentId;
   bool get isSavingEdit => _isSavingEdit;
   bool get isSavingPostEdit => _isSavingPostEdit;
+  bool get isPickingEditPostAttachments => _isPickingEditPostAttachments;
   bool get isDeletingPost => _isDeletingPost;
   List<FeedbackImageAttachment> get editPostAttachments =>
       List<FeedbackImageAttachment>.unmodifiable(_editPostAttachments);
@@ -73,7 +75,9 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   int get editPostAttachmentCount =>
       _editExistingAttachmentUrls.length + _editPostAttachments.length;
   bool get canAddEditPostAttachments =>
-      !_isSavingPostEdit && editPostAttachmentCount < maxEditImageAttachments;
+      !_isSavingPostEdit &&
+      !_isPickingEditPostAttachments &&
+      editPostAttachmentCount < maxEditImageAttachments;
   bool isEditingComment(String commentId) => _editingCommentId == commentId;
   bool get canSendComment =>
       commentController.text.trim().isNotEmpty && !_isSendingComment;
@@ -172,48 +176,56 @@ class QuestionsFeedbackDetailController extends ChangeNotifier {
   }
 
   Future<void> pickEditPostAttachments() async {
-    if (!canModifyPost || !canAddEditPostAttachments) {
+    if (!canModifyPost ||
+        !canAddEditPostAttachments ||
+        _isPickingEditPostAttachments) {
       return;
     }
 
-    final remaining = maxEditImageAttachments - editPostAttachmentCount;
-    final selectedImages = await _imagePicker.pickMultiImage(
-      imageQuality: 85,
-      limit: remaining,
-    );
-    if (selectedImages.isEmpty) {
-      return;
-    }
-
-    final attachments = <FeedbackImageAttachment>[..._editPostAttachments];
-    for (final image in selectedImages) {
-      if (_editExistingAttachmentUrls.length + attachments.length ==
-          maxEditImageAttachments) {
-        break;
-      }
-
-      final bytes = await image.readAsBytes();
-      if (bytes.isEmpty) {
-        continue;
-      }
-
-      final fileName = image.name.trim().isEmpty
-          ? 'attachment_${_editExistingAttachmentUrls.length + attachments.length + 1}.jpg'
-          : image.name.trim();
-      attachments.add(
-        FeedbackImageAttachment(
-          fileName: fileName,
-          bytes: bytes,
-          contentType:
-              lookupMimeType(fileName, headerBytes: bytes) ?? 'image/jpeg',
-        ),
-      );
-    }
-
-    _editPostAttachments = List<FeedbackImageAttachment>.unmodifiable(
-      attachments,
-    );
+    _isPickingEditPostAttachments = true;
     notifyListeners();
+    try {
+      final remaining = maxEditImageAttachments - editPostAttachmentCount;
+      final selectedImages = await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+        limit: remaining,
+      );
+      if (selectedImages.isEmpty) {
+        return;
+      }
+
+      final attachments = <FeedbackImageAttachment>[..._editPostAttachments];
+      for (final image in selectedImages) {
+        if (_editExistingAttachmentUrls.length + attachments.length ==
+            maxEditImageAttachments) {
+          break;
+        }
+
+        final bytes = await image.readAsBytes();
+        if (bytes.isEmpty) {
+          continue;
+        }
+
+        final fileName = image.name.trim().isEmpty
+            ? 'attachment_${_editExistingAttachmentUrls.length + attachments.length + 1}.jpg'
+            : image.name.trim();
+        attachments.add(
+          FeedbackImageAttachment(
+            fileName: fileName,
+            bytes: bytes,
+            contentType:
+                lookupMimeType(fileName, headerBytes: bytes) ?? 'image/jpeg',
+          ),
+        );
+      }
+
+      _editPostAttachments = List<FeedbackImageAttachment>.unmodifiable(
+        attachments,
+      );
+    } finally {
+      _isPickingEditPostAttachments = false;
+      notifyListeners();
+    }
   }
 
   void removeEditPostAttachment(int index) {
