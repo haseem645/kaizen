@@ -98,12 +98,15 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 ## Permission Rules
 
-- **Owner Override**: Treat `User.isOwner == true` as a master-access override for app permissions. Owner users must not lose Create, Edit, manage, or team-access actions because of seat-scoped, hierarchy-scoped, or role-list checks.
-- **Permission Helper Source**: Put owner-first permission rules in shared user/app permission helpers before feature screens consume them. Do not re-encode owner exceptions ad hoc inside individual widgets when a shared helper can own the rule.
+- **Child Organisation Read-Only**: When the active organisation has `type == child`, no account may Create, Edit, Delete, or Update organisation content, including owners. Hide main Create entry points too. Apply this restriction before owner, role, department, hierarchy, or explicitly passed management access checks.
+- **Child Organisation Training Viewer**: Keep Quiz and Assignment tabs available in view-only mode in child organisations, including for publicly available lessons. Viewing these tabs must not grant training management or submission actions.
+- **Child Organisation Check-Ins**: Hide Create and Continue Check-in actions for all roles in child organisations. Existing Check-ins remain view-only; block rating and comment submissions through the owning controller too.
+- **Owner Override**: Outside child organisations, treat `User.isOwner == true` as a master-access override for app permissions. Owner users must not lose Create, Edit, manage, or team-access actions because of seat-scoped, hierarchy-scoped, or role-list checks.
+- **Permission Helper Source**: Put organisation restrictions and owner permission rules in shared user/app permission helpers before feature screens consume them. Do not re-encode owner exceptions ad hoc inside individual widgets when a shared helper can own the rule.
 - **Hierarchy Matching**: When resolving managed-profile permissions from organisation hierarchy JSON, match the logged-in user against the hierarchy node `profile.uuid`, `profile.user_uuid`, or `profile.email`, and treat only that matched node's direct `children` as managed profiles for seat-scoped training permissions.
 - **Department Scope**: Seat profile create/edit permissions must be checked against the matched hierarchy membership `department_uuid`; do not broaden seat-profile edit access from department names, unrelated descendants, or generic lead-role checks alone.
 - **Role Aliases**: Treat API role aliases such as `c_suite` and `csuite` as the same role before permission checks.
-- **Create Entry Vs Scope Enforcement**: For Seat Profile and LMS, keep the outer create entry points available to any account with at least one non-`team_member` role, then enforce the stricter department and managed-seat permission checks only after the create flow opens.
+- **Create Entry Vs Scope Enforcement**: For Seat Profile and LMS outside child organisations, keep the outer create entry points available to any account with at least one non-`team_member` role, then enforce the stricter department and managed-seat permission checks only after the create flow opens. Child organisations must never expose these entry points for any role.
 
 ## Feature-Specific Best Practices
 

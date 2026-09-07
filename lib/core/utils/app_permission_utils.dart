@@ -38,7 +38,16 @@ class AppPermissionUtils {
     return !isChildOrganization(currentOrganization);
   }
 
-  static bool canAccessScopedCreateEntry(User? user) {
+  static bool canAccessScopedCreateEntry(
+    User? user, {
+    required Organization? currentOrganization,
+  }) {
+    if (!canModifyCurrentOrganizationContent(
+      currentOrganization: currentOrganization,
+    )) {
+      return false;
+    }
+
     if (hasOwnerOverrideAccess(user)) {
       return true;
     }
@@ -61,14 +70,14 @@ class AppPermissionUtils {
     required User? user,
     required Organization? currentOrganization,
   }) {
-    if (hasOwnerOverrideAccess(user)) {
-      return true;
-    }
-
     if (!canModifyCurrentOrganizationContent(
       currentOrganization: currentOrganization,
     )) {
       return false;
+    }
+
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
     }
 
     final availableRoles = user?.normalizedRoles.toSet() ?? const <String>{};
@@ -96,14 +105,14 @@ class AppPermissionUtils {
     required Organization? currentOrganization,
     required String departmentId,
   }) {
-    if (hasOwnerOverrideAccess(user)) {
-      return true;
-    }
-
     if (!canModifyCurrentOrganizationContent(
       currentOrganization: currentOrganization,
     )) {
       return false;
+    }
+
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
     }
 
     final availableRoles = user?.normalizedRoles.toSet() ?? const <String>{};
@@ -135,14 +144,14 @@ class AppPermissionUtils {
     required User? user,
     required Organization? currentOrganization,
   }) {
-    if (hasOwnerOverrideAccess(user)) {
-      return true;
-    }
-
     if (!canModifyCurrentOrganizationContent(
       currentOrganization: currentOrganization,
     )) {
       return false;
+    }
+
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
     }
 
     final availableRoles = user?.normalizedRoles.toSet() ?? const <String>{};
@@ -172,6 +181,12 @@ class AppPermissionUtils {
     required String seatProfileId,
     Iterable<String> additionalSeatProfileIds = const <String>[],
   }) {
+    if (!canModifyCurrentOrganizationContent(
+      currentOrganization: currentOrganization,
+    )) {
+      return false;
+    }
+
     if (hasOwnerOverrideAccess(user)) {
       return true;
     }
@@ -181,12 +196,6 @@ class AppPermissionUtils {
       ...additionalSeatProfileIds,
     ]);
     if (normalizedSeatProfileIds.isEmpty) {
-      return false;
-    }
-
-    if (!canModifyCurrentOrganizationContent(
-      currentOrganization: currentOrganization,
-    )) {
       return false;
     }
 
@@ -223,14 +232,14 @@ class AppPermissionUtils {
     required User? user,
     required Organization? currentOrganization,
   }) {
-    if (hasOwnerOverrideAccess(user)) {
-      return true;
-    }
-
     if (!canModifyCurrentOrganizationContent(
       currentOrganization: currentOrganization,
     )) {
       return false;
+    }
+
+    if (hasOwnerOverrideAccess(user)) {
+      return true;
     }
 
     final availableRoles = user?.normalizedRoles.toSet() ?? const <String>{};

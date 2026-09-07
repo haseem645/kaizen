@@ -63,14 +63,6 @@ class SeatProfileCreateScreen extends StatelessWidget {
     }
 
     final departmentId = initialData.department?.id.trim() ?? '';
-    if (departmentId.isEmpty) {
-      final currentUserRoles =
-          AppManager.instance.currentUser?.normalizedRoles.toSet() ??
-          const <String>{};
-      return AppManager.instance.currentUserHasOwnerOverrideAccess ||
-          currentUserRoles.contains('csuite');
-    }
-
     return AppManager.instance.canCurrentUserManageSeatProfileDepartment(
       departmentId: departmentId,
     );

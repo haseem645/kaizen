@@ -197,6 +197,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<AppManager>();
     return Scaffold(
       backgroundColor: AppColors.mainBg,
       body: SafeArea(
@@ -625,11 +626,16 @@ bool _canEditSingleDescriptionAudit({
   required bool isOwner,
   required String date,
 }) {
-  return !isViewOnly && isOwner && CustomFunctions.isAuditWithinContinueWindow(date);
+  return AppManager.instance.canCurrentOrganizationModifyContent &&
+      !isViewOnly &&
+      isOwner &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 bool _canCommentOnSingleDescriptionAudit({required bool isViewOnly, required String date}) {
-  return !isViewOnly && CustomFunctions.isAuditWithinContinueWindow(date);
+  return AppManager.instance.canCurrentOrganizationModifyContent &&
+      !isViewOnly &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
@@ -1186,6 +1192,7 @@ class _CommentsCardState extends State<_CommentsCard> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _MediaTypeSelectionBottomSheet(
+          showScreenRecording: false,
           onTypeSelected: (selectedType) => _openSelectedMediaCommentDialog(audit, selectedType),
         );
       },
@@ -1676,9 +1683,13 @@ class _SeeAllAction extends StatelessWidget {
 }
 
 class _MediaTypeSelectionBottomSheet extends StatefulWidget {
-  const _MediaTypeSelectionBottomSheet({required this.onTypeSelected});
+  const _MediaTypeSelectionBottomSheet({
+    required this.onTypeSelected,
+    required this.showScreenRecording,
+  });
 
   final Future<bool> Function(DescriptionMediaCommentContentType selectedType) onTypeSelected;
+  final bool showScreenRecording;
 
   @override
   State<_MediaTypeSelectionBottomSheet> createState() => _MediaTypeSelectionBottomSheetState();
@@ -1752,13 +1763,15 @@ class _MediaTypeSelectionBottomSheetState extends State<_MediaTypeSelectionBotto
                       ? null
                       : () => _openChildSheet(DescriptionMediaCommentContentType.upload),
                 ),
-                const SizedBox(height: 10),
-                _MediaTypeOption(
-                  title: AppStrings.auditScreenRecording,
-                  onTap: isOpeningChildSheet
-                      ? null
-                      : () => _openChildSheet(DescriptionMediaCommentContentType.screenRecording),
-                ),
+                if (widget.showScreenRecording) ...[
+                  const SizedBox(height: 10),
+                  _MediaTypeOption(
+                    title: AppStrings.auditScreenRecording,
+                    onTap: isOpeningChildSheet
+                        ? null
+                        : () => _openChildSheet(DescriptionMediaCommentContentType.screenRecording),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 AppButton(
                   text: AppStrings.done,

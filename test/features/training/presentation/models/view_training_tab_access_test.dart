@@ -5,6 +5,24 @@ import 'package:sparrowkaizen/features/training/presentation/models/view_trainin
 
 void main() {
   group('isTrainingViewerTabEnabled', () {
+    for (final isPubliclyAvailable in <bool>[false, true]) {
+      test(
+        'allows child organisations to view Quiz and Assignment (public: $isPubliclyAvailable)',
+        () {
+          for (final tabIndex in <int>[2, 3]) {
+            expect(
+              isTrainingViewerTabEnabled(
+                isPubliclyAvailable: isPubliclyAvailable,
+                tabIndex: tabIndex,
+                isChildOrganization: true,
+              ),
+              isTrue,
+            );
+          }
+        },
+      );
+    }
+
     test('allows all tabs when the lesson is not publicly available', () {
       expect(
         isTrainingViewerTabEnabled(isPubliclyAvailable: false, tabIndex: 0),
@@ -45,6 +63,38 @@ void main() {
   });
 
   group('normalizeTrainingViewerTabIndex', () {
+    test('keeps child Quiz and Assignment tabs when a lesson is public', () {
+      for (final tabIndex in <int>[2, 3]) {
+        expect(
+          normalizeTrainingViewerTabIndex(
+            isPubliclyAvailable: true,
+            tabIndex: tabIndex,
+            isChildOrganization: true,
+          ),
+          tabIndex,
+        );
+      }
+    });
+
+    test('resets public Quiz and Assignment tabs after leaving a child', () {
+      for (final tabIndex in <int>[2, 3]) {
+        final childTabIndex = normalizeTrainingViewerTabIndex(
+          isPubliclyAvailable: true,
+          tabIndex: tabIndex,
+          isChildOrganization: true,
+        );
+
+        expect(
+          normalizeTrainingViewerTabIndex(
+            isPubliclyAvailable: true,
+            tabIndex: childTabIndex,
+            isChildOrganization: false,
+          ),
+          0,
+        );
+      }
+    });
+
     test('keeps allowed tabs unchanged', () {
       expect(
         normalizeTrainingViewerTabIndex(isPubliclyAvailable: true, tabIndex: 1),

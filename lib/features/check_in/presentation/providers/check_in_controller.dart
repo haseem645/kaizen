@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/app_permission_utils.dart';
@@ -801,6 +802,7 @@ class CheckInController extends ChangeNotifier {
     required String descriptionId,
     required Map<String, int> audit,
   }) async {
+    _ensureCheckInContentCanBeModified();
     final auditRepository = _auditRepository;
     if (auditRepository == null) {
       throw StateError('AuditRepository is not configured.');
@@ -922,6 +924,7 @@ class CheckInController extends ChangeNotifier {
     required String descriptionId,
     required String comment,
   }) async {
+    _ensureCheckInContentCanBeModified();
     final auditRepository = _auditRepository;
     if (auditRepository == null) {
       throw StateError('AuditRepository is not configured.');
@@ -939,6 +942,7 @@ class CheckInController extends ChangeNotifier {
     File? mediaFile,
     String? mediaType,
   }) async {
+    _ensureCheckInContentCanBeModified();
     final auditRepository = _auditRepository;
     if (auditRepository == null) {
       throw StateError('AuditRepository is not configured.');
@@ -993,6 +997,12 @@ class CheckInController extends ChangeNotifier {
       mediaType: mediaUrl == null ? null : resolvedMediaType,
     );
     return true;
+  }
+
+  void _ensureCheckInContentCanBeModified() {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+      throw StateError(AppStrings.checkInReadOnlyOrganization);
+    }
   }
 
   bool _shouldUseBackgroundMediaUpload(String? mediaType) {

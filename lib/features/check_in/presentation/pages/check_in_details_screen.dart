@@ -106,6 +106,9 @@ class _CheckInDetailsScreenView extends StatelessWidget {
     final controller = context.watch<CheckInController>();
     final state = controller.state;
     final details = state.details;
+    final canModifyContent = context.select<AppManager, bool>(
+      (manager) => manager.canCurrentOrganizationModifyContent,
+    );
     return Scaffold(
       backgroundColor: AppColors.mainBg,
       body: SafeArea(
@@ -178,7 +181,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
                 ),
               ),
             ),
-            if (!state.isLoading && !state.isSelfAudit)
+            if (!state.isLoading && !state.isSelfAudit && canModifyContent)
               _buildNewAuditButton(
                 context,
                 details,
@@ -505,7 +508,8 @@ class _CheckInDetailsScreenView extends StatelessWidget {
       itemBuilder: (context, index) {
         final audit = visibleAudits[index];
         final actionLabel =
-            CustomFunctions.isAuditWithinContinueWindow(audit.date)
+            AppManager.instance.canCurrentOrganizationModifyContent &&
+                CustomFunctions.isAuditWithinContinueWindow(audit.date)
             ? AppStrings.continueAction
             : AppStrings.view;
 
@@ -703,6 +707,10 @@ class _CheckInDetailsScreenView extends StatelessWidget {
     AuditDetails details,
     bool shouldStartNewAudit,
   ) async {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+      return;
+    }
+
     if (context.read<AppManager>().showBillingBanner) {
       await showDialog<void>(
         context: context,

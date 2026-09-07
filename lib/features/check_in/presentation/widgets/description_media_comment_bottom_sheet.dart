@@ -58,7 +58,28 @@ class _DescriptionMediaCommentBottomSheetState extends State<DescriptionMediaCom
     _selectedMedia = widget.initialMediaFile;
     _selectedMediaType = widget.initialMediaType;
     if (_selectedMedia == null) {
-      unawaited(_restoreLostMediaIfNeeded());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_initializeMedia());
+        }
+      });
+    }
+  }
+
+  Future<void> _initializeMedia() async {
+    await _restoreLostMediaIfNeeded();
+    if (!mounted || _selectedMedia != null) {
+      return;
+    }
+
+    switch (widget.contentType) {
+      case DescriptionMediaCommentContentType.photo:
+        await _capturePhoto();
+      case DescriptionMediaCommentContentType.video:
+        await _captureVideo();
+      case DescriptionMediaCommentContentType.upload:
+      case DescriptionMediaCommentContentType.screenRecording:
+        return;
     }
   }
 

@@ -94,19 +94,19 @@ class _TrainingLibraryDetailScreenState
         _handleBack();
       },
       child: AnimatedBuilder(
-        animation: Listenable.merge([_detailController, _visibilityController]),
+        animation: Listenable.merge([
+          _detailController,
+          _visibilityController,
+          AppManager.instance,
+        ]),
         builder: (context, _) {
           final module = _detailController.module;
-          final hasOwnerOverrideAccess =
-              AppManager.instance.currentUserHasOwnerOverrideAccess;
-          final canManageManagedSeatTraining = module.seat.id.trim().isNotEmpty
-              ? AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
-                  seatProfileId: module.seat.id,
-                )
-              : false;
+          final canManageManagedSeatTraining = AppManager.instance
+              .canCurrentUserManageTrainingForSeatProfile(
+                seatProfileId: module.seat.id,
+              );
           final canEditModules =
-              module.id.trim().isNotEmpty &&
-              (hasOwnerOverrideAccess || canManageManagedSeatTraining);
+              module.id.trim().isNotEmpty && canManageManagedSeatTraining;
           final isBusy =
               _visibilityController.isUpdatingAnyLesson ||
               _detailController.isRefreshing;
@@ -229,6 +229,12 @@ class _TrainingLibraryDetailScreenState
     TrainingLibraryModule module,
     TrainingLibraryLesson lesson,
   ) async {
+    if (!AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+      seatProfileId: module.seat.id,
+    )) {
+      return;
+    }
+
     final lessonId = lesson.id.trim();
     if (lessonId.isEmpty) {
       return;
@@ -243,9 +249,8 @@ class _TrainingLibraryDetailScreenState
             description: module.id,
           ),
           initialModuleId: lessonId,
-          canManageTraining:
-              AppManager.instance.currentUserHasOwnerOverrideAccess ||
-              AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+          canManageTraining: AppManager.instance
+              .canCurrentUserManageTrainingForSeatProfile(
                 seatProfileId: module.seat.id,
               ),
           useNonBlockingVideoUpload: true,
@@ -282,6 +287,12 @@ class _TrainingLibraryDetailScreenState
     required TrainingLibraryLesson lesson,
     required bool isPubliclyAvailable,
   }) async {
+    if (!AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+      seatProfileId: _detailController.module.seat.id,
+    )) {
+      return;
+    }
+
     try {
       final didUpdate = await _visibilityController.updateLessonVisibility(
         lesson: lesson,
