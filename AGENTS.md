@@ -118,6 +118,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 ## Data And Media Rules
 
+- For Check-In ratings, publish successfully saved counts through the shared controller to the matching description UUID. Keep saves for the same description ordered, and preserve pending detail edits when navigating back; do not wait for an older list-card count before accepting detail updates.
 - Prefer local feature data shaping inside providers/controllers instead of scattering UI-specific transforms across widgets.
 - Keep business logic, status mapping, and display label mapping out of widget trees when the logic is reused or non-trivial.
 - For Kaizengram Learning tab posts, `description` will not be present. UI, models, and mappers must not expect description content, must not reserve empty layout space for it, and must keep those posts visually correct without a description field.

@@ -28,6 +28,37 @@ class QuarterlyAudit {
   final String profileJob;
   final List<QuarterlyAuditCategory> categories;
   final List<QuarterlyAuditDescription> descriptions;
+
+  QuarterlyAudit withDescriptionRatingCounts({
+    required String descriptionId,
+    required String auditId,
+    required Map<String, int> counts,
+  }) {
+    if (!descriptions.any((description) => description.uuid == descriptionId)) {
+      return this;
+    }
+
+    return QuarterlyAudit(
+      uuid: uuid,
+      jobUuid: jobUuid,
+      jobTitle: jobTitle,
+      isMismatch: isMismatch,
+      profileUuid: profileUuid,
+      profileName: profileName,
+      profileEmail: profileEmail,
+      profileImage: profileImage,
+      profileOnboarded: profileOnboarded,
+      profileJob: profileJob,
+      categories: categories,
+      descriptions: descriptions
+          .map(
+            (description) => description.uuid == descriptionId
+                ? description.withRatingCounts(auditId: auditId, counts: counts)
+                : description,
+          )
+          .toList(growable: false),
+    );
+  }
 }
 
 class QuarterlyAuditCategory {
@@ -80,4 +111,29 @@ class QuarterlyAuditDescription {
   final String auditFactorType;
 
   int get totalRatings => great + needsImprovement + almostThere;
+
+  QuarterlyAuditDescription withRatingCounts({
+    required String auditId,
+    required Map<String, int> counts,
+  }) {
+    return QuarterlyAuditDescription(
+      uuid: uuid,
+      category: category,
+      isMirror: isMirror,
+      description: description,
+      jobSpecifics: jobSpecifics,
+      trainingRoute: trainingRoute,
+      great: counts['great'] ?? great,
+      needsImprovement: counts['needs_improvement'] ?? needsImprovement,
+      almostThere: counts['almost_there'] ?? almostThere,
+      pass: pass,
+      noPass: noPass,
+      hasAudit: true,
+      auditUuid: auditId,
+      milestoneDay: milestoneDay,
+      lastAuditDate: lastAuditDate,
+      confidenceLevel: confidenceLevel,
+      auditFactorType: auditFactorType,
+    );
+  }
 }

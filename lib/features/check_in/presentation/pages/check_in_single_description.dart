@@ -28,13 +28,204 @@ class SingleDescriptionDetails extends StatefulWidget {
   const SingleDescriptionDetails({
     super.key,
     required this.audit,
-    required this.description,
+    required this.descriptions,
+    required this.initialDescriptionIndex,
     required this.date,
     required this.isOwner,
     this.isViewOnly = false,
     this.isSelfAudit = false,
     this.initialRatingCounts,
-    this.onAuditUpdated,
+  });
+
+  final QuarterlyAudit audit;
+  final List<QuarterlyAuditDescription> descriptions;
+  final int initialDescriptionIndex;
+  final String date;
+  final bool isOwner;
+  final bool isViewOnly;
+  final bool isSelfAudit;
+  final Map<String, int>? initialRatingCounts;
+
+  @override
+  State<SingleDescriptionDetails> createState() => _SingleDescriptionDetailsState();
+}
+
+class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+      initialPage: widget.initialDescriptionIndex,
+      viewportFraction: widget.descriptions.length > 1 ? 0.9 : 1,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.mainBg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: _DescriptionDetailsHeader(),
+            ),
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _CheckInProfileCard(audit: widget.audit, date: widget.date),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: _DescriptionPageCounter(
+                controller: _pageController,
+                pageCount: widget.descriptions.length,
+              ),
+            ),
+            Expanded(child: _buildDescriptionPager(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescriptionPager(BuildContext context) {
+    return PageView.builder(
+      controller: _pageController,
+      // The next description enters from the right when dragging right to left.
+      reverse: false,
+      itemCount: widget.descriptions.length,
+      onPageChanged: (index) {
+        context.read<CheckInController>().selectQuarterlyAuditDescription(
+          widget.descriptions[index].uuid,
+        );
+      },
+      itemBuilder: (context, index) {
+        final description = widget.descriptions[index];
+        return _AnimatedDescriptionCard(
+          key: ValueKey(description.uuid),
+          controller: _pageController,
+          pageIndex: index,
+          child: _DescriptionDetailsPage(
+            key: ValueKey(description.uuid),
+            audit: widget.audit,
+            description: description,
+            date: widget.date,
+            isOwner: widget.isOwner,
+            isViewOnly: widget.isViewOnly,
+            isSelfAudit: widget.isSelfAudit,
+            initialRatingCounts: index == widget.initialDescriptionIndex
+                ? widget.initialRatingCounts
+                : null,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedDescriptionCard extends StatelessWidget {
+  const _AnimatedDescriptionCard({
+    super.key,
+    required this.controller,
+    required this.pageIndex,
+    required this.child,
+  });
+
+  final PageController controller;
+  final int pageIndex;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        controller.viewportFraction < 1 ? 8 : 16,
+        4,
+        controller.viewportFraction < 1 ? 8 : 16,
+        16 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
+      child: AnimatedBuilder(
+        animation: controller,
+        child: Material(
+          color: AppColors.surfaceDark,
+          elevation: 5,
+          shadowColor: Colors.black.withValues(alpha: 0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.textSecondary.withValues(alpha: 0.12)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: RepaintBoundary(child: child),
+        ),
+        builder: (context, card) {
+          final page = controller.hasClients
+              ? controller.page ?? controller.initialPage.toDouble()
+              : controller.initialPage.toDouble();
+          final distance = (page - pageIndex).abs().clamp(0.0, 1.0);
+          final progress = reduceMotion ? 0.0 : Curves.easeInOutCubic.transform(distance);
+
+          // Follow the swipe without rebuilding the page's ratings or comments.
+          return Transform.translate(
+            offset: Offset(0, 8 * progress),
+            child: Transform.scale(
+              scale: 1 - 0.04 * progress,
+              alignment: Alignment.topCenter,
+              child: Opacity(opacity: 1 - 0.12 * progress, child: card),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DescriptionPageCounter extends StatelessWidget {
+  const _DescriptionPageCounter({required this.controller, required this.pageCount});
+
+  final PageController controller;
+  final int pageCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final currentPage = controller.hasClients
+            ? (controller.page ?? controller.initialPage.toDouble()).round()
+            : controller.initialPage;
+        return AppTextView.body2(
+          AppStrings.auditDescriptionPagePosition(currentPage + 1, pageCount),
+          color: AppColors.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        );
+      },
+    );
+  }
+}
+
+class _DescriptionDetailsPage extends StatefulWidget {
+  const _DescriptionDetailsPage({
+    super.key,
+    required this.audit,
+    required this.description,
+    required this.date,
+    required this.isOwner,
+    required this.isViewOnly,
+    required this.isSelfAudit,
+    this.initialRatingCounts,
   });
 
   final QuarterlyAudit audit;
@@ -44,20 +235,27 @@ class SingleDescriptionDetails extends StatefulWidget {
   final bool isViewOnly;
   final bool isSelfAudit;
   final Map<String, int>? initialRatingCounts;
-  final Future<void> Function()? onAuditUpdated;
 
   @override
-  State<SingleDescriptionDetails> createState() => _SingleDescriptionDetailsState();
+  State<_DescriptionDetailsPage> createState() => _DescriptionDetailsPageState();
 }
 
-class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
+class _DescriptionDetailsPageState extends State<_DescriptionDetailsPage>
+    with AutomaticKeepAliveClientMixin<_DescriptionDetailsPage> {
+  late final CheckInController _checkInController;
   late final ValueNotifier<Future<AuditDescriptionAudit>> _auditDescriptionFutureNotifier;
   final ScrollController _scrollController = ScrollController();
   int _lastHandledAuditUploadEventSequence = 0;
 
+  // Retain each description's ratings, comments and scroll position when paging,
+  // including rating submissions still waiting for their debounce timer.
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
+    _checkInController = context.read<CheckInController>();
     _auditDescriptionFutureNotifier = ValueNotifier<Future<AuditDescriptionAudit>>(
       _loadAuditDescription(),
     );
@@ -75,7 +273,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   }
 
   Future<AuditDescriptionAudit> _loadAuditDescription() {
-    return context.read<CheckInController>().loadAuditDescription(
+    return _checkInController.loadAuditDescription(
       quarterlyAuditId: widget.audit.uuid,
       descriptionId: widget.description.uuid,
       date: widget.date,
@@ -83,11 +281,12 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   }
 
   Future<void> _submitDescriptionAudit(String descriptionId, Map<String, int> audit) async {
-    await context.read<CheckInController>().submitAuditDescriptionSelection(
+    await _checkInController.submitAuditDescriptionSelection(
+      quarterlyAuditId: widget.audit.uuid,
+      seatDescriptionId: widget.description.uuid,
       descriptionId: descriptionId,
       audit: audit,
     );
-    await widget.onAuditUpdated?.call();
   }
 
   Future<void> _saveCommentWithMedia(
@@ -118,7 +317,13 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   }
 
   Future<void> _refreshAuditDescriptionSilently() async {
+    if (!mounted) {
+      return;
+    }
     final refreshedAuditDescription = await _loadAuditDescription();
+    if (!mounted) {
+      return;
+    }
     _auditDescriptionFutureNotifier.value = Future<AuditDescriptionAudit>.value(
       refreshedAuditDescription,
     );
@@ -197,100 +402,76 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     context.watch<AppManager>();
-    return Scaffold(
-      backgroundColor: AppColors.mainBg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
-            const SizedBox(height: 18),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                child: Column(
-                  children: [
-                    _CheckInProfileCard(
-                      audit: widget.audit,
-                      description: widget.description,
-                      date: widget.date,
-                    ),
-                    const SizedBox(height: 18),
-                    _SeatDescriptionCard(
-                      seatDescription: widget.description.description.isEmpty
-                          ? AppStrings.auditNoDescriptionAvailable
-                          : widget.description.description,
-                    ),
-                    const SizedBox(height: 18),
-                    _SeatSpecificsCard(audit: widget.audit, description: widget.description),
-                    const SizedBox(height: 18),
-                    ValueListenableBuilder<Future<AuditDescriptionAudit>>(
-                      valueListenable: _auditDescriptionFutureNotifier,
-                      builder: (context, auditDescriptionFuture, _) {
-                        return Column(
-                          children: [
-                            _PassSelectionCard(
-                              description: widget.description,
-                              date: widget.date,
-                              isOwner: widget.isOwner,
-                              isViewOnly: widget.isViewOnly,
-                              isSelfAudit: widget.isSelfAudit,
-                              initialRatingCounts: widget.initialRatingCounts,
-                              auditDescriptionFuture: auditDescriptionFuture,
-                              onSubmitAudit: _submitDescriptionAudit,
-                            ),
-                            const SizedBox(height: 18),
-                            _CommentsCard(
-                              description: widget.description,
-                              date: widget.date,
-                              isOwner: widget.isOwner,
-                              isViewOnly: widget.isViewOnly,
-                              isSelfAudit: widget.isSelfAudit,
-                              auditDescriptionFuture: auditDescriptionFuture,
-                              onCommentsChanged: _refreshAuditDescriptionSilently,
-                              onCommentsSheetClosed: _scrollToCommentsSection,
-                              onSaveCommentWithMedia: _saveCommentWithMedia,
-                              onSaveCommentWithoutMedia: _saveCommentWithoutMedia,
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+    return SingleChildScrollView(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        children: [
+          _SeatDescriptionCard(
+            seatDescription: widget.description.description.isEmpty
+                ? AppStrings.auditNoDescriptionAvailable
+                : widget.description.description,
+          ),
+          const _DescriptionSectionDivider(),
+          _SeatSpecificsCard(audit: widget.audit, description: widget.description),
+          const _DescriptionSectionDivider(),
+          ValueListenableBuilder<Future<AuditDescriptionAudit>>(
+            valueListenable: _auditDescriptionFutureNotifier,
+            builder: (context, auditDescriptionFuture, _) {
+              return Column(
+                children: [
+                  _PassSelectionCard(
+                    description: widget.description,
+                    date: widget.date,
+                    isOwner: widget.isOwner,
+                    isViewOnly: widget.isViewOnly,
+                    isSelfAudit: widget.isSelfAudit,
+                    initialRatingCounts: widget.initialRatingCounts,
+                    auditDescriptionFuture: auditDescriptionFuture,
+                    onSubmitAudit: _submitDescriptionAudit,
+                  ),
+                  const _DescriptionSectionDivider(),
+                  _CommentsCard(
+                    description: widget.description,
+                    date: widget.date,
+                    isOwner: widget.isOwner,
+                    isViewOnly: widget.isViewOnly,
+                    isSelfAudit: widget.isSelfAudit,
+                    auditDescriptionFuture: auditDescriptionFuture,
+                    onCommentsChanged: _refreshAuditDescriptionSilently,
+                    onCommentsSheetClosed: _scrollToCommentsSection,
+                    onSaveCommentWithMedia: _saveCommentWithMedia,
+                    onSaveCommentWithoutMedia: _saveCommentWithoutMedia,
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
-      // bottomNavigationBar: canAddComment
-      //     ? SafeArea(
-      //         top: false,
-      //         bottom: false,
-      //         child: Container(
-      //           decoration: BoxDecoration(
-      //             color: AppColors.mainBg,
-      //             boxShadow: [
-      //               BoxShadow(
-      //                 color: Colors.black.withValues(alpha: 0.2),
-      //                 spreadRadius: 10,
-      //                 blurRadius: 10,
-      //                 offset: const Offset(0, 5),
-      //               ),
-      //             ],
-      //           ),
-      //           padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
-      //           child: AppButton(text: 'Add Comment', onPressed: () {}),
-      //         ),
-      //       )
-      //     : null,
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context) {
+class _DescriptionSectionDivider extends StatelessWidget {
+  const _DescriptionSectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 18),
+      child: Divider(height: 1, thickness: 1, color: AppColors.surfaceDark1),
+    );
+  }
+}
+
+class _DescriptionDetailsHeader extends StatelessWidget {
+  const _DescriptionDetailsHeader();
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       height: 32,
       child: Stack(
@@ -325,10 +506,9 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
 }
 
 class _CheckInProfileCard extends StatelessWidget {
-  const _CheckInProfileCard({required this.audit, required this.description, required this.date});
+  const _CheckInProfileCard({required this.audit, required this.date});
 
   final QuarterlyAudit audit;
-  final QuarterlyAuditDescription? description;
   final String date;
 
   @override
@@ -695,6 +875,10 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
 
   @override
   void dispose() {
+    if (_submitDebounceTimer?.isActive ?? false) {
+      // Leaving the page must not discard the last tap before the debounce fires.
+      unawaited(_submitDescriptionAudit(_auditPayload()));
+    }
     _submitDebounceTimer?.cancel();
     _viewStateNotifier.dispose();
     super.dispose();
@@ -881,6 +1065,11 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
 
   void _incrementRating(_PassBlockState state) {
     final currentState = _viewStateNotifier.value;
+    final count = currentState.blocks.where((block) => block == state).length;
+    if (!AuditRating.canIncrementCount(count)) {
+      return;
+    }
+
     final updatedBlocks = List<_PassBlockState>.from(currentState.blocks)
       ..removeWhere((block) => block == _PassBlockState.defaultValue)
       ..add(state);
@@ -914,16 +1103,23 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
   }
 
   Future<void> _submitDescriptionAudit(Map<String, int> audit) async {
+    final auditDescriptionFuture = widget.auditDescriptionFuture;
+    final submitAudit = widget.onSubmitAudit;
     try {
-      final descriptionAudit = await widget.auditDescriptionFuture;
+      final descriptionAudit = await auditDescriptionFuture;
       final descriptionId = descriptionAudit.uuid.trim();
       if (descriptionId.isEmpty) {
         return;
       }
 
-      await widget.onSubmitAudit(descriptionId, audit);
+      await submitAudit(descriptionId, audit);
     } catch (error) {
       debugPrint('Unable to submit description audit: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text(AppStrings.auditUnableToUpdateRating)));
+      }
     }
   }
 
@@ -1582,20 +1778,24 @@ class _SelectionCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasReachedLimit = !AuditRating.canIncrementCount(count);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: onTapCount,
+          onTap: hasReachedLimit ? null : onTapCount,
           child: Container(
             width: 48,
             height: 48,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: hasReachedLimit ? color.withValues(alpha: 0.5) : color,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: AppTextView.body2(
               '$count',
-              color: Colors.white,
+              color: hasReachedLimit ? Colors.white60 : Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 18,
             ),

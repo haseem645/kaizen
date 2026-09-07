@@ -33,6 +33,7 @@ import '../../domain/usecases/get_audit_team_members_usecase.dart';
 import '../../domain/usecases/get_quarterly_audit_usecase.dart';
 import '../../domain/usecases/mark_favorite_subordinate_usecase.dart';
 import '../../domain/usecases/mark_unfavorite_subordinate_usecase.dart';
+import '../../domain/usecases/submit_description_audit_usecase.dart';
 import '../../../login/domain/entities/user.dart';
 import 'check_in_media_upload_controller.dart';
 import 'check_in_state.dart';
@@ -68,6 +69,15 @@ class CheckInController extends ChangeNotifier {
   final MarkFavoriteSubordinateUseCase? _markFavoriteSubordinateUseCase;
   final MarkUnfavoriteSubordinateUseCase? _markUnfavoriteSubordinateUseCase;
   final AuditRepository? _auditRepository;
+  late final SubmitDescriptionAuditUseCase? _submitDescriptionAuditUseCase =
+      _auditRepository == null
+      ? null
+      : SubmitDescriptionAuditUseCase(
+          _auditRepository,
+          beforeSubmit: _ensureCheckInContentCanBeModified,
+        );
+  int _singleAuditDetailsGeneration = 0;
+  bool _isDisposed = false;
   CheckInState _state = const CheckInState();
   AuditMainList? _activeMainListCache;
   AuditMainList? _myCheckInMainListCache;
@@ -633,6 +643,7 @@ class CheckInController extends ChangeNotifier {
     required String quarterlyAuditId,
     required String date,
   }) async {
+    _singleAuditDetailsGeneration += 1;
     _state = _state.copyWith(isLoading: true, clearQuarterlyAudit: true);
     notifyListeners();
 
@@ -663,6 +674,7 @@ class CheckInController extends ChangeNotifier {
     int? year,
     int? quarter,
   }) async {
+    _singleAuditDetailsGeneration += 1;
     try {
       final user = await AppPreference.getUser();
       final isOwner = _hasTeamMemberTabsAccess(user);
@@ -799,19 +811,40 @@ class CheckInController extends ChangeNotifier {
   }
 
   Future<AuditDescriptionAudit> submitAuditDescriptionSelection({
+    required String quarterlyAuditId,
+    required String seatDescriptionId,
     required String descriptionId,
     required Map<String, int> audit,
   }) async {
     _ensureCheckInContentCanBeModified();
-    final auditRepository = _auditRepository;
-    if (auditRepository == null) {
+    final submitDescriptionAudit = _submitDescriptionAuditUseCase;
+    if (submitDescriptionAudit == null) {
       throw StateError('AuditRepository is not configured.');
     }
 
-    return auditRepository.submitDescriptionAudit(
+    final generation = _singleAuditDetailsGeneration;
+    final savedCounts = Map<String, int>.unmodifiable(audit);
+    final response = await submitDescriptionAudit(
       descriptionId: descriptionId,
-      audit: audit,
+      audit: savedCounts,
     );
+    final currentAudit = _state.quarterlyAudit;
+    if (!_isDisposed &&
+        generation == _singleAuditDetailsGeneration &&
+        currentAudit != null &&
+        currentAudit.uuid == quarterlyAuditId) {
+      // The PATCH response may omit ratings. Publish its accepted payload so
+      // list cards do not depend on a second, potentially stale summary fetch.
+      _state = _state.copyWith(
+        quarterlyAudit: currentAudit.withDescriptionRatingCounts(
+          descriptionId: seatDescriptionId,
+          auditId: descriptionId,
+          counts: savedCounts,
+        ),
+      );
+      notifyListeners();
+    }
+    return response;
   }
 
   Future<List<AuditList>> loadAuditReport({
@@ -2518,6 +2551,7 @@ class CheckInController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _mainListSearchDebounceTimer?.cancel();
     _teamMembersSearchDebounceTimer?.cancel();
     super.dispose();

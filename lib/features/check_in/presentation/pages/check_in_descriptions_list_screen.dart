@@ -447,11 +447,17 @@ class _CheckInDescriptionsListViewState
   Future<void> _openDescriptionDetails(
     BuildContext context,
     QuarterlyAudit audit,
-    QuarterlyAuditDescription description,
+    List<QuarterlyAuditDescription> descriptions,
+    int initialDescriptionIndex,
     Map<String, int> initialRatingCounts,
   ) async {
     final auditController = context.read<CheckInController>();
-    auditController.selectQuarterlyAuditDescription(description.uuid);
+    final descriptionPages = List<QuarterlyAuditDescription>.unmodifiable(
+      descriptions,
+    );
+    auditController.selectQuarterlyAuditDescription(
+      descriptionPages[initialDescriptionIndex].uuid,
+    );
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -459,18 +465,13 @@ class _CheckInDescriptionsListViewState
           value: auditController,
           child: SingleDescriptionDetails(
             audit: audit,
-            description: description,
+            descriptions: descriptionPages,
+            initialDescriptionIndex: initialDescriptionIndex,
             date: widget.date,
             isOwner: auditController.state.isOwner,
             isViewOnly: audit.isMismatch,
             isSelfAudit: widget.isSelfAudit,
             initialRatingCounts: initialRatingCounts,
-            onAuditUpdated: () async {
-              await auditController.refreshSingleAuditDetails(
-                quarterlyAuditId: audit.uuid,
-                date: widget.date,
-              );
-            },
           ),
         ),
       ),
@@ -585,9 +586,6 @@ class _CheckInDescriptionsListViewState
     _CheckInDescriptionsListFiltersState filtersState,
   ) {
     final filteredDescriptions = _filteredDescriptions(audit, filtersState);
-    if (filteredDescriptions.isEmpty) {
-      return const SizedBox.shrink();
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -701,7 +699,7 @@ class _CheckInDescriptionsListViewState
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const AppTextView.body2(
-                      'No descriptions match the selected filters.',
+                      AppStrings.auditNoMatchingDescriptions,
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -728,7 +726,8 @@ class _CheckInDescriptionsListViewState
                             _openDescriptionDetails(
                               context,
                               audit,
-                              description,
+                              filteredDescriptions,
+                              index,
                               initialRatingCounts,
                             ),
                       );
@@ -1220,8 +1219,9 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   Timer? _submitDebounceTimer;
   Timer? _mediaCommentSuccessTimer;
   Future<AuditDescriptionAudit>? _auditDescriptionFuture;
+  Future<void>? _ratingSubmission;
   late Map<String, int> _lastSyncedAuditCounts;
-  var _isAwaitingServerCountConfirmation = false;
+  final ValueNotifier<bool> _isOpeningDetailsNotifier = ValueNotifier(false);
   var _editRevision = 0;
 
   @override
@@ -1254,6 +1254,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   void dispose() {
     _submitDebounceTimer?.cancel();
     _mediaCommentSuccessTimer?.cancel();
+    _isOpeningDetailsNotifier.dispose();
     _viewStateNotifier.dispose();
     _isMediaCommentCreatedNotifier.dispose();
     super.dispose();
@@ -1281,9 +1282,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: () => widget.onOpenDetails(
-        _auditCountsFromBlocks(_viewStateNotifier.value.blocks),
-      ),
+      onTap: _openDetails,
       child: ValueListenableBuilder<bool>(
         valueListenable: _isMediaCommentCreatedNotifier,
         builder: (context, isMediaCommentCreated, _) {
@@ -1323,20 +1322,31 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                     const SizedBox(width: 8),
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 220),
-                      width: 25,
-                      height: 25,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
                         color: isMediaCommentCreated
                             ? AppColors.green1
                             : AppColors.secondaryColor.withValues(alpha: 0.14),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: isMediaCommentCreated
-                            ? Colors.white
-                            : AppColors.secondaryColor,
-                        size: 15,
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _isOpeningDetailsNotifier,
+                        builder: (context, isOpeningDetails, _) {
+                          if (isOpeningDetails) {
+                            return Padding(
+                              padding: const EdgeInsets.all(7),
+                              child: FastCircularProgressIndicator(),
+                            );
+                          }
+                          return Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: isMediaCommentCreated
+                                ? Colors.white
+                                : AppColors.secondaryColor,
+                            size: 16,
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -1364,7 +1374,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 22),
                         _SelectionCounter(
                           color: canEditBlocks
                               ? AppColors.orange1
@@ -1384,7 +1394,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 22),
                         _SelectionCounter(
                           color: canEditBlocks
                               ? AppColors.red1
@@ -1437,6 +1447,38 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     };
   }
 
+  Future<void> _openDetails() async {
+    if (_isOpeningDetailsNotifier.value) {
+      return;
+    }
+    _isOpeningDetailsNotifier.value = true;
+    try {
+      // Finish edits made on the card before the detail screen starts editing
+      // the same description, including an unresolved audit-UUID request.
+      _submitDebounceTimer?.cancel();
+      await _ratingSubmission;
+      if (!mounted) {
+        return;
+      }
+      if (_viewStateNotifier.value.hasLocalChanges) {
+        await _submitDescriptionAudit(
+          _auditCountsFromBlocks(_viewStateNotifier.value.blocks),
+          _editRevision,
+        );
+      }
+      if (!mounted) {
+        return;
+      }
+      widget.onOpenDetails(
+        _auditCountsFromBlocks(_viewStateNotifier.value.blocks),
+      );
+    } finally {
+      if (mounted) {
+        _isOpeningDetailsNotifier.value = false;
+      }
+    }
+  }
+
   Map<String, int> _auditCountsFromBlocks(List<_PassBlockState> blocks) {
     return <String, int>{
       'great': blocks.where((block) => block == _PassBlockState.great).length,
@@ -1469,8 +1511,8 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   void _resetCardState() {
     _submitDebounceTimer?.cancel();
     _auditDescriptionFuture = null;
+    _ratingSubmission = null;
     _editRevision = 0;
-    _isAwaitingServerCountConfirmation = false;
     _lastSyncedAuditCounts = _auditCountsFromDescription(widget.description);
     _viewStateNotifier.value = _PassSelectionViewState(
       blocks: _blocksFromCounts(_lastSyncedAuditCounts),
@@ -1482,13 +1524,6 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     final summaryCounts = _auditCountsFromDescription(widget.description);
     final currentState = _viewStateNotifier.value;
     if (currentState.hasLocalChanges) {
-      return;
-    }
-
-    if (_isAwaitingServerCountConfirmation) {
-      if (_sameAuditCounts(_lastSyncedAuditCounts, summaryCounts)) {
-        _isAwaitingServerCountConfirmation = false;
-      }
       return;
     }
 
@@ -1528,6 +1563,11 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
 
   void _incrementRating(_PassBlockState state) {
     final currentState = _viewStateNotifier.value;
+    final count = currentState.blocks.where((block) => block == state).length;
+    if (!AuditRating.canIncrementCount(count)) {
+      return;
+    }
+
     final updatedBlocks = List<_PassBlockState>.from(currentState.blocks)
       ..removeWhere((block) => block == _PassBlockState.defaultValue)
       ..add(state);
@@ -1567,12 +1607,23 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   Future<void> _submitDescriptionAudit(
     Map<String, int> audit,
     int submissionRevision,
+  ) {
+    final submission = _saveDescriptionAudit(audit, submissionRevision);
+    _ratingSubmission = submission;
+    return submission;
+  }
+
+  Future<void> _saveDescriptionAudit(
+    Map<String, int> audit,
+    int submissionRevision,
   ) async {
     try {
       final controller = context.read<CheckInController>();
       final descriptionId = await _resolveAuditUuid();
 
       final response = await controller.submitAuditDescriptionSelection(
+        quarterlyAuditId: widget.audit.uuid,
+        seatDescriptionId: widget.description.uuid,
         descriptionId: descriptionId,
         audit: audit,
       );
@@ -1581,15 +1632,14 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
         return;
       }
 
-      if (submissionRevision != _editRevision) {
-        return;
-      }
-
       // The submit response can omit its audit list, so retain the payload
       // that the API just accepted instead of briefly rendering zero counts.
       _lastSyncedAuditCounts = Map<String, int>.from(audit);
-      _isAwaitingServerCountConfirmation = true;
       _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(response);
+
+      if (submissionRevision != _editRevision) {
+        return;
+      }
 
       _viewStateNotifier.value = _PassSelectionViewState(
         blocks: _blocksFromCounts(_lastSyncedAuditCounts),
@@ -1730,7 +1780,6 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   }
 
   void _revertToLastSyncedState() {
-    _isAwaitingServerCountConfirmation = false;
     _viewStateNotifier.value = _PassSelectionViewState(
       blocks: _blocksFromCounts(_lastSyncedAuditCounts),
       hasLocalChanges: false,
@@ -1752,7 +1801,7 @@ class _DescriptionAuditTypePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.orange1,
         borderRadius: BorderRadius.circular(50),
@@ -1761,7 +1810,7 @@ class _DescriptionAuditTypePill extends StatelessWidget {
         text,
         color: AppColors.textPrimary,
         fontWeight: FontWeight.w600,
-        fontSize: 10,
+        fontSize: 9,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -1788,36 +1837,37 @@ class _SelectionCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasReachedLimit = !AuditRating.canIncrementCount(count);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: onTapCount,
+          onTap: hasReachedLimit ? null : onTapCount,
           child: Container(
-            width: 30,
-            height: 30,
+            width: 42,
+            height: 42,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color,
+              color: hasReachedLimit ? color.withValues(alpha: 0.5) : color,
               borderRadius: BorderRadius.circular(8),
             ),
             child: AppTextView.body2(
               '$count',
-              color: Colors.white,
+              color: hasReachedLimit ? Colors.white60 : Colors.white,
               fontWeight: FontWeight.w700,
-              fontSize: 13,
+              fontSize: 16,
             ),
           ),
         ),
         if (showDecrementControl) ...[
-          const SizedBox(height: 5),
+          const SizedBox(height: 12),
           InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: onTapArrow,
             child: Container(
-              width: 30,
-              height: 20,
+              width: 42,
+              height: 24,
               decoration: BoxDecoration(
                 color: canEditBlocks
                     ? AppColors.grey1
@@ -1829,7 +1879,7 @@ class _SelectionCounter extends StatelessWidget {
                     ? Icons.keyboard_arrow_down_rounded
                     : Icons.lock_rounded,
                 color: Colors.white,
-                size: canEditBlocks ? 22 : 14,
+                size: canEditBlocks ? 24 : 16,
               ),
             ),
           ),
@@ -1860,14 +1910,14 @@ class _CommentIconButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          width: 26,
-          height: 26,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: color.withValues(alpha: 0.6)),
           ),
-          child: Icon(icon, color: color, size: 14),
+          child: Icon(icon, color: color, size: 16),
         ),
       ),
     );
