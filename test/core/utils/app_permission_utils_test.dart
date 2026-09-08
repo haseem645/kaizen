@@ -14,6 +14,7 @@ void main() {
     test('allows owner accounts to open scoped create flows', () {
       final canAccess = AppPermissionUtils.canAccessScopedCreateEntry(
         User(isOwner: true),
+        currentOrganization: _organization('parent'),
       );
 
       expect(canAccess, isTrue);
@@ -22,6 +23,7 @@ void main() {
     test('does not allow accounts with an empty roles list', () {
       final canAccess = AppPermissionUtils.canAccessScopedCreateEntry(
         User(roles: const <String>[]),
+        currentOrganization: _organization('parent'),
       );
 
       expect(canAccess, isFalse);
@@ -30,6 +32,7 @@ void main() {
     test('does not allow accounts that are only team members', () {
       final canAccess = AppPermissionUtils.canAccessScopedCreateEntry(
         User(roles: const <String>['team_member']),
+        currentOrganization: _organization('parent'),
       );
 
       expect(canAccess, isFalse);
@@ -38,6 +41,7 @@ void main() {
     test('prefers elevated roles when team member is also present', () {
       final canAccess = AppPermissionUtils.canAccessScopedCreateEntry(
         User(roles: const <String>['team_member', 'team_lead']),
+        currentOrganization: _organization('parent'),
       );
 
       expect(canAccess, isTrue);
@@ -46,9 +50,77 @@ void main() {
     test('allows any non-team-member role to open scoped create flows', () {
       final canAccess = AppPermissionUtils.canAccessScopedCreateEntry(
         User(roles: const <String>['dept_lead']),
+        currentOrganization: _organization('parent'),
       );
 
       expect(canAccess, isTrue);
+    });
+  });
+
+  group('child organisation content permissions', () {
+    final accounts = <String, User?>{
+      'owner flag': User(isOwner: true),
+      'owner flag with team member role': User(
+        isOwner: true,
+        roles: const <String>['team_member'],
+      ),
+      'owner role': User(roles: const <String>['owner']),
+      'csuite': User(roles: const <String>['csuite']),
+      'c_suite alias': User(roles: const <String>['c_suite']),
+      for (final role in <String>['dept_lead', 'team_lead'])
+        role: User(
+          roles: <String>[role],
+          hierarchyMemberships: <UserHierarchyMembership>[
+            UserHierarchyMembership(
+              nodeUuid: 'node-1',
+              role: role,
+              departmentUuid: 'dept-1',
+              manageableSeatProfileIds: const <String>['seat-1'],
+            ),
+          ],
+        ),
+      'supervisor': User(roles: const <String>['supervisor']),
+      'team member': User(roles: const <String>['team_member']),
+      'mixed roles': User(roles: const <String>['team_member', 'owner']),
+      'empty roles': User(roles: const <String>[]),
+      'no user': null,
+    };
+
+    for (final type in <String>['child', ' ChIlD ']) {
+      for (final account in accounts.entries) {
+        test('blocks ${account.key} in organisation type "$type"', () {
+          final permissions = _contentPermissions(
+            account.value,
+            _organization(type),
+          );
+
+          for (final permission in permissions.entries) {
+            expect(permission.value, isFalse, reason: permission.key);
+          }
+        });
+      }
+    }
+
+    for (final type in <String>['parent', 'sandbox']) {
+      for (final account in <User>[
+        User(isOwner: true),
+        User(roles: const <String>['owner']),
+      ]) {
+        test('preserves owner content access in $type organisations', () {
+          final permissions = _contentPermissions(account, _organization(type));
+
+          for (final permission in permissions.entries) {
+            expect(permission.value, isTrue, reason: permission.key);
+          }
+        });
+      }
+    }
+
+    test('keeps owner sandbox and team viewing access', () {
+      final owner = User(isOwner: true);
+
+      expect(AppPermissionUtils.canAccessSandbox(owner), isTrue);
+      expect(AppPermissionUtils.canAccessAuditTeamMembers(owner), isTrue);
     });
   });
 
@@ -406,4 +478,70 @@ void main() {
       },
     );
   });
+}
+
+Organization _organization(String type) {
+  return Organization(
+    id: 'org-1',
+    name: 'Test organisation',
+    website: null,
+    contactNo: null,
+    address: null,
+    createdAt: '2026-09-07T00:00:00.000Z',
+    type: type,
+    logoUrl: null,
+  );
+}
+
+Map<String, bool> _contentPermissions(User? user, Organization organization) {
+  return <String, bool>{
+    'organisation content':
+        AppPermissionUtils.canModifyCurrentOrganizationContent(
+          currentOrganization: organization,
+        ),
+    'main create entry': AppPermissionUtils.canAccessScopedCreateEntry(
+      user,
+      currentOrganization: organization,
+    ),
+    'seat profile creation': AppPermissionUtils.canCreateSeatProfiles(
+      user: user,
+      currentOrganization: organization,
+    ),
+    'seat profile department management':
+        AppPermissionUtils.canManageAnySeatProfileDepartments(
+          user: user,
+          currentOrganization: organization,
+        ),
+    'specific seat profile department management':
+        AppPermissionUtils.canManageSeatProfileDepartment(
+          user: user,
+          currentOrganization: organization,
+          departmentId: 'dept-1',
+        ),
+    'seat profile with no department':
+        AppPermissionUtils.canManageSeatProfileDepartment(
+          user: user,
+          currentOrganization: organization,
+          departmentId: '',
+        ),
+    'training management': AppPermissionUtils.canManageAnyTrainingModules(
+      user: user,
+      currentOrganization: organization,
+    ),
+    'specific seat training management':
+        AppPermissionUtils.canManageTrainingForSeatProfile(
+          user: user,
+          currentOrganization: organization,
+          seatProfileId: 'seat-1',
+        ),
+    'training with no seat': AppPermissionUtils.canManageTrainingForSeatProfile(
+      user: user,
+      currentOrganization: organization,
+      seatProfileId: '',
+    ),
+    'paygrade management': AppPermissionUtils.canManagePaygrades(
+      user: user,
+      currentOrganization: organization,
+    ),
+  };
 }

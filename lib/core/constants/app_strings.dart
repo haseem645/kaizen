@@ -448,6 +448,8 @@ class AppStrings {
   static const String auditOverallScore = 'Overall\nScore';
   static const String auditConfidenceLevel = 'Confidence\nLevel';
   static const String checkInTitle = 'Check-In';
+  static const String checkInReadOnlyOrganization =
+      'Check-ins are view-only in child organisations.';
   static const String checkInSelectDescriptionPrompt =
       'Select a description first to start this check-in.';
   static const String reportsTitle = 'Reports';
@@ -917,7 +919,11 @@ class AppStrings {
   static const String profile = "Profile";
 
   static const String auditDescriptionDetails = 'Description Details';
+  static String auditDescriptionPagePosition(int current, int total) =>
+      'Page $current of $total';
   static const String auditNoDescriptionAvailable = 'No description available.';
+  static const String auditNoMatchingDescriptions =
+      'No descriptions match the selected filters.';
   static const String auditSeatDescription = 'Seat Description';
   static const String auditSeatSpecifics = 'Seat Specifics';
   static const String auditNoSeatSpecificsAvailable =
@@ -936,7 +942,10 @@ class AppStrings {
   static const String auditVideo = 'Video';
   static const String auditUpload = 'Upload';
   static const String auditScreenRecording = 'Screen Recording';
-
+  static const String auditUnableToLoadDescriptionDetails =
+      'Unable to load description details right now.';
+  static const String auditUnableToUpdateRating =
+      'Unable to update rating right now.';
   static const String auditTakePhoto = 'Take a photo';
   static const String auditCapturePhotoComment =
       'Capture a photo for this audit comment';

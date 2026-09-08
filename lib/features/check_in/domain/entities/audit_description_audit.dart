@@ -1,4 +1,12 @@
-enum AuditRating { great, almostThere, needsImprovement }
+enum AuditRating {
+  great,
+  almostThere,
+  needsImprovement;
+
+  static const int maxCount = 99;
+
+  static bool canIncrementCount(int count) => count < maxCount;
+}
 
 extension AuditRatingApiValue on AuditRating {
   String get apiValue => switch (this) {

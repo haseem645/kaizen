@@ -64,9 +64,17 @@ class AppManager extends ChangeNotifier {
   bool get currentUserCanAccessSandbox =>
       AppPermissionUtils.canAccessSandbox(_currentUser);
   bool get currentUserCanOpenSeatProfileCreateFlow =>
-      AppPermissionUtils.canAccessScopedCreateEntry(_currentUser);
+      AppPermissionUtils.canAccessScopedCreateEntry(
+        _currentUser,
+        currentOrganization: currentOrganization,
+      );
   bool get currentUserCanOpenTrainingModuleCreateFlow =>
-      AppPermissionUtils.canAccessScopedCreateEntry(_currentUser);
+      AppPermissionUtils.canAccessScopedCreateEntry(
+        _currentUser,
+        currentOrganization: currentOrganization,
+      );
+  bool get isCurrentOrganizationChild =>
+      AppPermissionUtils.isChildOrganization(currentOrganization);
   bool get canCurrentOrganizationModifyContent =>
       AppPermissionUtils.canModifyCurrentOrganizationContent(
         currentOrganization: currentOrganization,

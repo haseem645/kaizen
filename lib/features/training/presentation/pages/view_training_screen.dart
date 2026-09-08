@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
@@ -67,10 +68,12 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     _trainingController.addListener(_handleTrainingModuleChanged);
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChanged);
+    AppManager.instance.addListener(_handleTrainingModuleChanged);
   }
 
   @override
   void dispose() {
+    AppManager.instance.removeListener(_handleTrainingModuleChanged);
     _trainingController.removeListener(_handleTrainingModuleChanged);
     _selectedTabIndexNotifier.dispose();
     _tabController.removeListener(_handleTabChanged);
@@ -108,9 +111,13 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
 
-    return ValueListenableBuilder<int>(
-      valueListenable: _selectedTabIndexNotifier,
-      builder: (context, selectedTabIndex, _) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _selectedTabIndexNotifier,
+        AppManager.instance,
+      ]),
+      builder: (context, _) {
+        final selectedTabIndex = _selectedTabIndexNotifier.value;
         return Scaffold(
           backgroundColor: AppColors.mainBg,
           body: SafeArea(
@@ -144,6 +151,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
     final normalizedTabIndex = normalizeTrainingViewerTabIndex(
       isPubliclyAvailable: controller.isSelectedModulePubliclyAvailable,
       tabIndex: selectedTabIndex,
+      isChildOrganization: AppManager.instance.isCurrentOrganizationChild,
     );
 
     if (normalizedTabIndex != selectedTabIndex &&
@@ -219,6 +227,8 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView>
                 controller: _tabController,
                 isPubliclyAvailable:
                     controller.isSelectedModulePubliclyAvailable,
+                isChildOrganization:
+                    AppManager.instance.isCurrentOrganizationChild,
               ),
               const SizedBox(height: 18),
               _buildTabContent(controller, selectedTabIndex),
@@ -332,10 +342,12 @@ class _TrainingTabs extends StatelessWidget {
   const _TrainingTabs({
     required this.controller,
     required this.isPubliclyAvailable,
+    required this.isChildOrganization,
   });
 
   final TabController controller;
   final bool isPubliclyAvailable;
+  final bool isChildOrganization;
 
   @override
   Widget build(BuildContext context) {
@@ -360,11 +372,13 @@ class _TrainingTabs extends StatelessWidget {
                 isEnabled: isTrainingViewerTabEnabled(
                   isPubliclyAvailable: isPubliclyAvailable,
                   tabIndex: index,
+                  isChildOrganization: isChildOrganization,
                 ),
                 onTap: () {
                   if (!isTrainingViewerTabEnabled(
                     isPubliclyAvailable: isPubliclyAvailable,
                     tabIndex: index,
+                    isChildOrganization: isChildOrganization,
                   )) {
                     return;
                   }
@@ -650,7 +664,7 @@ class _SopTabContent extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.mainBg,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: AppColors.fieldBorder.withValues(alpha: 0.18),
@@ -663,7 +677,7 @@ class _SopTabContent extends StatelessWidget {
           'body': Style(
             margin: Margins.zero,
             padding: HtmlPaddings.zero,
-            color: AppColors.textPrimary,
+            color: AppColors.surfaceDark,
             fontSize: FontSize(13),
             fontWeight: FontWeight.w400,
             lineHeight: const LineHeight(1.65),
@@ -681,7 +695,7 @@ class _SopTabContent extends StatelessWidget {
           'h4': _headingStyle(15),
           'h5': _headingStyle(14),
           'h6': _headingStyle(14),
-          'a': Style(color: AppColors.secondaryColor),
+          'a': Style(color: AppColors.purple1),
         },
       ),
     );
@@ -689,7 +703,7 @@ class _SopTabContent extends StatelessWidget {
 
   Style _headingStyle(double fontSize) => Style(
     margin: Margins.only(bottom: 10),
-    color: AppColors.textPrimary,
+    color: AppColors.surfaceDark,
     fontSize: FontSize(fontSize),
     fontWeight: FontWeight.w700,
     lineHeight: const LineHeight(1.35),
