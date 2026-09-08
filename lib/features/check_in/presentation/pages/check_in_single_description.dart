@@ -1327,34 +1327,22 @@ class _CommentsCardState extends State<_CommentsCard> {
     return didSave ?? false;
   }
 
-
-  Future<bool> _openScreenRecordingCommentDialog(AuditDescriptionAudit audit) async {
-    final recordedMedia = await Navigator.of(
-      context,
-    ).push<File?>(MaterialPageRoute(builder: (_) => const CheckInScreenRecordingCaptureScreen()));
-  }
-  
   Future<bool> _openTextOnlyCommentDialog(AuditDescriptionAudit audit) async {
     final didSave = await showDialog<bool>(
       context: context,
       builder: (_) => _CreateTextCommentDialog(
-        onSave: (comment) =>
-            widget.onSaveCommentWithoutMedia(audit.uuid, comment),
+        onSave: (comment) => widget.onSaveCommentWithoutMedia(audit.uuid, comment),
       ),
     );
 
     return didSave ?? false;
   }
 
-  Future<bool> _openScreenRecordingCommentDialog(
-    AuditDescriptionAudit audit,
-  ) async {
-    final recordedMedia = await Navigator.of(context).push<File?>(
-      MaterialPageRoute(
-        builder: (_) => const CheckInScreenRecordingCaptureScreen(),
-      ),
-    );
-    
+  Future<bool> _openScreenRecordingCommentDialog(AuditDescriptionAudit audit) async {
+    final recordedMedia = await Navigator.of(
+      context,
+    ).push<File?>(MaterialPageRoute(builder: (_) => const CheckInScreenRecordingCaptureScreen()));
+
     if (!mounted || recordedMedia == null) {
       return false;
     }
@@ -1384,11 +1372,8 @@ class _CommentsCardState extends State<_CommentsCard> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _MediaTypeSelectionBottomSheet(
-
           showScreenRecording: false,
           onTypeSelected: (selectedType) => _openSelectedMediaCommentDialog(audit, selectedType),
-          onTypeSelected: (selectedType) =>
-              _openSelectedMediaCommentDialog(audit, selectedType),
           onCommentOnlySelected: () => _openTextOnlyCommentDialog(audit),
         );
       },
@@ -1889,16 +1874,11 @@ class _MediaTypeSelectionBottomSheet extends StatefulWidget {
   const _MediaTypeSelectionBottomSheet({
     required this.onTypeSelected,
     required this.showScreenRecording,
+    required this.onCommentOnlySelected,
   });
 
   final Future<bool> Function(DescriptionMediaCommentContentType selectedType) onTypeSelected;
   final bool showScreenRecording;
-
-    required this.onCommentOnlySelected,
-  });
-
-  final Future<bool> Function(DescriptionMediaCommentContentType selectedType)
-  onTypeSelected;
   final Future<bool> Function() onCommentOnlySelected;
 
   @override
