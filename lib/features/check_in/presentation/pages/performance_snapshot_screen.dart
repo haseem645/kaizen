@@ -67,83 +67,77 @@ class _PerformanceSnapshotView extends StatelessWidget {
       child: SafeArea(
         top: false,
         bottom: false,
-        child: controller.isInitialLoading
-            ? FastCircularProgressIndicator()
-            : ListView(
-                controller: controller.scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
-                  if (showTeamReportsControls) ...[
-                    if (showSelectionTabs) ...[
-                      _PerformanceSnapshotTabs(
-                        selectedTab: controller.selectedTab,
-                        onTabSelected: (tab) {
-                          controller.selectTab(
-                            tab == PerformanceSnapshotTab.reports
-                                ? AuditMemberStatus.active
-                                : AuditMemberStatus.deactivated,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 22),
-                    ],
-                    CheckInSearchBar(
-                      controller: controller.searchController,
-                      onChanged: controller.updateSearchQuery,
-                      onClearTap: () {
-                        controller.resetSearch();
-                      },
-                      isSearchLoading: controller.isSearchLoading,
-                      onFilterTap: () =>
-                          _openSeatProfileFilter(context, controller),
-                    ),
-                    if (controller.selectedJobTitle != null) ...[
-                      const SizedBox(height: 14),
-                      _FilterTag(
-                        label: controller.selectedJobTitle!,
-                        onClear: controller.clearSelectedJobTitle,
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    if (controller.isFilterLoading)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 18),
-                        child: Center(
-                          child: AppTextView.body2(
-                            AppStrings.performanceSnapshotFilterLoading,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                  ],
-                  if (visibleReports.isEmpty)
-                    _EmptyState(message: controller.emptyStateMessage)
-                  else ...[
-                    for (
-                      var index = 0;
-                      index < visibleReports.length;
-                      index++
-                    ) ...[
-                      PerformanceSnapshotCard(
-                        member: visibleReports[index],
-                        actionLabel: 'View',
-                        onCheckInTap: () => _openReport(
-                          context,
-                          visibleReports[index],
-                          controller.selectedTab ==
-                              PerformanceSnapshotTab.myReports,
-                        ),
-                      ),
-                      if (index != visibleReports.length - 1)
-                        const SizedBox(height: 18),
-                    ],
-                    if (data.isLoadingMore) ...[
-                      const SizedBox(height: 18),
-                      Center(child: FastCircularProgressIndicator()),
-                    ],
-                  ],
-                ],
+        child: ListView(
+          controller: controller.scrollController,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            if (showTeamReportsControls) ...[
+              if (showSelectionTabs) ...[
+                _PerformanceSnapshotTabs(
+                  selectedTab: controller.selectedTab,
+                  onTabSelected: (tab) {
+                    controller.selectTab(
+                      tab == PerformanceSnapshotTab.reports
+                          ? AuditMemberStatus.active
+                          : AuditMemberStatus.deactivated,
+                    );
+                  },
+                ),
+                const SizedBox(height: 22),
+              ],
+              CheckInSearchBar(
+                controller: controller.searchController,
+                onChanged: controller.updateSearchQuery,
+                onClearTap: () {
+                  controller.resetSearch();
+                },
+                isSearchLoading: controller.isSearchLoading,
+                onFilterTap: () => _openSeatProfileFilter(context, controller),
               ),
+              if (controller.selectedJobTitle != null) ...[
+                const SizedBox(height: 14),
+                _FilterTag(
+                  label: controller.selectedJobTitle!,
+                  onClear: controller.clearSelectedJobTitle,
+                ),
+              ],
+              const SizedBox(height: 18),
+              if (controller.isFilterLoading)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 18),
+                  child: Center(
+                    child: AppTextView.body2(
+                      AppStrings.performanceSnapshotFilterLoading,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+            ],
+            if (data.isLoading && data.items.isEmpty)
+              Center(child: FastCircularProgressIndicator())
+            else if (visibleReports.isEmpty)
+              _EmptyState(message: controller.emptyStateMessage)
+            else ...[
+              for (var index = 0; index < visibleReports.length; index++) ...[
+                PerformanceSnapshotCard(
+                  member: visibleReports[index],
+                  actionLabel: 'View',
+                  onCheckInTap: () => _openReport(
+                    context,
+                    visibleReports[index],
+                    controller.selectedTab == PerformanceSnapshotTab.myReports,
+                  ),
+                ),
+                if (index != visibleReports.length - 1)
+                  const SizedBox(height: 18),
+              ],
+              if (data.isLoadingMore) ...[
+                const SizedBox(height: 18),
+                Center(child: FastCircularProgressIndicator()),
+              ],
+            ],
+          ],
+        ),
       ),
     );
   }

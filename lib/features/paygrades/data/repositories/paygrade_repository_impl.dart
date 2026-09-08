@@ -15,12 +15,14 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
     int pageSize = 10,
     String? departmentId,
     String name = '',
+    String? title,
   }) {
     return _remoteDataSource.getPaygrades(
       page: page,
       pageSize: pageSize,
       departmentId: departmentId,
       name: name,
+      title: title,
     );
   }
 

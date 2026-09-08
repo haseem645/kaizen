@@ -12,6 +12,7 @@ class GetAuditOverviewUseCase {
     int page = 1,
     int pageSize = 12,
     String? search,
+    String? jobUuid,
   }) {
     return _repository.getAuditMainList(
       page: page,
@@ -19,6 +20,7 @@ class GetAuditOverviewUseCase {
       year: year,
       quarter: quarter,
       search: search,
+      jobUuid: jobUuid,
     );
   }
 }

@@ -8,6 +8,7 @@ abstract class PaygradeRepository {
     int pageSize = 10,
     String? departmentId,
     String name = '',
+    String? title,
   });
 
   Future<List<Department>> getDepartments({required bool isOwner});

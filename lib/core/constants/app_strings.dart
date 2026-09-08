@@ -493,7 +493,7 @@ class AppStrings {
   static const String performanceReportPaygradeStatusUpcoming = 'Upcoming';
   static const String performanceReportPaygradeAdvancementRequirementsTitle =
       'Advancement Requirements';
-  static const String performanceSnapshotNoReports = 'No reports available.';
+  static const String performanceSnapshotNoReports = 'No profiles available.';
   static const String performanceSnapshotNoMyReports = 'Report not available.';
   static const String performanceSnapshotDataUnavailable =
       'Data not available.';
@@ -626,13 +626,6 @@ class AppStrings {
   static const String backgroundUploadContinues = 'You can keep using the app.';
   static const String trainingReturnToLessonToAddThumbnail =
       'Return to the lesson to add a thumbnail.';
-  static const String trainingUploadNotificationChannelName =
-      'Training uploads';
-  static const String trainingUploadNotificationChannelDescription =
-      'Shows progress for training video uploads.';
-  static const String backgroundUploadNotificationChannelName = 'Uploads';
-  static const String backgroundUploadNotificationChannelDescription =
-      'Shows progress for background uploads.';
   static const String trainingVideoUploadAlreadyInProgress =
       'A training video upload is already in progress.';
   static const String trainingModuleVideoUploadAlreadyInProgress =
@@ -683,10 +676,6 @@ class AppStrings {
       'Tap to view all uploads.';
   static const String trainingVideoUploadsTapToCollapse =
       'Tap to hide upload details.';
-  static String trainingUploadProgressLabel(int percent) {
-    return '$percent% uploaded';
-  }
-
   static String backgroundUploadProgressLabel(int percent) {
     return '$percent% uploaded';
   }
@@ -946,6 +935,7 @@ class AppStrings {
   static const String auditHideComments = 'Hide comments';
   static const String auditExpandComments = 'Tap here to expand comments';
   static const String auditAddComment = 'Add Comment';
+  static const String auditCommentOnly = 'Comment Only';
   static const String auditShowLess = 'Show Less';
   static const String auditSelectMediaType = 'Select Media Type';
   static const String auditPhoto = 'Photo';
