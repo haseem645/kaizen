@@ -56,10 +56,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: widget.initialDescriptionIndex,
-      viewportFraction: widget.descriptions.length > 1 ? 0.9 : 1,
-    );
+    _pageController = PageController(initialPage: widget.initialDescriptionIndex);
   }
 
   @override
@@ -112,7 +109,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
       },
       itemBuilder: (context, index) {
         final description = widget.descriptions[index];
-        return _AnimatedDescriptionCard(
+        return _AnimatedDescriptionPage(
           key: ValueKey(description.uuid),
           controller: _pageController,
           pageIndex: index,
@@ -134,8 +131,8 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   }
 }
 
-class _AnimatedDescriptionCard extends StatelessWidget {
-  const _AnimatedDescriptionCard({
+class _AnimatedDescriptionPage extends StatelessWidget {
+  const _AnimatedDescriptionPage({
     super.key,
     required this.controller,
     required this.pageIndex,
@@ -150,26 +147,11 @@ class _AnimatedDescriptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        controller.viewportFraction < 1 ? 8 : 16,
-        4,
-        controller.viewportFraction < 1 ? 8 : 16,
-        16 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: AnimatedBuilder(
         animation: controller,
-        child: Material(
-          color: AppColors.surfaceDark,
-          elevation: 5,
-          shadowColor: Colors.black.withValues(alpha: 0.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.textSecondary.withValues(alpha: 0.12)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: RepaintBoundary(child: child),
-        ),
-        builder: (context, card) {
+        child: RepaintBoundary(child: child),
+        builder: (context, pageContent) {
           final page = controller.hasClients
               ? controller.page ?? controller.initialPage.toDouble()
               : controller.initialPage.toDouble();
@@ -182,7 +164,7 @@ class _AnimatedDescriptionCard extends StatelessWidget {
             child: Transform.scale(
               scale: 1 - 0.04 * progress,
               alignment: Alignment.topCenter,
-              child: Opacity(opacity: 1 - 0.12 * progress, child: card),
+              child: Opacity(opacity: 1 - 0.12 * progress, child: pageContent),
             ),
           );
         },
@@ -406,7 +388,7 @@ class _DescriptionDetailsPageState extends State<_DescriptionDetailsPage>
     context.watch<AppManager>();
     return SingleChildScrollView(
       controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         children: [
           _SeatDescriptionCard(
@@ -414,9 +396,9 @@ class _DescriptionDetailsPageState extends State<_DescriptionDetailsPage>
                 ? AppStrings.auditNoDescriptionAvailable
                 : widget.description.description,
           ),
-          const _DescriptionSectionDivider(),
+          const SizedBox(height: 18),
           _SeatSpecificsCard(audit: widget.audit, description: widget.description),
-          const _DescriptionSectionDivider(),
+          const SizedBox(height: 18),
           ValueListenableBuilder<Future<AuditDescriptionAudit>>(
             valueListenable: _auditDescriptionFutureNotifier,
             builder: (context, auditDescriptionFuture, _) {
@@ -432,7 +414,7 @@ class _DescriptionDetailsPageState extends State<_DescriptionDetailsPage>
                     auditDescriptionFuture: auditDescriptionFuture,
                     onSubmitAudit: _submitDescriptionAudit,
                   ),
-                  const _DescriptionSectionDivider(),
+                  const SizedBox(height: 18),
                   _CommentsCard(
                     description: widget.description,
                     date: widget.date,
@@ -449,20 +431,9 @@ class _DescriptionDetailsPageState extends State<_DescriptionDetailsPage>
               );
             },
           ),
+          const SizedBox(height: 24),
         ],
       ),
-    );
-  }
-}
-
-class _DescriptionSectionDivider extends StatelessWidget {
-  const _DescriptionSectionDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 18),
-      child: Divider(height: 1, thickness: 1, color: AppColors.surfaceDark1),
     );
   }
 }
