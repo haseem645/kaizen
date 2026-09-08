@@ -13,7 +13,7 @@ class AppGradientActionButton extends StatelessWidget {
     this.textSize = 15,
     this.fontWeight = FontWeight.w600,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-    this.borderRadius = 14,
+    this.borderRadius = 24,
     this.minHeight = 48,
     this.iconSpacing = 10,
     this.gradientColors = const <Color>[AppColors.purple1, AppColors.secondaryColor],
