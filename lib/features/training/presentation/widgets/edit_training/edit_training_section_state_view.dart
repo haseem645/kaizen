@@ -42,14 +42,31 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     if (widget.isEmbedded) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: contentChildren,
+        children: [
+          ...contentChildren,
+          const SizedBox(height: 18),
+          _TrainingTabs(tabController: _tabController),
+        ],
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
-      physics: const BouncingScrollPhysics(),
-      children: contentChildren,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 12),
+            physics: const BouncingScrollPhysics(),
+            children: contentChildren,
+          ),
+        ),
+        SafeArea(
+          top: false,
+          bottom: false,
+          minimum: const EdgeInsets.only(top: 10, bottom: 14),
+          child: _TrainingTabs(tabController: _tabController),
+        ),
+      ],
     );
   }
 
@@ -70,8 +87,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
             ),
           ),
           const SizedBox(height: 10),
-        ] else if (controller.hasSelectedModule &&
-            controller.canEditSelectedModuleTitle) ...[
+        ] else if (controller.hasSelectedModule && controller.canEditSelectedModuleTitle) ...[
           Transform.translate(
             offset: const Offset(0, -10),
             child: _TrainingTapEditField(
@@ -96,11 +112,6 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
           const _TrainingReadOnlyBanner(),
           const SizedBox(height: 16),
         ],
-        _TrainingTabs(
-          tabController: _tabController,
-          areExtraTabsEnabled: controller.canAccessSelectedModuleExtras,
-        ),
-        const SizedBox(height: 18),
         _buildTabContent(controller),
       ],
     );
@@ -115,8 +126,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         );
     return LayoutBuilder(
       builder: (context, constraints) {
-        final contentWidth =
-            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+        final contentWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
         final swipeTargetIndex = _tabSwipeTargetIndexNotifier.value;
@@ -131,16 +141,9 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         );
 
         Widget swipeBody = currentPage;
-        if (swipeTargetIndex != null &&
-            swipeTargetIndex != _selectedTabIndex &&
-            swipeOffset != 0) {
-          final previewStartOffset = swipeOffset.isNegative
-              ? contentWidth
-              : -contentWidth;
-          final swipeProgress = (swipeOffset.abs() / contentWidth).clamp(
-            0.0,
-            1.0,
-          );
+        if (swipeTargetIndex != null && swipeTargetIndex != _selectedTabIndex && swipeOffset != 0) {
+          final previewStartOffset = swipeOffset.isNegative ? contentWidth : -contentWidth;
+          final swipeProgress = (swipeOffset.abs() / contentWidth).clamp(0.0, 1.0);
           swipeBody = ClipRect(
             child: Stack(
               alignment: Alignment.topLeft,
@@ -154,16 +157,12 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
                       child: _buildTabPageForIndex(
                         controller,
                         tabIndex: swipeTargetIndex,
-                        isBackgroundVideoUploadActive:
-                            isBackgroundVideoUploadActive,
+                        isBackgroundVideoUploadActive: isBackgroundVideoUploadActive,
                       ),
                     ),
                   ),
                 ),
-                Transform.translate(
-                  offset: Offset(swipeOffset, 0),
-                  child: currentPage,
-                ),
+                Transform.translate(offset: Offset(swipeOffset, 0), child: currentPage),
               ],
             ),
           );
@@ -172,13 +171,10 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         return Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: _handleTabContentPointerDown,
-          onPointerMove: (event) =>
-              _handleTabContentPointerMove(event, controller, contentWidth),
-          onPointerUp: (_) =>
-              unawaited(_handleTabContentPointerUp(controller, contentWidth)),
-          onPointerCancel: (_) => unawaited(
-            _handleTabContentPointerCancel(controller, contentWidth),
-          ),
+          onPointerMove: (event) => _handleTabContentPointerMove(event, controller, contentWidth),
+          onPointerUp: (_) => unawaited(_handleTabContentPointerUp(controller, contentWidth)),
+          onPointerCancel: (_) =>
+              unawaited(_handleTabContentPointerCancel(controller, contentWidth)),
           child: swipeBody,
         );
       },
@@ -225,8 +221,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
       );
     }
 
-    if (controller.errorMessage != null &&
-        controller.selectedModuleDetail == null) {
+    if (controller.errorMessage != null && controller.selectedModuleDetail == null) {
       return _ContentMessage(message: controller.errorMessage!);
     }
 
@@ -235,13 +230,10 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         detail: controller.selectedModuleDetail,
         localVideoPath: controller.selectedModuleLocalVideoPath,
         isReadOnly: !controller.canManageTraining,
-        isUploadEnabled:
-            controller.canUploadSelectedModuleVideo &&
-            !isBackgroundVideoUploadActive,
+        isUploadEnabled: controller.canUploadSelectedModuleVideo && !isBackgroundVideoUploadActive,
         isPickingVideo: _isPickingVideo,
         isFinalizingVideoSetup: _isFinalizingVideoSetup,
-        isUploadingVideo:
-            controller.isUploadingVideo || isBackgroundVideoUploadActive,
+        isUploadingVideo: controller.isUploadingVideo || isBackgroundVideoUploadActive,
         isDeletingVideo: controller.isDeletingVideo,
         isUploadingThumbnail: controller.isUploadingThumbnail,
         canEditSummary: controller.canEditSelectedModuleSummary,
@@ -290,10 +282,8 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         deletingQuestionId: controller.deletingQuestionId,
         onAddQuestionTap: () => _showAddQuestionDialog(controller),
         onGenerateQuizTap: () => _showGenerateQuizDialog(controller),
-        onDeleteQuestionTap: (question) => _showDeleteQuestionDialog(
-          controller: controller,
-          question: question,
-        ),
+        onDeleteQuestionTap: (question) =>
+            _showDeleteQuestionDialog(controller: controller, question: question),
         onSaveQuestionTap: (questionId, options, correctOptionUuid) async {
           return controller.saveQuestion(
             questionId: questionId,
@@ -324,9 +314,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
       );
     }
 
-    return const _ContentMessage(
-      message: AppStrings.trainingNoAssignmentAvailable,
-    );
+    return const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
   }
 
   Future<void> _syncSelectedTabData(TrainingModuleController controller) async {
@@ -376,9 +364,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     });
   }
 
-  Future<void> _createModuleFromDraft(
-    TrainingModuleController controller,
-  ) async {
+  Future<void> _createModuleFromDraft(TrainingModuleController controller) async {
     final didCreate = await controller.createModuleFromDraft();
     if (!mounted) {
       return;

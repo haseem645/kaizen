@@ -393,17 +393,25 @@ class _DottedRoundedBorderPainter extends CustomPainter {
   const _DottedRoundedBorderPainter({
     required this.color,
     required this.radius,
-  });
+    this.strokeWidth = 1.2,
+    this.dashLength = 6,
+    this.gapLength = 4,
+  }) : assert(strokeWidth > 0),
+       assert(dashLength > 0),
+       assert(gapLength >= 0);
 
   final Color color;
   final double radius;
+  final double strokeWidth;
+  final double dashLength;
+  final double gapLength;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
+      ..strokeWidth = strokeWidth;
 
     final path = Path()
       ..addRRect(
@@ -413,15 +421,19 @@ class _DottedRoundedBorderPainter extends CustomPainter {
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
-        final nextDistance = distance + 6;
+        final nextDistance = distance + dashLength;
         canvas.drawPath(metric.extractPath(distance, nextDistance), paint);
-        distance = nextDistance + 4;
+        distance = nextDistance + gapLength;
       }
     }
   }
 
   @override
   bool shouldRepaint(covariant _DottedRoundedBorderPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.radius != radius;
+    return oldDelegate.color != color ||
+        oldDelegate.radius != radius ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashLength != dashLength ||
+        oldDelegate.gapLength != gapLength;
   }
 }

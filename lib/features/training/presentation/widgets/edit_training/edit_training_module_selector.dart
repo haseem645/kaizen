@@ -11,8 +11,7 @@ class _EditModuleSelector extends StatelessWidget {
   final TrainingModuleController controller;
   final VoidCallback onAddNewLessonTap;
   final Future<void> Function(String moduleId) onModuleSelected;
-  final Future<void> Function(SeatDescriptionTrainingModule module)
-  onDeleteModuleTap;
+  final Future<void> Function(SeatDescriptionTrainingModule module) onDeleteModuleTap;
 
   Future<void> _showModuleSheet(BuildContext context) async {
     await showModalBottomSheet<void>(
@@ -31,78 +30,92 @@ class _EditModuleSelector extends StatelessWidget {
     );
   }
 
+  void _handleModuleSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final selectedIndex = controller.selectedModuleIndex;
+    if (velocity >= 220 && controller.canSelectPreviousModule) {
+      unawaited(onModuleSelected(controller.modules[selectedIndex - 1].uuid));
+    } else if (velocity <= -220) {
+      if (controller.canSelectNextModule) {
+        unawaited(onModuleSelected(controller.modules[selectedIndex + 1].uuid));
+      } else if (controller.canSelectFirstModuleFromDraft) {
+        unawaited(onModuleSelected(controller.modules.first.uuid));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = controller.selectedModuleIndex;
-    final selectedModule = controller.selectedModule;
-    final showPager =
-        controller.isCreatingNewLessonDraft || selectedModule != null;
-    final canSwipeModules = controller.canSwipeBetweenModules;
-
-    Future<void> goToPreviousModule() async {
-      if (!controller.canSelectPreviousModule || selectedIndex <= 0) {
-        return;
-      }
-
-      await onModuleSelected(controller.modules[selectedIndex - 1].uuid);
-    }
-
-    Future<void> goToNextModule() async {
-      if (!controller.canSelectNextModule &&
-          !controller.canSelectFirstModuleFromDraft) {
-        return;
-      }
-
-      await onModuleSelected(
-        controller.canSelectNextModule
-            ? controller.modules[selectedIndex + 1].uuid
-            : controller.modules.first.uuid,
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (controller.canManageTraining) ...[
-          _AddNewLessonButton(
-            isSelected: controller.isCreatingNewLessonDraft,
-            onTap: onAddNewLessonTap,
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: controller.canSwipeBetweenModules ? _handleModuleSwipe : null,
+          child: _LessonOverviewRow(
+            selectedModule: controller.selectedModule,
+            selectedTitle: controller.selectedModuleTitle,
+            canAddLesson: controller.canManageTraining,
+            isCreatingNewLesson: controller.isCreatingNewLessonDraft,
+            onAddLesson: onAddNewLessonTap,
+            onShowAllLessons: () => unawaited(_showModuleSheet(context)),
           ),
-          if (showPager) const SizedBox(height: 10),
-        ],
-        if (showPager) ...[
-          GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onHorizontalDragEnd: canSwipeModules
-                ? (details) {
-                    final velocity = details.primaryVelocity ?? 0;
-                    if (velocity <= -220) {
-                      unawaited(goToNextModule());
-                      return;
-                    }
-
-                    if (velocity >= 220) {
-                      unawaited(goToPreviousModule());
-                    }
-                  }
-                : null,
-            child: controller.isCreatingNewLessonDraft
-                ? const _DraftModulePagerCard()
-                : _SelectedModulePagerCard(
-                    module: selectedModule!,
-                    currentLessonNumber: controller.selectedModuleNumber,
-                    totalLessons: controller.totalModules,
-                    onTap: () => unawaited(_showModuleSheet(context)),
-                  ),
-          ),
-        ] else if (controller.canManageTraining) ...[
-          const SizedBox(height: 2),
-          AppTextView.body3(
-            AppStrings.trainingAddLessonPrompt,
-            color: AppColors.textSecondary,
-          ),
-        ],
+        ),
+        const SizedBox(height: 22),
+        const AppDotDivider(),
+        const SizedBox(height: 18),
       ],
+    );
+  }
+}
+
+class _LessonOverviewRow extends StatelessWidget {
+  const _LessonOverviewRow({
+    required this.selectedModule,
+    required this.selectedTitle,
+    required this.canAddLesson,
+    required this.isCreatingNewLesson,
+    required this.onAddLesson,
+    required this.onShowAllLessons,
+  });
+
+  final SeatDescriptionTrainingModule? selectedModule;
+  final String selectedTitle;
+  final bool canAddLesson;
+  final bool isCreatingNewLesson;
+  final VoidCallback onAddLesson;
+  final VoidCallback onShowAllLessons;
+
+  @override
+  Widget build(BuildContext context) {
+    final module = selectedModule;
+
+    return SizedBox(
+      height: 72,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (module != null) ...[
+            Expanded(
+              flex: 4,
+              child: _OpenedLessonCard(
+                module: module,
+                title: selectedTitle,
+                onTap: onShowAllLessons,
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          if (canAddLesson) ...[
+            Expanded(
+              flex: 4,
+              child: _NewLessonCard(isSelected: isCreatingNewLesson, onTap: onAddLesson),
+            ),
+            const SizedBox(width: 12),
+          ],
+          _SeeAllLessonsButton(onTap: onShowAllLessons),
+        ],
+      ),
     );
   }
 }
@@ -140,11 +153,7 @@ class _AddNewLessonButton extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: AppColors.secondaryColor,
-                    size: 18,
-                  ),
+                  Icon(Icons.add_circle_outline_rounded, color: AppColors.secondaryColor, size: 18),
                   SizedBox(width: 8),
                   Expanded(
                     child: AppTextView.body2(
@@ -164,108 +173,122 @@ class _AddNewLessonButton extends StatelessWidget {
   }
 }
 
-class _SelectedModulePagerCard extends StatelessWidget {
-  const _SelectedModulePagerCard({
-    required this.module,
-    required this.currentLessonNumber,
-    required this.totalLessons,
-    required this.onTap,
-  });
+class _OpenedLessonCard extends StatelessWidget {
+  const _OpenedLessonCard({required this.module, required this.title, required this.onTap});
 
   final SeatDescriptionTrainingModule module;
-  final int currentLessonNumber;
-  final int totalLessons;
+  final String title;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final resolvedThumbnail = CustomFunctions.resolveImageUrl(
-      module.thumbnailLink,
+    return Semantics(
+      button: true,
+      selected: true,
+      label: title,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.surfaceDark3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: AppColors.textPrimary, width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _OpenedLessonThumbnail(thumbnailLink: module.thumbnailLink),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black54],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 6,
+              child: AppTextView.body2(
+                title,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(onTap: onTap),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+}
 
+class _OpenedLessonThumbnail extends StatelessWidget {
+  const _OpenedLessonThumbnail({required this.thumbnailLink});
+
+  final String? thumbnailLink;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = CustomFunctions.resolveImageUrl(thumbnailLink);
+    if (imageUrl == null) {
+      return const _ModuleThumbnailPlaceholder();
+    }
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
+      errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
+    );
+  }
+}
+
+class _NewLessonCard extends StatelessWidget {
+  const _NewLessonCard({required this.isSelected, required this.onTap});
+
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: isSelected ? AppColors.secondaryColor.withValues(alpha: 0.08) : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: SizedBox(
-          height: _trainingModulePagerHeight,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Ink(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark3,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.secondaryColor, width: 1.4),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.secondaryColor.withValues(alpha: 0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                    spreadRadius: -12,
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        borderRadius: BorderRadius.circular(10),
+        child: CustomPaint(
+          foregroundPainter: const _DottedRoundedBorderPainter(
+            color: AppColors.secondaryColor,
+            radius: 10,
+            strokeWidth: 0.6,
+            dashLength: 1.5,
+            gapLength: 1,
+          ),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: _trainingModuleThumbnailHeight,
-                        child: DecoratedBox(
-                          decoration: const BoxDecoration(
-                            color: AppColors.mainBg,
-                          ),
-                          child: resolvedThumbnail == null
-                              ? const _ModuleThumbnailPlaceholder()
-                              : CachedNetworkImage(
-                                  imageUrl: resolvedThumbnail,
-                                  fit: BoxFit.contain,
-                                  placeholder: (_, _) =>
-                                      const _ModuleThumbnailPlaceholder(),
-                                  errorWidget: (_, _, _) =>
-                                      const _ModuleThumbnailPlaceholder(),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Spacer(),
-                    Container(
-                      width: double.infinity,
-                      height: 40,
-                      padding: const EdgeInsets.only(left: 10, right: 10),
-                      decoration: const BoxDecoration(
-                        color: AppColors.surfaceDark1,
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: AppTextView.body3(
-                              AppStrings.trainingLessonCounter(
-                                currentLessonNumber,
-                                totalLessons,
-                              ),
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.view_list_rounded,
-                            color: AppColors.textSecondary,
-                            size: 20,
-                          ),
-                        ],
-                      ),
+                    Icon(Icons.add_circle_outline_rounded, color: AppColors.lightPurple1, size: 18),
+                    SizedBox(width: 6),
+                    AppTextView.body2(
+                      AppStrings.trainingNewLesson,
+                      color: AppColors.lightPurple1,
+                      fontWeight: FontWeight.w500,
+                      maxLines: 1,
                     ),
                   ],
                 ),
@@ -278,62 +301,24 @@ class _SelectedModulePagerCard extends StatelessWidget {
   }
 }
 
-class _DraftModulePagerCard extends StatelessWidget {
-  const _DraftModulePagerCard();
+class _SeeAllLessonsButton extends StatelessWidget {
+  const _SeeAllLessonsButton({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DottedRoundedBorderPainter(
-        color: AppColors.secondaryColor.withValues(alpha: 0.62),
-        radius: 20,
-      ),
-      child: SizedBox(
-        height: _trainingModulePagerHeight,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark3.withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppColors.secondaryColor.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.add_circle_outline_rounded,
-                        color: AppColors.secondaryColor,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: AppTextView.body1(
-                        AppStrings.trainingNewLesson,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                AppTextView.body3(
-                  AppStrings.trainingAddLessonPrompt,
-                  color: AppColors.textSecondary,
-                  height: 1.45,
-                ),
-              ],
-            ),
-          ),
+    return SizedBox(
+      width: 44,
+      child: Material(
+        color: AppColors.secondaryColor,
+        borderRadius: BorderRadius.circular(10),
+        clipBehavior: Clip.antiAlias,
+        child: IconButton(
+          onPressed: onTap,
+          tooltip: AppStrings.trainingAllLessons,
+          padding: EdgeInsets.zero,
+          icon: const Icon(Icons.north_east, color: AppColors.textPrimary, size: 24),
         ),
       ),
     );
@@ -351,16 +336,12 @@ class _ModuleSelectionSheet extends StatelessWidget {
   final TrainingModuleController controller;
   final VoidCallback onAddNewLessonTap;
   final Future<void> Function(String moduleId) onModuleSelected;
-  final Future<void> Function(SeatDescriptionTrainingModule module)
-  onDeleteModuleTap;
+  final Future<void> Function(SeatDescriptionTrainingModule module) onDeleteModuleTap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        top: 16,
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(top: 16, bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Container(
@@ -399,9 +380,7 @@ class _ModuleSelectionSheet extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      _DialogCloseButton(
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
+                      _DialogCloseButton(onTap: () => Navigator.of(context).pop()),
                     ],
                   ),
                   if (controller.canManageTraining) ...[
@@ -416,36 +395,24 @@ class _ModuleSelectionSheet extends StatelessWidget {
                   ],
                   if (controller.modules.isNotEmpty) ...[
                     const SizedBox(height: 18),
-                    for (
-                      var index = 0;
-                      index < controller.modules.length;
-                      index++
-                    ) ...[
+                    for (var index = 0; index < controller.modules.length; index++) ...[
                       _ModuleSheetTile(
                         module: controller.modules[index],
                         isSelected:
                             !controller.isCreatingNewLessonDraft &&
-                            controller.modules[index].uuid ==
-                                controller.selectedModuleId,
-                        isDeleting:
-                            controller.deletingModuleId ==
-                            controller.modules[index].uuid,
+                            controller.modules[index].uuid == controller.selectedModuleId,
+                        isDeleting: controller.deletingModuleId == controller.modules[index].uuid,
                         showDeleteAction: controller.canManageTraining,
                         onTap: () {
                           Navigator.of(context).pop();
-                          unawaited(
-                            onModuleSelected(controller.modules[index].uuid),
-                          );
+                          unawaited(onModuleSelected(controller.modules[index].uuid));
                         },
                         onDeleteTap: () {
                           Navigator.of(context).pop();
-                          unawaited(
-                            onDeleteModuleTap(controller.modules[index]),
-                          );
+                          unawaited(onDeleteModuleTap(controller.modules[index]));
                         },
                       ),
-                      if (index != controller.modules.length - 1)
-                        const SizedBox(height: 12),
+                      if (index != controller.modules.length - 1) const SizedBox(height: 12),
                     ],
                   ] else if (!controller.canManageTraining) ...[
                     const SizedBox(height: 18),
@@ -483,9 +450,7 @@ class _ModuleSheetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedThumbnail = CustomFunctions.resolveImageUrl(
-      module.thumbnailLink,
-    );
+    final resolvedThumbnail = CustomFunctions.resolveImageUrl(module.thumbnailLink);
 
     return Material(
       color: Colors.transparent,
@@ -518,10 +483,8 @@ class _ModuleSheetTile extends StatelessWidget {
                         : CachedNetworkImage(
                             imageUrl: resolvedThumbnail,
                             fit: BoxFit.cover,
-                            placeholder: (_, _) =>
-                                const _ModuleThumbnailPlaceholder(),
-                            errorWidget: (_, _, _) =>
-                                const _ModuleThumbnailPlaceholder(),
+                            placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
+                            errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
                           ),
                   ),
                 ),
@@ -537,11 +500,7 @@ class _ModuleSheetTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 if (isSelected) ...[
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.secondaryColor,
-                    size: 20,
-                  ),
+                  const Icon(Icons.check_circle_rounded, color: AppColors.secondaryColor, size: 20),
                   if (showDeleteAction) const SizedBox(width: 10),
                 ],
                 if (showDeleteAction)
@@ -554,24 +513,15 @@ class _ModuleSheetTile extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.red.withValues(alpha: 0.16),
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.red.withValues(alpha: 0.34),
-                        ),
+                        border: Border.all(color: AppColors.red.withValues(alpha: 0.34)),
                       ),
                       child: Center(
                         child: isDeleting
-                            ? FastCircularProgressIndicator(
-                                width: 12,
-                                height: 12,
-                              )
-                            : SvgPicture.asset(
-                                '${AppStrings.imagePath}delete.svg',
-                                width: 16,
-                                height: 16,
-                                colorFilter: const ColorFilter.mode(
-                                  AppColors.red,
-                                  BlendMode.srcIn,
-                                ),
+                            ? FastCircularProgressIndicator(width: 12, height: 12)
+                            : const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 16,
+                                color: AppColors.red,
                               ),
                       ),
                     ),

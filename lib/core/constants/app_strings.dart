@@ -561,6 +561,9 @@ class AppStrings {
   static const String trainingSelectMoreVideos = 'Select More Videos';
   static const String trainingManageGalleryAccess = 'Manage Access';
   static const String trainingUploadVideoHint = 'Choose a video to attach to this lesson.';
+  static const String trainingVideoUploadPrompt = 'Click to upload or drag and\ndrop';
+  static const String trainingVideoFileFormat = 'File Format: MP4, MOV, H264';
+  static const String trainingVideoMaxFileSize = 'Max file size is 80 MB';
   static const String trainingDeleteVideoTitle = 'Delete Video';
   static const String trainingDeleteVideoAction = 'Delete';
   static const String trainingVideoMoreActions = 'Video actions';
