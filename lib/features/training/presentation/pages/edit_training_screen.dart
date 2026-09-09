@@ -9,11 +9,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -80,7 +82,7 @@ class EditTrainingScreen extends StatelessWidget {
             const SizedBox(height: 18),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: EditTrainingSection(
                   trainingRoute: trainingRoute,
                   initialModuleId: initialModuleId,

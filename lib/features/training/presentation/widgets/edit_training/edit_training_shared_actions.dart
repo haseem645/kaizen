@@ -58,10 +58,7 @@ class _GradientTrainingActionButton extends StatelessWidget {
         onTap: isInteractive ? onTap : null,
         borderRadius: BorderRadius.circular(14),
         child: Ink(
-          padding: EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: verticalPadding,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: verticalPadding),
           decoration: BoxDecoration(
             gradient: isEnabledAppearance
                 ? const LinearGradient(
@@ -110,9 +107,7 @@ class _GradientTrainingActionButton extends StatelessWidget {
               const SizedBox(width: 8),
               AppTextView.body2(
                 label,
-                color: isEnabledAppearance
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: isEnabledAppearance ? AppColors.textPrimary : AppColors.textSecondary,
                 fontWeight: FontWeight.w700,
               ),
               if (isLoading && !showLoaderInIconSlot) ...[
@@ -172,16 +167,10 @@ class _SecondaryTrainingActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: CustomPaint(
           foregroundPainter: isDottedBorder
-              ? _DottedRoundedBorderPainter(
-                  color: borderColor,
-                  radius: borderRadius,
-                )
+              ? _DottedRoundedBorderPainter(color: borderColor, radius: borderRadius)
               : null,
           child: Ink(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
             decoration: BoxDecoration(
               color: backgroundColor ?? AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(borderRadius),
@@ -227,11 +216,7 @@ class _TrainingSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppTextView.body3(
-      title,
-      color: AppColors.textSecondary,
-      fontWeight: FontWeight.w700,
-    );
+    return AppTextView.body3(title, color: AppColors.textSecondary, fontWeight: FontWeight.w700);
   }
 }
 
@@ -248,9 +233,7 @@ class _TrainingDisplayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark2.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.16),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.16)),
       ),
       child: child,
     );
@@ -385,9 +368,7 @@ class _TrainingTapEditField extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceDark2.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.16),
-            ),
+            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.6)),
           ),
           child: Row(
             children: [
@@ -416,9 +397,7 @@ class _TrainingTapEditField extends StatelessWidget {
               else
                 Icon(
                   Icons.edit_outlined,
-                  color: onTap != null
-                      ? AppColors.secondaryColor
-                      : AppColors.textSecondary,
+                  color: onTap != null ? AppColors.secondaryColor : AppColors.textSecondary,
                   size: 18,
                 ),
             ],
@@ -440,10 +419,7 @@ class _TrainingOutlinedTextField extends StatelessWidget {
     this.fontWeight = FontWeight.w600,
     this.textHeight = 1.4,
     this.hintFontWeight = FontWeight.w500,
-    this.contentPadding = const EdgeInsets.symmetric(
-      horizontal: 16,
-      vertical: 14,
-    ),
+    this.contentPadding = const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   });
 
   final TextEditingController controller;
@@ -485,15 +461,11 @@ class _TrainingOutlinedTextField extends StatelessWidget {
         contentPadding: contentPadding,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(
-            color: AppColors.fieldBorder.withValues(alpha: 0.16),
-          ),
+          borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.16)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(
-            color: AppColors.fieldBorder.withValues(alpha: 0.16),
-          ),
+          borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.16)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
