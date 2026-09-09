@@ -1457,6 +1457,7 @@ class _CommentListTile extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => CheckInMediaCommentsBottomSheet(
         descriptionId: '',

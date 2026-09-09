@@ -193,6 +193,7 @@ class _CheckInMediaCommentsBottomSheetState extends State<CheckInMediaCommentsBo
       initialChildSize: 0.86,
       minChildSize: 0.52,
       maxChildSize: 0.94,
+      shouldCloseOnMinExtent: false,
       builder: (context, scrollController) {
         _sheetScrollController = scrollController;
 
@@ -936,7 +937,7 @@ class _SheetCachedImage extends StatelessWidget {
                 ),
                 child: CachedNetworkImage(
                   imageUrl: imageUrl,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   placeholder: (_, __) => const _SheetMediaPlaceholder(),
                   errorWidget: (_, __, ___) => const _SheetMediaPlaceholder(),
                 ),

@@ -9,7 +9,6 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
-import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/domain/entities/audit_description_audit.dart';
@@ -18,6 +17,7 @@ import 'package:sparrowkaizen/features/check_in/presentation/providers/check_in_
 import 'package:sparrowkaizen/features/check_in/presentation/providers/check_in_media_upload_controller.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/widgets/check_in_media_preview.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_media_comment_bottom_sheet.dart';
+import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_text_comment_dialog.dart';
 
 import '../../../training/domain/entities/seat_description_training_route.dart';
 import '../../../training/presentation/pages/edit_training_screen.dart';
@@ -1314,6 +1314,7 @@ class _CommentsCardState extends State<_CommentsCard> {
     final didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) {
         return DescriptionMediaCommentBottomSheet(
@@ -1330,7 +1331,7 @@ class _CommentsCardState extends State<_CommentsCard> {
   Future<bool> _openTextOnlyCommentDialog(AuditDescriptionAudit audit) async {
     final didSave = await showDialog<bool>(
       context: context,
-      builder: (_) => _CreateTextCommentDialog(
+      builder: (_) => DescriptionTextCommentDialog(
         onSave: (comment) => widget.onSaveCommentWithoutMedia(audit.uuid, comment),
       ),
     );
@@ -1350,6 +1351,7 @@ class _CommentsCardState extends State<_CommentsCard> {
     final didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) {
         return DescriptionMediaCommentBottomSheet(
@@ -1418,140 +1420,6 @@ class _CommentIconButton extends StatelessWidget {
   }
 }
 
-class _CreateTextCommentDialog extends StatefulWidget {
-  const _CreateTextCommentDialog({required this.onSave});
-
-  final Future<void> Function(String comment) onSave;
-
-  @override
-  State<_CreateTextCommentDialog> createState() => _CreateTextCommentDialogState();
-}
-
-class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
-  final TextEditingController _controller = TextEditingController();
-  late final ValueNotifier<bool> _isSavingNotifier = ValueNotifier<bool>(false);
-
-  @override
-  void dispose() {
-    _isSavingNotifier.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_controller, _isSavingNotifier]),
-      builder: (context, _) {
-        final isSaving = _isSavingNotifier.value;
-        final canSave = _controller.text.trim().isNotEmpty && !isSaving;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: AppTextView.body1(
-                        AppStrings.auditAddComment,
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    AppOverlayCloseButton(
-                      onTap: isSaving ? null : () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                AppTextView.body2(
-                  AppStrings.comment,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _controller,
-                  maxLines: 4,
-                  minLines: 4,
-                  enabled: !isSaving,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  cursorColor: AppColors.secondaryColor,
-                  decoration: InputDecoration(
-                    hintText: AppStrings.enterComment,
-                    hintStyle: TextStyle(
-                      color: AppColors.textSecondary.withValues(alpha: 0.7),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.fieldFill,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.secondaryColor),
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.grey1.withValues(alpha: 0.25)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                AppButton(
-                  text: AppStrings.saveComment,
-                  onPressed: canSave ? _save : null,
-                  isLoading: isSaving,
-                  backgroundColor: canSave ? AppColors.secondaryColor : AppColors.grey1,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _save() async {
-    final comment = _controller.text.trim();
-    if (comment.isEmpty || _isSavingNotifier.value) {
-      return;
-    }
-
-    _isSavingNotifier.value = true;
-    try {
-      await widget.onSave(comment);
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
-    } catch (error) {
-      debugPrint('Unable to create text comment: $error');
-      _isSavingNotifier.value = false;
-    }
-  }
-}
-
 class _CommentMediaCard extends StatelessWidget {
   const _CommentMediaCard({
     required this.descriptionId,
@@ -1615,6 +1483,7 @@ class _CommentMediaCard extends StatelessWidget {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => CheckInMediaCommentsBottomSheet(
         descriptionId: descriptionId,
