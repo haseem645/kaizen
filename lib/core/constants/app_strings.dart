@@ -475,16 +475,21 @@ class AppStrings {
   static const String trainingCreateAssignment = 'Create Assignment';
   static const String trainingEditAssignment = 'Edit';
   static const String trainingGenerateQuiz = 'Generate Quiz';
+  static const String trainingCreateQuiz = 'Create Quiz';
   static const String trainingAddQuestion = 'Add Question';
+  static const String trainingAddNewQuestion = 'Add New Question';
   static const String trainingAddQuestionDialogTitle = 'Add Quiz Question';
   static const String trainingAddQuestionDialogDescription =
       'Create a custom quiz question, add answer options, and choose the correct answer.';
-  static const String trainingGenerateQuizDialogTitle = 'AI Quiz Generator';
+  static const String trainingGenerateQuizDialogTitle = 'Generate Quiz with AI';
   static const String trainingGenerateQuizDialogDescription =
-      'Create quiz questions for the selected training module.';
-  static const String trainingQuizNumberOfQuestions = 'No. of Questions';
-  static const String trainingQuizOptionsPerQuestion = 'Options per Question';
-  static const String trainingQuizDifficultyLevel = 'Difficulty Level';
+      'Use your document and video contents to generate an AI-powered quiz';
+  static const String trainingQuizGenerateWithAi = 'Generate with AI';
+  static const String trainingQuizNumberOfQuestions = 'Number of questions';
+  static const String trainingQuizOptionsPerQuestion = 'Options per question';
+  static const String trainingQuizDifficultyLevel = 'Difficulty level';
+  static String trainingQuizIncreaseSetting(String label) => 'Increase ${label.toLowerCase()}';
+  static String trainingQuizDecreaseSetting(String label) => 'Decrease ${label.toLowerCase()}';
   static const String trainingQuizReplaceExistingQuestions = 'Replace Existing Questions';
   static const String trainingQuizDifficultyEasy = 'Easy';
   static const String trainingQuizDifficultyMedium = 'Medium';
@@ -499,6 +504,7 @@ class AppStrings {
   static const String trainingGenerateSopsWithAi = 'Generate SOPs with AI';
   static const String trainingGenerateWithAi = 'Generate With AI';
   static const String trainingCreateSop = 'Create SOP';
+  static const String trainingCreateWithAi = 'Create with AI';
   static const String trainingGenerateSopSubtitle =
       'AI will generate SOP content for this training module.';
   static const String trainingGenerateSopAlertTitle = 'Alert';
@@ -509,6 +515,9 @@ class AppStrings {
   static const String trainingGenerateSopConfirmation = 'REGENERATE';
   static const String trainingRegenerate = 'Re-Generate';
   static const String trainingDeleteOption = 'Delete option';
+  static const String trainingDeleteOptionTitle = 'Delete Option';
+  static const String trainingDeleteOptionDescription =
+      'Are you sure you want to delete this option?';
   static const String trainingDeleteQuestionTitle = 'Delete Question';
   static const String trainingDeleteQuestionAction = 'Delete';
   static const String trainingDeleteQuestionDescription =
@@ -566,6 +575,8 @@ class AppStrings {
   static const String trainingVideoMaxFileSize = 'Max file size is 80 MB';
   static const String trainingDeleteVideoTitle = 'Delete Video';
   static const String trainingDeleteVideoAction = 'Delete';
+  static const String trainingReUploadVideoAction = 'Re-Upload';
+  static const String trainingDeleteAndContinueAction = 'Delete & Continue';
   static const String trainingVideoMoreActions = 'Video actions';
   static const String trainingExpandVideoAction = 'Expand video';
   static const String trainingThumbnailAction = 'Thumbnail';
@@ -679,7 +690,26 @@ class AppStrings {
   static const String trainingNoSopAvailable = 'No SOP available.';
   static const String trainingNoQuizQuestionsAvailable = 'No quiz questions available.';
   static const String trainingQuestionLabel = 'Question';
+  static String trainingQuestionBadge(int number) =>
+      '${trainingQuestionLabel.toUpperCase()} ${number.toString().padLeft(2, '0')}';
+  static const String trainingQuestionActions = 'Question actions';
+  static const String trainingQuestionEditAction = 'Edit';
+  static const String trainingEditQuestionTitle = 'Edit Question';
+  static const String trainingQuestionEditDescription = 'Edit this question';
+  static const String trainingQuestionDeleteDescription = 'Delete this question';
+  static const String trainingQuestionEditAnswers = 'Edit Answers';
   static const String trainingQuestionHint = 'Enter the quiz question';
+  static const String trainingNewQuestionHint = 'Enter a Question';
+  static const String trainingQuestionUploadPicture = 'Upload a Picture';
+  static const String trainingQuestionPictureHint = 'PNG, JPG up to 10MB';
+  static const String trainingQuestionImageFormatError = 'Choose a PNG or JPG image.';
+  static const String trainingQuestionImageSizeError = 'Choose an image up to 10MB.';
+  static const String trainingQuestionRemovePicture = 'Remove picture';
+  static const String trainingQuestionReplacePicture = 'Replace picture';
+  static const String trainingQuestionOptionsPrompt = 'Provide at least two options for the quiz';
+  static const String trainingQuestionNoCorrectAnswer = '—';
+  static const String trainingQuestionPreviousAnswer = 'Previous correct answer';
+  static const String trainingQuestionNextAnswer = 'Next correct answer';
   static const String trainingQuestionOptionsLabel = 'Options';
   static const String trainingQuestionCorrectAnswerLabel = 'Correct Answer';
   static const String trainingQuestionSelectCorrectAnswerHint =
@@ -717,8 +747,8 @@ class AppStrings {
   static const String trainingAssignmentTitleHint = 'Enter assignment title';
   static const String trainingAssignmentDescriptionHint =
       'Write assignment instructions for this lesson.';
-  static const String trainingAssignmentContentRequired =
-      'Add both assignment title and description before saving.';
+  static const String trainingAssignmentTitleRequired =
+      'Please enter an assignment title before saving.';
   static const String trainingAssignmentSavedSuccess = 'Assignment updated successfully.';
   static const String trainingFormattingLabel = 'Basic Editing';
   static const String trainingBoldAction = 'Bold';
@@ -730,7 +760,7 @@ class AppStrings {
   static const String trainingHeadingAction = 'Heading';
   static const String trainingListItemPlaceholder = 'List item';
   static const String trainingTextPlaceholder = 'Text';
-  static String trainingEditFieldTitle(String fieldLabel) => '$fieldLabel';
+  static String trainingEditFieldTitle(String fieldLabel) => fieldLabel;
   static String trainingLibraryLessonsCount(int count) =>
       '$count ${count == 1 ? 'Lesson' : 'Lessons'}';
   static String trainingLibraryVideosCount(int count) =>
@@ -743,12 +773,15 @@ class AppStrings {
       '${current == 1 ? 'Lesson' : 'Lessons'} $current/$total';
   static String trainingLibrarySearchHint(String filterLabel) => 'Search by $filterLabel';
   static String trainingQuestionOptionLabel(int number) => 'Option $number';
+  static String trainingQuestionOptionLetter(int index) => String.fromCharCode(65 + index);
   static String trainingQuestionOptionHint(int number) => 'Enter option $number';
   static String trainingQuestionChoiceLabel(int number) => 'Choice $number';
   static String trainingDeleteModuleDescription(String moduleTitle) =>
       'Delete "$moduleTitle"? This action cannot be undone.';
   static String trainingDeleteVideoDescription(String moduleTitle) =>
       'Delete the video from "$moduleTitle"?';
+  static String trainingReUploadVideoDescription(String moduleTitle) =>
+      'Delete the existing video from "$moduleTitle" and choose a new video to upload?';
   static const String trainingWelcomeQuizTitle = 'Welcome To Quiz';
   static const String trainingPassingScore = 'Passing: above: ';
   static const String start = 'Start';

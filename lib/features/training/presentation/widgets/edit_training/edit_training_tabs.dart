@@ -1,48 +1,53 @@
 part of 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 
-class _TrainingTabs extends StatelessWidget {
-  const _TrainingTabs({required this.tabController});
+class TrainingTabs extends StatelessWidget {
+  const TrainingTabs({super.key, required this.navigation, required this.maxTabIndex});
 
-  final TabController tabController;
+  final TrainingTabNavigationController navigation;
+  final int maxTabIndex;
 
-  static const _tabs = <Widget>[
+  List<Widget> get _tabs => [
     _TrainingTab(
       index: 0,
       label: AppStrings.trainingVideoTab,
       icon: AppAssets.video,
       selectedIcon: AppAssets.videoEnabled,
+      maxTabIndex: maxTabIndex,
     ),
     _TrainingTab(
       index: 1,
       label: AppStrings.trainingSopTab,
       icon: AppAssets.sop,
       selectedIcon: AppAssets.sopEnabled,
+      maxTabIndex: maxTabIndex,
     ),
     _TrainingTab(
       index: 2,
       label: AppStrings.trainingQuizTab,
       icon: AppAssets.quizTab,
       selectedIcon: AppAssets.quizTabEnabled,
+      maxTabIndex: maxTabIndex,
     ),
     _TrainingTab(
       index: 3,
       label: AppStrings.trainingAssignmentTab,
       icon: AppAssets.assignment,
       selectedIcon: AppAssets.assignmentEnabled,
+      maxTabIndex: maxTabIndex,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return ListenableProvider<TabController>.value(
-      value: tabController,
-      child: const DecoratedBox(
-        decoration: BoxDecoration(
+    return ListenableProvider<TrainingTabNavigationController>.value(
+      value: navigation,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
           color: AppColors.trainingLessonActionSurface,
           borderRadius: BorderRadius.all(Radius.circular(22)),
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Row(children: _tabs),
         ),
       ),
@@ -56,37 +61,32 @@ class _TrainingTab extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.selectedIcon,
+    required this.maxTabIndex,
   });
 
   final int index;
   final String label;
   final String icon;
   final String selectedIcon;
+  final int maxTabIndex;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child:
-            Selector2<TabController, TrainingModuleController, ({bool isSelected, bool isEnabled})>(
-              selector: (_, tabs, training) => (
-                isSelected: tabs.index == index,
-                isEnabled: index == 0 || training.canAccessSelectedModuleExtras,
-              ),
-              builder: (context, state, _) => _TrainingTabItem(
-                label: label,
-                iconAsset: state.isSelected ? selectedIcon : icon,
-                isSelected: state.isSelected,
-                isEnabled: state.isEnabled,
-                onTap: () {
-                  final tabs = context.read<TabController>();
-                  if (tabs.index != index) {
-                    tabs.animateTo(index);
-                  }
-                },
-              ),
-            ),
+        child: Selector<TrainingTabNavigationController, bool>(
+          selector: (_, tabs) => tabs.selectedIndex == index,
+          builder: (context, isSelected, _) => _TrainingTabItem(
+            label: label,
+            iconAsset: isSelected ? selectedIcon : icon,
+            isSelected: isSelected,
+            isEnabled: index <= maxTabIndex,
+            onTap: () {
+              context.read<TrainingTabNavigationController>().selectTab(index);
+            },
+          ),
+        ),
       ),
     );
   }
@@ -130,7 +130,10 @@ class _TrainingTabItem extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 28),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: label == "Assignment" ? 4 : 0, vertical: 7),
+              padding: EdgeInsets.symmetric(
+                horizontal: label == AppStrings.trainingAssignmentTab ? 4 : 0,
+                vertical: 7,
+              ),
               child: Opacity(
                 opacity: isEnabled ? 1 : 0.55,
                 child: Column(

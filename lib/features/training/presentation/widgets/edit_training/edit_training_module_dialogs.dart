@@ -34,8 +34,8 @@ class _DeleteModuleDialog extends StatelessWidget {
   }
 }
 
-class _DeleteTrainingVideoDialog extends StatelessWidget {
-  const _DeleteTrainingVideoDialog({required this.moduleTitle});
+class _ReUploadTrainingVideoDialog extends StatelessWidget {
+  const _ReUploadTrainingVideoDialog({required this.moduleTitle});
 
   final String moduleTitle;
 
@@ -44,9 +44,9 @@ class _DeleteTrainingVideoDialog extends StatelessWidget {
     final controller = context.watch<TrainingModuleController>();
 
     return AppConfirmationDialog(
-      title: AppStrings.trainingDeleteVideoTitle,
-      description: AppStrings.trainingDeleteVideoDescription(moduleTitle),
-      confirmText: AppStrings.trainingDeleteVideoAction,
+      title: AppStrings.trainingReUploadVideoAction,
+      description: AppStrings.trainingReUploadVideoDescription(moduleTitle),
+      confirmText: AppStrings.trainingDeleteAndContinueAction,
       cancelText: AppStrings.trainingCancel,
       isConfirmLoading: controller.isDeletingVideo,
       onCancelCallback: () async {

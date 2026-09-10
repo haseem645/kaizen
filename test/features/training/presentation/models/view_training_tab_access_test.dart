@@ -4,120 +4,45 @@ import 'package:test/test.dart';
 import 'package:sparrowkaizen/features/training/presentation/models/view_training_tab_access.dart';
 
 void main() {
-  group('isTrainingViewerTabEnabled', () {
-    for (final isPubliclyAvailable in <bool>[false, true]) {
-      test(
-        'allows child organisations to view Quiz and Assignment (public: $isPubliclyAvailable)',
-        () {
-          for (final tabIndex in <int>[2, 3]) {
-            expect(
-              isTrainingViewerTabEnabled(
-                isPubliclyAvailable: isPubliclyAvailable,
-                tabIndex: tabIndex,
-                isChildOrganization: true,
-              ),
-              isTrue,
-            );
-          }
-        },
-      );
+  for (final isPublic in [false, true]) {
+    for (final isChild in [false, true]) {
+      test('allows every viewer tab (public: $isPublic, child: $isChild)', () {
+        for (final index in [0, 1, 2, 3]) {
+          expect(
+            isTrainingViewerTabEnabled(
+              isPubliclyAvailable: isPublic,
+              isChildOrganization: isChild,
+              tabIndex: index,
+            ),
+            isTrue,
+          );
+        }
+      });
+
+      test('preserves selected Quiz and Assignment (public: $isPublic, child: $isChild)', () {
+        for (final index in [2, 3]) {
+          expect(
+            normalizeTrainingViewerTabIndex(
+              isPubliclyAvailable: isPublic,
+              isChildOrganization: isChild,
+              tabIndex: index,
+            ),
+            index,
+          );
+        }
+      });
     }
+  }
 
-    test('allows all tabs when the lesson is not publicly available', () {
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: false, tabIndex: 0),
-        isTrue,
-      );
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: false, tabIndex: 1),
-        isTrue,
-      );
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: false, tabIndex: 2),
-        isTrue,
-      );
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: false, tabIndex: 3),
-        isTrue,
-      );
-    });
-
-    test('allows only the first two tabs when the lesson is public', () {
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: true, tabIndex: 0),
-        isTrue,
-      );
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: true, tabIndex: 1),
-        isTrue,
-      );
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: true, tabIndex: 2),
-        isFalse,
-      );
-      expect(
-        isTrainingViewerTabEnabled(isPubliclyAvailable: true, tabIndex: 3),
-        isFalse,
-      );
-    });
+  test('indices outside the four viewer tabs are disabled', () {
+    for (final index in [-1, 4, 999]) {
+      expect(isTrainingViewerTabEnabled(isPubliclyAvailable: true, tabIndex: index), isFalse);
+    }
   });
 
-  group('normalizeTrainingViewerTabIndex', () {
-    test('keeps child Quiz and Assignment tabs when a lesson is public', () {
-      for (final tabIndex in <int>[2, 3]) {
-        expect(
-          normalizeTrainingViewerTabIndex(
-            isPubliclyAvailable: true,
-            tabIndex: tabIndex,
-            isChildOrganization: true,
-          ),
-          tabIndex,
-        );
-      }
-    });
-
-    test('resets public Quiz and Assignment tabs after leaving a child', () {
-      for (final tabIndex in <int>[2, 3]) {
-        final childTabIndex = normalizeTrainingViewerTabIndex(
-          isPubliclyAvailable: true,
-          tabIndex: tabIndex,
-          isChildOrganization: true,
-        );
-
-        expect(
-          normalizeTrainingViewerTabIndex(
-            isPubliclyAvailable: true,
-            tabIndex: childTabIndex,
-            isChildOrganization: false,
-          ),
-          0,
-        );
-      }
-    });
-
-    test('keeps allowed tabs unchanged', () {
-      expect(
-        normalizeTrainingViewerTabIndex(isPubliclyAvailable: true, tabIndex: 1),
-        1,
-      );
-      expect(
-        normalizeTrainingViewerTabIndex(
-          isPubliclyAvailable: false,
-          tabIndex: 3,
-        ),
-        3,
-      );
-    });
-
-    test('moves disabled public tabs back to the first tab', () {
-      expect(
-        normalizeTrainingViewerTabIndex(isPubliclyAvailable: true, tabIndex: 2),
-        0,
-      );
-      expect(
-        normalizeTrainingViewerTabIndex(isPubliclyAvailable: true, tabIndex: 3),
-        0,
-      );
-    });
+  test('invalid indices return to Video', () {
+    for (final index in [-1, 4, 999]) {
+      expect(normalizeTrainingViewerTabIndex(isPubliclyAvailable: true, tabIndex: index), 0);
+    }
   });
 }

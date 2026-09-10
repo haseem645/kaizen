@@ -26,11 +26,7 @@ class _DialogErrorMessageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.red.withValues(alpha: 0.22)),
       ),
-      child: AppTextView.body3(
-        message,
-        color: AppColors.textPrimary,
-        height: 1.45,
-      ),
+      child: AppTextView.body3(message, color: AppColors.textPrimary, height: 1.45),
     );
   }
 }
@@ -55,14 +51,10 @@ class _QuizGenerationStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
+        color: AppColors.trainingLessonActionSurface,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
@@ -70,26 +62,29 @@ class _QuizGenerationStepper extends StatelessWidget {
             child: AppTextView.body2(
               label,
               color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
+          const SizedBox(width: 8),
           _StepperActionButton(
-            icon: Icons.remove_rounded,
+            icon: Icons.remove_circle_outline_rounded,
+            tooltip: AppStrings.trainingQuizDecreaseSetting(label),
             onTap: canDecrement ? onDecrement : null,
           ),
-          SizedBox(
-            width: 38,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             child: AppTextView.body1(
               '$value',
-              fontSize: 16,
-              textAlign: TextAlign.center,
+              fontSize: 20,
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w700,
+              textAlign: TextAlign.center,
             ),
           ),
           _StepperActionButton(
-            icon: Icons.add_rounded,
+            icon: Icons.add_circle_outline_rounded,
+            tooltip: AppStrings.trainingQuizIncreaseSetting(label),
             onTap: canIncrement ? onIncrement : null,
           ),
         ],
@@ -99,127 +94,64 @@ class _QuizGenerationStepper extends StatelessWidget {
 }
 
 class _StepperActionButton extends StatelessWidget {
-  const _StepperActionButton({required this.icon, required this.onTap});
+  const _StepperActionButton({required this.icon, required this.tooltip, required this.onTap});
 
   final IconData icon;
+  final String tooltip;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: onTap == null
-              ? AppColors.surfaceDark.withValues(alpha: 0.45)
-              : AppColors.surfaceDark,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: onTap == null
-                ? AppColors.fieldBorder.withValues(alpha: 0.1)
-                : AppColors.fieldBorder.withValues(alpha: 0.16),
-          ),
-        ),
-        child: Icon(
-          icon,
-          color: onTap == null
-              ? AppColors.textSecondary.withValues(alpha: 0.45)
-              : AppColors.textPrimary,
-          size: 14,
-        ),
-      ),
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      padding: const EdgeInsets.all(6),
+      color: AppColors.secondaryColor,
+      disabledColor: AppColors.secondaryColor.withValues(alpha: 0.4),
+      icon: Icon(icon, size: 20),
     );
   }
 }
 
 class _QuizDifficultyChip extends StatelessWidget {
-  const _QuizDifficultyChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _QuizDifficultyChip({required this.label, required this.isSelected, required this.onTap});
 
   final String label;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.secondaryColor.withValues(alpha: 0.16)
-              : AppColors.mainBg,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.secondaryColor
-                : AppColors.fieldBorder.withValues(alpha: 0.18),
+    return Semantics(
+      selected: isSelected,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          backgroundColor: isSelected ? AppColors.secondaryColor : Colors.transparent,
+          disabledBackgroundColor: isSelected
+              ? AppColors.secondaryColor.withValues(alpha: 0.55)
+              : Colors.transparent,
+          foregroundColor: isSelected ? AppColors.textPrimary : AppColors.grey1,
+          disabledForegroundColor: AppColors.grey1,
+          minimumSize: const Size(0, 32),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: BorderSide(
+              color: isSelected
+                  ? AppColors.secondaryColor
+                  : AppColors.grey1.withValues(alpha: 0.45),
+            ),
           ),
         ),
         child: AppTextView.body2(
           label,
-          fontSize: 13,
-          color: isSelected
-              ? AppColors.secondaryColor
-              : AppColors.textSecondary,
-          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          textAlign: TextAlign.center,
         ),
-      ),
-    );
-  }
-}
-
-class _QuizReplaceToggle extends StatelessWidget {
-  const _QuizReplaceToggle({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: AppTextView.body3(
-              AppStrings.trainingQuizReplaceExistingQuestions,
-              color: AppColors.textPrimary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          AppTextView.body4(
-            value
-                ? AppStrings.trainingQuizEnabled
-                : AppStrings.trainingQuizDisabled,
-            color: value ? AppColors.secondaryColor : AppColors.textSecondary,
-            fontWeight: FontWeight.w700,
-          ),
-          const SizedBox(width: 8),
-          Switch.adaptive(
-            value: value,
-            activeThumbColor: AppColors.secondaryColor,
-            activeTrackColor: AppColors.secondaryColor.withValues(alpha: 0.4),
-            onChanged: onChanged,
-          ),
-        ],
       ),
     );
   }
@@ -234,10 +166,7 @@ class _DividerDot extends StatelessWidget {
       width: 10,
       height: 10,
       margin: const EdgeInsets.symmetric(horizontal: 2),
-      decoration: const BoxDecoration(
-        color: AppColors.hex51597a,
-        shape: BoxShape.circle,
-      ),
+      decoration: const BoxDecoration(color: AppColors.hex51597a, shape: BoxShape.circle),
     );
   }
 }
@@ -314,15 +243,10 @@ class _SopAlertCard extends StatelessWidget {
               ),
               filled: true,
               fillColor: AppColors.surfaceDark2,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),

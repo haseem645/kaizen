@@ -26,8 +26,14 @@ import '../../../compliance/presentation/widgets/compliance_video_player.dart';
 import '../../domain/entities/seat_description_training.dart';
 import '../../domain/entities/seat_description_training_route.dart';
 import '../controllers/training_module_controller.dart';
+import '../controllers/training_question_form_controller.dart';
+import '../controllers/training_quiz_question_editor_controller.dart';
+import '../controllers/training_tab_navigation_controller.dart';
 import '../controllers/training_video_capture_bridge.dart';
 import '../controllers/training_video_upload_controller.dart';
+import '../widgets/training_tab_view.dart';
+import '../widgets/training_swipe_delete_action.dart';
+import '../widgets/training_option_delete_dialog.dart';
 
 part '../widgets/edit_training/edit_training_section_state_handlers.dart';
 part '../widgets/edit_training/edit_training_section_state_view.dart';
@@ -46,12 +52,14 @@ part '../widgets/edit_training/edit_training_shared_actions.dart';
 part '../widgets/edit_training/edit_training_text_edit.dart';
 part '../widgets/edit_training/edit_training_generate_quiz_dialog.dart';
 part '../widgets/edit_training/edit_training_add_question_dialog.dart';
+part '../widgets/edit_training/edit_training_edit_question_dialog.dart';
 part '../widgets/edit_training/edit_training_add_question_dialog_widgets.dart';
 part '../widgets/edit_training/edit_training_generate_sop_dialog.dart';
 part '../widgets/edit_training/edit_training_dialog_support.dart';
 part '../widgets/edit_training/edit_training_quiz_question_card.dart';
-part '../widgets/edit_training/edit_training_quiz_editor_controller.dart';
+part '../widgets/edit_training/edit_training_quiz_question_actions_sheet.dart';
 part '../widgets/edit_training/edit_training_quiz_option_widgets.dart';
+part '../widgets/edit_training/training_read_only_tabs.dart';
 
 class EditTrainingScreen extends StatelessWidget {
   const EditTrainingScreen({
@@ -71,6 +79,7 @@ class EditTrainingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.mainBg,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -223,29 +232,17 @@ class _EditTrainingSectionView extends StatefulWidget {
       _EditTrainingSectionViewState();
 }
 
-class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
-    with TickerProviderStateMixin {
-  late final TabController _tabController;
-  late final AnimationController _tabSwipeResetController;
+class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
+  late final TrainingTabNavigationController _tabNavigation;
+  int _lastHandledTabIndex = 0;
   final ImagePicker _imagePicker = ImagePicker();
   final FocusNode _newLessonTitleFocusNode = FocusNode();
   final GlobalKey _newLessonTitleFieldKey = GlobalKey();
-  final ValueNotifier<int> _selectedTabIndexNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<double> _tabSwipeOffsetNotifier = ValueNotifier<double>(
-    0,
-  );
-  final ValueNotifier<int?> _tabSwipeTargetIndexNotifier = ValueNotifier<int?>(
-    null,
-  );
   final ValueNotifier<bool> _isPickingVideoNotifier = ValueNotifier<bool>(
     false,
   );
   final ValueNotifier<bool> _isFinalizingVideoSetupNotifier =
       ValueNotifier<bool>(false);
-  int? _tabSwipePointerId;
-  Offset? _tabSwipeStartPosition;
-  bool _isTrackingTabSwipe = false;
-  Animation<double>? _tabSwipeResetAnimation;
   TrainingModuleController? _trainingController;
   String? _lastDocumentErrorMessage;
   String? _lastAssignmentErrorMessage;
@@ -256,7 +253,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   int _activeTrainingModalSheetCount = 0;
   late final Listenable _viewStateListenable;
 
-  int get _selectedTabIndex => _selectedTabIndexNotifier.value;
+  int get _selectedTabIndex => _tabNavigation.selectedIndex;
 
   bool get _isPickingVideo => _isPickingVideoNotifier.value;
 
@@ -279,10 +276,10 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
   @override
   void initState() {
     super.initState();
+    _tabNavigation = TrainingTabNavigationController()
+      ..addListener(_handleTabChanged);
     _viewStateListenable = Listenable.merge([
-      _selectedTabIndexNotifier,
-      _tabSwipeOffsetNotifier,
-      _tabSwipeTargetIndexNotifier,
+      _tabNavigation,
       _isPickingVideoNotifier,
       _isFinalizingVideoSetupNotifier,
       if (widget.useNonBlockingVideoUpload)
@@ -297,20 +294,6 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         _handleGlobalVideoUploadChanged,
       );
     }
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(_handleTabChanged);
-    _tabSwipeResetController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 180),
-        )..addListener(() {
-          final animation = _tabSwipeResetAnimation;
-          if (animation == null) {
-            return;
-          }
-
-          _tabSwipeOffsetNotifier.value = animation.value;
-        });
     unawaited(_restoreLostTrainingVideoIfNeeded());
   }
 
@@ -345,13 +328,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView>
         _handleGlobalVideoUploadChanged,
       );
     }
-    _tabSwipeResetController.dispose();
-    _tabController.removeListener(_handleTabChanged);
-    _tabController.dispose();
+    _tabNavigation.removeListener(_handleTabChanged);
+    _tabNavigation.dispose();
     _newLessonTitleFocusNode.dispose();
-    _selectedTabIndexNotifier.dispose();
-    _tabSwipeOffsetNotifier.dispose();
-    _tabSwipeTargetIndexNotifier.dispose();
     _isPickingVideoNotifier.dispose();
     _isFinalizingVideoSetupNotifier.dispose();
     super.dispose();

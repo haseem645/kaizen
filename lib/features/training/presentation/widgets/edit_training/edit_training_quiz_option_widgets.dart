@@ -5,23 +5,21 @@ class _DraftQuizOptionTile extends StatelessWidget {
     required this.controller,
     required this.hintText,
     required this.isSelected,
+    required this.isEditable,
     this.onSelect,
-    this.onDeleteTap,
   });
 
   final TextEditingController controller;
   final String hintText;
   final bool isSelected;
   final VoidCallback? onSelect;
-  final VoidCallback? onDeleteTap;
+  final bool isEditable;
 
   @override
   Widget build(BuildContext context) {
-    final isTextEditable = onDeleteTap != null;
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.025),
         borderRadius: BorderRadius.circular(16),
@@ -30,7 +28,7 @@ class _DraftQuizOptionTile extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           InkWell(
             onTap: onSelect,
@@ -51,12 +49,14 @@ class _DraftQuizOptionTile extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              enabled: isTextEditable,
+              enabled: isEditable,
+              autofocus: true,
               keyboardType: TextInputType.multiline,
               minLines: 1,
               maxLines: null,
               textCapitalization: TextCapitalization.sentences,
               cursorColor: Colors.white,
+              cursorHeight: 15,
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
@@ -74,121 +74,68 @@ class _DraftQuizOptionTile extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          InkWell(
-            onTap: onDeleteTap,
-            borderRadius: BorderRadius.circular(999),
-            child: Ink(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.fieldBorder.withValues(alpha: 0.22),
-                ),
-              ),
-              child: const Icon(
-                Icons.remove_circle_outline_rounded,
-                color: AppColors.red,
-                size: 15,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _QuizCorrectOptionChoice {
-  const _QuizCorrectOptionChoice({required this.uuid, required this.label});
-
-  final String uuid;
-  final String label;
-}
-
-class _QuizCorrectOptionDropdown extends StatelessWidget {
-  const _QuizCorrectOptionDropdown({
-    required this.value,
-    required this.options,
-    this.onChanged,
-    this.showLabel = true,
+class _QuestionCorrectAnswerSelector extends StatelessWidget {
+  const _QuestionCorrectAnswerSelector({
+    required this.label,
+    required this.onPrevious,
+    required this.onNext,
   });
 
-  final String value;
-  final List<_QuizCorrectOptionChoice> options;
-  final ValueChanged<String?>? onChanged;
-  final bool showLabel;
+  final String label;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {
-    final hasValue = options.any((option) => option.uuid == value);
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (showLabel)
-          const AppTextView.body3(
-            AppStrings.trainingQuestionCorrectAnswerLabel,
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
+        const AppTextView.body2(
+          AppStrings.trainingQuestionCorrectAnswerLabel,
+          color: AppColors.grey1,
+          fontWeight: FontWeight.w400,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark3,
+            borderRadius: BorderRadius.circular(14),
           ),
-        if (showLabel) const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          key: ValueKey<String>(value),
-          initialValue: hasValue ? value : null,
-          onChanged: onChanged,
-          isExpanded: true,
-          dropdownColor: AppColors.surfaceDark,
-          iconEnabledColor: AppColors.textPrimary,
-          iconSize: 18,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: AppColors.surfaceDark2.withValues(alpha: 0.42),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppColors.fieldBorder.withValues(alpha: 0.22),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                tooltip: AppStrings.trainingQuestionPreviousAnswer,
+                onPressed: onPrevious,
+                color: AppColors.secondaryColor,
+                disabledColor: AppColors.grey1,
+                icon: const Icon(Icons.chevron_left_rounded, size: 22),
               ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppColors.fieldBorder.withValues(alpha: 0.22),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.secondaryColor),
-            ),
-          ),
-          items: options
-              .map(
-                (option) => DropdownMenuItem<String>(
-                  value: option.uuid,
-                  child: Text(
-                    option.label,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              SizedBox(
+                width: 44,
+                child: AppTextView.body1(
+                  label,
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  textAlign: TextAlign.center,
                 ),
-              )
-              .toList(growable: false),
+              ),
+              IconButton(
+                tooltip: AppStrings.trainingQuestionNextAnswer,
+                onPressed: onNext,
+                color: AppColors.secondaryColor,
+                disabledColor: AppColors.grey1,
+                icon: const Icon(Icons.chevron_right_rounded, size: 22),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -202,8 +149,6 @@ class _QuizOptionTile extends StatelessWidget {
     required this.isSelected,
     required this.isEditable,
     this.onTap,
-    this.canDelete = false,
-    this.onDeleteTap,
   });
 
   final TextEditingController controller;
@@ -211,14 +156,12 @@ class _QuizOptionTile extends StatelessWidget {
   final bool isSelected;
   final bool isEditable;
   final VoidCallback? onTap;
-  final bool canDelete;
-  final VoidCallback? onDeleteTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.secondaryColor.withValues(alpha: 0.09)
@@ -231,7 +174,7 @@ class _QuizOptionTile extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           InkWell(
             onTap: onTap,
@@ -258,6 +201,7 @@ class _QuizOptionTile extends StatelessWidget {
               maxLines: null,
               textCapitalization: TextCapitalization.sentences,
               cursorColor: Colors.white,
+              cursorHeight: 15,
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
@@ -276,32 +220,6 @@ class _QuizOptionTile extends StatelessWidget {
               ),
             ),
           ),
-          if (canDelete) ...[
-            const SizedBox(width: 10),
-            InkWell(
-              onTap: onDeleteTap,
-              borderRadius: BorderRadius.circular(999),
-              child: Ink(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceDark,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.fieldBorder.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: Tooltip(
-                  message: AppStrings.trainingDeleteOption,
-                  child: const Icon(
-                    Icons.remove_circle_outline_rounded,
-                    color: AppColors.red,
-                    size: 15,
-                  ),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

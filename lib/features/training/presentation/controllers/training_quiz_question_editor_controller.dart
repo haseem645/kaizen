@@ -1,7 +1,11 @@
-part of 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
+import 'package:flutter/widgets.dart';
 
-class _QuizQuestionEditorController extends ChangeNotifier {
-  _QuizQuestionEditorController({
+import '../../../../core/constants/app_strings.dart';
+import '../../domain/entities/seat_description_training.dart';
+import 'training_module_controller.dart';
+
+class TrainingQuizQuestionEditorController extends ChangeNotifier {
+  TrainingQuizQuestionEditorController({
     required SeatDescriptionTrainingQuestion question,
   }) : draftOptionController = TextEditingController() {
     draftOptionController.addListener(_handleDraftOptionChanged);
@@ -12,6 +16,7 @@ class _QuizQuestionEditorController extends ChangeNotifier {
   final Map<String, TextEditingController> _optionControllers =
       <String, TextEditingController>{};
   final List<String> _activeOptionUuids = <String>[];
+  final Map<String, SeatDescriptionTrainingQuestionOption> _addedOptions = {};
 
   String _questionSignature = '';
   String _selectedOptionUuid = '';
@@ -21,6 +26,7 @@ class _QuizQuestionEditorController extends ChangeNotifier {
   bool _showsDraftOption = false;
   String? _validationMessage;
   bool _isSyncingDraftText = false;
+  bool _isEditing = false;
 
   String get selectedOptionUuid => _selectedOptionUuid;
   String get selectedCorrectOptionUuid =>
@@ -28,8 +34,46 @@ class _QuizQuestionEditorController extends ChangeNotifier {
   String get draftOptionUuid => _draftOptionUuid;
   bool get showsDraftOption => _showsDraftOption;
   String? get validationMessage => _validationMessage;
+  bool get isEditing => _isEditing;
+  List<String> get _correctOptionUuids => [
+    ..._activeOptionUuids,
+    if (_showsDraftOption) _draftOptionUuid,
+  ];
+  bool get canChangeCorrectAnswer => _correctOptionUuids.length > 1;
+  String get correctAnswerLabel {
+    final index = _correctOptionUuids.indexOf(selectedCorrectOptionUuid);
+    return index < 0
+        ? AppStrings.trainingQuestionNoCorrectAnswer
+        : AppStrings.trainingQuestionOptionLetter(index);
+  }
 
-  bool isOptionSelected(String optionUuid) => _selectedOptionUuid == optionUuid;
+  void previousCorrectAnswer() => _moveCorrectAnswer(-1);
+  void nextCorrectAnswer() => _moveCorrectAnswer(1);
+
+  void _moveCorrectAnswer(int direction) {
+    final choices = _correctOptionUuids;
+    if (choices.length < 2) return;
+
+    final currentIndex = choices.indexOf(selectedCorrectOptionUuid);
+    final nextIndex = currentIndex < 0
+        ? 0
+        : (currentIndex + direction) % choices.length;
+    selectCorrectOption(choices[nextIndex]);
+  }
+
+  void startEditing() {
+    if (_isEditing) return;
+    _isEditing = true;
+    notifyListeners();
+  }
+
+  void finishEditing(SeatDescriptionTrainingQuestion question) {
+    _isEditing = false;
+    syncWithQuestion(question, force: true);
+  }
+
+  bool isOptionSelected(String optionUuid) =>
+      selectedCorrectOptionUuid == optionUuid;
 
   TextEditingController optionControllerFor(
     SeatDescriptionTrainingQuestionOption option,
@@ -42,14 +86,13 @@ class _QuizQuestionEditorController extends ChangeNotifier {
     );
   }
 
-  bool canAddOption() => !_showsDraftOption;
-
   List<SeatDescriptionTrainingQuestionOption> visibleExistingOptions(
     SeatDescriptionTrainingQuestion question,
   ) {
     final originalOptionsByUuid =
         <String, SeatDescriptionTrainingQuestionOption>{
           for (final option in question.options) option.uuid: option,
+          ..._addedOptions,
         };
 
     return _activeOptionUuids
@@ -96,12 +139,14 @@ class _QuizQuestionEditorController extends ChangeNotifier {
     }
 
     _questionSignature = nextSignature;
+    _isEditing = false;
     _initialSelectedOptionUuid = _resolveSelectedOptionUuid(question);
     _selectedOptionUuid = _initialSelectedOptionUuid;
     _showsDraftOption = false;
     _draftOptionUuid = '';
     _draftCorrectOptionUuid = '';
     _validationMessage = null;
+    _addedOptions.clear();
     _syncOptionControllers(question);
     _activeOptionUuids
       ..clear()
@@ -111,13 +156,24 @@ class _QuizQuestionEditorController extends ChangeNotifier {
   }
 
   void showDraftOption(SeatDescriptionTrainingQuestion question) {
-    if (!canAddOption()) {
-      return;
+    if (_showsDraftOption) {
+      // Keep the current option locally so another can be added before saving.
+      final option = SeatDescriptionTrainingQuestionOption(
+        uuid: _draftOptionUuid,
+        text: draftOptionController.text,
+      );
+      _addedOptions[option.uuid] = option;
+      _activeOptionUuids.add(option.uuid);
+      optionControllerFor(option);
+      _selectedOptionUuid = _draftCorrectOptionUuid;
+      _setDraftText('');
     }
 
     _showsDraftOption = true;
     _draftOptionUuid = TrainingModuleController.generateClientUuid();
-    _draftCorrectOptionUuid = _selectedOptionUuid;
+    _draftCorrectOptionUuid = _selectedOptionUuid.isEmpty
+        ? _draftOptionUuid
+        : _selectedOptionUuid;
     _validationMessage = null;
     notifyListeners();
   }
@@ -127,6 +183,9 @@ class _QuizQuestionEditorController extends ChangeNotifier {
       return;
     }
 
+    if (_activeOptionUuids.contains(_draftCorrectOptionUuid)) {
+      _selectedOptionUuid = _draftCorrectOptionUuid;
+    }
     _showsDraftOption = false;
     _draftOptionUuid = '';
     _draftCorrectOptionUuid = '';
@@ -191,6 +250,7 @@ class _QuizQuestionEditorController extends ChangeNotifier {
       return;
     }
 
+    _addedOptions.remove(resolvedOptionUuid);
     final removedController = _optionControllers.remove(resolvedOptionUuid);
     removedController
       ?..removeListener(_handleExistingOptionChanged)
@@ -239,6 +299,7 @@ class _QuizQuestionEditorController extends ChangeNotifier {
     final originalOptionsByUuid =
         <String, SeatDescriptionTrainingQuestionOption>{
           for (final option in question.options) option.uuid: option,
+          ..._addedOptions,
         };
     final options = _activeOptionUuids
         .map((uuid) => originalOptionsByUuid[uuid])

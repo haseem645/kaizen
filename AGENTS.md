@@ -58,17 +58,31 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 - Prefer immutable widget inputs and `const` constructors where practical.
 - Keep widget trees readable by extracting focused private widgets when a build method becomes too dense, but avoid creating unnecessary abstraction for tiny one-off UI fragments.
 - For async UI actions, handle loading and failure states in the widget or provider that owns the interaction.
+- Always use `FastCircularProgressIndicator()` from `lib/core/widgets/fast_circular_progress.dart` whenever a progress bar or loading indicator is needed in the project. Reuse its sizing and color options instead of adding direct `CircularProgressIndicator`, `LinearProgressIndicator`, or custom spinner implementations. This includes placeholder loaders inside SOP and Assignment description cards while content is loading or its initial state is being resolved.
 - Dispose owned controllers and notifiers such as `TextEditingController`, `ScrollController`, `PageController`, `TabController`, `AnimationController`, `VideoPlayerController`, and `ValueNotifier`.
 - Use existing status/color conventions from `lib/core/constants/app_colors.dart` unless the task requires a new design rule.
 
 ## UI Rules
 
+- Populate repeated UI with builder widgets such as `ListView.builder` or `ListView.separated`, or collection mapping for short inline content. Do not use `for` loops to populate widget children.
+- Keep quiz `Add Option` actions visible while option fields are being edited. Existing-question editors must preserve all locally added options and the correct-answer UUID until Save or Cancel; opening one draft option must not hide the action or require an intermediate API save.
+- Open quiz question editing in a bottom sheet from Actions > Edit, using the shared question-sheet header and Correct Answer selector. Keep question cards in display mode and leave about 10 logical pixels between option rows, without adding a trailing gap after the last display option.
+- In the Add Question and Edit Question sheets, reveal option Delete actions with a right-to-left swipe. A swipe must never remove an option. In Add Question, tapping Delete removes the option immediately without confirmation. In Edit Question, tapping Delete must ask for confirmation before removing either an existing or newly added option from the draft. Set all text input cursors in both sheets to 15 logical pixels high.
+- Name the lesson selection sheet All Lessons and keep New Lesson creation outside this sheet. Cap its height at 85% of the screen and keep long lists scrollable. For users with training management access, reveal each lesson's Delete action with a right-to-left swipe and use the existing module deletion confirmation before deleting it.
+- Keep View Lesson visually aligned with Edit Training by sharing its bottom navigation, lesson selector, video layout, and quiz cards. Allow Video, SOP, Quiz, and Assignment tabs for every selected lesson, including public lessons and child organisations. The viewer must not expose create, edit, delete, upload, generation, formatting, or submission actions, even to managers.
+- Keep the viewer's SOP heading and white reading panel mounted in loading, empty, error, and content states. An unresolved SOP must show `FastCircularProgressIndicator` immediately, including during a swipe into the tab; show No SOP Available only after the API has returned empty content, and discard document responses from a previously selected lesson.
+- The SOP editor's purple Done button only dismisses an open keyboard. SOP changes are saved by the controller's existing debounce; Done must not trigger or flush a save request.
+- Preserve explicit HTML line breaks and blank paragraphs when loading SOP content into the editor. Saving and reopening must preserve the same spacing and formatting offsets; block separators must not collapse repeated `<br>` tags or add duplicate breaks on each reload.
+- Assignment creation and updates require a nonblank title. Enforce this in the controller for both the purple Done action and Create/Save actions; instructions alone must never enable saving or produce an assignment API write.
+- Keep the AI quiz generation sheet's Replace Existing Questions toggle above the final divider and connected to the existing replacement flag when updating its design.
+- Keep training quiz lists compact on mobile: use 16 logical pixels for the section heading, 14 for questions, 12 for answers and action labels, 12 for card padding, and 10–12 for gaps. Preserve system text scaling rather than enlarging the base sizes to match screenshot pixels.
 - Preserve the established visual system unless the task explicitly asks for a redesign.
 - On new or changed screens, maintain mobile-first layout behavior and avoid overflow.
 - Reuse existing spacing, typography, icon, and bottom-sheet patterns where possible instead of inventing a parallel style.
 - If media, uploads, comments, or sheets already exist elsewhere in the app, mirror those interaction patterns before creating a new one.
 - Long text, pills, tags, and action rows must be overflow-safe by using `Expanded`, `Flexible`, wrapping, or constrained layouts where appropriate.
 - Media cards should use stable constraints. If a list or pager mixes images and videos, keep the video thumbnail container matched to the image container unless the task explicitly asks for a different treatment.
+- Training tabs must use Flutter's page snapping in a stable, bounded viewport, with horizontal padding and a separate clip around each page's content so adjacent tabs have a visible gap during swipes. Keep the pager mounted during tab changes, and let each tab own its vertical scrolling. Completed or cancelled swipes and interrupted tab taps must settle on one complete page that matches the bottom navigation; do not implement separate translated preview stacks.
 
 ## UI File Structure And Widget Organization
 

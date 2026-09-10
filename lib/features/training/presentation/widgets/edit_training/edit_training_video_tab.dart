@@ -16,7 +16,7 @@ class _VideoTabContent extends StatelessWidget {
     required this.isSavingSummary,
     required this.summaryController,
     this.onUploadVideoTap,
-    this.onDeleteVideoTap,
+    this.onReUploadVideoTap,
     this.onUpdateThumbnailTap,
     this.onEditSummaryTap,
     this.onCancelSummaryTap,
@@ -37,7 +37,7 @@ class _VideoTabContent extends StatelessWidget {
   final bool isSavingSummary;
   final TextEditingController summaryController;
   final VoidCallback? onUploadVideoTap;
-  final VoidCallback? onDeleteVideoTap;
+  final VoidCallback? onReUploadVideoTap;
   final VoidCallback? onUpdateThumbnailTap;
   final VoidCallback? onEditSummaryTap;
   final VoidCallback? onCancelSummaryTap;
@@ -50,6 +50,13 @@ class _VideoTabContent extends StatelessWidget {
     final summary = detail?.description?.trim();
     final hasVideo = videoUrl != null && videoUrl.isNotEmpty;
     final canRevealVideo = hasVideo && !isFinalizingVideoSetup;
+    final canUseVideoActions =
+        isUploadEnabled &&
+        !isPickingVideo &&
+        !isFinalizingVideoSetup &&
+        !isUploadingVideo &&
+        !isDeletingVideo &&
+        !isUploadingThumbnail;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,19 +68,22 @@ class _VideoTabContent extends StatelessWidget {
             localVideoPath: localVideoPath,
             title: detail?.title ?? '',
             thumbnailLink: detail?.previewThumbnailLink,
+            height: (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0),
             fillBounds: true,
             topRightActions: !isReadOnly
                 ? [
-                    _TrainingVideoActionMenu(
-                      isLoading: isDeletingVideo || isUploadingThumbnail,
-                      onSelected: (action) {
-                        if (action == _TrainingVideoMenuAction.delete) {
-                          onDeleteVideoTap?.call();
-                          return;
-                        }
-
-                        onUpdateThumbnailTap?.call();
-                      },
+                    _TrainingVideoActionButton(
+                      icon: Icons.photo_library_outlined,
+                      tooltip: AppStrings.trainingThumbnailAction,
+                      isLoading: isUploadingThumbnail,
+                      onTap: canUseVideoActions ? onUpdateThumbnailTap : null,
+                    ),
+                    _TrainingVideoActionButton(
+                      icon: Icons.sync_rounded,
+                      tooltip: AppStrings.trainingReUploadVideoAction,
+                      label: AppStrings.trainingReUploadVideoAction,
+                      isLoading: isDeletingVideo || isPickingVideo || isUploadingVideo,
+                      onTap: canUseVideoActions ? onReUploadVideoTap : null,
                     ),
                   ]
                 : const <Widget>[],
@@ -229,94 +239,80 @@ class _NewLessonTitleField extends StatelessWidget {
   }
 }
 
-enum _TrainingVideoMenuAction { delete, thumbnail }
-
-class _TrainingVideoActionMenu extends StatelessWidget {
-  const _TrainingVideoActionMenu({required this.isLoading, required this.onSelected});
-
-  final bool isLoading;
-  final ValueChanged<_TrainingVideoMenuAction> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return SizedBox(
-        width: 34,
-        height: 34,
-        child: Center(child: FastCircularProgressIndicator(width: 14, height: 14)),
-      );
-    }
-
-    return PopupMenuButton<_TrainingVideoMenuAction>(
-      tooltip: AppStrings.trainingVideoMoreActions,
-      color: AppColors.surfaceDark3,
-      surfaceTintColor: AppColors.surfaceDark3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: onSelected,
-      itemBuilder: (context) => [
-        PopupMenuItem<_TrainingVideoMenuAction>(
-          value: _TrainingVideoMenuAction.delete,
-          child: _TrainingVideoMenuItemContent(
-            icon: SvgPicture.asset(
-              '${AppStrings.imagePath}delete.svg',
-              width: 18,
-              height: 18,
-              colorFilter: const ColorFilter.mode(
-                AppColors.red,
-                BlendMode.srcIn,
-              ),
-            ),
-            label: AppStrings.trainingDeleteVideoAction,
-            color: AppColors.red,
-          ),
-        ),
-        const PopupMenuItem<_TrainingVideoMenuAction>(
-          value: _TrainingVideoMenuAction.thumbnail,
-          child: _TrainingVideoMenuItemContent(
-            icon: Icon(
-              Icons.image_outlined,
-              color: AppColors.secondaryColor,
-              size: 18,
-            ),
-            label: AppStrings.trainingThumbnailAction,
-            color: AppColors.secondaryColor,
-          ),
-        ),
-      ],
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: AppColors.mainBg,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.25)),
-        ),
-        child: const Icon(Icons.more_vert_rounded, color: AppColors.textPrimary, size: 18),
-      ),
-    );
-  }
-}
-
-class _TrainingVideoMenuItemContent extends StatelessWidget {
-  const _TrainingVideoMenuItemContent({
+class _TrainingVideoActionButton extends StatelessWidget {
+  const _TrainingVideoActionButton({
     required this.icon,
-    required this.label,
-    required this.color,
+    required this.tooltip,
+    required this.isLoading,
+    this.label,
+    this.onTap,
   });
 
-  final Widget icon;
-  final String label;
-  final Color color;
+  final IconData icon;
+  final String tooltip;
+  final bool isLoading;
+  final String? label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        icon,
-        const SizedBox(width: 10),
-        AppTextView.body3(label, color: color, fontWeight: FontWeight.w700),
-      ],
+    final borderRadius = BorderRadius.circular(10);
+
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        enabled: onTap != null,
+        child: Material(
+          color: AppColors.grey2.withValues(alpha: 0.88),
+          borderRadius: borderRadius,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: isLoading ? null : onTap,
+            borderRadius: borderRadius,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: 34,
+                minHeight: 34,
+                maxWidth: label == null ? 34 : 132,
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: label == null ? 8 : 10, vertical: 7),
+                child: Opacity(
+                  opacity: onTap != null || isLoading ? 1 : 0.5,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isLoading)
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Center(
+                            child: FastCircularProgressIndicator(width: 14, height: 14),
+                          ),
+                        )
+                      else
+                        Icon(icon, color: AppColors.textPrimary, size: 18),
+                      if (label != null) ...[
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: AppTextView.body2(
+                            label!,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w400,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -406,7 +402,7 @@ class _TrainingVideoUploadContent extends StatelessWidget {
         const SizedBox(height: 24),
         AppTextView.body(
           label,
-          color: AppColors.trainingUploadMuted,
+          color: AppColors.textPrimary,
           fontWeight: FontWeight.w500,
           textAlign: TextAlign.center,
           height: 1.25,
@@ -415,13 +411,13 @@ class _TrainingVideoUploadContent extends StatelessWidget {
           const SizedBox(height: 12),
           const AppTextView.body3(
             AppStrings.trainingVideoFileFormat,
-            color: AppColors.trainingUploadMuted,
+            color: AppColors.textPrimary,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const AppTextView.body3(
             AppStrings.trainingVideoMaxFileSize,
-            color: AppColors.trainingUploadMuted,
+            color: AppColors.textPrimary,
             textAlign: TextAlign.center,
           ),
         ],
@@ -451,7 +447,7 @@ class _TrainingVideoUploadIcon extends StatelessWidget {
     return Container(
       width: 54,
       height: 54,
-      decoration: const BoxDecoration(color: AppColors.trainingUploadMuted, shape: BoxShape.circle),
+      decoration: const BoxDecoration(color: AppColors.secondaryColor, shape: BoxShape.circle),
       alignment: Alignment.center,
       child: isBusy
           ? FastCircularProgressIndicator(width: 20, height: 20)
@@ -460,7 +456,7 @@ class _TrainingVideoUploadIcon extends StatelessWidget {
               width: 18,
               height: 18,
               excludeFromSemantics: true,
-              colorFilter: const ColorFilter.mode(AppColors.hex8d93a6, BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
             ),
     );
   }

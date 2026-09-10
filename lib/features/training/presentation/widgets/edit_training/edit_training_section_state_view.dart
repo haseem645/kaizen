@@ -2,6 +2,16 @@ part of 'package:sparrowkaizen/features/training/presentation/pages/edit_trainin
 
 extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
   Widget _buildBody(TrainingModuleController controller) {
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _buildSectionLayout(controller, availableHeight: constraints.maxHeight),
+    );
+  }
+
+  Widget _buildSectionLayout(
+    TrainingModuleController controller, {
+    required double availableHeight,
+  }) {
     if (controller.isLoading &&
         controller.modules.isEmpty &&
         !controller.isCreatingNewLessonDraft) {
@@ -12,11 +22,22 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         controller.canManageTraining ||
         controller.modules.isNotEmpty ||
         controller.isCreatingNewLessonDraft;
+    final fillAvailableSpace = !widget.isEmbedded;
+    final isTextTab = _selectedTabIndex == 1 || _selectedTabIndex == 3;
+    final isEditingTextWithKeyboard =
+        fillAvailableSpace && isTextTab && MediaQuery.viewInsetsOf(context).bottom > 0;
+    final collapseLessonHeader =
+        fillAvailableSpace && isTextTab && (isEditingTextWithKeyboard || availableHeight < 440);
+    final contentCard = _buildTabContent(
+      controller,
+      showLessonHeader: !collapseLessonHeader,
+      showModuleSelector: showModuleSelector,
+    );
     final contentChildren = <Widget>[
       if (showModuleSelector) ...[
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _EditModuleSelector(
+        Offstage(
+          offstage: collapseLessonHeader,
+          child: TrainingLessonSelector(
             controller: controller,
             onAddNewLessonTap: () => _startNewLessonDraft(controller),
             onModuleSelected: (moduleId) async {
@@ -36,7 +57,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
           ),
         ),
       ],
-      _buildContentCard(controller),
+      if (fillAvailableSpace) Expanded(child: contentCard) else contentCard,
     ];
 
     if (widget.isEmbedded) {
@@ -45,62 +66,58 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         children: [
           ...contentChildren,
           const SizedBox(height: 18),
-          _TrainingTabs(tabController: _tabController),
+          TrainingTabs(
+            navigation: _tabNavigation,
+            maxTabIndex: controller.canAccessSelectedModuleExtras ? 3 : 0,
+          ),
         ],
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 12),
-            physics: const BouncingScrollPhysics(),
-            children: contentChildren,
-          ),
+    // Resize the editing area for the keyboard while navigation stays at the screen bottom.
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: contentChildren),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        bottom: false,
+        minimum: const EdgeInsets.only(top: 10, bottom: 14),
+        child: TrainingTabs(
+          navigation: _tabNavigation,
+          maxTabIndex: controller.canAccessSelectedModuleExtras ? 3 : 0,
         ),
-        SafeArea(
-          top: false,
-          bottom: false,
-          minimum: const EdgeInsets.only(top: 10, bottom: 14),
-          child: _TrainingTabs(tabController: _tabController),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildContentCard(TrainingModuleController controller) {
+  Widget _buildLessonHeader(TrainingModuleController controller, {required int tabIndex}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (controller.isCreatingNewLessonDraft) ...[
-          Transform.translate(
-            offset: const Offset(0, -4),
-            child: _NewLessonTitleField(
-              key: _newLessonTitleFieldKey,
-              controller: controller.newLessonTitleController,
-              focusNode: _newLessonTitleFocusNode,
-              isSubmitting: controller.isCreatingModule,
-              canSubmit: controller.canSubmitNewLessonTitle,
-              onSubmit: () => _createModuleFromDraft(controller),
-            ),
+        if (tabIndex == 0 && controller.isCreatingNewLessonDraft) ...[
+          _NewLessonTitleField(
+            key: _newLessonTitleFieldKey,
+            controller: controller.newLessonTitleController,
+            focusNode: _newLessonTitleFocusNode,
+            isSubmitting: controller.isCreatingModule,
+            canSubmit: controller.canSubmitNewLessonTitle,
+            onSubmit: () => _createModuleFromDraft(controller),
           ),
-          const SizedBox(height: 10),
-        ] else if (controller.hasSelectedModule && controller.canEditSelectedModuleTitle) ...[
-          Transform.translate(
-            offset: const Offset(0, -10),
-            child: _TrainingTapEditField(
-              valueText: controller.selectedModuleTitle,
-              hintText: AppStrings.trainingLessonTitleHint,
-              onTap: controller.isSavingModuleTitle
-                  ? null
-                  : () => _showModuleTitleEditBottomSheet(controller),
-              isLoading: controller.isSavingModuleTitle,
-            ),
+          const SizedBox(height: 16),
+        ] else if (tabIndex == 0 &&
+            controller.hasSelectedModule &&
+            controller.canEditSelectedModuleTitle) ...[
+          _TrainingTapEditField(
+            valueText: controller.selectedModuleTitle,
+            hintText: AppStrings.trainingLessonTitleHint,
+            onTap: controller.isSavingModuleTitle
+                ? null
+                : () => _showModuleTitleEditBottomSheet(controller),
+            isLoading: controller.isSavingModuleTitle,
           ),
-          const SizedBox(height: 4),
-        ] else if (controller.selectedModuleTitle.isNotEmpty) ...[
+          const SizedBox(height: 16),
+        ] else if (tabIndex == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
           AppTextView.body1(
             controller.selectedModuleTitle,
             color: AppColors.textPrimary,
@@ -112,71 +129,57 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
           const _TrainingReadOnlyBanner(),
           const SizedBox(height: 16),
         ],
-        _buildTabContent(controller),
       ],
     );
   }
 
-  Widget _buildTabContent(TrainingModuleController controller) {
+  Widget _buildTabContent(
+    TrainingModuleController controller, {
+    required bool showLessonHeader,
+    required bool showModuleSelector,
+  }) {
     final isBackgroundVideoUploadActive =
         widget.useNonBlockingVideoUpload &&
         TrainingVideoUploadController.instance.isUploadActiveForModule(
           descriptionId: widget.trainingDescriptionId,
           moduleId: controller.selectedModuleId,
         );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final contentWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-            ? constraints.maxWidth
-            : MediaQuery.sizeOf(context).width;
-        final swipeTargetIndex = _tabSwipeTargetIndexNotifier.value;
-        final swipeOffset = _tabSwipeOffsetNotifier.value;
-        final currentPage = KeyedSubtree(
-          key: ValueKey<int>(_selectedTabIndex),
-          child: _buildTabPageForIndex(
-            controller,
-            tabIndex: _selectedTabIndex,
-            isBackgroundVideoUploadActive: isBackgroundVideoUploadActive,
-          ),
+    return TrainingTabView(
+      navigation: _tabNavigation,
+      maxTabIndex: controller.canAccessSelectedModuleExtras ? 3 : 0,
+      // Quiz keeps the screen's 16px inset, reducing its former 24px margin by a third.
+      pagePaddingBuilder: (index) =>
+          index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
+      pageBuilder: (context, index) {
+        final fillsPage =
+            (index == 1 || index == 3) &&
+            controller.hasSelectedModule &&
+            !controller.isCreatingNewLessonDraft;
+        final tabContent = _buildTabPageForIndex(
+          controller,
+          tabIndex: index,
+          isBackgroundVideoUploadActive: isBackgroundVideoUploadActive,
         );
-
-        Widget swipeBody = currentPage;
-        if (swipeTargetIndex != null && swipeTargetIndex != _selectedTabIndex && swipeOffset != 0) {
-          final previewStartOffset = swipeOffset.isNegative ? contentWidth : -contentWidth;
-          final swipeProgress = (swipeOffset.abs() / contentWidth).clamp(0.0, 1.0);
-          swipeBody = ClipRect(
-            child: Stack(
-              alignment: Alignment.topLeft,
-              children: [
-                Transform.translate(
-                  offset: Offset(previewStartOffset + swipeOffset, 0),
-                  child: Opacity(
-                    opacity: 0.78 + (swipeProgress * 0.22),
-                    child: KeyedSubtree(
-                      key: ValueKey<int>(swipeTargetIndex),
-                      child: _buildTabPageForIndex(
-                        controller,
-                        tabIndex: swipeTargetIndex,
-                        isBackgroundVideoUploadActive: isBackgroundVideoUploadActive,
-                      ),
-                    ),
-                  ),
-                ),
-                Transform.translate(offset: Offset(swipeOffset, 0), child: currentPage),
-              ],
+        final page = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (index == 0 && showModuleSelector && showLessonHeader) const SizedBox(height: 4),
+            Offstage(
+              offstage: !showLessonHeader,
+              child: _buildLessonHeader(controller, tabIndex: index),
             ),
-          );
-        }
-
-        return Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: _handleTabContentPointerDown,
-          onPointerMove: (event) => _handleTabContentPointerMove(event, controller, contentWidth),
-          onPointerUp: (_) => unawaited(_handleTabContentPointerUp(controller, contentWidth)),
-          onPointerCancel: (_) =>
-              unawaited(_handleTabContentPointerCancel(controller, contentWidth)),
-          child: swipeBody,
+            if (fillsPage) Expanded(child: tabContent) else tabContent,
+          ],
         );
+        return fillsPage
+            ? page
+            : SingleChildScrollView(
+                key: PageStorageKey<int>(index),
+                primary: false,
+                padding: const EdgeInsets.only(bottom: 12),
+                physics: const BouncingScrollPhysics(),
+                child: page,
+              );
       },
     );
   }
@@ -241,7 +244,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         isSavingSummary: controller.isSavingSummary,
         summaryController: controller.summaryController,
         onUploadVideoTap: () => _selectVideoSourceAndUpload(controller),
-        onDeleteVideoTap: () => _showDeleteVideoDialog(controller),
+        onReUploadVideoTap: () => _reUploadVideo(controller),
         onUpdateThumbnailTap: () => _pickAndUploadThumbnail(controller),
         onEditSummaryTap: controller.startEditingSummary,
         onCancelSummaryTap: controller.cancelEditingSummary,
@@ -259,6 +262,11 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         isSavingDocument: controller.isSavingDocument,
         documentController: controller.documentController,
         onGenerateSopTap: () => _handleGenerateSopTap(controller),
+        onDoneTap: () {
+          if (MediaQuery.viewInsetsOf(context).bottom > 0) {
+            FocusScope.of(context).unfocus();
+          }
+        },
         onBoldTap: controller.applyDocumentBoldFormatting,
         onItalicTap: controller.applyDocumentItalicFormatting,
         onUnderlineTap: controller.applyDocumentUnderlineFormatting,
@@ -284,13 +292,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         onGenerateQuizTap: () => _showGenerateQuizDialog(controller),
         onDeleteQuestionTap: (question) =>
             _showDeleteQuestionDialog(controller: controller, question: question),
-        onSaveQuestionTap: (questionId, options, correctOptionUuid) async {
-          return controller.saveQuestion(
-            questionId: questionId,
-            options: options,
-            correctOptionUuid: correctOptionUuid,
-          );
-        },
+        onEditQuestionTap: (question) => _showEditQuestionDialog(controller, question),
       );
     }
 
@@ -299,11 +301,16 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         isLoading: controller.isAssignmentLoading,
         hasResolvedAssignment: controller.hasResolvedSelectedModuleAssignment,
         canEditAssignment: controller.canEditSelectedModuleAssignment,
+        canSaveAssignment: controller.canSaveSelectedModuleAssignment,
         isSavingAssignment: controller.isSavingAssignment,
         hasSavedAssignment: controller.hasPersistedSelectedModuleAssignment,
         titleController: controller.assignmentTitleController,
         descriptionController: controller.assignmentDescriptionController,
         onSaveTap: () => controller.saveAssignmentForSelectedModule(),
+        onDoneTap: () {
+          FocusScope.of(context).unfocus();
+          unawaited(controller.saveAssignmentForSelectedModule());
+        },
         onBoldTap: controller.applyAssignmentBoldFormatting,
         onItalicTap: controller.applyAssignmentItalicFormatting,
         onUnderlineTap: controller.applyAssignmentUnderlineFormatting,
@@ -342,8 +349,8 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
       return;
     }
 
-    if (_tabController.index != 0) {
-      _tabController.animateTo(0);
+    if (_tabNavigation.selectedIndex != 0) {
+      _tabNavigation.selectTab(0);
     }
     controller.startCreatingNewLessonDraft();
     WidgetsBinding.instance.addPostFrameCallback((_) {

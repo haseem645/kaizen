@@ -3,11 +3,19 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class FastCircularProgressIndicator extends StatefulWidget {
-  FastCircularProgressIndicator({this.width, this.height});
-  double? width = 15;
-  double? height = 15;
+  const FastCircularProgressIndicator({
+    super.key,
+    this.width,
+    this.height,
+    this.color = AppColors.textPrimary,
+  });
+
+  final double? width;
+  final double? height;
+  final Color color;
+
   @override
-  _FastCircularProgressIndicatorState createState() => _FastCircularProgressIndicatorState();
+  State<FastCircularProgressIndicator> createState() => _FastCircularProgressIndicatorState();
 }
 
 class _FastCircularProgressIndicatorState extends State<FastCircularProgressIndicator>
@@ -35,12 +43,12 @@ class _FastCircularProgressIndicatorState extends State<FastCircularProgressIndi
     return RotationTransition(
       turns: Tween(begin: 0.0, end: 1.0).animate(_controller),
       child: Center(
-        child: Container(
+        child: SizedBox(
           width: widget.width ?? 20,
           height: widget.height ?? 20,
-          child: const CircularProgressIndicator(
+          child: CircularProgressIndicator(
             strokeWidth: 4.0,
-            valueColor: AlwaysStoppedAnimation(AppColors.textPrimary),
+            valueColor: AlwaysStoppedAnimation(widget.color),
           ),
         ),
       ),
