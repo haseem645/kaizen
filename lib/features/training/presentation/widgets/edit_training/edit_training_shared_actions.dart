@@ -1,33 +1,5 @@
 part of 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 
-class _AiGenerateButton extends StatelessWidget {
-  const _AiGenerateButton({
-    required this.label,
-    required this.onTap,
-    this.isEnabled = true,
-    this.isLoading = false,
-    this.verticalPadding = 11,
-  });
-
-  final String label;
-  final bool isEnabled;
-  final bool isLoading;
-  final VoidCallback? onTap;
-  final double verticalPadding;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GradientTrainingActionButton(
-      label: label,
-      icon: Icons.auto_awesome_rounded,
-      isEnabled: isEnabled,
-      isLoading: isLoading,
-      verticalPadding: verticalPadding,
-      onTap: onTap,
-    );
-  }
-}
-
 class _GradientTrainingActionButton extends StatelessWidget {
   const _GradientTrainingActionButton({
     required this.label,
@@ -122,6 +94,47 @@ class _GradientTrainingActionButton extends StatelessWidget {
   }
 }
 
+class _TrainingCreateWithAiButton extends StatelessWidget {
+  const _TrainingCreateWithAiButton({
+    required this.isEnabled,
+    required this.isLoading,
+    required this.onTap,
+    this.compact = false,
+  });
+
+  final bool isEnabled;
+  final bool isLoading;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: isEnabled && !isLoading ? onTap : null,
+      style: TextButton.styleFrom(
+        backgroundColor: AppColors.secondaryColor,
+        foregroundColor: AppColors.textPrimary,
+        disabledBackgroundColor: AppColors.secondaryColor.withValues(alpha: 0.5),
+        disabledForegroundColor: AppColors.textSecondary,
+        minimumSize: Size(0, compact ? 30 : 34),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16, vertical: compact ? 6 : 8),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      icon: isLoading
+          ? FastCircularProgressIndicator(width: 16, height: 16)
+          : Icon(Icons.auto_awesome_rounded, size: compact ? 16 : 18),
+      label: AppTextView.body2(
+        AppStrings.trainingCreateWithAi,
+        fontSize: compact ? 12 : 13,
+        fontWeight: FontWeight.w500,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
 class _SecondaryTrainingActionButton extends StatelessWidget {
   const _SecondaryTrainingActionButton({
     required this.label,
@@ -130,9 +143,16 @@ class _SecondaryTrainingActionButton extends StatelessWidget {
     this.isEnabled = true,
     this.isLoading = false,
     this.isDottedBorder = false,
+    this.borderStrokeWidth = 1.2,
+    this.borderDashLength = 6,
+    this.borderGapLength = 4,
     this.horizontalPadding = 14,
     this.verticalPadding = 10,
     this.borderRadius = 999,
+    this.mainAxisAlignment = MainAxisAlignment.start,
+    this.fontWeight = FontWeight.w700,
+    this.fontSize,
+    this.iconSize = 16,
     this.backgroundColor,
     this.activeBorderColor,
     this.activeTextColor,
@@ -145,9 +165,16 @@ class _SecondaryTrainingActionButton extends StatelessWidget {
   final bool isEnabled;
   final bool isLoading;
   final bool isDottedBorder;
+  final double borderStrokeWidth;
+  final double borderDashLength;
+  final double borderGapLength;
   final double horizontalPadding;
   final double verticalPadding;
   final double borderRadius;
+  final MainAxisAlignment mainAxisAlignment;
+  final FontWeight fontWeight;
+  final double? fontSize;
+  final double iconSize;
   final Color? backgroundColor;
   final Color? activeBorderColor;
   final Color? activeTextColor;
@@ -167,7 +194,13 @@ class _SecondaryTrainingActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: CustomPaint(
           foregroundPainter: isDottedBorder
-              ? _DottedRoundedBorderPainter(color: borderColor, radius: borderRadius)
+              ? _DottedRoundedBorderPainter(
+                  color: borderColor,
+                  radius: borderRadius,
+                  strokeWidth: borderStrokeWidth,
+                  dashLength: borderDashLength,
+                  gapLength: borderGapLength,
+                )
               : null,
           child: Ink(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
@@ -178,23 +211,29 @@ class _SecondaryTrainingActionButton extends StatelessWidget {
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: mainAxisAlignment,
               children: [
                 if (icon != null) ...[
                   Icon(
                     icon,
-                    size: 16,
+                    size: iconSize,
                     color: isInteractive
                         ? activeIconColor ?? AppColors.secondaryColor
                         : AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                 ],
-                AppTextView.body2(
-                  label,
-                  color: isInteractive
-                      ? activeTextColor ?? AppColors.textPrimary
-                      : AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
+                Flexible(
+                  child: AppTextView.body2(
+                    label,
+                    color: isInteractive
+                        ? activeTextColor ?? AppColors.textPrimary
+                        : AppColors.textSecondary,
+                    fontWeight: fontWeight,
+                    fontSize: fontSize,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (isLoading) ...[
                   const SizedBox(width: 10),
@@ -248,6 +287,11 @@ class _TrainingEditableTextCard extends StatelessWidget {
     required this.maxLines,
     this.readOnly = false,
     this.wrapWithCard = true,
+    this.expands = false,
+    this.textColor = AppColors.textPrimary,
+    this.hintColor,
+    this.scrollController,
+    this.scrollPhysics,
     this.padding = const EdgeInsets.all(16),
   });
 
@@ -257,6 +301,11 @@ class _TrainingEditableTextCard extends StatelessWidget {
   final int maxLines;
   final bool readOnly;
   final bool wrapWithCard;
+  final bool expands;
+  final Color textColor;
+  final Color? hintColor;
+  final ScrollController? scrollController;
+  final ScrollPhysics? scrollPhysics;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -265,23 +314,23 @@ class _TrainingEditableTextCard extends StatelessWidget {
       padding: padding,
       child: TextField(
         controller: controller,
+        scrollController: scrollController,
+        scrollPhysics: scrollPhysics,
         readOnly: readOnly,
-        cursorColor: Colors.white,
-        minLines: minLines,
-        maxLines: maxLines,
+        cursorColor: textColor,
+        cursorHeight: 15,
+        expands: expands,
+        minLines: expands ? null : minLines,
+        maxLines: expands ? null : maxLines,
+        textAlignVertical: TextAlignVertical.top,
         keyboardType: TextInputType.multiline,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 13,
-          fontWeight: FontWeight.w400,
-          height: 1.65,
-        ),
+        style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.w400, height: 1.65),
         decoration: InputDecoration(
           isCollapsed: true,
           border: InputBorder.none,
           hintText: hintText,
           hintStyle: TextStyle(
-            color: AppColors.textSecondary.withValues(alpha: 0.74),
+            color: hintColor ?? AppColors.textSecondary.withValues(alpha: 0.74),
             fontSize: 13,
             fontWeight: FontWeight.w400,
             height: 1.65,
@@ -316,6 +365,7 @@ class _TrainingSingleLineInputCard extends StatelessWidget {
         controller: controller,
         readOnly: readOnly,
         cursorColor: Colors.white,
+        cursorHeight: 15,
         maxLines: 1,
         textInputAction: TextInputAction.done,
         style: const TextStyle(

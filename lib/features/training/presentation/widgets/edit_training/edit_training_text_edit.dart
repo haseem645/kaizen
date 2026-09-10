@@ -121,6 +121,7 @@ class _TrainingTextEditSheetState extends State<_TrainingTextEditSheet> {
           ),
           child: Align(
             alignment: Alignment.bottomCenter,
+            heightFactor: 1,
             child: Container(
               width: double.infinity,
               constraints: const BoxConstraints(maxWidth: 620),
@@ -129,7 +130,12 @@ class _TrainingTextEditSheetState extends State<_TrainingTextEditSheet> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  10,
+                  20,
+                  12 + MediaQuery.paddingOf(context).bottom,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,6 +183,7 @@ class _TrainingTextEditSheetState extends State<_TrainingTextEditSheet> {
                       controller: _controller,
                       autofocus: true,
                       cursorColor: Colors.white,
+                      cursorHeight: 15,
                       minLines: widget.minLines,
                       maxLines: widget.maxLines,
                       textInputAction: widget.textInputAction,
@@ -293,7 +300,7 @@ class _TrainingFormattingToolbar extends StatelessWidget {
   const _TrainingFormattingToolbar({
     required this.controller,
     required this.isSaving,
-    this.showTrailingProgressIndicator = false,
+    this.onDoneTap,
     this.onBoldTap,
     this.onItalicTap,
     this.onUnderlineTap,
@@ -305,7 +312,7 @@ class _TrainingFormattingToolbar extends StatelessWidget {
 
   final TrainingRichTextEditingController controller;
   final bool isSaving;
-  final bool showTrailingProgressIndicator;
+  final VoidCallback? onDoneTap;
   final VoidCallback? onBoldTap;
   final VoidCallback? onItalicTap;
   final VoidCallback? onUnderlineTap;
@@ -314,8 +321,119 @@ class _TrainingFormattingToolbar extends StatelessWidget {
   final VoidCallback? onQuoteTap;
   final VoidCallback? onHeadingTap;
 
+  bool get _isCompact => onDoneTap != null;
+
   @override
   Widget build(BuildContext context) {
+    if (!_isCompact) {
+      return _buildTopToolbar();
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.mainBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.secondaryColor.withValues(alpha: 0.18),
+              ),
+            ),
+            child: AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) => Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: _buildFormattingButtons(),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox.square(
+          dimension: 44,
+          child: Material(
+            color: AppColors.secondaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.lightPurple1),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: IconButton(
+              tooltip: AppStrings.done,
+              onPressed: onDoneTap,
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.check_rounded,
+                color: AppColors.textPrimary,
+                size: 26,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildFormattingButtons() => [
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingBoldAction,
+      icon: Icons.format_bold_rounded,
+      isActive: controller.isFormatActive(TrainingDocumentFormatKind.bold),
+      onTap: isSaving ? null : onBoldTap,
+    ),
+    if (!_isCompact) const SizedBox(width: 8),
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingItalicAction,
+      icon: Icons.format_italic_rounded,
+      isActive: controller.isFormatActive(TrainingDocumentFormatKind.italic),
+      onTap: isSaving ? null : onItalicTap,
+    ),
+    if (!_isCompact) const SizedBox(width: 8),
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingUnderlineAction,
+      icon: Icons.format_underline_rounded,
+      isActive: controller.isFormatActive(TrainingDocumentFormatKind.underline),
+      onTap: isSaving ? null : onUnderlineTap,
+    ),
+    if (!_isCompact) const SizedBox(width: 8),
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingBulletListAction,
+      icon: Icons.format_list_bulleted_rounded,
+      isActive: controller.isBulletListActive,
+      onTap: isSaving ? null : onBulletListTap,
+    ),
+    if (!_isCompact) const SizedBox(width: 8),
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingNumberedListAction,
+      icon: Icons.format_list_numbered_rounded,
+      isActive: controller.isNumberedListActive,
+      onTap: isSaving ? null : onNumberedListTap,
+    ),
+    if (!_isCompact) const SizedBox(width: 8),
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingQuoteAction,
+      icon: Icons.format_quote_rounded,
+      isActive: controller.isFormatActive(TrainingDocumentFormatKind.quote),
+      onTap: isSaving ? null : onQuoteTap,
+    ),
+    if (!_isCompact) const SizedBox(width: 8),
+    _TrainingFormattingButton(
+      isCompact: _isCompact,
+      tooltip: AppStrings.trainingHeadingAction,
+      icon: Icons.title_rounded,
+      isActive: controller.isFormatActive(TrainingDocumentFormatKind.heading),
+      onTap: isSaving ? null : onHeadingTap,
+    ),
+  ];
+
+  Widget _buildTopToolbar() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -330,77 +448,9 @@ class _TrainingFormattingToolbar extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingBoldAction,
-                      icon: Icons.format_bold_rounded,
-                      isActive: controller.isFormatActive(
-                        TrainingDocumentFormatKind.bold,
-                      ),
-                      onTap: isSaving ? null : onBoldTap,
-                    ),
-                    const SizedBox(width: 8),
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingItalicAction,
-                      icon: Icons.format_italic_rounded,
-                      isActive: controller.isFormatActive(
-                        TrainingDocumentFormatKind.italic,
-                      ),
-                      onTap: isSaving ? null : onItalicTap,
-                    ),
-                    const SizedBox(width: 8),
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingUnderlineAction,
-                      icon: Icons.format_underline_rounded,
-                      isActive: controller.isFormatActive(
-                        TrainingDocumentFormatKind.underline,
-                      ),
-                      onTap: isSaving ? null : onUnderlineTap,
-                    ),
-                    const SizedBox(width: 8),
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingBulletListAction,
-                      icon: Icons.format_list_bulleted_rounded,
-                      isActive: controller.isBulletListActive,
-                      onTap: isSaving ? null : onBulletListTap,
-                    ),
-                    const SizedBox(width: 8),
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingNumberedListAction,
-                      icon: Icons.format_list_numbered_rounded,
-                      isActive: controller.isNumberedListActive,
-                      onTap: isSaving ? null : onNumberedListTap,
-                    ),
-                    const SizedBox(width: 8),
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingQuoteAction,
-                      icon: Icons.format_quote_rounded,
-                      isActive: controller.isFormatActive(
-                        TrainingDocumentFormatKind.quote,
-                      ),
-                      onTap: isSaving ? null : onQuoteTap,
-                    ),
-                    const SizedBox(width: 8),
-                    _TrainingFormattingButton(
-                      tooltip: AppStrings.trainingHeadingAction,
-                      icon: Icons.title_rounded,
-                      isActive: controller.isFormatActive(
-                        TrainingDocumentFormatKind.heading,
-                      ),
-                      onTap: isSaving ? null : onHeadingTap,
-                    ),
-                  ],
-                ),
+                child: Row(children: _buildFormattingButtons()),
               ),
             ),
-            if (showTrailingProgressIndicator) const SizedBox(width: 12),
-            if (showTrailingProgressIndicator)
-              SizedBox(
-                width: 18,
-                height: 18,
-                child: FastCircularProgressIndicator(width: 14, height: 14),
-              ),
           ],
         ),
       ),
@@ -413,16 +463,58 @@ class _TrainingFormattingButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     this.isActive = false,
+    this.isCompact = false,
     this.onTap,
   });
 
   final String tooltip;
   final IconData icon;
   final bool isActive;
+  final bool isCompact;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    if (!isCompact) {
+      return _buildStandardButton();
+    }
+    final iconColor = isActive
+        ? AppColors.secondaryColor
+        : onTap != null
+        ? AppColors.textPrimary
+        : AppColors.textSecondary.withValues(alpha: 0.58);
+
+    return Expanded(
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Center(
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive
+                      ? AppColors.secondaryColor.withValues(alpha: 0.22)
+                      : Colors.transparent,
+                  border: isActive
+                      ? Border.all(color: AppColors.secondaryColor)
+                      : null,
+                ),
+                child: Icon(icon, color: iconColor, size: 16),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStandardButton() {
     final isInteractive = onTap != null;
     final borderColor = isActive
         ? AppColors.secondaryColor.withValues(alpha: 0.64)

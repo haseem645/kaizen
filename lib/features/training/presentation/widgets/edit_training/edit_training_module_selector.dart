@@ -1,17 +1,18 @@
 part of 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 
-class _EditModuleSelector extends StatelessWidget {
-  const _EditModuleSelector({
+class TrainingLessonSelector extends StatelessWidget {
+  const TrainingLessonSelector({
+    super.key,
     required this.controller,
-    required this.onAddNewLessonTap,
     required this.onModuleSelected,
-    required this.onDeleteModuleTap,
+    this.onAddNewLessonTap,
+    this.onDeleteModuleTap,
   });
 
   final TrainingModuleController controller;
-  final VoidCallback onAddNewLessonTap;
+  final VoidCallback? onAddNewLessonTap;
   final Future<void> Function(String moduleId) onModuleSelected;
-  final Future<void> Function(SeatDescriptionTrainingModule module) onDeleteModuleTap;
+  final Future<void> Function(SeatDescriptionTrainingModule module)? onDeleteModuleTap;
 
   Future<void> _showModuleSheet(BuildContext context) async {
     await showModalBottomSheet<void>(
@@ -23,7 +24,6 @@ class _EditModuleSelector extends StatelessWidget {
       enableDrag: true,
       builder: (_) => _ModuleSelectionSheet(
         controller: controller,
-        onAddNewLessonTap: onAddNewLessonTap,
         onModuleSelected: onModuleSelected,
         onDeleteModuleTap: onDeleteModuleTap,
       ),
@@ -55,7 +55,7 @@ class _EditModuleSelector extends StatelessWidget {
           child: _LessonOverviewRow(
             selectedModule: controller.selectedModule,
             selectedTitle: controller.selectedModuleTitle,
-            canAddLesson: controller.canManageTraining,
+            canAddLesson: controller.canManageTraining && onAddNewLessonTap != null,
             isCreatingNewLesson: controller.isCreatingNewLessonDraft,
             onAddLesson: onAddNewLessonTap,
             onShowAllLessons: () => unawaited(_showModuleSheet(context)),
@@ -83,7 +83,7 @@ class _LessonOverviewRow extends StatelessWidget {
   final String selectedTitle;
   final bool canAddLesson;
   final bool isCreatingNewLesson;
-  final VoidCallback onAddLesson;
+  final VoidCallback? onAddLesson;
   final VoidCallback onShowAllLessons;
 
   @override
@@ -109,65 +109,12 @@ class _LessonOverviewRow extends StatelessWidget {
           if (canAddLesson) ...[
             Expanded(
               flex: 4,
-              child: _NewLessonCard(isSelected: isCreatingNewLesson, onTap: onAddLesson),
+              child: _NewLessonCard(isSelected: isCreatingNewLesson, onTap: onAddLesson!),
             ),
             const SizedBox(width: 12),
           ],
           _SeeAllLessonsButton(onTap: onShowAllLessons),
         ],
-      ),
-    );
-  }
-}
-
-class _AddNewLessonButton extends StatelessWidget {
-  const _AddNewLessonButton({required this.isSelected, required this.onTap});
-
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: CustomPaint(
-          painter: _DottedRoundedBorderPainter(
-            color: isSelected
-                ? AppColors.secondaryColor
-                : AppColors.secondaryColor.withValues(alpha: 0.58),
-            radius: 18,
-          ),
-          child: Ink(
-            height: 45,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.secondaryColor.withValues(alpha: 0.08)
-                  : AppColors.surfaceDark3.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_circle_outline_rounded, color: AppColors.secondaryColor, size: 18),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: AppTextView.body2(
-                      AppStrings.trainingAddNewLesson,
-                      maxLines: 1,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -328,25 +275,31 @@ class _SeeAllLessonsButton extends StatelessWidget {
 class _ModuleSelectionSheet extends StatelessWidget {
   const _ModuleSelectionSheet({
     required this.controller,
-    required this.onAddNewLessonTap,
     required this.onModuleSelected,
     required this.onDeleteModuleTap,
   });
 
   final TrainingModuleController controller;
-  final VoidCallback onAddNewLessonTap;
   final Future<void> Function(String moduleId) onModuleSelected;
-  final Future<void> Function(SeatDescriptionTrainingModule module) onDeleteModuleTap;
+  final Future<void> Function(SeatDescriptionTrainingModule module)? onDeleteModuleTap;
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(animation: controller, builder: (context, _) => _buildSheet(context));
+  }
+
+  Widget _buildSheet(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(top: 16, bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Align(
         alignment: Alignment.bottomCenter,
+        heightFactor: 1,
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(maxWidth: 620),
+          constraints: BoxConstraints(
+            maxWidth: 620,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+          ),
           decoration: const BoxDecoration(
             color: AppColors.mainBg,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -374,7 +327,7 @@ class _ModuleSelectionSheet extends StatelessWidget {
                     children: [
                       Expanded(
                         child: AppTextView.body1(
-                          AppStrings.trainingChooseLesson,
+                          AppStrings.trainingAllLessons,
                           color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -383,38 +336,42 @@ class _ModuleSelectionSheet extends StatelessWidget {
                       _DialogCloseButton(onTap: () => Navigator.of(context).pop()),
                     ],
                   ),
-                  if (controller.canManageTraining) ...[
-                    const SizedBox(height: 18),
-                    _AddNewLessonButton(
-                      isSelected: controller.isCreatingNewLessonDraft,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onAddNewLessonTap();
-                      },
-                    ),
-                  ],
                   if (controller.modules.isNotEmpty) ...[
                     const SizedBox(height: 18),
-                    for (var index = 0; index < controller.modules.length; index++) ...[
-                      _ModuleSheetTile(
-                        module: controller.modules[index],
-                        isSelected:
-                            !controller.isCreatingNewLessonDraft &&
-                            controller.modules[index].uuid == controller.selectedModuleId,
-                        isDeleting: controller.deletingModuleId == controller.modules[index].uuid,
-                        showDeleteAction: controller.canManageTraining,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          unawaited(onModuleSelected(controller.modules[index].uuid));
-                        },
-                        onDeleteTap: () {
-                          Navigator.of(context).pop();
-                          unawaited(onDeleteModuleTap(controller.modules[index]));
-                        },
-                      ),
-                      if (index != controller.modules.length - 1) const SizedBox(height: 12),
-                    ],
-                  ] else if (!controller.canManageTraining) ...[
+                    ListView.separated(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: controller.modules.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final module = controller.modules[index];
+                        return _ModuleSheetTile(
+                          key: ValueKey(module.uuid),
+                          module: module,
+                          isSelected:
+                              !controller.isCreatingNewLessonDraft &&
+                              module.uuid == controller.selectedModuleId,
+                          isDeleting: controller.deletingModuleId == module.uuid,
+                          showDeleteAction:
+                              controller.canManageTraining && onDeleteModuleTap != null,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            unawaited(onModuleSelected(module.uuid));
+                          },
+                          onDeleteTap: () {
+                            if (!controller.canManageTraining ||
+                                onDeleteModuleTap == null ||
+                                controller.deletingModuleId == module.uuid) {
+                              return;
+                            }
+                            Navigator.of(context).pop();
+                            unawaited(onDeleteModuleTap!(module));
+                          },
+                        );
+                      },
+                    ),
+                  ] else ...[
                     const SizedBox(height: 18),
                     AppTextView.body3(
                       AppStrings.trainingNoModulesAvailable,
@@ -433,6 +390,7 @@ class _ModuleSelectionSheet extends StatelessWidget {
 
 class _ModuleSheetTile extends StatelessWidget {
   const _ModuleSheetTile({
+    super.key,
     required this.module,
     required this.isSelected,
     required this.isDeleting,
@@ -452,81 +410,70 @@ class _ModuleSheetTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolvedThumbnail = CustomFunctions.resolveImageUrl(module.thumbnailLink);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.secondaryColor.withValues(alpha: 0.1)
-                : AppColors.surfaceDark3,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
+    return TrainingSwipeDeleteAction(
+      onDelete: showDeleteAction && !isDeleting ? onDeleteTap : null,
+      deleteSemanticLabel: AppStrings.trainingLibraryDeleteLessonTitle,
+      borderRadius: 18,
+      backgroundColor: AppColors.mainBg,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isDeleting ? null : onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.secondaryColor.withValues(alpha: 0.42)
-                  : AppColors.fieldBorder.withValues(alpha: 0.22),
+                  ? AppColors.secondaryColor.withValues(alpha: 0.1)
+                  : AppColors.surfaceDark3,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.secondaryColor.withValues(alpha: 0.42)
+                    : AppColors.fieldBorder.withValues(alpha: 0.22),
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: SizedBox(
-                    width: 82,
-                    height: 60,
-                    child: resolvedThumbnail == null
-                        ? const _ModuleThumbnailPlaceholder()
-                        : CachedNetworkImage(
-                            imageUrl: resolvedThumbnail,
-                            fit: BoxFit.cover,
-                            placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
-                            errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: AppTextView.body2(
-                    module.title,
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                if (isSelected) ...[
-                  const Icon(Icons.check_circle_rounded, color: AppColors.secondaryColor, size: 20),
-                  if (showDeleteAction) const SizedBox(width: 10),
-                ],
-                if (showDeleteAction)
-                  InkWell(
-                    onTap: isDeleting ? null : onDeleteTap,
-                    borderRadius: BorderRadius.circular(999),
-                    child: Ink(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: AppColors.red.withValues(alpha: 0.16),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.red.withValues(alpha: 0.34)),
-                      ),
-                      child: Center(
-                        child: isDeleting
-                            ? FastCircularProgressIndicator(width: 12, height: 12)
-                            : const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 16,
-                                color: AppColors.red,
-                              ),
-                      ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(
+                      width: 82,
+                      height: 60,
+                      child: resolvedThumbnail == null
+                          ? const _ModuleThumbnailPlaceholder()
+                          : CachedNetworkImage(
+                              imageUrl: resolvedThumbnail,
+                              fit: BoxFit.cover,
+                              placeholder: (_, _) => const _ModuleThumbnailPlaceholder(),
+                              errorWidget: (_, _, _) => const _ModuleThumbnailPlaceholder(),
+                            ),
                     ),
                   ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppTextView.body2(
+                      module.title,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isDeleting) ...[
+                    const SizedBox(width: 12),
+                    const FastCircularProgressIndicator(width: 16, height: 16),
+                  ] else if (isSelected) ...[
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.secondaryColor,
+                      size: 20,
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),

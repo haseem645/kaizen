@@ -60,12 +60,17 @@ class _TrainingParsedDocument {
 }
 
 class TrainingRichTextEditingController extends TextEditingController {
-  TrainingRichTextEditingController({super.text}) {
+  TrainingRichTextEditingController({
+    super.text,
+    this.quoteColor = AppColors.hexd9deff,
+  }) {
     _lastText = text;
     addListener(_handleTextChanged);
   }
 
   static final RegExp _numberedListPrefixPattern = RegExp(r'^\d+\.\s');
+
+  final Color quoteColor;
 
   List<TrainingDocumentFormatRange> _formats =
       const <TrainingDocumentFormatRange>[];
@@ -381,7 +386,9 @@ class TrainingRichTextEditingController extends TextEditingController {
     final currentText = text;
     final start = min(resolvedSelection.start, resolvedSelection.end);
     final end = max(resolvedSelection.start, resolvedSelection.end);
-    final blockStart = currentText.lastIndexOf('\n', start - 1) + 1;
+    final blockStart = start == 0
+        ? 0
+        : currentText.lastIndexOf('\n', start - 1) + 1;
     final blockEndCandidate = currentText.indexOf('\n', end);
     final blockEnd = blockEndCandidate == -1
         ? currentText.length
@@ -459,7 +466,7 @@ class TrainingRichTextEditingController extends TextEditingController {
     if (kinds.contains(TrainingDocumentFormatKind.quote)) {
       resolvedStyle = resolvedStyle.copyWith(
         fontStyle: FontStyle.italic,
-        color: AppColors.hexd9deff,
+        color: quoteColor,
       );
     }
 
@@ -622,19 +629,7 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
 
   var insideOrderedList = false;
   var orderedListIndex = 0;
-
-  void appendText(String value) {
-    if (value.isEmpty) {
-      return;
-    }
-    buffer.write(
-      value
-          .replaceAll('&nbsp;', ' ')
-          .replaceAll('&amp;', '&')
-          .replaceAll('&lt;', '<')
-          .replaceAll('&gt;', '>'),
-    );
-  }
+  var pendingBlockBreaks = 0;
 
   void appendNewLine({int count = 1}) {
     final existing = buffer.toString();
@@ -646,7 +641,29 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
     }
   }
 
+  void flushBlockBreaks() {
+    if (buffer.isNotEmpty && pendingBlockBreaks > 0) {
+      appendNewLine(count: pendingBlockBreaks);
+    }
+    pendingBlockBreaks = 0;
+  }
+
+  void appendText(String value) {
+    if (value.isEmpty || (pendingBlockBreaks > 0 && value.trim().isEmpty)) {
+      return;
+    }
+    flushBlockBreaks();
+    buffer.write(
+      value
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>'),
+    );
+  }
+
   void openStyle(TrainingDocumentFormatKind kind) {
+    flushBlockBreaks();
     tagStack[kind]!.add(buffer.length);
   }
 
@@ -667,18 +684,26 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
   for (final match in tokens) {
     final token = match.group(0) ?? '';
     if (token.startsWith('<')) {
-      final normalized = token.toLowerCase();
-      if (normalized.startsWith('<br')) {
-        appendNewLine();
+      final tag = RegExp(
+        r'^<\s*(/?)\s*([a-z][a-z0-9]*)\b',
+        caseSensitive: false,
+      ).firstMatch(token);
+      if (tag == null) continue;
+      final normalized = '<${tag.group(1)}${tag.group(2)!.toLowerCase()}>';
+      if (normalized == '<br>') {
+        // Explicit breaks are additive. Block spacing is satisfied by these
+        // breaks when the next text arrives, so save/reload cannot double it.
+        buffer.write('\n');
         continue;
       }
 
       if (normalized == '<p>' || normalized == '<div>') {
+        flushBlockBreaks();
         continue;
       }
 
       if (normalized == '</p>' || normalized == '</div>') {
-        appendNewLine(count: 2);
+        pendingBlockBreaks = max(pendingBlockBreaks, 2);
         continue;
       }
 
@@ -719,7 +744,7 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
 
       if (normalized == '</blockquote>') {
         closeStyle(TrainingDocumentFormatKind.quote);
-        appendNewLine(count: 2);
+        pendingBlockBreaks = max(pendingBlockBreaks, 2);
         continue;
       }
 
@@ -730,7 +755,7 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
 
       if (RegExp(r'</h[1-6]>').hasMatch(normalized)) {
         closeStyle(TrainingDocumentFormatKind.heading);
-        appendNewLine(count: 2);
+        pendingBlockBreaks = max(pendingBlockBreaks, 2);
         continue;
       }
 
@@ -751,7 +776,7 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
       }
 
       if (normalized == '</li>') {
-        appendNewLine();
+        pendingBlockBreaks = max(pendingBlockBreaks, 1);
         continue;
       }
 
@@ -767,10 +792,7 @@ _TrainingParsedDocument _parseHtmlDocument(String? html) {
     }
   }
 
-  final resolvedText = buffer
-      .toString()
-      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
-      .trimRight();
+  final resolvedText = buffer.toString().trimRight();
   final trimmedFormats = formats
       .map(
         (range) => TrainingDocumentFormatRange(
@@ -867,6 +889,8 @@ class TrainingModuleController extends ChangeNotifier {
     moduleTitleController.addListener(_handleModuleTitleChanged);
     summaryController.addListener(_handleSummaryChanged);
     documentController.addListener(_handleDocumentChanged);
+    assignmentTitleController.addListener(_handleAssignmentDraftChanged);
+    assignmentDescriptionController.addListener(_handleAssignmentDraftChanged);
   }
 
   static const int minQuizQuestionCount = 1;
@@ -888,13 +912,15 @@ class TrainingModuleController extends ChangeNotifier {
   final TextEditingController assignmentTitleController =
       TextEditingController();
   final TrainingRichTextEditingController documentController =
-      TrainingRichTextEditingController();
+      TrainingRichTextEditingController(quoteColor: AppColors.grey2);
   final TrainingRichTextEditingController assignmentDescriptionController =
-      TrainingRichTextEditingController();
+      TrainingRichTextEditingController(quoteColor: AppColors.grey2);
+  bool _lastAssignmentDraftHasTitle = false;
   final Map<String, String> _moduleLocalVideoPaths = <String, String>{};
 
   bool _isLoading = false;
   bool _isDocumentLoading = false;
+  int _documentRequestVersion = 0;
   bool _isAssignmentLoading = false;
   bool _isQuestionsLoading = false;
   bool _isCreatingNewLessonDraft = false;
@@ -945,12 +971,16 @@ class TrainingModuleController extends ChangeNotifier {
   String _lastSavedModuleTitle = '';
   String _lastSavedSummaryText = '';
   String _lastSavedDocumentHtml = '';
+  String _lastSavedAssignmentTitle = '';
+  String _lastSavedAssignmentHtml = '';
   Timer? _moduleTitleAutoSaveDebounce;
   Timer? _summaryAutoSaveDebounce;
   Timer? _documentAutoSaveDebounce;
 
   bool get isLoading => _isLoading;
   bool get isDocumentLoading => _isDocumentLoading;
+  bool get hasResolvedSelectedModuleDocument =>
+      _selectedModuleDocument != null || _documentErrorMessage != null;
   bool get isAssignmentLoading => _isAssignmentLoading;
   bool get isQuestionsLoading => _isQuestionsLoading;
   bool get isCreatingNewLessonDraft => _isCreatingNewLessonDraft;
@@ -1060,6 +1090,21 @@ class TrainingModuleController extends ChangeNotifier {
       _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
   bool get canEditSelectedModuleAssignment =>
       _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
+  bool get hasAssignmentDraftContent =>
+      assignmentTitleController.text.trim().isNotEmpty ||
+      assignmentDescriptionController.text.trim().isNotEmpty;
+  bool get hasAssignmentTitle =>
+      assignmentTitleController.text.trim().isNotEmpty;
+  bool get hasAssignmentChanges =>
+      assignmentTitleController.text.trim() != _lastSavedAssignmentTitle ||
+      assignmentDescriptionController.toHtml().trim() !=
+          _lastSavedAssignmentHtml;
+  bool get canSaveSelectedModuleAssignment =>
+      canEditSelectedModuleAssignment &&
+      _hasResolvedAssignment &&
+      !_isAssignmentLoading &&
+      !_isSavingAssignment &&
+      hasAssignmentTitle;
   bool get hasSelectedModuleDocumentText {
     final text = _selectedModuleDocument?.text?.trim();
     return text != null && text.isNotEmpty;
@@ -1324,22 +1369,27 @@ class TrainingModuleController extends ChangeNotifier {
       return;
     }
 
+    final moduleId = _selectedModuleId;
+    final requestVersion = ++_documentRequestVersion;
     _isDocumentLoading = true;
     _documentErrorMessage = null;
     notifyListeners();
 
     try {
-      _selectedModuleDocument = await _auditRepository
-          .getSeatDescriptionTrainingModuleDocument(
-            moduleId: _selectedModuleId,
-          );
+      final document = await _auditRepository
+          .getSeatDescriptionTrainingModuleDocument(moduleId: moduleId);
+      if (requestVersion != _documentRequestVersion) return;
+      _selectedModuleDocument = document;
       _syncDocumentEditorText();
     } catch (error) {
+      if (requestVersion != _documentRequestVersion) return;
       _documentErrorMessage = error.toString();
       rethrow;
     } finally {
-      _isDocumentLoading = false;
-      notifyListeners();
+      if (requestVersion == _documentRequestVersion) {
+        _isDocumentLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -1446,6 +1496,7 @@ class TrainingModuleController extends ChangeNotifier {
     required String questionText,
     required List<String> optionTexts,
     required int correctOptionIndex,
+    File? questionImage,
   }) async {
     if (!_canManageTraining ||
         _selectedModuleId.isEmpty ||
@@ -1454,6 +1505,7 @@ class TrainingModuleController extends ChangeNotifier {
       return false;
     }
 
+    final moduleId = _selectedModuleId;
     final resolvedQuestion = questionText.trim();
     final resolvedOptionTexts = optionTexts
         .map((text) => text.trim())
@@ -1481,14 +1533,26 @@ class TrainingModuleController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final imageId = questionImage == null
+          ? null
+          : await _auditRepository.uploadTrainingQuestionImage(
+              fileName: CustomFunctions.fileNameFromPath(questionImage.path),
+              fileBytes: await questionImage.readAsBytes(),
+              contentType: CustomFunctions.contentTypeFromPath(
+                questionImage.path,
+              ),
+            );
       final createdQuestion = await _auditRepository
           .addSeatDescriptionTrainingQuestion(
-            moduleId: _selectedModuleId,
+            moduleId: moduleId,
             questionText: resolvedQuestion,
             options: options,
             correctOptionUuid: correctOptionUuid,
+            imageId: imageId,
           );
-      _appendSelectedQuestion(createdQuestion);
+      if (_selectedModuleId == moduleId) {
+        _appendSelectedQuestion(createdQuestion);
+      }
       return true;
     } catch (error) {
       _questionsErrorMessage = error.toString();
@@ -1863,16 +1927,21 @@ class TrainingModuleController extends ChangeNotifier {
   Future<bool> saveAssignmentForSelectedModule() async {
     final resolvedModuleId = _selectedModuleId.trim();
     final title = assignmentTitleController.text.trim();
-    final instructionsText = assignmentDescriptionController.text.trim();
     if (!canEditSelectedModuleAssignment ||
         resolvedModuleId.isEmpty ||
+        !_hasResolvedAssignment ||
+        _isAssignmentLoading ||
         _isSavingAssignment) {
       return false;
     }
 
-    if (title.isEmpty || instructionsText.isEmpty) {
-      _emitSummarySnackBar(AppStrings.trainingAssignmentContentRequired);
+    if (title.isEmpty) {
+      _emitSummarySnackBar(AppStrings.trainingAssignmentTitleRequired);
       return false;
+    }
+
+    if (!hasAssignmentChanges) {
+      return true;
     }
 
     _isSavingAssignment = true;
@@ -2868,6 +2937,15 @@ class TrainingModuleController extends ChangeNotifier {
     _scheduleDocumentAutoSaveIfNeeded();
   }
 
+  void _handleAssignmentDraftChanged() {
+    final hasTitle = hasAssignmentTitle;
+    if (_lastAssignmentDraftHasTitle == hasTitle) {
+      return;
+    }
+    _lastAssignmentDraftHasTitle = hasTitle;
+    notifyListeners();
+  }
+
   String get _selectedModuleUpdateId {
     final detail = _selectedModuleDetail;
     if (detail != null) {
@@ -2896,6 +2974,8 @@ class TrainingModuleController extends ChangeNotifier {
     _lastSavedModuleTitle = '';
     _lastSavedSummaryText = '';
     _lastSavedDocumentHtml = '';
+    _lastSavedAssignmentTitle = '';
+    _lastSavedAssignmentHtml = '';
     _isSyncingModuleTitleController = true;
     moduleTitleController.clear();
     _isSyncingModuleTitleController = false;
@@ -2910,6 +2990,8 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   void _resetSelectedModuleExtras() {
+    _documentRequestVersion += 1;
+    _isDocumentLoading = false;
     _selectedModuleDocument = null;
     _selectedModuleAssignment = null;
     _selectedModuleQuestions = const <SeatDescriptionTrainingQuestion>[];
@@ -2997,6 +3079,8 @@ class TrainingModuleController extends ChangeNotifier {
       composing: TextRange.empty,
     );
     assignmentDescriptionController.loadFromHtml(assignmentInstructions);
+    _lastSavedAssignmentTitle = assignmentTitleController.text.trim();
+    _lastSavedAssignmentHtml = assignmentDescriptionController.toHtml().trim();
   }
 
   void _scheduleModuleTitleAutoSaveIfNeeded() {
@@ -3053,10 +3137,15 @@ class TrainingModuleController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _documentRequestVersion += 1;
     newLessonTitleController.removeListener(_handleNewLessonTitleChanged);
     moduleTitleController.removeListener(_handleModuleTitleChanged);
     summaryController.removeListener(_handleSummaryChanged);
     documentController.removeListener(_handleDocumentChanged);
+    assignmentTitleController.removeListener(_handleAssignmentDraftChanged);
+    assignmentDescriptionController.removeListener(
+      _handleAssignmentDraftChanged,
+    );
     _moduleTitleAutoSaveDebounce?.cancel();
     _summaryAutoSaveDebounce?.cancel();
     _documentAutoSaveDebounce?.cancel();

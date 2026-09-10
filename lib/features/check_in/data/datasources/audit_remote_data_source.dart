@@ -8,6 +8,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_processor.dart';
 import '../../../../core/preference/app_preference.dart';
+import '../../../../core/services/file_uploader.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../training/domain/entities/seat_description_training.dart';
 import '../../domain/entities/audit_profile.dart';
@@ -28,14 +29,18 @@ import '../models/seat_description_training_model.dart';
 import '../models/single_audit_report_category_details_model.dart';
 
 class AuditRemoteDataSource {
-  AuditRemoteDataSource({ApiCallExecutor? apiCallExecutor})
-    : _apiCallExecutor = apiCallExecutor ?? const ApiCallExecutor();
+  AuditRemoteDataSource({
+    ApiCallExecutor? apiCallExecutor,
+    FileUploader? fileUploader,
+  }) : _apiCallExecutor = apiCallExecutor ?? const ApiCallExecutor(),
+       _fileUploader = fileUploader ?? const FileUploader();
 
   static const Map<String, String> _karachiTimezoneHeader = <String, String>{
     'X-Timezone': 'Asia/Karachi',
   };
 
   final ApiCallExecutor _apiCallExecutor;
+  final FileUploader _fileUploader;
 
   Future<AuditMainListModel> getAuditMainList({
     required int page,
@@ -856,6 +861,7 @@ class AuditRemoteDataSource {
     required String questionText,
     required List<SeatDescriptionTrainingQuestionOption> options,
     required String correctOptionUuid,
+    String? imageId,
   }) {
     return _apiCallExecutor.processApi<SeatDescriptionTrainingQuestion>(
       apiCallType: ApiCallType.put,
@@ -864,6 +870,8 @@ class AuditRemoteDataSource {
       parameters: {
         'uuid': '',
         'question': questionText,
+        if (imageId != null && imageId.trim().isNotEmpty)
+          'image': imageId.trim(),
         'correct_option': correctOptionUuid,
         'options': options
             .map((option) => {'uuid': option.uuid, 'text': option.text})
@@ -877,6 +885,19 @@ class AuditRemoteDataSource {
         return SeatDescriptionTrainingQuestionModel.fromApiJson(json);
       },
     );
+  }
+
+  Future<String> uploadTrainingQuestionImage({
+    required String fileName,
+    required List<int> fileBytes,
+    required String contentType,
+  }) async {
+    final uploadedImage = await _fileUploader.uploadOnboardingImage(
+      fileName: fileName,
+      fileBytes: fileBytes,
+      contentType: contentType,
+    );
+    return uploadedImage.uuid;
   }
 
   Future<void> generateSeatDescriptionTrainingModuleQuiz({
