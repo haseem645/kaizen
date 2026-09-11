@@ -921,6 +921,8 @@ class AppStrings {
   static const String auditDescriptionDetails = 'Description Details';
   static String auditDescriptionPagePosition(int current, int total) =>
       'Page $current of $total';
+  static const String auditPreviousDescription = 'Previous description';
+  static const String auditNextDescription = 'Next description';
   static const String auditNoDescriptionAvailable = 'No description available.';
   static const String auditNoMatchingDescriptions =
       'No descriptions match the selected filters.';

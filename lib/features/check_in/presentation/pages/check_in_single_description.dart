@@ -56,7 +56,9 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: widget.initialDescriptionIndex);
+    _pageController = PageController(
+      initialPage: widget.initialDescriptionIndex,
+    );
   }
 
   @override
@@ -80,18 +82,43 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
             const SizedBox(height: 18),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _CheckInProfileCard(audit: widget.audit, date: widget.date),
+              child: _CheckInProfileCard(
+                audit: widget.audit,
+                date: widget.date,
+              ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: _DescriptionPageCounter(
                 controller: _pageController,
                 pageCount: widget.descriptions.length,
+                onPageSelected: _goToDescriptionPage,
               ),
             ),
             Expanded(child: _buildDescriptionPager(context)),
           ],
         ),
+      ),
+    );
+  }
+
+  void _goToDescriptionPage(int page) {
+    if (!_pageController.hasClients ||
+        page < 0 ||
+        page >= widget.descriptions.length) {
+      return;
+    }
+
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pageController.jumpToPage(page);
+      return;
+    }
+
+    unawaited(
+      _pageController.animateToPage(
+        page,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
       ),
     );
   }
@@ -174,10 +201,15 @@ class _AnimatedDescriptionPage extends StatelessWidget {
 }
 
 class _DescriptionPageCounter extends StatelessWidget {
-  const _DescriptionPageCounter({required this.controller, required this.pageCount});
+  const _DescriptionPageCounter({
+    required this.controller,
+    required this.pageCount,
+    required this.onPageSelected,
+  });
 
   final PageController controller;
   final int pageCount;
+  final ValueChanged<int> onPageSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -187,13 +219,76 @@ class _DescriptionPageCounter extends StatelessWidget {
         final currentPage = controller.hasClients
             ? (controller.page ?? controller.initialPage.toDouble()).round()
             : controller.initialPage;
-        return AppTextView.body2(
-          AppStrings.auditDescriptionPagePosition(currentPage + 1, pageCount),
-          color: AppColors.textSecondary,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _DescriptionPagerArrow(
+              icon: Icons.arrow_back_rounded,
+              tooltip: AppStrings.auditPreviousDescription,
+              onPressed: currentPage > 0
+                  ? () => onPageSelected(currentPage - 1)
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: AppTextView.body2(
+                AppStrings.auditDescriptionPagePosition(
+                  currentPage + 1,
+                  pageCount,
+                ),
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _DescriptionPagerArrow(
+              icon: Icons.arrow_forward_rounded,
+              tooltip: AppStrings.auditNextDescription,
+              onPressed: currentPage < pageCount - 1
+                  ? () => onPageSelected(currentPage + 1)
+                  : null,
+            ),
+          ],
         );
       },
+    );
+  }
+}
+
+class _DescriptionPagerArrow extends StatelessWidget {
+  const _DescriptionPagerArrow({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      icon: Icon(icon, size: 18),
+      style: IconButton.styleFrom(
+        foregroundColor: AppColors.textSecondary,
+        backgroundColor: AppColors.surfaceDark,
+        disabledForegroundColor: AppColors.textSecondary.withValues(
+          alpha: 0.35,
+        ),
+        disabledBackgroundColor: AppColors.surfaceDark.withValues(alpha: 0.5),
+        padding: const EdgeInsets.all(6),
+        minimumSize: const Size(32, 32),
+        fixedSize: const Size(32, 32),
+        tapTargetSize: MaterialTapTargetSize.padded,
+        shape: const CircleBorder(),
+      ),
     );
   }
 }

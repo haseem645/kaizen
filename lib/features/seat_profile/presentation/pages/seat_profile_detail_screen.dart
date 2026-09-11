@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -853,10 +854,14 @@ class _DeleteDescriptionIconButton extends StatelessWidget {
           child: Center(
             child: isDeleting
                 ? FastCircularProgressIndicator(width: 14, height: 14)
-                : const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.red1,
-                    size: 18,
+                : SvgPicture.asset(
+                    '${AppStrings.imagePath}delete.svg',
+                    width: 18,
+                    height: 18,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.red1,
+                      BlendMode.srcIn,
+                    ),
                   ),
           ),
         ),

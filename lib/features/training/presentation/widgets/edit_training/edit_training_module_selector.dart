@@ -564,10 +564,14 @@ class _ModuleSheetTile extends StatelessWidget {
                                 width: 12,
                                 height: 12,
                               )
-                            : const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 16,
-                                color: AppColors.red,
+                            : SvgPicture.asset(
+                                '${AppStrings.imagePath}delete.svg',
+                                width: 16,
+                                height: 16,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.red,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                       ),
                     ),

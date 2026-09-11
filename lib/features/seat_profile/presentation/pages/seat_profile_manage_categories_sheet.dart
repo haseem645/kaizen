@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -15,7 +16,8 @@ import '../../domain/entities/seat_profile_category_draft.dart';
 Future<bool> showSeatProfileManageCategoriesSheet(
   BuildContext context, {
   required List<SeatProfileCategoryDraft> initialCategories,
-  required Future<void> Function(List<SeatProfileCategoryDraft> categories) onSaveCategories,
+  required Future<void> Function(List<SeatProfileCategoryDraft> categories)
+  onSaveCategories,
 }) async {
   final didUpdate = await showModalBottomSheet<bool>(
     context: context,
@@ -41,13 +43,16 @@ class SeatProfileManageCategoriesSheet extends StatefulWidget {
   });
 
   final List<SeatProfileCategoryDraft> initialCategories;
-  final Future<void> Function(List<SeatProfileCategoryDraft> categories) onSaveCategories;
+  final Future<void> Function(List<SeatProfileCategoryDraft> categories)
+  onSaveCategories;
 
   @override
-  State<SeatProfileManageCategoriesSheet> createState() => _SeatProfileManageCategoriesSheetState();
+  State<SeatProfileManageCategoriesSheet> createState() =>
+      _SeatProfileManageCategoriesSheetState();
 }
 
-class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCategoriesSheet> {
+class _SeatProfileManageCategoriesSheetState
+    extends State<SeatProfileManageCategoriesSheet> {
   late final _ManageSeatCategoriesDialogController _formController;
 
   @override
@@ -104,7 +109,8 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
       context: context,
       builder: (_) => AppConfirmationDialog(
         title: AppStrings.seatProfileCategoriesSaveConfirmationTitle,
-        description: AppStrings.seatProfileCategoriesSaveConfirmationDescription,
+        description:
+            AppStrings.seatProfileCategoriesSaveConfirmationDescription,
         onCancelCallback: () async => Navigator.of(context).pop(false),
         onConfirmCallback: () async => Navigator.of(context).pop(true),
         confirmText: AppStrings.seatProfileSaveAction,
@@ -133,7 +139,9 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
           child: AnimatedPadding(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Align(
               alignment: Alignment.bottomCenter,
               child: ConstrainedBox(
@@ -143,7 +151,9 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                 ),
                 child: Material(
                   color: AppColors.surfaceDark,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
                   clipBehavior: Clip.antiAlias,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -165,7 +175,8 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                               children: [
                                 Expanded(
                                   child: AppTextView.body1(
-                                    AppStrings.seatProfileManageCategoriesDialogTitle,
+                                    AppStrings
+                                        .seatProfileManageCategoriesDialogTitle,
                                     color: AppColors.textPrimary,
                                     fontSize: isCompact ? 16 : 18,
                                     fontWeight: FontWeight.w600,
@@ -183,9 +194,12 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                             SizedBox(height: isCompact ? 18 : 24),
                             _ManageSeatCategoriesIntroSection(
                               isCompact: isCompact,
-                              importanceStatusValue: _formController.importanceStatusValue,
-                              importanceStatusLabel: _formController.importanceStatusLabel,
-                              importanceStatusColor: _formController.importanceStatusColor,
+                              importanceStatusValue:
+                                  _formController.importanceStatusValue,
+                              importanceStatusLabel:
+                                  _formController.importanceStatusLabel,
+                              importanceStatusColor:
+                                  _formController.importanceStatusColor,
                             ),
                             SizedBox(height: isCompact ? 20 : 28),
                             _SeatCategoryHeaderRow(
@@ -198,7 +212,8 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                                 _formController.rows.length,
                                 (index) => Padding(
                                   padding: EdgeInsets.only(
-                                    bottom: index == _formController.rows.length - 1
+                                    bottom:
+                                        index == _formController.rows.length - 1
                                         ? (isCompact ? 10 : 12)
                                         : (isCompact ? 8 : 10),
                                   ),
@@ -207,7 +222,9 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                                     rowController: _formController.rows[index],
                                     onDeleteTap: _formController.isSaving
                                         ? null
-                                        : () => _formController.removeRowAt(index),
+                                        : () => _formController.removeRowAt(
+                                            index,
+                                          ),
                                     isCompact: isCompact,
                                     amountFieldWidth: amountFieldWidth,
                                   ),
@@ -217,7 +234,9 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                             _SeatCategoryActionFooter(
                               isCompact: isCompact,
                               totalImportance: _formController.totalImportance,
-                              onAddTap: _formController.isSaving ? null : _formController.addRow,
+                              onAddTap: _formController.isSaving
+                                  ? null
+                                  : _formController.addRow,
                             ),
                             SizedBox(height: isCompact ? 14 : 18),
                             AppTextView.body2(
@@ -228,16 +247,22 @@ class _SeatProfileManageCategoriesSheetState extends State<SeatProfileManageCate
                             ),
                             if (_formController.message != null) ...[
                               const SizedBox(height: 16),
-                              _CreateMessageCard(message: _formController.message!),
+                              _CreateMessageCard(
+                                message: _formController.message!,
+                              ),
                             ],
                             SizedBox(height: isCompact ? 18 : 22),
                             Align(
-                              alignment: isCompact ? Alignment.center : Alignment.centerRight,
+                              alignment: isCompact
+                                  ? Alignment.center
+                                  : Alignment.centerRight,
                               child: SizedBox(
                                 width: isCompact ? double.infinity : 180,
                                 child: AppButton(
                                   text: AppStrings.seatProfileSaveAction,
-                                  onPressed: _formController.isSaving ? null : _submit,
+                                  onPressed: _formController.isSaving
+                                      ? null
+                                      : _submit,
                                   isLoading: _formController.isSaving,
                                   borderRadius: 14,
                                   minimumHeight: 48,
@@ -267,8 +292,10 @@ class _ManageSeatCategoriesDialogController extends ChangeNotifier {
   bool get isSaving => _isSaving;
   String? get message => _message;
 
-  double get totalImportance =>
-      rows.fold<double>(0, (total, row) => total + _parseWeightPercent(row.weightController.text));
+  double get totalImportance => rows.fold<double>(
+    0,
+    (total, row) => total + _parseWeightPercent(row.weightController.text),
+  );
 
   double get remainingImportance => 100 - totalImportance;
   bool get hasReachedImportance => remainingImportance.abs() < 0.001;
@@ -416,8 +443,10 @@ class _SeatCategoryRowController {
     String weightPercent = '',
     required VoidCallback onChanged,
   }) : _onChanged = onChanged {
-    nameController = TextEditingController(text: title)..addListener(_handleChanged);
-    weightController = TextEditingController(text: weightPercent)..addListener(_handleChanged);
+    nameController = TextEditingController(text: title)
+      ..addListener(_handleChanged);
+    weightController = TextEditingController(text: weightPercent)
+      ..addListener(_handleChanged);
   }
 
   final String? uuid;
@@ -456,7 +485,10 @@ class _CategoryRemainingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: isCompact ? double.infinity : 220,
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 14 : 18, vertical: isCompact ? 14 : 18),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 14 : 18,
+        vertical: isCompact ? 14 : 18,
+      ),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(isCompact ? 18 : 24),
@@ -508,7 +540,9 @@ class _ManageSeatCategoriesIntroSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(isCompact ? 16 : 20),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.14),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,7 +597,10 @@ class _ManageSeatCategoriesIntroSection extends StatelessWidget {
 }
 
 class _SeatCategoryHeaderRow extends StatelessWidget {
-  const _SeatCategoryHeaderRow({required this.isCompact, required this.amountFieldWidth});
+  const _SeatCategoryHeaderRow({
+    required this.isCompact,
+    required this.amountFieldWidth,
+  });
 
   final bool isCompact;
   final double amountFieldWidth;
@@ -624,11 +661,20 @@ class _SeatCategoryInputRow extends StatelessWidget {
         actionGap: isCompact ? 8 : 10,
         actionChild: Container(
           height: rowHeight,
-          decoration: BoxDecoration(color: AppColors.red1, borderRadius: BorderRadius.circular(12)),
-          child: Icon(
-            Icons.delete_outline_rounded,
-            color: AppColors.textPrimary,
-            size: isCompact ? 20 : 22,
+          decoration: BoxDecoration(
+            color: AppColors.red1,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: SvgPicture.asset(
+              '${AppStrings.imagePath}delete.svg',
+              width: isCompact ? 20 : 22,
+              height: isCompact ? 20 : 22,
+              colorFilter: const ColorFilter.mode(
+                AppColors.textPrimary,
+                BlendMode.srcIn,
+              ),
+            ),
           ),
         ),
         child: Row(
@@ -639,7 +685,9 @@ class _SeatCategoryInputRow extends StatelessWidget {
                 controller: rowController.nameController,
                 hintText: AppStrings.seatProfileCategoryNameColumn,
                 isCompact: isCompact,
-                inputFormatters: <TextInputFormatter>[LengthLimitingTextInputFormatter(25)],
+                inputFormatters: <TextInputFormatter>[
+                  LengthLimitingTextInputFormatter(25),
+                ],
               ),
             ),
             SizedBox(width: isCompact ? 8 : 12),
@@ -648,7 +696,9 @@ class _SeatCategoryInputRow extends StatelessWidget {
               child: _DialogInputField(
                 controller: rowController.weightController,
                 hintText: '0',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textAlign: TextAlign.center,
                 isCompact: isCompact,
                 inputFormatters: <TextInputFormatter>[
@@ -688,7 +738,9 @@ class _DialogInputField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.32)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.32),
+        ),
       ),
       child: Center(
         child: TextField(
@@ -746,7 +798,9 @@ class _DialogDottedActionButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(isCompact ? 16 : 18),
             child: Ink(
               height: isCompact ? 56 : 64,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16 : 18)),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(isCompact ? 16 : 18),
+              ),
               child: Center(
                 child: AppTextView.body1(
                   label,
@@ -809,7 +863,11 @@ class _SeatCategoryActionFooter extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        AppTextView.body1(totalLabel, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        AppTextView.body1(
+          totalLabel,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
       ],
     );
   }
@@ -830,7 +888,11 @@ class _CreateMessageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.red1.withValues(alpha: 0.28)),
       ),
-      child: AppTextView.body2(message, color: AppColors.textPrimary, height: 1.4),
+      child: AppTextView.body2(
+        message,
+        color: AppColors.textPrimary,
+        height: 1.4,
+      ),
     );
   }
 }
@@ -847,7 +909,10 @@ class _SeatContentDialogCloseButton extends StatelessWidget {
 }
 
 class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
-  const _SeatProfileDottedRoundedBorderPainter({required this.color, required this.radius});
+  const _SeatProfileDottedRoundedBorderPainter({
+    required this.color,
+    required this.radius,
+  });
 
   final Color color;
   final double radius;
@@ -859,7 +924,10 @@ class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    final rect = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
+    final rect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
     const dashWidth = 5.0;
     const dashSpace = 4.0;
     final path = Path()..addRRect(rect);
@@ -875,7 +943,9 @@ class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SeatProfileDottedRoundedBorderPainter oldDelegate) {
+  bool shouldRepaint(
+    covariant _SeatProfileDottedRoundedBorderPainter oldDelegate,
+  ) {
     return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }
@@ -893,5 +963,9 @@ String _formatSeatProfilePercent(double value) {
 }
 
 int _countWords(String value) {
-  return value.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
+  return value
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .length;
 }

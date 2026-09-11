@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -1309,10 +1310,16 @@ class _SeatCategoryInputRow extends StatelessWidget {
           child: InkWell(
             onTap: onDeleteTap,
             borderRadius: BorderRadius.circular(10),
-            child: Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.red1,
-              size: isCompact ? 20 : 22,
+            child: Center(
+              child: SvgPicture.asset(
+                '${AppStrings.imagePath}delete.svg',
+                width: isCompact ? 20 : 22,
+                height: isCompact ? 20 : 22,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.red1,
+                  BlendMode.srcIn,
+                ),
+              ),
             ),
           ),
         ),

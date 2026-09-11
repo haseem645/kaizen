@@ -272,19 +272,31 @@ class _TrainingVideoActionMenu extends StatelessWidget {
       surfaceTintColor: AppColors.surfaceDark3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: onSelected,
-      itemBuilder: (context) => const [
+      itemBuilder: (context) => [
         PopupMenuItem<_TrainingVideoMenuAction>(
           value: _TrainingVideoMenuAction.delete,
           child: _TrainingVideoMenuItemContent(
-            icon: Icons.delete_outline_rounded,
+            icon: SvgPicture.asset(
+              '${AppStrings.imagePath}delete.svg',
+              width: 18,
+              height: 18,
+              colorFilter: const ColorFilter.mode(
+                AppColors.red,
+                BlendMode.srcIn,
+              ),
+            ),
             label: AppStrings.trainingDeleteVideoAction,
             color: AppColors.red,
           ),
         ),
-        PopupMenuItem<_TrainingVideoMenuAction>(
+        const PopupMenuItem<_TrainingVideoMenuAction>(
           value: _TrainingVideoMenuAction.thumbnail,
           child: _TrainingVideoMenuItemContent(
-            icon: Icons.image_outlined,
+            icon: Icon(
+              Icons.image_outlined,
+              color: AppColors.secondaryColor,
+              size: 18,
+            ),
             label: AppStrings.trainingThumbnailAction,
             color: AppColors.secondaryColor,
           ),
@@ -317,7 +329,7 @@ class _TrainingVideoMenuItemContent extends StatelessWidget {
     required this.color,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final Color color;
 
@@ -326,7 +338,7 @@ class _TrainingVideoMenuItemContent extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 18),
+        icon,
         const SizedBox(width: 10),
         AppTextView.body3(label, color: color, fontWeight: FontWeight.w700),
       ],

@@ -226,10 +226,14 @@ class _EditableQuizQuestionCardState extends State<_EditableQuizQuestionCard> {
                                     width: 14,
                                     height: 14,
                                   )
-                                : const Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: AppColors.textSecondary,
-                                    size: 18,
+                                : SvgPicture.asset(
+                                    '${AppStrings.imagePath}delete.svg',
+                                    width: 18,
+                                    height: 18,
+                                    colorFilter: const ColorFilter.mode(
+                                      AppColors.textSecondary,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
                           ),
                         ),

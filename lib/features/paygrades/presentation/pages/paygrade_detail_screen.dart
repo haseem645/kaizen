@@ -601,10 +601,14 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
           child: Center(
             child: widget.isDeleting
                 ? FastCircularProgressIndicator(width: 14, height: 14)
-                : const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.textPrimary,
-                    size: 22,
+                : SvgPicture.asset(
+                    '${AppStrings.imagePath}delete.svg',
+                    width: 22,
+                    height: 22,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.textPrimary,
+                      BlendMode.srcIn,
+                    ),
                   ),
           ),
         ),
