@@ -26,7 +26,7 @@ class ComplianceTracksSearchBar extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.fieldBorder),
             ),
             child: Row(

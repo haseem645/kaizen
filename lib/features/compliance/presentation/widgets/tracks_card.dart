@@ -31,7 +31,7 @@ class TracksCard extends StatelessWidget {
     final statusStyle = _resolveStatusStyle();
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       onTap: isDisabled ? null : onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -39,7 +39,7 @@ class TracksCard extends StatelessWidget {
           color: isDisabled
               ? AppColors.surfaceDark.withValues(alpha: 0.55)
               : AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,7 +87,7 @@ class TracksCard extends StatelessWidget {
     final thumbnailLink = CustomFunctions.resolveImageUrl(track.thumbnailLink);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(3),
+      borderRadius: BorderRadius.circular(12),
       child: thumbnailLink != null && thumbnailLink.isNotEmpty
           ? CachedNetworkImage(
               imageUrl: thumbnailLink,
@@ -130,7 +130,7 @@ class TracksCard extends StatelessWidget {
           padding: const EdgeInsets.only(left: 6, bottom: 2, right: 6),
           decoration: BoxDecoration(
             color: statusStyle.backgroundColor,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: statusStyle.borderColor, width: 1),
           ),
           child: AppTextView.body3(

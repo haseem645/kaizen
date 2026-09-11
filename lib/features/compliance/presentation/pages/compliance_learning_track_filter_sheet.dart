@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_seat_selection_tile.dart';
 import '../../../../core/widgets/app_text_view.dart';
 
 class ComplianceLearningTrackFilterSheet extends StatefulWidget {
@@ -108,44 +109,11 @@ class _ComplianceLearningTrackFilterSheetState extends State<ComplianceLearningT
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              _buildCheckbox(isSelected),
-              const SizedBox(width: 14),
-              Expanded(
-                child: AppTextView.body(
-                  name,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCheckbox(bool isSelected) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.lightGreen1 : Colors.transparent,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: isSelected ? AppColors.lightGreen1 : AppColors.textPrimary,
-          width: 1.5,
-        ),
-      ),
+    return AppSeatSelectionTile(
+      title: name,
+      isSelected: isSelected,
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
     );
   }
 

@@ -1121,7 +1121,7 @@ class _CommentThreadCardState extends State<_CommentThreadCard>
                       InkWell(
                         onTap: () =>
                             updateView(() => _showReplies = !_showReplies),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(12),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: AppTextView.body4(
@@ -1253,7 +1253,7 @@ class _ReplyAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(12),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: const <Widget>[
@@ -1332,7 +1332,7 @@ class _CommentComposer extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceDark3.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: AppColors.secondaryColor.withValues(alpha: 0.18),
                       ),
@@ -1348,7 +1348,7 @@ class _CommentComposer extends StatelessWidget {
                         ),
                         InkWell(
                           onTap: onCancelReply,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(12),
                           child: const Padding(
                             padding: EdgeInsets.all(2),
                             child: Icon(
@@ -1843,7 +1843,7 @@ class _CommentPdfPreviewCard extends StatelessWidget {
                       height: iconBoxSize,
                       decoration: BoxDecoration(
                         color: AppColors.secondaryColor.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.picture_as_pdf_rounded,

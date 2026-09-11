@@ -28,7 +28,7 @@ class ComplianceSearchBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.fieldBorder),
             ),
             child: Row(
@@ -64,12 +64,12 @@ class ComplianceSearchBar extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             color: AppColors.secondaryColor,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(12),
               onTap: onFilterTap,
               child: const Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 26),
             ),

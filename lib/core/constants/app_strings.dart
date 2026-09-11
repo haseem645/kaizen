@@ -187,6 +187,7 @@ class AppStrings {
   static const String seatProfileCheckInInterview = 'Interview';
   static const String seatProfileCheckInSurvey = 'Survey';
   static const String seatProfileCheckInNoCheckIn = 'No Check-In Found';
+  static const String noCheckIn = 'No Check-In';
   static const String noCheckInDetailFound = 'No Check-In Details Found';
   static const String seatProfileNoneOption = 'None';
   static const String seatProfileCategoriesSaveConfirmationTitle = 'Save Categories?';
@@ -504,7 +505,7 @@ class AppStrings {
   static const String trainingGenerateSopsWithAi = 'Generate SOPs with AI';
   static const String trainingGenerateWithAi = 'Generate With AI';
   static const String trainingCreateSop = 'Create SOP';
-  static const String trainingCreateWithAi = 'Create with AI';
+  static const String trainingCreateWithAi = 'Generate with AI';
   static const String trainingGenerateSopSubtitle =
       'AI will generate SOP content for this training module.';
   static const String trainingGenerateSopAlertTitle = 'Alert';

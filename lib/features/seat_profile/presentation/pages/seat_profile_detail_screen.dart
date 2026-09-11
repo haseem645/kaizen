@@ -284,7 +284,7 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,7 +535,7 @@ class _CategoryCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: AnimatedSize(
         duration: const Duration(milliseconds: 220),
@@ -548,7 +548,7 @@ class _CategoryCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () => controller.setCategoryExpanded(
                       category.id,
                       !isExpanded,
@@ -661,12 +661,12 @@ class _InlineDescriptionCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: isDeleting || !canManageContent ? null : onOpenDescription,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
         child: Ink(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.mainBg,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: AppColors.fieldBorder.withValues(alpha: 0.28),
             ),
@@ -914,7 +914,7 @@ class _ViewTrainingTextButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
           child: AppTextView.body4(
@@ -1019,7 +1019,7 @@ class _ExpandableDescriptionText extends StatelessWidget {
               const SizedBox(height: 8),
               InkWell(
                 onTap: onSeeAllTap,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 2,

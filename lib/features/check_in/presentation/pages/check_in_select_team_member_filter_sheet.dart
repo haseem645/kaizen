@@ -188,7 +188,7 @@ class _TeamMemberSearchBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
         color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.fieldBorder.withValues(alpha: 0.75),
         ),

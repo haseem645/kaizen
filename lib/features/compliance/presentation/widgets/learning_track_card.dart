@@ -17,13 +17,13 @@ class LearningTrackCard extends StatelessWidget {
     final progressPercent = '${track.completionPercentage ?? 0}%';
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +63,7 @@ class LearningTrackCard extends StatelessWidget {
       width: 106,
       height: 106,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(12),
         child: thumbnailLink != null && thumbnailLink.isNotEmpty
             ? CachedNetworkImage(
                 imageUrl: thumbnailLink,
@@ -146,7 +146,7 @@ class LearningTrackCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1.5),
           decoration: BoxDecoration(
             color: statusStyle.backgroundColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: statusStyle.borderColor, width: 1),
           ),
           child: AppTextView.body3(

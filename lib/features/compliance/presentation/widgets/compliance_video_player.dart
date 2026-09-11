@@ -404,10 +404,10 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
           height: widget.height,
           decoration: BoxDecoration(
             color: Colors.black,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             child: widget.fillBounds
                 ? SizedBox.expand(
                     child: Stack(

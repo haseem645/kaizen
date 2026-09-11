@@ -139,7 +139,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             color: AppColors.surfaceDark3,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           padding: EdgeInsets.only(
                             left: 14,
@@ -239,7 +239,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -338,7 +338,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark3,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.grey2.withValues(alpha: 0.6)),
         ),
         child: Column(
@@ -455,7 +455,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: AppColors.secondaryColor,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
       ),
       width: 34,
       height: 34,
@@ -470,7 +470,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
       padding: EdgeInsets.all(9),
       decoration: BoxDecoration(
         color: AppColors.secondaryColor,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: SvgPicture.asset('${AppStrings.imagePath}filter.svg'),
     );
@@ -516,7 +516,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.grey2.withValues(alpha: 0.6)),
             ),
             child: Row(
@@ -561,7 +561,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.secondaryColor,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     padding: EdgeInsets.only(
                       left: 12,
@@ -603,7 +603,7 @@ class _CheckInDetailsScreenView extends StatelessWidget {
       height: 30,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: AppTextView.body2(
         '$value',

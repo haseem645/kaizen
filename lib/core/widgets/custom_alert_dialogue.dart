@@ -23,7 +23,7 @@ class CustomAlertDialog extends StatelessWidget {
             margin: const EdgeInsets.only(top: 45), // Space for logo to overlap
             decoration: BoxDecoration(
               color: AppColors.mainBg, // Semi-transparent background
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.only(
               top: 20, // Extra padding for logo

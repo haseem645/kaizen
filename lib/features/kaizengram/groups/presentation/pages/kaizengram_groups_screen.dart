@@ -2029,7 +2029,7 @@ class _JoinedGroupPostCard extends StatelessWidget {
                     children: <Widget>[
                       InkWell(
                         onTap: onGroupTap,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: AppTextView.body2(
@@ -2044,7 +2044,7 @@ class _JoinedGroupPostCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       InkWell(
                         onTap: onProfileTap,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: AppTextView.body4(
@@ -3174,7 +3174,7 @@ class _GroupCoverImage extends StatelessWidget {
     required this.imageUrl,
     required this.height,
     this.imagePath,
-    this.borderRadius = BorderRadius.zero,
+    this.borderRadius = const BorderRadius.all(Radius.circular(12)),
   });
 
   final String imageUrl;
@@ -3233,7 +3233,9 @@ class _PinnedGroupIcon extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: AppColors.secondaryColor.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(size * 0.38),
+        borderRadius: BorderRadius.circular(
+          (size * 0.38).clamp(12.0, double.infinity).toDouble(),
+        ),
         border: Border.all(
           color: AppColors.secondaryColor.withValues(alpha: 0.30),
         ),
