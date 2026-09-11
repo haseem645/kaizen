@@ -138,7 +138,7 @@ class _OpenedLessonCard extends StatelessWidget {
       child: Material(
         color: AppColors.surfaceDark3,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: AppColors.textPrimary, width: 1.5),
         ),
         clipBehavior: Clip.antiAlias,
@@ -209,14 +209,14 @@ class _NewLessonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: isSelected ? AppColors.secondaryColor.withValues(alpha: 0.08) : Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         child: CustomPaint(
           foregroundPainter: const _DottedRoundedBorderPainter(
             color: AppColors.secondaryColor,
-            radius: 10,
+            radius: 12,
             strokeWidth: 0.6,
             dashLength: 1.5,
             gapLength: 1,
@@ -259,7 +259,7 @@ class _SeeAllLessonsButton extends StatelessWidget {
       width: 44,
       child: Material(
         color: AppColors.secondaryColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         clipBehavior: Clip.antiAlias,
         child: IconButton(
           onPressed: onTap,

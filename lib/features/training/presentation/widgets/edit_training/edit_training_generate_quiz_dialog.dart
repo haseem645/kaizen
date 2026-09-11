@@ -66,7 +66,7 @@ class _GenerateQuizHeader extends StatelessWidget {
             height: 3,
             decoration: BoxDecoration(
               color: AppColors.textPrimary,
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
           const SizedBox(height: 14),
@@ -202,7 +202,7 @@ class _QuizDifficultySetting extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.trainingLessonActionSurface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -267,7 +267,7 @@ class _QuizReplaceToggle extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.trainingLessonActionSurface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [

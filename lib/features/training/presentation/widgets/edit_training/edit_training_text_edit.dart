@@ -534,13 +534,13 @@ class _TrainingFormattingButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: Ink(
             width: 34,
             height: 34,
             decoration: BoxDecoration(
               color: backgroundColor,
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: borderColor),
             ),
             child: Icon(icon, color: iconColor, size: 16),

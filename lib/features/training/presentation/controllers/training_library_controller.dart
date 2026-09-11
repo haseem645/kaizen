@@ -49,6 +49,7 @@ class TrainingLibraryController extends ChangeNotifier {
   TrainingLibrarySearchFilter _searchFilter = TrainingLibrarySearchFilter.seat;
   String _searchQuery = '';
   String? _selectedSeatId;
+  TrainingLibrarySeat? _pendingSeatSelection;
   String _seatSearchQuery = '';
   List<TrainingLibrarySeat> _seatOptions = const [];
   bool _isLoadingSeatOptions = false;
@@ -216,6 +217,7 @@ class TrainingLibraryController extends ChangeNotifier {
   TrainingLibrarySearchFilter get searchFilter => _searchFilter;
   String get searchQuery => _searchQuery;
   String? get selectedSeatId => _selectedSeatId;
+  String? get pendingSeatSelectionId => _pendingSeatSelection?.id;
 
   List<TrainingLibrarySeat> get seatOptions =>
       List<TrainingLibrarySeat>.unmodifiable(_seatOptions);
@@ -284,13 +286,30 @@ class TrainingLibraryController extends ChangeNotifier {
 
   Future<void> openSeatSelection() {
     _seatSearchQuery = '';
+    _pendingSeatSelection = _selectedSeatId == null
+        ? null
+        : TrainingLibrarySeat(id: _selectedSeatId!, title: _searchQuery);
     return loadSeatOptions();
   }
+
+  void updatePendingSeatSelection(TrainingLibrarySeat? seat) {
+    if (isApplyingSelection) {
+      return;
+    }
+
+    _pendingSeatSelection = seat;
+    _selectionErrorMessage = null;
+    notifyListeners();
+  }
+
+  Future<bool> applyPendingSeatSelection() =>
+      applySeatSelection(_pendingSeatSelection);
 
   void closeSeatSelection() {
     _seatSearchDebounceTimer?.cancel();
     _seatRequestId++;
     _isLoadingSeatOptions = false;
+    _pendingSeatSelection = null;
   }
 
   Future<void> loadSeatOptions() async {

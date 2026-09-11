@@ -924,6 +924,7 @@ class TrainingModuleController extends ChangeNotifier {
   bool _isAssignmentLoading = false;
   bool _isQuestionsLoading = false;
   bool _isCreatingNewLessonDraft = false;
+  String? _moduleIdBeforeNewLessonDraft;
   bool _isCreatingModule = false;
   bool _isUploadingVideo = false;
   bool _isDeletingVideo = false;
@@ -1220,6 +1221,7 @@ class TrainingModuleController extends ChangeNotifier {
     _errorMessage = null;
     _isCreatingNewLessonDraft = false;
     _isCreatingModule = false;
+    _moduleIdBeforeNewLessonDraft = null;
     _isUploadingVideo = false;
     _moduleLocalVideoPaths.clear();
     _modules = const <SeatDescriptionTrainingModule>[];
@@ -1276,6 +1278,7 @@ class TrainingModuleController extends ChangeNotifier {
 
     _isCreatingNewLessonDraft = false;
     _selectedModuleId = resolvedModuleId;
+    _moduleIdBeforeNewLessonDraft = null;
     _selectedModuleDetail = null;
     _resetSelectedModuleExtras();
     _resetEditors();
@@ -1288,6 +1291,9 @@ class TrainingModuleController extends ChangeNotifier {
       return;
     }
 
+    if (!_isCreatingNewLessonDraft) {
+      _moduleIdBeforeNewLessonDraft = _selectedModuleId;
+    }
     _isCreatingNewLessonDraft = true;
     _errorMessage = null;
     _selectedModuleId = '';
@@ -1297,6 +1303,28 @@ class TrainingModuleController extends ChangeNotifier {
     _resetEditors();
     newLessonTitleController.clear();
     notifyListeners();
+  }
+
+  Future<void> cancelCreatingNewLessonDraft() async {
+    if (!_isCreatingNewLessonDraft || _isCreatingModule) {
+      return;
+    }
+
+    final previousModuleId = _moduleIdBeforeNewLessonDraft;
+    _isCreatingNewLessonDraft = false;
+    _moduleIdBeforeNewLessonDraft = null;
+    _errorMessage = null;
+    newLessonTitleController.clear();
+
+    if (_modules.isEmpty) {
+      notifyListeners();
+      return;
+    }
+
+    final moduleId = _modules.any((module) => module.uuid == previousModuleId)
+        ? previousModuleId!
+        : _modules.first.uuid;
+    await selectModule(moduleId);
   }
 
   Future<bool> createModuleFromDraft() async {
@@ -1332,6 +1360,7 @@ class TrainingModuleController extends ChangeNotifier {
         growable: false,
       );
       _isCreatingNewLessonDraft = false;
+      _moduleIdBeforeNewLessonDraft = null;
       _selectedModuleId = selectedModule.uuid;
       _selectedModuleDetail = _buildModuleDetailFromModule(selectedModule);
       _updatingModuleVisibilityId = null;

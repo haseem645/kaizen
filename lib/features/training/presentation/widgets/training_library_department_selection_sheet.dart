@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/widgets/app_radio_selection_tile.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../controllers/training_library_controller.dart';
 import 'training_library_selection_sheet.dart';
@@ -62,8 +63,9 @@ class _DepartmentSelectionContent extends StatelessWidget {
                 child: TrainingLibrarySelectionError(message: controller.selectionErrorMessage),
               ),
               SliverToBoxAdapter(
-                child: TrainingLibrarySelectionTile(
+                child: AppRadioSelectionTile(
                   title: AppStrings.trainingLibraryAllFilter,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 28),
                   isSelected: controller.selectedDepartmentId == 'all',
                   isLoading: controller.isApplyingDepartmentSelection('all'),
                   onTap: controller.canApplySelection ? () => onSelected('all') : null,
@@ -86,8 +88,9 @@ class _DepartmentSelectionContent extends StatelessWidget {
                     itemCount: departments.length,
                     itemBuilder: (context, index) {
                       final department = departments[index];
-                      return TrainingLibrarySelectionTile(
+                      return AppRadioSelectionTile(
                         title: department.name,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 28),
                         isSelected: controller.selectedDepartmentId == department.id,
                         isLoading: controller.isApplyingDepartmentSelection(department.id),
                         onTap: controller.canApplySelection

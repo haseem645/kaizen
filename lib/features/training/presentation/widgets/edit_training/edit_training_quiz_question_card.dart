@@ -105,7 +105,7 @@ class _QuizQuestionPrompt extends StatelessWidget {
         if (imageUrl != null) ...[
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             child: AspectRatio(
               aspectRatio: 2,
               child: CachedNetworkImage(
@@ -154,7 +154,7 @@ class _QuizQuestionHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.mainBg,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: AppTextView.body3(
                 AppStrings.trainingQuestionBadge(number),

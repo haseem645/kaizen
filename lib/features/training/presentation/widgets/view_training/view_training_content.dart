@@ -61,31 +61,15 @@ class _AssignmentTabContent extends StatelessWidget {
     final hasTitle = title != null && title.isNotEmpty;
     final hasInstructions = instructions != null && instructions.isNotEmpty;
     if (!hasTitle && !hasInstructions) {
-      return const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
+      return const _DocumentReadingPanel(message: AppStrings.trainingNoAssignmentAvailable);
     }
 
     final titleSection = _AssignmentTitleSection(title: title, showsDescription: hasInstructions);
     if (!hasInstructions) return SingleChildScrollView(child: titleSection);
 
-    return LayoutBuilder(
-      builder: (context, constraints) => NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverToBoxAdapter(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: (constraints.maxHeight - 220).clamp(0.0, constraints.maxHeight),
-              ),
-              child: SingleChildScrollView(primary: false, child: titleSection),
-            ),
-          ),
-        ],
-        body: Builder(
-          builder: (context) => _DocumentReadingPanel(
-            html: instructions,
-            scrollController: PrimaryScrollController.of(context),
-          ),
-        ),
-      ),
+    return TrainingAssignmentLayout(
+      header: titleSection,
+      body: _DocumentReadingPanel(html: instructions),
     );
   }
 }
@@ -142,17 +126,11 @@ class _SectionLabel extends StatelessWidget {
 
 /// Keeps the document viewport bounded while its HTML content scrolls independently.
 class _DocumentReadingPanel extends StatelessWidget {
-  const _DocumentReadingPanel({
-    this.html,
-    this.isLoading = false,
-    this.message,
-    this.scrollController,
-  });
+  const _DocumentReadingPanel({this.html, this.isLoading = false, this.message});
 
   final String? html;
   final bool isLoading;
   final String? message;
-  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +153,6 @@ class _DocumentReadingPanel extends StatelessWidget {
               ),
             )
           : SingleChildScrollView(
-              controller: scrollController,
               primary: false,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),

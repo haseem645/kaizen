@@ -31,6 +31,7 @@ import '../controllers/training_quiz_question_editor_controller.dart';
 import '../controllers/training_tab_navigation_controller.dart';
 import '../controllers/training_video_capture_bridge.dart';
 import '../controllers/training_video_upload_controller.dart';
+import '../widgets/training_assignment_layout.dart';
 import '../widgets/training_tab_view.dart';
 import '../widgets/training_swipe_delete_action.dart';
 import '../widgets/training_option_delete_dialog.dart';
@@ -116,7 +117,7 @@ class EditTrainingScreen extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () => Navigator.of(context).maybePop(),
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: SvgPicture.asset(
@@ -339,9 +340,22 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
-    return AnimatedBuilder(
-      animation: _viewStateListenable,
-      builder: (context, _) => _buildBody(controller),
+    return PopScope<Object?>(
+      canPop: !controller.isCreatingNewLessonDraft,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop ||
+            !controller.isCreatingNewLessonDraft ||
+            controller.isCreatingModule) {
+          return;
+        }
+
+        FocusScope.of(context).unfocus();
+        unawaited(controller.cancelCreatingNewLessonDraft());
+      },
+      child: AnimatedBuilder(
+        animation: _viewStateListenable,
+        builder: (context, _) => _buildBody(controller),
+      ),
     );
   }
 }

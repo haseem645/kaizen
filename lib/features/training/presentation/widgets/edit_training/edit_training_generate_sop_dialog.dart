@@ -178,7 +178,7 @@ class _GenerateSopDialogState extends State<_GenerateSopDialog> {
                               : AppColors.secondaryColor,
                           disabledBackgroundColor: AppColors.surfaceDark3,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             side: BorderSide(
                               color:
                                   (controller.isGeneratingSop ||

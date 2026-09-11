@@ -256,7 +256,7 @@ class _TrainingVideoActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = BorderRadius.circular(10);
+    final borderRadius = BorderRadius.circular(12);
 
     return Tooltip(
       message: tooltip,

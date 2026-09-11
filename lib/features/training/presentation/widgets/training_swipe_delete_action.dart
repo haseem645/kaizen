@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -23,7 +24,8 @@ class TrainingSwipeDeleteAction extends StatefulWidget {
   final Color backgroundColor;
 
   @override
-  State<TrainingSwipeDeleteAction> createState() => _TrainingSwipeDeleteActionState();
+  State<TrainingSwipeDeleteAction> createState() =>
+      _TrainingSwipeDeleteActionState();
 }
 
 class _TrainingSwipeDeleteActionState extends State<TrainingSwipeDeleteAction>
@@ -34,7 +36,10 @@ class _TrainingSwipeDeleteActionState extends State<TrainingSwipeDeleteAction>
   @override
   void initState() {
     super.initState();
-    _reveal = AnimationController(vsync: this, duration: const Duration(milliseconds: 180));
+    _reveal = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
   }
 
   @override
@@ -55,11 +60,15 @@ class _TrainingSwipeDeleteActionState extends State<TrainingSwipeDeleteAction>
   }
 
   void _updateDrag(DragUpdateDetails details) {
-    _reveal.value = (_reveal.value - details.delta.dx / _actionWidth).clamp(0.0, 1.0);
+    _reveal.value = (_reveal.value - details.delta.dx / _actionWidth).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   void _settle({double velocity = 0}) {
-    final shouldOpen = velocity < -200 || (velocity <= 200 && _reveal.value >= 0.5);
+    final shouldOpen =
+        velocity < -200 || (velocity <= 200 && _reveal.value >= 0.5);
     _reveal.animateTo(shouldOpen ? 1 : 0, curve: Curves.easeOut);
   }
 
@@ -75,14 +84,18 @@ class _TrainingSwipeDeleteActionState extends State<TrainingSwipeDeleteAction>
     final isEnabled = widget.onDelete != null;
     return Semantics(
       customSemanticsActions: isEnabled
-          ? {CustomSemanticsAction(label: widget.deleteSemanticLabel): _requestDelete}
+          ? {
+              CustomSemanticsAction(label: widget.deleteSemanticLabel):
+                  _requestDelete,
+            }
           : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onHorizontalDragStart: isEnabled ? _startDrag : null,
         onHorizontalDragUpdate: isEnabled ? _updateDrag : null,
         onHorizontalDragEnd: isEnabled
-            ? (details) => _settle(velocity: details.velocity.pixelsPerSecond.dx)
+            ? (details) =>
+                  _settle(velocity: details.velocity.pixelsPerSecond.dx)
             : null,
         onHorizontalDragCancel: isEnabled ? () => _settle() : null,
         child: ClipRRect(
@@ -113,16 +126,20 @@ class _TrainingSwipeDeleteActionState extends State<TrainingSwipeDeleteAction>
                             color: AppColors.red,
                             child: InkWell(
                               onTap: _requestDelete,
-                              child: const Column(
+                              child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: 20,
-                                    color: AppColors.textPrimary,
+                                  SvgPicture.asset(
+                                    '${AppStrings.imagePath}delete.svg',
+                                    width: 20,
+                                    height: 20,
+                                    colorFilter: const ColorFilter.mode(
+                                      AppColors.textPrimary,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
-                                  SizedBox(height: 2),
-                                  AppTextView.body3(
+                                  const SizedBox(height: 2),
+                                  const AppTextView.body3(
                                     AppStrings.trainingDeleteQuestionAction,
                                     color: AppColors.textPrimary,
                                     fontSize: 12,
@@ -136,7 +153,10 @@ class _TrainingSwipeDeleteActionState extends State<TrainingSwipeDeleteAction>
                     ),
                   ),
                 ),
-                Transform.translate(offset: Offset(-_actionWidth * _reveal.value, 0), child: child),
+                Transform.translate(
+                  offset: Offset(-_actionWidth * _reveal.value, 0),
+                  child: child,
+                ),
               ],
             ),
           ),
