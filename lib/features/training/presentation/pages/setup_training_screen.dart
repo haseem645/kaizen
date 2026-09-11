@@ -7,6 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_seat_selection_tile.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../seat_profile/data/datasources/seat_profile_remote_data_source.dart';
@@ -251,6 +252,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
           .map((seatProfile) => _SelectionListOption(id: seatProfile.id, label: seatProfile.title))
           .toList(growable: false),
       selectedId: controller.selectedSeatProfileId,
+      isSeatProfileSelection: true,
     );
 
     if (selectedId == null || !context.mounted) {
@@ -310,6 +312,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
     required String searchHint,
     required List<_SelectionListOption> options,
     required String? selectedId,
+    bool isSeatProfileSelection = false,
   }) {
     return showModalBottomSheet<String>(
       context: context,
@@ -320,6 +323,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
         searchHint: searchHint,
         options: options,
         initialSelectedId: selectedId,
+        isSeatProfileSelection: isSeatProfileSelection,
       ),
     );
   }
@@ -483,12 +487,14 @@ class _TrainingSetupOptionSheet extends StatefulWidget {
     required this.searchHint,
     required this.options,
     required this.initialSelectedId,
+    required this.isSeatProfileSelection,
   });
 
   final String title;
   final String searchHint;
   final List<_SelectionListOption> options;
   final String? initialSelectedId;
+  final bool isSeatProfileSelection;
 
   @override
   State<_TrainingSetupOptionSheet> createState() => _TrainingSetupOptionSheetState();
@@ -580,6 +586,13 @@ class _TrainingSetupOptionSheetState extends State<_TrainingSetupOptionSheet> {
                               return ValueListenableBuilder<String?>(
                                 valueListenable: _selectedIdNotifier,
                                 builder: (context, selectedId, _) {
+                                  if (widget.isSeatProfileSelection) {
+                                    return AppSeatSelectionTile(
+                                      title: option.label,
+                                      isSelected: selectedId == option.id,
+                                      onTap: () => _selectedIdNotifier.value = option.id,
+                                    );
+                                  }
                                   return _TrainingSetupOptionTile(
                                     title: option.label,
                                     isSelected: selectedId == option.id,
@@ -683,7 +696,7 @@ class _TrainingSetupSearchField extends StatelessWidget {
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.75), width: 1),
       ),
       child: TextField(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
+import 'package:sparrowkaizen/core/widgets/app_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/domain/repositories/audit_repository.dart';
@@ -24,7 +25,9 @@ import 'package:sparrowkaizen/features/training/presentation/widgets/training_li
 void main() {
   for (final selectSeat in [true, false]) {
     testWidgets(
-      '${selectSeat ? 'seat' : 'department'} keeps progress in the option and retries failures',
+      selectSeat
+          ? 'seat applies only from Show and keeps the draft after failure'
+          : 'department keeps progress in the option and retries failures',
       (tester) async {
         final repository = _LibraryRepository();
         final controller = TrainingLibraryController(
@@ -52,8 +55,19 @@ void main() {
         final title = selectSeat ? 'Sales Seat' : 'Sales';
         final pending = Completer<TrainingLibraryPage>();
         repository.response = pending.future;
+        final requestsBeforeSelection = repository.requests;
         await tester.tap(find.text(title));
         await tester.pump();
+
+        if (selectSeat) {
+          expect(controller.pendingSeatSelectionId, 'sales');
+          expect(controller.selectedSeatId, isNull);
+          expect(controller.searchQuery, isEmpty);
+          expect(controller.isApplyingSelection, isFalse);
+          expect(repository.requests, requestsBeforeSelection);
+          await tester.tap(find.text(AppStrings.trainingLibraryShowAction));
+          await tester.pump();
+        }
 
         expect(find.byType(TrainingLibrarySelectionSheet), findsOneWidget);
         final tile = find.ancestor(
@@ -62,7 +76,7 @@ void main() {
         );
         expect(
           find.descendant(
-            of: tile,
+            of: selectSeat ? find.byType(AppButton) : tile,
             matching: find.byType(FastCircularProgressIndicator),
           ),
           findsOneWidget,
@@ -95,10 +109,15 @@ void main() {
         expect(controller.selectedSeatId, isNull);
         expect(controller.errorMessage, isNull);
         expect(controller.visibleItems, hasLength(2));
+        if (selectSeat) {
+          expect(controller.pendingSeatSelectionId, 'sales');
+        }
 
         final retry = Completer<TrainingLibraryPage>();
         repository.response = retry.future;
-        await tester.tap(find.text(title));
+        await tester.tap(
+          find.text(selectSeat ? AppStrings.trainingLibraryShowAction : title),
+        );
         await tester.pump();
         retry.complete(
           TrainingLibraryPage(
@@ -121,6 +140,97 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'closing discards a seat draft and All Seats also waits for Show',
+    (tester) async {
+      final repository = _LibraryRepository();
+      final controller = TrainingLibraryController(
+        GetTrainingLibraryModulesUseCase(repository),
+        getSeatProfilesUseCase: GetSeatProfilesUseCase(_SeatRepository()),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.selectDepartment('sales');
+      await controller.selectSeat(_module('sales', 'Sales').seat);
+      final requestsBeforeOpening = repository.requests;
+      await tester.pumpWidget(
+        _host(
+          (context) => showTrainingLibrarySeatSelectionSheet(
+            context,
+            controller: controller,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(controller.pendingSeatSelectionId, 'sales');
+      await tester.tap(find.text(AppStrings.trainingLibraryAllSeats));
+      await tester.pump();
+      expect(controller.pendingSeatSelectionId, isNull);
+      expect(controller.selectedSeatId, 'sales');
+      expect(repository.requests, requestsBeforeOpening);
+      await tester.tap(find.byType(AppOverlayCloseButton));
+      await tester.pumpAndSettle();
+      expect(controller.selectedSeatId, 'sales');
+      expect(controller.searchQuery, 'Sales Seat');
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(controller.pendingSeatSelectionId, 'sales');
+      await tester.tap(find.text(AppStrings.trainingLibraryAllSeats));
+      await tester.pump();
+      expect(repository.requests, requestsBeforeOpening);
+      await tester.tap(find.text(AppStrings.trainingLibraryShowAction));
+      await tester.pumpAndSettle();
+      expect(controller.selectedSeatId, isNull);
+      expect(controller.searchQuery, isEmpty);
+      expect(controller.selectedDepartmentId, 'sales');
+      expect(repository.requests, requestsBeforeOpening + 1);
+      expect(find.byType(TrainingLibrarySelectionSheet), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Show remains visible above the keyboard on a small screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    final controller = TrainingLibraryController(
+      GetTrainingLibraryModulesUseCase(_LibraryRepository()),
+      getSeatProfilesUseCase: GetSeatProfilesUseCase(_SeatRepository()),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await tester.pumpWidget(
+      _host(
+        (context) => showTrainingLibrarySeatSelectionSheet(
+          context,
+          controller: controller,
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.showKeyboard(find.byType(TextField));
+    tester.view.viewInsets = const FakeViewPadding(bottom: 240);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppStrings.trainingLibraryShowAction).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      tester.getBottomLeft(find.byType(AppButton)).dy,
+      lessThanOrEqualTo(400),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'visibility replaces the clicked radio with progress and closes only after success',
@@ -203,6 +313,7 @@ Widget _host(Future<void> Function(BuildContext) onOpen) => MaterialApp(
 
 class _LibraryRepository extends Fake implements TrainingLibraryRepository {
   Future<TrainingLibraryPage>? response;
+  int requests = 0;
 
   @override
   Future<TrainingLibraryPage> getTrainingLibraryModules({
@@ -212,12 +323,17 @@ class _LibraryRepository extends Fake implements TrainingLibraryRepository {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
-  }) async =>
-      response ??
-      TrainingLibraryPage(
-        items: [_module('operations', 'Operations'), _module('sales', 'Sales')],
-        hasNextPage: false,
-      );
+  }) async {
+    requests++;
+    return response ??
+        TrainingLibraryPage(
+          items: [
+            _module('operations', 'Operations'),
+            _module('sales', 'Sales'),
+          ],
+          hasNextPage: false,
+        );
+  }
 }
 
 class _SeatRepository extends Fake implements SeatProfileRepository {

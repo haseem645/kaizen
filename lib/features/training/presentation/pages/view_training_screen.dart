@@ -17,6 +17,7 @@ import '../../domain/entities/seat_description_training_route.dart';
 import '../controllers/training_module_controller.dart';
 import '../controllers/training_tab_navigation_controller.dart';
 import '../models/view_training_tab_access.dart';
+import '../widgets/training_assignment_layout.dart';
 import '../widgets/training_tab_view.dart';
 import 'edit_training_screen.dart';
 

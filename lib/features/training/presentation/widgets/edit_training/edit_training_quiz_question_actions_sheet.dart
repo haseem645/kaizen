@@ -1,7 +1,10 @@
 part of 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 
 class _QuizQuestionActionsSheet extends StatelessWidget {
-  const _QuizQuestionActionsSheet({required this.onSelected, required this.onClose});
+  const _QuizQuestionActionsSheet({
+    required this.onSelected,
+    required this.onClose,
+  });
 
   final ValueChanged<_QuizQuestionAction> onSelected;
   final VoidCallback onClose;
@@ -26,7 +29,7 @@ class _QuizQuestionActionsSheet extends StatelessWidget {
                   height: 3,
                   decoration: BoxDecoration(
                     color: AppColors.textPrimary,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -51,7 +54,11 @@ class _QuizQuestionActionsSheet extends StatelessWidget {
                 _QuizQuestionActionTile(
                   title: AppStrings.trainingQuestionEditAction,
                   description: AppStrings.trainingQuestionEditDescription,
-                  icon: Icons.edit_outlined,
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textPrimary,
+                    size: 22,
+                  ),
                   iconBackground: AppColors.lightGreen1,
                   onTap: () => onSelected(_QuizQuestionAction.edit),
                 ),
@@ -59,7 +66,15 @@ class _QuizQuestionActionsSheet extends StatelessWidget {
                 _QuizQuestionActionTile(
                   title: AppStrings.trainingDeleteQuestionAction,
                   description: AppStrings.trainingQuestionDeleteDescription,
-                  icon: Icons.delete_forever_outlined,
+                  icon: SvgPicture.asset(
+                    '${AppStrings.imagePath}delete.svg',
+                    width: 22,
+                    height: 22,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.textPrimary,
+                      BlendMode.srcIn,
+                    ),
+                  ),
                   iconBackground: AppColors.red1,
                   onTap: () => onSelected(_QuizQuestionAction.delete),
                 ),
@@ -83,7 +98,7 @@ class _QuizQuestionActionTile extends StatelessWidget {
 
   final String title;
   final String description;
-  final IconData icon;
+  final Widget icon;
   final Color iconBackground;
   final VoidCallback onTap;
 
@@ -104,9 +119,9 @@ class _QuizQuestionActionTile extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: iconBackground,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: AppColors.textPrimary, size: 22),
+                child: Center(child: icon),
               ),
               const SizedBox(width: 12),
               Expanded(

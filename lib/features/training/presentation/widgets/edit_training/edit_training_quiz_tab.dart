@@ -155,7 +155,7 @@ class _QuizAddQuestionButton extends StatelessWidget {
       iconSize: 14,
       horizontalPadding: 12,
       verticalPadding: 13,
-      borderRadius: 10,
+      borderRadius: 12,
       backgroundColor: Colors.transparent,
       activeBorderColor: AppColors.secondaryColor,
       activeTextColor: AppColors.lightPurple1,

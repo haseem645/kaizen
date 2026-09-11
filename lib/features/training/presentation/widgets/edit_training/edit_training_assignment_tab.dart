@@ -44,40 +44,19 @@ class _AssignmentTabContent extends StatelessWidget {
     final hasVisibleContent =
         titleController.text.trim().isNotEmpty || descriptionController.text.trim().isNotEmpty;
     if (!canEditAssignment && !hasVisibleContent) {
-      return isLoading
-          ? Center(child: FastCircularProgressIndicator())
-          : const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
+      return _AssignmentPlaceholder(isLoading: isLoading);
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final height = constraints.hasBoundedHeight
-            ? constraints.maxHeight
-            : MediaQuery.sizeOf(context).height * 0.75;
-        return SizedBox(height: height, child: _buildContent(height));
-      },
-    );
+    return _buildContent();
   }
 
-  Widget _buildContent(double availableHeight) {
+  Widget _buildContent() {
     final isResolvingAssignmentState = canEditAssignment && !hasResolvedAssignment;
     final hasDescriptionContent = descriptionController.text.trim().isNotEmpty;
     final isBusy = isLoading || isSavingAssignment || isResolvingAssignmentState;
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) => [
-        SliverToBoxAdapter(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: (availableHeight - 220).clamp(0.0, availableHeight).toDouble(),
-            ),
-            child: SingleChildScrollView(
-              primary: false,
-              child: _buildTitleSection(isResolvingAssignmentState),
-            ),
-          ),
-        ),
-      ],
+    return TrainingAssignmentLayout(
+      header: _buildTitleSection(isResolvingAssignmentState),
       body: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
@@ -88,22 +67,18 @@ class _AssignmentTabContent extends StatelessWidget {
                   ? const Center(
                       child: FastCircularProgressIndicator(color: AppColors.secondaryColor),
                     )
-                  : Builder(
-                      builder: (context) => _TrainingEditableTextCard(
-                        controller: descriptionController,
-                        // Link text scrolling to the header so dragging reveals more editor space.
-                        scrollController: PrimaryScrollController.of(context),
-                        scrollPhysics: const AlwaysScrollableScrollPhysics(),
-                        hintText: AppStrings.trainingAssignmentDescriptionHint,
-                        minLines: 10,
-                        maxLines: 18,
-                        expands: true,
-                        readOnly: !canEditAssignment || isBusy,
-                        wrapWithCard: false,
-                        textColor: AppColors.mainBg,
-                        hintColor: AppColors.trainingUploadMuted,
-                        padding: const EdgeInsets.all(16),
-                      ),
+                  : _TrainingEditableTextCard(
+                      controller: descriptionController,
+                      scrollPhysics: const AlwaysScrollableScrollPhysics(),
+                      hintText: AppStrings.trainingAssignmentDescriptionHint,
+                      minLines: 10,
+                      maxLines: 18,
+                      expands: true,
+                      readOnly: !canEditAssignment || isBusy,
+                      wrapWithCard: false,
+                      textColor: AppColors.mainBg,
+                      hintColor: AppColors.trainingUploadMuted,
+                      padding: const EdgeInsets.all(16),
                     ),
             ),
             if (canEditAssignment && !isResolvingAssignmentState)
@@ -188,6 +163,33 @@ class _AssignmentTabContent extends StatelessWidget {
         const _TrainingSectionHeader(title: AppStrings.trainingAssignmentDescriptionLabel),
         const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+class _AssignmentPlaceholder extends StatelessWidget {
+  const _AssignmentPlaceholder({this.isLoading = false});
+
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: isLoading
+              ? const FastCircularProgressIndicator(color: AppColors.secondaryColor)
+              : const AppTextView.body3(
+                  AppStrings.trainingNoAssignmentAvailable,
+                  color: AppColors.mainBg,
+                  textAlign: TextAlign.center,
+                  height: 1.55,
+                ),
+        ),
+      ),
     );
   }
 }

@@ -119,7 +119,7 @@ class _TrainingCreateWithAiButton extends StatelessWidget {
         minimumSize: Size(0, compact ? 30 : 34),
         padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16, vertical: compact ? 6 : 8),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       icon: isLoading
           ? FastCircularProgressIndicator(width: 16, height: 16)
@@ -290,7 +290,6 @@ class _TrainingEditableTextCard extends StatelessWidget {
     this.expands = false,
     this.textColor = AppColors.textPrimary,
     this.hintColor,
-    this.scrollController,
     this.scrollPhysics,
     this.padding = const EdgeInsets.all(16),
   });
@@ -304,7 +303,6 @@ class _TrainingEditableTextCard extends StatelessWidget {
   final bool expands;
   final Color textColor;
   final Color? hintColor;
-  final ScrollController? scrollController;
   final ScrollPhysics? scrollPhysics;
   final EdgeInsetsGeometry padding;
 
@@ -314,7 +312,6 @@ class _TrainingEditableTextCard extends StatelessWidget {
       padding: padding,
       child: TextField(
         controller: controller,
-        scrollController: scrollController,
         scrollPhysics: scrollPhysics,
         readOnly: readOnly,
         cursorColor: textColor,

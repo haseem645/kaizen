@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -63,7 +64,7 @@ class TrainingLibraryLessonActionsSheet extends StatelessWidget {
                   height: 3,
                   decoration: BoxDecoration(
                     color: AppColors.textPrimary,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -88,9 +89,15 @@ class TrainingLibraryLessonActionsSheet extends StatelessWidget {
                 const SizedBox(height: 28),
                 _LessonActionTile(
                   title: AppStrings.visibilityLabel,
-                  icon: Icons.person_outline_rounded,
+                  icon: const Icon(
+                    Icons.person_outline_rounded,
+                    color: AppColors.textPrimary,
+                    size: 28,
+                  ),
                   iconBackground: AppColors.secondaryColor,
-                  onTap: canEdit ? () => onSelected(TrainingLibraryLessonAction.visibility) : null,
+                  onTap: canEdit
+                      ? () => onSelected(TrainingLibraryLessonAction.visibility)
+                      : null,
                   showArrow: canEdit,
                   subtitle: Text.rich(
                     TextSpan(
@@ -119,7 +126,11 @@ class TrainingLibraryLessonActionsSheet extends StatelessWidget {
                   const SizedBox(height: 12),
                   _LessonActionTile(
                     title: AppStrings.trainingEditAssignment,
-                    icon: Icons.edit_outlined,
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: AppColors.textPrimary,
+                      size: 28,
+                    ),
                     iconBackground: AppColors.lightGreen1,
                     subtitle: const AppTextView.body(
                       AppStrings.trainingLibraryEditLessonDescription,
@@ -132,7 +143,15 @@ class TrainingLibraryLessonActionsSheet extends StatelessWidget {
                   const SizedBox(height: 12),
                   _LessonActionTile(
                     title: AppStrings.trainingDeleteModuleAction,
-                    icon: Icons.delete_forever_outlined,
+                    icon: SvgPicture.asset(
+                      '${AppStrings.imagePath}delete.svg',
+                      width: 28,
+                      height: 28,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.textPrimary,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                     iconBackground: AppColors.red1,
                     subtitle: const AppTextView.body(
                       AppStrings.trainingLibraryDeleteLessonDescription,
@@ -163,7 +182,7 @@ class _LessonActionTile extends StatelessWidget {
   });
 
   final String title;
-  final IconData icon;
+  final Widget icon;
   final Color iconBackground;
   final Widget subtitle;
   final VoidCallback? onTap;
@@ -190,7 +209,7 @@ class _LessonActionTile extends StatelessWidget {
                     color: iconBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: AppColors.textPrimary, size: 28),
+                  child: Center(child: icon),
                 ),
                 const SizedBox(width: 18),
                 Expanded(
@@ -211,7 +230,11 @@ class _LessonActionTile extends StatelessWidget {
                 ),
                 if (showArrow) ...[
                   const SizedBox(width: 8),
-                  const Icon(Icons.north_east, color: AppColors.secondaryColor, size: 30),
+                  const Icon(
+                    Icons.north_east,
+                    color: AppColors.secondaryColor,
+                    size: 30,
+                  ),
                 ],
               ],
             ),

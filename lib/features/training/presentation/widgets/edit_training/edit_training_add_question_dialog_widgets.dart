@@ -277,7 +277,7 @@ class _QuestionOptionRow extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.secondaryColor.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(7),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: AppTextView.body2(
               label,

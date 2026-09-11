@@ -23,11 +23,11 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         controller.modules.isNotEmpty ||
         controller.isCreatingNewLessonDraft;
     final fillAvailableSpace = !widget.isEmbedded;
-    final isTextTab = _selectedTabIndex == 1 || _selectedTabIndex == 3;
-    final isEditingTextWithKeyboard =
-        fillAvailableSpace && isTextTab && MediaQuery.viewInsetsOf(context).bottom > 0;
+    final isSopTab = _selectedTabIndex == 1;
+    final isEditingSopWithKeyboard =
+        fillAvailableSpace && isSopTab && MediaQuery.viewInsetsOf(context).bottom > 0;
     final collapseLessonHeader =
-        fillAvailableSpace && isTextTab && (isEditingTextWithKeyboard || availableHeight < 440);
+        fillAvailableSpace && isSopTab && (isEditingSopWithKeyboard || availableHeight < 440);
     final contentCard = _buildTabContent(
       controller,
       showLessonHeader: !collapseLessonHeader,
@@ -321,7 +321,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
       );
     }
 
-    return const _ContentMessage(message: AppStrings.trainingNoAssignmentAvailable);
+    return const _AssignmentPlaceholder();
   }
 
   Future<void> _syncSelectedTabData(TrainingModuleController controller) async {
@@ -354,7 +354,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     }
     controller.startCreatingNewLessonDraft();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
+      if (!mounted || !controller.isCreatingNewLessonDraft) {
         return;
       }
 
