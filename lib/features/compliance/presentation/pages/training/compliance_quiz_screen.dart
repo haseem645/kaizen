@@ -138,7 +138,7 @@ class _QuizTimerPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.green1.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.green1, width: 1.2),
       ),
       child: AppTextView.body3(
@@ -169,7 +169,7 @@ class _QuizQuestionCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

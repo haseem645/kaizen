@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -274,7 +273,7 @@ class _SeatProfileCreateContent extends StatelessWidget {
                   }
                 : null,
             isLoading: controller.isSubmitting,
-            borderRadius: 10,
+            borderRadius: 12,
             minimumHeight: 48,
           ),
         ],
@@ -456,7 +455,7 @@ class _SeatProfileFieldShell extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.fieldBorder.withValues(alpha: 0.7),
               ),
@@ -1309,17 +1308,11 @@ class _SeatCategoryInputRow extends StatelessWidget {
           height: isCompact ? 46 : 52,
           child: InkWell(
             onTap: onDeleteTap,
-            borderRadius: BorderRadius.circular(10),
-            child: Center(
-              child: SvgPicture.asset(
-                '${AppStrings.imagePath}delete.svg',
-                width: isCompact ? 20 : 22,
-                height: isCompact ? 20 : 22,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.red1,
-                  BlendMode.srcIn,
-                ),
-              ),
+            borderRadius: BorderRadius.circular(12),
+            child: Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.red1,
+              size: isCompact ? 20 : 22,
             ),
           ),
         ),

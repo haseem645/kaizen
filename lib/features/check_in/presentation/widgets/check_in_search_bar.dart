@@ -31,7 +31,7 @@ class CheckInSearchBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.fieldBorder.withValues(alpha: 0.75),
               ),
@@ -119,9 +119,9 @@ class CheckInSearchBar extends StatelessWidget {
         const SizedBox(width: 12),
         Material(
           color: AppColors.secondaryColor,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             onTap: onFilterTap,
             child: const SizedBox(
               width: 47,

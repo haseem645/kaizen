@@ -45,7 +45,7 @@ class DocumentCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +112,7 @@ class DocumentCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: statusStyle.backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: statusStyle.borderColor, width: 1),
                 ),
                 child: AppTextView.body3(
@@ -158,7 +158,7 @@ class DocumentCard extends StatelessWidget {
               disabledBackgroundColor: uploadButtonColor,
               minimumSize: Size.fromHeight(30),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: Row(

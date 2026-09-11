@@ -64,7 +64,10 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 ## UI Rules
 
+- Render delete/trash icons with `SvgPicture.asset('${AppStrings.imagePath}delete.svg')`, including Training lesson actions, quiz actions, and swipe-to-delete controls. Preserve existing icon sizes and contrast colors when replacing Material icons.
 - Populate repeated UI with builder widgets such as `ListView.builder` or `ListView.separated`, or collection mapping for short inline content. Do not use `for` loops to populate widget children.
+- In the LMS Seat Profile filter sheet, row taps only update a draft selection. Apply the selected seat, including All Seats, only from the bottom Show button; closing discards the draft. Styling or department-list changes must preserve this step.
+- Use `AppRadioSelectionTile` for seat-profile and department picker rows: a leading unchecked radio or purple selected radio followed by the name, with no card background or selected border. Preserve each picker's existing single/multiple selection and Show/Done behavior.
 - Keep quiz `Add Option` actions visible while option fields are being edited. Existing-question editors must preserve all locally added options and the correct-answer UUID until Save or Cancel; opening one draft option must not hide the action or require an intermediate API save.
 - Open quiz question editing in a bottom sheet from Actions > Edit, using the shared question-sheet header and Correct Answer selector. Keep question cards in display mode and leave about 10 logical pixels between option rows, without adding a trailing gap after the last display option.
 - In the Add Question and Edit Question sheets, reveal option Delete actions with a right-to-left swipe. A swipe must never remove an option. In Add Question, tapping Delete removes the option immediately without confirmation. In Edit Question, tapping Delete must ask for confirmation before removing either an existing or newly added option from the draft. Set all text input cursors in both sheets to 15 logical pixels high.

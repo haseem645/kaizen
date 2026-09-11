@@ -16,7 +16,7 @@ class CheckInMediaPreview extends StatelessWidget {
     required this.width,
     required this.height,
     required this.placeholder,
-    this.borderRadius = 8,
+    this.borderRadius = 12,
     this.showVideoOverlay = true,
   });
 

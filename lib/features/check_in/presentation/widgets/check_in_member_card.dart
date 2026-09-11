@@ -33,7 +33,7 @@ class CheckInMemberCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
@@ -245,7 +245,7 @@ class _MetricTile extends StatelessWidget {
       height: 78,
       decoration: BoxDecoration(
         color: AppColors.surfaceDark2,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       alignment: Alignment.center,
       child: Column(
@@ -275,9 +275,9 @@ class _CheckInActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.secondaryColor,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: SizedBox(
           height: 78,

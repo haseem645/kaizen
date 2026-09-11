@@ -138,12 +138,13 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
     final members = controller.visibleMembers;
     final showSearchAndFilter = state.isOwner;
     final showSelectionTabs = state.isOwner && !state.isActualOwner;
+    final isInitialLoading = state.isLoading && state.mainList == null;
     final isSearchLoading =
         state.isLoading &&
         state.mainList != null &&
         state.searchQuery.trim().isNotEmpty;
 
-    return ListView(
+    final content = ListView(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -183,11 +184,9 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
           ],
         ],
         const SizedBox(height: 18),
-        if (state.isLoading && state.mainList == null)
-          Center(child: FastCircularProgressIndicator())
-        else if (members.isEmpty)
+        if (!isInitialLoading && members.isEmpty)
           _buildEmptyCheckInState(state.selectedStatus)
-        else ...[
+        else if (!isInitialLoading) ...[
           for (var index = 0; index < members.length; index++) ...[
             CheckInMemberCard(
               member: members[index],
@@ -216,6 +215,15 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
             Center(child: FastCircularProgressIndicator()),
           ],
         ],
+      ],
+    );
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        content,
+        if (isInitialLoading)
+          const Center(child: FastCircularProgressIndicator()),
       ],
     );
   }
@@ -289,7 +297,7 @@ class _CheckInScreenViewState extends State<_CheckInScreenView> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.lightPurple2,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

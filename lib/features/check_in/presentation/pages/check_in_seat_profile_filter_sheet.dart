@@ -5,6 +5,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_seat_selection_tile.dart';
+import '../../../../core/widgets/app_selection_sheet.dart';
 import '../../../../core/widgets/app_text_view.dart';
 
 class CheckInSeatProfileFilterSheet extends StatefulWidget {
@@ -16,6 +18,8 @@ class CheckInSeatProfileFilterSheet extends StatefulWidget {
     this.allOptionLabel = 'All Seat Profiles',
     this.title = AppStrings.auditSeatProfile,
     this.searchHint = AppStrings.auditSearchSeatProfile,
+    this.compactSpacing = false,
+    this.showCloseHeader = false,
   });
 
   final List<String> options;
@@ -24,6 +28,8 @@ class CheckInSeatProfileFilterSheet extends StatefulWidget {
   final String allOptionLabel;
   final String title;
   final String searchHint;
+  final bool compactSpacing;
+  final bool showCloseHeader;
 
   @override
   State<CheckInSeatProfileFilterSheet> createState() =>
@@ -53,6 +59,7 @@ class _CheckInSeatProfileFilterSheetState
 
   @override
   Widget build(BuildContext context) {
+    final spacingScale = widget.compactSpacing ? 0.5 : 1.0;
     final filteredOptions = widget.options
         .where((option) {
           if (_searchQuery.trim().isEmpty) {
@@ -74,18 +81,30 @@ class _CheckInSeatProfileFilterSheetState
           color: AppColors.mainBg,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12 * spacingScale,
+          20,
+          24 * spacingScale,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 12),
-            _SelectionHeader(
-              title: widget.title,
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            const SizedBox(height: 22),
-            const AppDotDivider(),
-            const SizedBox(height: 24),
+            SizedBox(height: 12 * spacingScale),
+            if (widget.showCloseHeader)
+              AppSelectionHeading(
+                title: widget.title,
+                onClose: () => Navigator.of(context).pop(),
+              )
+            else ...[
+              _SelectionHeader(
+                title: widget.title,
+                onBack: () => Navigator.of(context).pop(),
+              ),
+              SizedBox(height: 22 * spacingScale),
+              const AppDotDivider(),
+            ],
+            SizedBox(height: 24 * spacingScale),
             _SeatProfileSearchBar(
               controller: _searchController,
               hintText: widget.searchHint,
@@ -95,15 +114,15 @@ class _CheckInSeatProfileFilterSheetState
                 });
               },
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22 * spacingScale),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   children: [
                     if (widget.showAllOption)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: _SelectionOptionTile(
+                        padding: EdgeInsets.only(bottom: 18 * spacingScale),
+                        child: AppSeatSelectionTile(
                           title: widget.allOptionLabel,
                           isSelected: _selectedValue == '',
                           onTap: () {
@@ -115,8 +134,8 @@ class _CheckInSeatProfileFilterSheetState
                       ),
                     ...filteredOptions.map(
                       (option) => Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: _SelectionOptionTile(
+                        padding: EdgeInsets.only(bottom: 18 * spacingScale),
+                        child: AppSeatSelectionTile(
                           title: option,
                           isSelected: _selectedValue == option,
                           onTap: () {
@@ -131,9 +150,9 @@ class _CheckInSeatProfileFilterSheetState
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4 * spacingScale),
             const AppDotDivider(),
-            const SizedBox(height: 22),
+            SizedBox(height: 22 * spacingScale),
             AppButton(
               text: AppStrings.done,
               onPressed: (!widget.showAllOption && _selectedValue == null)
@@ -165,7 +184,7 @@ class _SeatProfileSearchBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
         color: AppColors.mainBg,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.fieldBorder.withValues(alpha: 0.75),
         ),
@@ -218,66 +237,6 @@ class _SelectionHeader extends StatelessWidget {
         ),
         const SizedBox(width: 32),
       ],
-    );
-  }
-}
-
-class _SelectionOptionTile extends StatelessWidget {
-  const _SelectionOptionTile({
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        splashFactory: NoSplash.splashFactory,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        focusColor: Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? AppColors.secondaryColor
-                      : AppColors.hexd9d4f0,
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.hex7747e6
-                        : AppColors.hexd9d4f0,
-                    width: 2,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: AppTextView.body(
-                  title,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -224,7 +224,7 @@ class AppDrawer extends StatelessWidget {
       title: AppTextView.body2(title, color: resolvedColor, fontWeight: FontWeight.w600),
       selected: isSelected,
       selectedTileColor: AppColors.secondaryColor.withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(1)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: () {
         Navigator.of(context).pop();
         onTap?.call();

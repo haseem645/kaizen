@@ -9,6 +9,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/domain/entities/audit_description_audit.dart';
@@ -17,7 +18,6 @@ import 'package:sparrowkaizen/features/check_in/presentation/providers/check_in_
 import 'package:sparrowkaizen/features/check_in/presentation/providers/check_in_media_upload_controller.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/widgets/check_in_media_preview.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_media_comment_bottom_sheet.dart';
-import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_text_comment_dialog.dart';
 
 import '../../../training/domain/entities/seat_description_training_route.dart';
 import '../../../training/presentation/pages/edit_training_screen.dart';
@@ -56,9 +56,7 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: widget.initialDescriptionIndex,
-    );
+    _pageController = PageController(initialPage: widget.initialDescriptionIndex);
   }
 
   @override
@@ -82,43 +80,18 @@ class _SingleDescriptionDetailsState extends State<SingleDescriptionDetails> {
             const SizedBox(height: 18),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _CheckInProfileCard(
-                audit: widget.audit,
-                date: widget.date,
-              ),
+              child: _CheckInProfileCard(audit: widget.audit, date: widget.date),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: _DescriptionPageCounter(
                 controller: _pageController,
                 pageCount: widget.descriptions.length,
-                onPageSelected: _goToDescriptionPage,
               ),
             ),
             Expanded(child: _buildDescriptionPager(context)),
           ],
         ),
-      ),
-    );
-  }
-
-  void _goToDescriptionPage(int page) {
-    if (!_pageController.hasClients ||
-        page < 0 ||
-        page >= widget.descriptions.length) {
-      return;
-    }
-
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _pageController.jumpToPage(page);
-      return;
-    }
-
-    unawaited(
-      _pageController.animateToPage(
-        page,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOutCubic,
       ),
     );
   }
@@ -201,15 +174,10 @@ class _AnimatedDescriptionPage extends StatelessWidget {
 }
 
 class _DescriptionPageCounter extends StatelessWidget {
-  const _DescriptionPageCounter({
-    required this.controller,
-    required this.pageCount,
-    required this.onPageSelected,
-  });
+  const _DescriptionPageCounter({required this.controller, required this.pageCount});
 
   final PageController controller;
   final int pageCount;
-  final ValueChanged<int> onPageSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -219,76 +187,13 @@ class _DescriptionPageCounter extends StatelessWidget {
         final currentPage = controller.hasClients
             ? (controller.page ?? controller.initialPage.toDouble()).round()
             : controller.initialPage;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _DescriptionPagerArrow(
-              icon: Icons.arrow_back_rounded,
-              tooltip: AppStrings.auditPreviousDescription,
-              onPressed: currentPage > 0
-                  ? () => onPageSelected(currentPage - 1)
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: AppTextView.body2(
-                AppStrings.auditDescriptionPagePosition(
-                  currentPage + 1,
-                  pageCount,
-                ),
-                color: AppColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            _DescriptionPagerArrow(
-              icon: Icons.arrow_forward_rounded,
-              tooltip: AppStrings.auditNextDescription,
-              onPressed: currentPage < pageCount - 1
-                  ? () => onPageSelected(currentPage + 1)
-                  : null,
-            ),
-          ],
+        return AppTextView.body2(
+          AppStrings.auditDescriptionPagePosition(currentPage + 1, pageCount),
+          color: AppColors.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
         );
       },
-    );
-  }
-}
-
-class _DescriptionPagerArrow extends StatelessWidget {
-  const _DescriptionPagerArrow({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      tooltip: tooltip,
-      icon: Icon(icon, size: 18),
-      style: IconButton.styleFrom(
-        foregroundColor: AppColors.textSecondary,
-        backgroundColor: AppColors.surfaceDark,
-        disabledForegroundColor: AppColors.textSecondary.withValues(
-          alpha: 0.35,
-        ),
-        disabledBackgroundColor: AppColors.surfaceDark.withValues(alpha: 0.5),
-        padding: const EdgeInsets.all(6),
-        minimumSize: const Size(32, 32),
-        fixedSize: const Size(32, 32),
-        tapTargetSize: MaterialTapTargetSize.padded,
-        shape: const CircleBorder(),
-      ),
     );
   }
 }
@@ -586,7 +491,7 @@ class _CheckInProfileCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -653,7 +558,7 @@ class _SeatDescriptionCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,7 +626,7 @@ class _ExpandableCardState extends State<_ExpandableCard> {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -872,11 +777,16 @@ bool _canEditSingleDescriptionAudit({
   required bool isOwner,
   required String date,
 }) {
-  return !isViewOnly && isOwner && CustomFunctions.isAuditWithinContinueWindow(date);
+  return AppManager.instance.canCurrentOrganizationModifyContent &&
+      !isViewOnly &&
+      isOwner &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 bool _canCommentOnSingleDescriptionAudit({required bool isViewOnly, required String date}) {
-  return !isViewOnly && CustomFunctions.isAuditWithinContinueWindow(date);
+  return AppManager.instance.canCurrentOrganizationModifyContent &&
+      !isViewOnly &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
@@ -978,7 +888,7 @@ class _PassSelectionCardState extends State<_PassSelectionCard> {
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
               decoration: BoxDecoration(
                 color: AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1280,7 +1190,7 @@ class _CommentsCardState extends State<_CommentsCard> {
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               decoration: BoxDecoration(
                 color: AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1359,7 +1269,7 @@ class _CommentsCardState extends State<_CommentsCard> {
                       onTap: () {
                         _isExpandedNotifier.value = !isExpanded;
                       },
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -1404,7 +1314,6 @@ class _CommentsCardState extends State<_CommentsCard> {
     final didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) {
         return DescriptionMediaCommentBottomSheet(
@@ -1421,7 +1330,7 @@ class _CommentsCardState extends State<_CommentsCard> {
   Future<bool> _openTextOnlyCommentDialog(AuditDescriptionAudit audit) async {
     final didSave = await showDialog<bool>(
       context: context,
-      builder: (_) => DescriptionTextCommentDialog(
+      builder: (_) => _CreateTextCommentDialog(
         onSave: (comment) => widget.onSaveCommentWithoutMedia(audit.uuid, comment),
       ),
     );
@@ -1441,7 +1350,6 @@ class _CommentsCardState extends State<_CommentsCard> {
     final didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) {
         return DescriptionMediaCommentBottomSheet(
@@ -1494,19 +1402,153 @@ class _CommentIconButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           width: 32,
           height: 32,
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withValues(alpha: 0.6)),
           ),
           child: Icon(icon, color: color, size: 17),
         ),
       ),
     );
+  }
+}
+
+class _CreateTextCommentDialog extends StatefulWidget {
+  const _CreateTextCommentDialog({required this.onSave});
+
+  final Future<void> Function(String comment) onSave;
+
+  @override
+  State<_CreateTextCommentDialog> createState() => _CreateTextCommentDialogState();
+}
+
+class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
+  final TextEditingController _controller = TextEditingController();
+  late final ValueNotifier<bool> _isSavingNotifier = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _isSavingNotifier.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_controller, _isSavingNotifier]),
+      builder: (context, _) {
+        final isSaving = _isSavingNotifier.value;
+        final canSave = _controller.text.trim().isNotEmpty && !isSaving;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: AppTextView.body1(
+                        AppStrings.auditAddComment,
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    AppOverlayCloseButton(
+                      onTap: isSaving ? null : () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                AppTextView.body2(
+                  AppStrings.comment,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _controller,
+                  maxLines: 4,
+                  minLines: 4,
+                  enabled: !isSaving,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  cursorColor: AppColors.secondaryColor,
+                  decoration: InputDecoration(
+                    hintText: AppStrings.enterComment,
+                    hintStyle: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    filled: true,
+                    fillColor: AppColors.fieldFill,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.secondaryColor),
+                    ),
+                    disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grey1.withValues(alpha: 0.25)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                AppButton(
+                  text: AppStrings.saveComment,
+                  onPressed: canSave ? _save : null,
+                  isLoading: isSaving,
+                  backgroundColor: canSave ? AppColors.secondaryColor : AppColors.grey1,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _save() async {
+    final comment = _controller.text.trim();
+    if (comment.isEmpty || _isSavingNotifier.value) {
+      return;
+    }
+
+    _isSavingNotifier.value = true;
+    try {
+      await widget.onSave(comment);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (error) {
+      debugPrint('Unable to create text comment: $error');
+      _isSavingNotifier.value = false;
+    }
   }
 }
 
@@ -1538,7 +1580,7 @@ class _CommentMediaCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         onTap: () {
           _openCommentsDialog(context);
         },
@@ -1546,7 +1588,7 @@ class _CommentMediaCard extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.grey2.withValues(alpha: 0.45)),
           ),
           child: Row(
@@ -1573,7 +1615,6 @@ class _CommentMediaCard extends StatelessWidget {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => CheckInMediaCommentsBottomSheet(
         descriptionId: descriptionId,
@@ -1618,7 +1659,7 @@ class _CommentMediaPreview extends StatelessWidget {
       mediaType: mediaType,
       width: 72,
       height: 72,
-      borderRadius: 6,
+      borderRadius: 12,
       placeholder: hasMedia
           ? const _CommentMediaLoadingPlaceholder()
           : const CheckInTextCommentPlaceholder(),
@@ -1634,7 +1675,10 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
     return Container(
       width: 72,
       height: 72,
-      decoration: BoxDecoration(color: AppColors.hex14182a, borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: AppColors.hex14182a,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Center(
         child: Container(
           width: 34,
@@ -1730,7 +1774,7 @@ class _SelectionCounter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           onTap: hasReachedLimit ? null : onTapCount,
           child: Container(
             width: 48,
@@ -1738,7 +1782,7 @@ class _SelectionCounter extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: hasReachedLimit ? color.withValues(alpha: 0.5) : color,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: AppTextView.body2(
               '$count',
@@ -1751,14 +1795,14 @@ class _SelectionCounter extends StatelessWidget {
         if (showDecrementControl) ...[
           const SizedBox(height: 8),
           InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             onTap: onTapArrow,
             child: Container(
               width: 48,
               height: 28,
               decoration: BoxDecoration(
                 color: canEditBlocks ? AppColors.grey1 : AppColors.grey1.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 canEditBlocks ? Icons.keyboard_arrow_down_rounded : Icons.lock_rounded,
@@ -1804,7 +1848,7 @@ class _SeeAllAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
@@ -1880,7 +1924,7 @@ class _MediaTypeSelectionBottomSheetState extends State<_MediaTypeSelectionBotto
                     height: 4,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),

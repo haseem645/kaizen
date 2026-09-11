@@ -371,7 +371,7 @@ class _KaizenGramViewState extends State<_KaizenGramView>
         labelPadding: const EdgeInsets.only(top: 3),
         indicator: BoxDecoration(
           color: AppColors.secondaryColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: AppColors.mainBg,

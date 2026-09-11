@@ -117,6 +117,8 @@ class _CheckInFilterSheetState extends State<CheckInFilterSheet> {
       builder: (_) => CheckInSeatProfileFilterSheet(
         options: widget.seatProfileOptions,
         initialValue: _selection.value.seatProfile,
+        compactSpacing: true,
+        showCloseHeader: true,
       ),
     );
 
@@ -167,9 +169,9 @@ class _FilterSelectionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
@@ -179,7 +181,7 @@ class _FilterSelectionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: AppColors.grey1.withValues(alpha: 0.75),
               width: 1,

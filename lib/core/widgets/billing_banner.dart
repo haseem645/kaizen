@@ -24,7 +24,7 @@ class BillingBanner extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.blue),
               boxShadow: [
                 BoxShadow(

@@ -142,7 +142,7 @@ class _SetPasswordScreenView extends StatelessWidget {
                                   isLoading: controller.isSubmitting,
                                   backgroundColor: AppColors.secondaryColor,
                                   minimumHeight: 45,
-                                  borderRadius: 8,
+                                  borderRadius: 12,
                                   textSize: 18,
                                 ),
                                 const SizedBox(height: 32),
@@ -188,7 +188,7 @@ class _ReadOnlyField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.textPrimary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.12),
         ),
@@ -245,7 +245,7 @@ class _PasswordField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.textPrimary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.12),
         ),
