@@ -26,17 +26,13 @@ class SeatProfileDescriptionFormData {
 }
 
 class SeatProfileDescriptionCheckInTypeOption {
-  const SeatProfileDescriptionCheckInTypeOption({
-    required this.apiValue,
-    required this.label,
-  });
+  const SeatProfileDescriptionCheckInTypeOption({required this.apiValue, required this.label});
 
   final String apiValue;
   final String label;
 }
 
-const List<SeatProfileDescriptionCheckInTypeOption>
-seatProfileDescriptionCheckInTypeOptions =
+const List<SeatProfileDescriptionCheckInTypeOption> seatProfileDescriptionCheckInTypeOptions =
     <SeatProfileDescriptionCheckInTypeOption>[
       SeatProfileDescriptionCheckInTypeOption(
         apiValue: 'observation',
@@ -58,18 +54,10 @@ seatProfileDescriptionCheckInTypeOptions =
         apiValue: 'survey',
         label: AppStrings.seatProfileCheckInSurvey,
       ),
-      SeatProfileDescriptionCheckInTypeOption(
-        apiValue: 'no_check_in',
-        label: AppStrings.seatProfileCheckInNoCheckIn,
-      ),
+      SeatProfileDescriptionCheckInTypeOption(apiValue: 'no_check_in', label: AppStrings.noCheckIn),
     ];
 
-const List<String> _seatProfileDescriptionMilestoneOptions = <String>[
-  '30',
-  '60',
-  '90',
-  '',
-];
+const List<String> _seatProfileDescriptionMilestoneOptions = <String>['30', '60', '90', ''];
 
 Future<bool> showSeatProfileDescriptionBottomSheet(
   BuildContext context, {
@@ -144,8 +132,7 @@ class _SeatProfileDescriptionBottomSheet extends StatefulWidget {
       _SeatProfileDescriptionBottomSheetState();
 }
 
-class _SeatProfileDescriptionBottomSheetState
-    extends State<_SeatProfileDescriptionBottomSheet> {
+class _SeatProfileDescriptionBottomSheetState extends State<_SeatProfileDescriptionBottomSheet> {
   late final _SeatProfileDescriptionSheetController _controller;
 
   bool get _isEditable => widget.onSave != null;
@@ -219,18 +206,14 @@ class _SeatProfileDescriptionBottomSheetState
                         children: [
                           Expanded(
                             child: AppTextView.body1(
-                              widget.title ??
-                                  AppStrings
-                                      .seatProfileEditDescriptionDialogTitle,
+                              widget.title ?? AppStrings.seatProfileEditDescriptionDialogTitle,
                               color: AppColors.textPrimary,
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           _SeatDescriptionSheetCloseButton(
-                            onTap: _controller.isSaving
-                                ? null
-                                : () => Navigator.of(context).pop(),
+                            onTap: _controller.isSaving ? null : () => Navigator.of(context).pop(),
                           ),
                         ],
                       ),
@@ -248,8 +231,7 @@ class _SeatProfileDescriptionBottomSheetState
                             Center(
                               child: AppTextView.body(
                                 widget.descriptionText ??
-                                    AppStrings
-                                        .seatProfileEditDescriptionDialogDescription,
+                                    AppStrings.seatProfileEditDescriptionDialogDescription,
                                 color: AppColors.lightPurple1,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
@@ -266,15 +248,13 @@ class _SeatProfileDescriptionBottomSheetState
                             _SeatDescriptionTextField(
                               controller: _controller.nameController,
                               enabled: _isEditable && !_controller.isSaving,
-                              hintText:
-                                  AppStrings.seatProfileSeatDescriptionNameHint,
+                              hintText: AppStrings.seatProfileSeatDescriptionNameHint,
                               minLines: 1,
                               maxLines: 1,
                             ),
                             const SizedBox(height: 12),
                             const AppTextView.body3(
-                              AppStrings
-                                  .seatProfileSeatDescriptionValidationNote,
+                              AppStrings.seatProfileSeatDescriptionValidationNote,
                               color: AppColors.grey1,
                               height: 1.4,
                             ),
@@ -288,8 +268,7 @@ class _SeatProfileDescriptionBottomSheetState
                             _SeatDescriptionTextField(
                               controller: _controller.auditSpecificsController,
                               enabled: _isEditable && !_controller.isSaving,
-                              hintText:
-                                  AppStrings.seatProfileAuditSpecificsHint,
+                              hintText: AppStrings.seatProfileAuditSpecificsHint,
                               minLines: 5,
                               maxLines: 7,
                             ),
@@ -303,9 +282,7 @@ class _SeatProfileDescriptionBottomSheetState
                                     (value) => DropdownMenuItem<String>(
                                       value: value,
                                       child: AppTextView.body3(
-                                        value.isEmpty
-                                            ? AppStrings.seatProfileNoneOption
-                                            : value,
+                                        value.isEmpty ? AppStrings.seatProfileNoneOption : value,
                                         color: AppColors.textPrimary,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -329,37 +306,29 @@ class _SeatProfileDescriptionBottomSheetState
                                     (option) => _CheckInTypeChip(
                                       label: option.label,
                                       isSelected:
-                                          _controller.selectedCheckInType ==
-                                          option.apiValue,
-                                      isEnabled:
-                                          _isEditable && !_controller.isSaving,
-                                      onTap: () => _controller
-                                          .selectCheckInType(option.apiValue),
+                                          _controller.selectedCheckInType == option.apiValue,
+                                      isEnabled: _isEditable && !_controller.isSaving,
+                                      onTap: () => _controller.selectCheckInType(option.apiValue),
                                     ),
                                   )
                                   .toList(growable: false),
                             ),
                             if (_controller.errorMessage != null) ...[
                               const SizedBox(height: 16),
-                              _SeatDescriptionErrorCard(
-                                message: _controller.errorMessage!,
-                              ),
+                              _SeatDescriptionErrorCard(message: _controller.errorMessage!),
                             ],
                             const SizedBox(height: 24),
                             Align(
                               alignment: Alignment.centerRight,
                               child: SizedBox(
-                                width: 180,
                                 child: AppButton(
                                   text: _isEditable
-                                      ? (widget.submitLabel ??
-                                            AppStrings.seatProfileUpdateAction)
+                                      ? (widget.submitLabel ?? AppStrings.seatProfileUpdateAction)
                                       : AppStrings.done,
                                   onPressed: _isEditable
                                       ? (_controller.canSave ? _submit : null)
                                       : () => Navigator.of(context).pop(),
-                                  isLoading:
-                                      _isEditable && _controller.isSaving,
+                                  isLoading: _isEditable && _controller.isSaving,
                                   borderRadius: 14,
                                   minimumHeight: 48,
                                 ),
@@ -383,15 +352,9 @@ class _SeatProfileDescriptionBottomSheetState
 class _SeatProfileDescriptionSheetController extends ChangeNotifier {
   _SeatProfileDescriptionSheetController(SeatProfileDescription description)
     : nameController = TextEditingController(text: description.name),
-      auditSpecificsController = TextEditingController(
-        text: description.auditSpecifics,
-      ),
-      _selectedMilestoneDay = _normalizeSeatProfileMilestoneValue(
-        description.milestoneDays,
-      ),
-      _selectedCheckInType = _initialSeatProfileCheckInType(
-        description.auditFactorType,
-      ) {
+      auditSpecificsController = TextEditingController(text: description.auditSpecifics),
+      _selectedMilestoneDay = _normalizeSeatProfileMilestoneValue(description.milestoneDays),
+      _selectedCheckInType = _initialSeatProfileCheckInType(description.auditFactorType) {
     nameController.addListener(_handleFieldChanged);
     auditSpecificsController.addListener(_handleFieldChanged);
   }
@@ -520,18 +483,14 @@ class _SeatDescriptionTextField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.28),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
       ),
       child: TextField(
         controller: controller,
         enabled: enabled,
         minLines: minLines,
         maxLines: maxLines,
-        textInputAction: maxLines == 1
-            ? TextInputAction.done
-            : TextInputAction.newline,
+        textInputAction: maxLines == 1 ? TextInputAction.done : TextInputAction.newline,
         style: const TextStyle(
           color: AppColors.textPrimary,
           fontSize: 14,
@@ -541,10 +500,7 @@ class _SeatDescriptionTextField extends StatelessWidget {
         cursorColor: AppColors.textPrimary,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-          ),
+          hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           border: InputBorder.none,
           isCollapsed: true,
         ),
@@ -572,7 +528,7 @@ class _SeatDescriptionDropdownField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      padding: const EdgeInsets.fromLTRB(4, 14, 4, 10),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
@@ -580,21 +536,15 @@ class _SeatDescriptionDropdownField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextView.body2(
-            label,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
+          AppTextView.body2(label, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.7),
-              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.7)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -604,9 +554,7 @@ class _SeatDescriptionDropdownField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
-                  color: enabled
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary,
+                  color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
                   size: 24,
                 ),
                 style: const TextStyle(
@@ -644,9 +592,7 @@ class _CheckInTypeChip extends StatelessWidget {
         ? AppColors.purple1
         : AppColors.fieldBorder.withValues(alpha: 0.32);
     final backgroundColor = isSelected ? AppColors.purple1 : AppColors.mainBg;
-    final textColor = isSelected
-        ? AppColors.textPrimary
-        : AppColors.textSecondary;
+    final textColor = isSelected ? AppColors.textPrimary : AppColors.textSecondary;
 
     return Opacity(
       opacity: isEnabled ? 1 : 0.72,
@@ -662,11 +608,7 @@ class _CheckInTypeChip extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: borderColor),
             ),
-            child: AppTextView.body3(
-              label,
-              color: textColor,
-              fontWeight: FontWeight.w700,
-            ),
+            child: AppTextView.body3(label, color: textColor, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -689,11 +631,7 @@ class _SeatDescriptionErrorCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.red1.withValues(alpha: 0.28)),
       ),
-      child: AppTextView.body2(
-        message,
-        color: AppColors.textPrimary,
-        height: 1.4,
-      ),
+      child: AppTextView.body2(message, color: AppColors.textPrimary, height: 1.4),
     );
   }
 }
@@ -769,17 +707,10 @@ String _humanizeSeatProfileCheckInType(String value) {
   return normalized
       .split(' ')
       .where((segment) => segment.isNotEmpty)
-      .map(
-        (segment) =>
-            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
-      )
+      .map((segment) => '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}')
       .join(' ');
 }
 
 int _countWords(String value) {
-  return value
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((word) => word.isNotEmpty)
-      .length;
+  return value.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
 }
