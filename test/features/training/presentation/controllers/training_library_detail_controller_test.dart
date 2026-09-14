@@ -112,6 +112,22 @@ void main() {
     },
   );
 
+  test('read-only users cannot open the lesson actions sheet', () async {
+    canManage = false;
+    await controller.showLessonActions(
+      controller.module.lessons.first,
+      selectAction: (_, __) async =>
+          fail('The actions sheet must not open without edit permission.'),
+      openEditor: (_, __, ___) async => fail('Editing must remain restricted.'),
+      showVisibility: (_) async => fail('Visibility must remain restricted.'),
+      confirmDelete: (_) async => fail('Deletion must remain restricted.'),
+      showMessage: (message) => fail(message),
+    );
+    expect(auditRepository.visibilityIds, isEmpty);
+    expect(auditRepository.deletedIds, isEmpty);
+    expect(controller.navigationResult, isNull);
+  });
+
   test(
     'lesson actions recheck permission when the actions sheet returns',
     () async {

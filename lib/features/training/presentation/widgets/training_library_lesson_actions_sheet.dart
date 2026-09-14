@@ -14,7 +14,10 @@ Future<TrainingLibraryLessonAction?> showTrainingLibraryLessonActionsSheet(
   BuildContext context, {
   required bool canEdit,
   required bool isPubliclyAvailable,
-}) {
+}) async {
+  if (!canEdit) {
+    return null;
+  }
   return showModalBottomSheet<TrainingLibraryLessonAction>(
     context: context,
     isScrollControlled: true,
@@ -46,6 +49,9 @@ class TrainingLibraryLessonActionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!canEdit) {
+      return const SizedBox.shrink();
+    }
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Material(

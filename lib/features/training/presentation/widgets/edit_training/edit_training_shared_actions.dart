@@ -109,27 +109,62 @@ class _TrainingCreateWithAiButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: isEnabled && !isLoading ? onTap : null,
-      style: TextButton.styleFrom(
-        backgroundColor: AppColors.secondaryColor,
-        foregroundColor: AppColors.textPrimary,
-        disabledBackgroundColor: AppColors.secondaryColor.withValues(alpha: 0.5),
-        disabledForegroundColor: AppColors.textSecondary,
-        minimumSize: Size(0, compact ? 30 : 34),
-        padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16, vertical: compact ? 6 : 8),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      icon: isLoading
-          ? FastCircularProgressIndicator(width: 16, height: 16)
-          : Icon(Icons.auto_awesome_rounded, size: compact ? 16 : 18),
-      label: AppTextView.body2(
-        AppStrings.trainingCreateWithAi,
-        fontSize: compact ? 12 : 13,
-        fontWeight: FontWeight.w500,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+    final isInteractive = isEnabled && !isLoading;
+
+    return Padding(
+      // Leave room for the glow inside each training page's clip.
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isInteractive
+              ? [
+                  BoxShadow(
+                    color: AppColors.purple1.withValues(alpha: 0.55),
+                    blurRadius: 8,
+                    spreadRadius: -1,
+                    offset: const Offset(-2, 0),
+                  ),
+                  BoxShadow(
+                    color: AppColors.secondaryColor.withValues(alpha: 0.6),
+                    blurRadius: 8,
+                    spreadRadius: -1,
+                    offset: const Offset(2, 0),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : const <BoxShadow>[],
+        ),
+        child: TextButton.icon(
+          onPressed: isInteractive ? onTap : null,
+          style: TextButton.styleFrom(
+            backgroundColor: AppColors.secondaryColor,
+            foregroundColor: AppColors.textPrimary,
+            disabledBackgroundColor: AppColors.secondaryColor.withValues(alpha: 0.5),
+            disabledForegroundColor: AppColors.textSecondary,
+            minimumSize: Size(0, compact ? 30 : 34),
+            padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16, vertical: compact ? 6 : 8),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            side: isInteractive
+                ? BorderSide(color: AppColors.lightPurple1.withValues(alpha: 0.7))
+                : BorderSide.none,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          icon: isLoading
+              ? FastCircularProgressIndicator(width: 16, height: 16)
+              : Icon(Icons.auto_awesome_rounded, size: compact ? 16 : 18),
+          label: AppTextView.body2(
+            AppStrings.trainingCreateWithAi,
+            fontSize: compact ? 12 : 13,
+            fontWeight: FontWeight.w500,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ),
     );
   }

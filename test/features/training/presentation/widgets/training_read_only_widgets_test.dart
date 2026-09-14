@@ -7,6 +7,7 @@ import 'package:sparrowkaizen/features/training/presentation/controllers/trainin
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_tab_navigation_controller.dart';
 import 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_swipe_delete_action.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_tab_view.dart';
 
 void main() {
   late _PreviewController controller;
@@ -85,6 +86,52 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final size in const [Size(360, 520), Size(320, 200)]) {
+    testWidgets('an empty quiz fills the available ${size.width} by ${size.height} tab viewport', (
+      tester,
+    ) async {
+      final emptyController = _EmptyQuizController();
+      final navigation = TrainingTabNavigationController()..selectTab(2);
+      addTearDown(emptyController.dispose);
+      addTearDown(navigation.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.fromSize(
+                size: size,
+                child: MediaQuery(
+                  data: const MediaQueryData(
+                    size: Size(800, 600),
+                    textScaler: TextScaler.linear(2),
+                  ),
+                  child: TrainingTabView(
+                    navigation: navigation,
+                    maxTabIndex: 3,
+                    pagePaddingBuilder: (_) => EdgeInsets.zero,
+                    pageBuilder: (_, index) => index == 2
+                        ? TrainingReadOnlyQuizTab(controller: emptyController)
+                        : const SizedBox.expand(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final message = find.text(AppStrings.trainingNoQuizQuestionsAvailable);
+      final panel = find.ancestor(of: message, matching: find.byType(Container)).first;
+      final viewport = tester.getRect(find.byType(TrainingTabView));
+      expect(tester.getRect(panel), viewport);
+      expect(tester.getCenter(message), viewport.center);
+      expect(find.text(AppStrings.trainingCreateWithAi), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('shared navigation respects the viewer tab limit and updates when access changes', (
     tester,
   ) async {
@@ -146,3 +193,8 @@ class _PreviewController extends TrainingModuleController {
 }
 
 class _UnusedRepository extends Fake implements AuditRepository {}
+
+class _EmptyQuizController extends _PreviewController {
+  @override
+  List<SeatDescriptionTrainingQuestion> get selectedModuleQuestions => const [];
+}

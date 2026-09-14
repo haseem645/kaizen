@@ -26,7 +26,7 @@ void main() {
   for (final selectSeat in [true, false]) {
     testWidgets(
       selectSeat
-          ? 'seat applies only from Show and keeps the draft after failure'
+          ? 'seat applies only from Done and keeps the draft after failure'
           : 'department keeps progress in the option and retries failures',
       (tester) async {
         final repository = _LibraryRepository();
@@ -65,7 +65,7 @@ void main() {
           expect(controller.searchQuery, isEmpty);
           expect(controller.isApplyingSelection, isFalse);
           expect(repository.requests, requestsBeforeSelection);
-          await tester.tap(find.text(AppStrings.trainingLibraryShowAction));
+          await tester.tap(find.text(AppStrings.done));
           await tester.pump();
         }
 
@@ -115,9 +115,7 @@ void main() {
 
         final retry = Completer<TrainingLibraryPage>();
         repository.response = retry.future;
-        await tester.tap(
-          find.text(selectSeat ? AppStrings.trainingLibraryShowAction : title),
-        );
+        await tester.tap(find.text(selectSeat ? AppStrings.done : title));
         await tester.pump();
         retry.complete(
           TrainingLibraryPage(
@@ -142,7 +140,7 @@ void main() {
   }
 
   testWidgets(
-    'closing discards a seat draft and All Seats also waits for Show',
+    'closing discards a seat draft and All Seats also waits for Done',
     (tester) async {
       final repository = _LibraryRepository();
       final controller = TrainingLibraryController(
@@ -182,7 +180,7 @@ void main() {
       await tester.tap(find.text(AppStrings.trainingLibraryAllSeats));
       await tester.pump();
       expect(repository.requests, requestsBeforeOpening);
-      await tester.tap(find.text(AppStrings.trainingLibraryShowAction));
+      await tester.tap(find.text(AppStrings.done));
       await tester.pumpAndSettle();
       expect(controller.selectedSeatId, isNull);
       expect(controller.searchQuery, isEmpty);
@@ -193,7 +191,7 @@ void main() {
     },
   );
 
-  testWidgets('Show remains visible above the keyboard on a small screen', (
+  testWidgets('Done remains visible above the keyboard on a small screen', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320, 640);
@@ -221,10 +219,7 @@ void main() {
     tester.view.viewInsets = const FakeViewPadding(bottom: 240);
     await tester.pumpAndSettle();
 
-    expect(
-      find.text(AppStrings.trainingLibraryShowAction).hitTestable(),
-      findsOneWidget,
-    );
+    expect(find.text(AppStrings.done).hitTestable(), findsOneWidget);
     expect(
       tester.getBottomLeft(find.byType(AppButton)).dy,
       lessThanOrEqualTo(400),

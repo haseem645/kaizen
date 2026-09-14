@@ -61,7 +61,7 @@ class _SeatSelectionContent extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: AppButton(
-                text: AppStrings.trainingLibraryShowAction,
+                text: AppStrings.done,
                 textSize: 14,
                 isLoading: controller.isApplyingSelection,
                 onPressed: controller.canApplySelection ? onApply : null,

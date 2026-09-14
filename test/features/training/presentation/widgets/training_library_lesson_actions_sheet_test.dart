@@ -31,7 +31,7 @@ void main() {
     expect(selected, TrainingLibraryLessonAction.delete);
   });
 
-  testWidgets('read-only accounts cannot edit, delete, or change visibility', (
+  testWidgets('read-only accounts see no lesson actions or visibility', (
     tester,
   ) async {
     var selected = false;
@@ -39,12 +39,50 @@ void main() {
       _host(canEdit: false, onSelected: (_) => selected = true),
     );
 
+    expect(find.text(AppStrings.trainingLibraryLessonActions), findsNothing);
+    expect(find.text(AppStrings.visibilityLabel), findsNothing);
     expect(find.text(AppStrings.trainingEditAssignment), findsNothing);
     expect(find.text(AppStrings.trainingDeleteModuleAction), findsNothing);
     expect(find.byIcon(Icons.north_east), findsNothing);
-    await tester.tap(find.text(AppStrings.visibilityLabel));
     expect(selected, isFalse);
   });
+
+  for (final isPubliclyAvailable in [false, true]) {
+    testWidgets(
+      'no actions bottom sheet opens without edit permission (public: $isPubliclyAvailable)',
+      (tester) async {
+        var returned = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () async {
+                    final action = await showTrainingLibraryLessonActionsSheet(
+                      context,
+                      canEdit: false,
+                      isPubliclyAvailable: isPubliclyAvailable,
+                    );
+                    expect(action, isNull);
+                    returned = true;
+                  },
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        expect(returned, isTrue);
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(find.byType(TrainingLibraryLessonActionsSheet), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('actions wrap on a narrow screen with large text', (
     tester,

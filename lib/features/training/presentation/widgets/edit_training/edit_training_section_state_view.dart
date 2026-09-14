@@ -151,8 +151,13 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
       pagePaddingBuilder: (index) =>
           index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
       pageBuilder: (context, index) {
+        final showsEmptyQuiz =
+            index == 2 &&
+            !controller.canManageTraining &&
+            !controller.isQuestionsLoading &&
+            controller.selectedModuleQuestions.isEmpty;
         final fillsPage =
-            (index == 1 || index == 3) &&
+            (index == 1 || index == 3 || showsEmptyQuiz) &&
             controller.hasSelectedModule &&
             !controller.isCreatingNewLessonDraft;
         final tabContent = _buildTabPageForIndex(

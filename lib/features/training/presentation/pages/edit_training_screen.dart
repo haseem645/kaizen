@@ -32,34 +32,34 @@ import '../controllers/training_tab_navigation_controller.dart';
 import '../controllers/training_video_capture_bridge.dart';
 import '../controllers/training_video_upload_controller.dart';
 import '../widgets/training_assignment_layout.dart';
-import '../widgets/training_tab_view.dart';
-import '../widgets/training_swipe_delete_action.dart';
 import '../widgets/training_option_delete_dialog.dart';
+import '../widgets/training_swipe_delete_action.dart';
+import '../widgets/training_tab_view.dart';
 
-part '../widgets/edit_training/edit_training_section_state_handlers.dart';
-part '../widgets/edit_training/edit_training_section_state_view.dart';
-part '../widgets/edit_training/edit_training_section_state_media.dart';
-part '../widgets/edit_training/edit_training_section_state_dialogs.dart';
-part '../widgets/edit_training/edit_training_tabs.dart';
-part '../widgets/edit_training/edit_training_module_selector.dart';
+part '../widgets/edit_training/edit_training_add_question_dialog.dart';
+part '../widgets/edit_training/edit_training_add_question_dialog_widgets.dart';
+part '../widgets/edit_training/edit_training_assignment_tab.dart';
+part '../widgets/edit_training/edit_training_dialog_support.dart';
+part '../widgets/edit_training/edit_training_edit_question_dialog.dart';
+part '../widgets/edit_training/edit_training_generate_quiz_dialog.dart';
+part '../widgets/edit_training/edit_training_generate_sop_dialog.dart';
 part '../widgets/edit_training/edit_training_module_dialogs.dart';
-part '../widgets/edit_training/edit_training_video_tab.dart';
+part '../widgets/edit_training/edit_training_module_selector.dart';
+part '../widgets/edit_training/edit_training_quiz_option_widgets.dart';
+part '../widgets/edit_training/edit_training_quiz_question_actions_sheet.dart';
+part '../widgets/edit_training/edit_training_quiz_question_card.dart';
+part '../widgets/edit_training/edit_training_quiz_tab.dart';
+part '../widgets/edit_training/edit_training_section_state_dialogs.dart';
+part '../widgets/edit_training/edit_training_section_state_handlers.dart';
+part '../widgets/edit_training/edit_training_section_state_media.dart';
+part '../widgets/edit_training/edit_training_section_state_view.dart';
+part '../widgets/edit_training/edit_training_shared_actions.dart';
+part '../widgets/edit_training/edit_training_sop_tab.dart';
+part '../widgets/edit_training/edit_training_tabs.dart';
+part '../widgets/edit_training/edit_training_text_edit.dart';
 part '../widgets/edit_training/edit_training_video_picker.dart';
 part '../widgets/edit_training/edit_training_video_picker_tiles.dart';
-part '../widgets/edit_training/edit_training_sop_tab.dart';
-part '../widgets/edit_training/edit_training_assignment_tab.dart';
-part '../widgets/edit_training/edit_training_quiz_tab.dart';
-part '../widgets/edit_training/edit_training_shared_actions.dart';
-part '../widgets/edit_training/edit_training_text_edit.dart';
-part '../widgets/edit_training/edit_training_generate_quiz_dialog.dart';
-part '../widgets/edit_training/edit_training_add_question_dialog.dart';
-part '../widgets/edit_training/edit_training_edit_question_dialog.dart';
-part '../widgets/edit_training/edit_training_add_question_dialog_widgets.dart';
-part '../widgets/edit_training/edit_training_generate_sop_dialog.dart';
-part '../widgets/edit_training/edit_training_dialog_support.dart';
-part '../widgets/edit_training/edit_training_quiz_question_card.dart';
-part '../widgets/edit_training/edit_training_quiz_question_actions_sheet.dart';
-part '../widgets/edit_training/edit_training_quiz_option_widgets.dart';
+part '../widgets/edit_training/edit_training_video_tab.dart';
 part '../widgets/edit_training/training_read_only_tabs.dart';
 
 class EditTrainingScreen extends StatelessWidget {
@@ -85,10 +85,7 @@ class EditTrainingScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-              child: _buildHeader(context),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
             const SizedBox(height: 18),
             Expanded(
               child: Padding(
@@ -124,16 +121,13 @@ class EditTrainingScreen extends StatelessWidget {
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
-                  ),
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                 ),
               ),
             ),
           ),
           const AppTextView.body(
-            AppStrings.seatProfileTrainings,
+            AppStrings.training,
             color: AppColors.secondaryColor,
             fontSize: 20,
             fontWeight: FontWeight.w500,
@@ -166,15 +160,13 @@ class EditTrainingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedInitialModuleId =
-        (initialModuleId?.trim().isNotEmpty ?? false)
+    final resolvedInitialModuleId = (initialModuleId?.trim().isNotEmpty ?? false)
         ? initialModuleId
         : trainingRoute.initialModuleId;
 
-    final routeBasedTrainingAccess = AppManager.instance
-        .canCurrentUserManageTrainingForSeatProfile(
-          seatProfileId: trainingRoute.job,
-        );
+    final routeBasedTrainingAccess = AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+      seatProfileId: trainingRoute.job,
+    );
     final resolvedCanManageTraining =
         AppManager.instance.canCurrentOrganizationModifyContent &&
         (canManageTraining == true || routeBasedTrainingAccess);
@@ -183,8 +175,7 @@ class EditTrainingSection extends StatelessWidget {
       providers: [
         Provider<AuditRemoteDataSource>(create: (_) => AuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              AuditRepositoryImpl(remoteDataSource),
+          update: (_, remoteDataSource, __) => AuditRepositoryImpl(remoteDataSource),
         ),
         ChangeNotifierProvider<TrainingModuleController>(
           create: (context) =>
@@ -202,8 +193,7 @@ class EditTrainingSection extends StatelessWidget {
         initialModuleId: resolvedInitialModuleId,
         trainingDescriptionId: trainingRoute.description,
         isEmbedded: isEmbedded,
-        skipResumeSessionRefreshOnMediaPicker:
-            skipResumeSessionRefreshOnMediaPicker,
+        skipResumeSessionRefreshOnMediaPicker: skipResumeSessionRefreshOnMediaPicker,
         showOnlyApiErrorSnackBars: showOnlyApiErrorSnackBars,
         useNonBlockingVideoUpload: useNonBlockingVideoUpload,
       ),
@@ -229,8 +219,7 @@ class _EditTrainingSectionView extends StatefulWidget {
   final bool useNonBlockingVideoUpload;
 
   @override
-  State<_EditTrainingSectionView> createState() =>
-      _EditTrainingSectionViewState();
+  State<_EditTrainingSectionView> createState() => _EditTrainingSectionViewState();
 }
 
 class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
@@ -239,11 +228,8 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
   final ImagePicker _imagePicker = ImagePicker();
   final FocusNode _newLessonTitleFocusNode = FocusNode();
   final GlobalKey _newLessonTitleFieldKey = GlobalKey();
-  final ValueNotifier<bool> _isPickingVideoNotifier = ValueNotifier<bool>(
-    false,
-  );
-  final ValueNotifier<bool> _isFinalizingVideoSetupNotifier =
-      ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _isPickingVideoNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _isFinalizingVideoSetupNotifier = ValueNotifier<bool>(false);
   TrainingModuleController? _trainingController;
   String? _lastDocumentErrorMessage;
   String? _lastAssignmentErrorMessage;
@@ -277,23 +263,19 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
   @override
   void initState() {
     super.initState();
-    _tabNavigation = TrainingTabNavigationController()
-      ..addListener(_handleTabChanged);
+    _tabNavigation = TrainingTabNavigationController()..addListener(_handleTabChanged);
     _viewStateListenable = Listenable.merge([
       _tabNavigation,
       _isPickingVideoNotifier,
       _isFinalizingVideoSetupNotifier,
-      if (widget.useNonBlockingVideoUpload)
-        TrainingVideoUploadController.instance,
+      if (widget.useNonBlockingVideoUpload) TrainingVideoUploadController.instance,
     ]);
     if (widget.useNonBlockingVideoUpload) {
       _lastHandledGlobalVideoUploadEventSequence =
           TrainingVideoUploadController.instance.latestTerminalEventSequence;
       _lastHandledGlobalVideoSummaryEventSequence =
           TrainingVideoUploadController.instance.latestSummaryEventSequence;
-      TrainingVideoUploadController.instance.addListener(
-        _handleGlobalVideoUploadChanged,
-      );
+      TrainingVideoUploadController.instance.addListener(_handleGlobalVideoUploadChanged);
     }
     unawaited(_restoreLostTrainingVideoIfNeeded());
   }
@@ -308,15 +290,9 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
 
     _trainingController?.removeListener(_handleTrainingControllerChanged);
     _trainingController = controller;
-    _lastDocumentErrorMessage = _normalizeSnackBarMessage(
-      controller.documentErrorMessage,
-    );
-    _lastAssignmentErrorMessage = _normalizeSnackBarMessage(
-      controller.assignmentErrorMessage,
-    );
-    _lastQuestionsErrorMessage = _normalizeSnackBarMessage(
-      controller.questionsErrorMessage,
-    );
+    _lastDocumentErrorMessage = _normalizeSnackBarMessage(controller.documentErrorMessage);
+    _lastAssignmentErrorMessage = _normalizeSnackBarMessage(controller.assignmentErrorMessage);
+    _lastQuestionsErrorMessage = _normalizeSnackBarMessage(controller.questionsErrorMessage);
     _lastHandledSummarySnackBarSequence = controller.summarySnackBarSequence;
     _trainingController?.addListener(_handleTrainingControllerChanged);
   }
@@ -325,9 +301,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
   void dispose() {
     _trainingController?.removeListener(_handleTrainingControllerChanged);
     if (widget.useNonBlockingVideoUpload) {
-      TrainingVideoUploadController.instance.removeListener(
-        _handleGlobalVideoUploadChanged,
-      );
+      TrainingVideoUploadController.instance.removeListener(_handleGlobalVideoUploadChanged);
     }
     _tabNavigation.removeListener(_handleTabChanged);
     _tabNavigation.dispose();
@@ -343,9 +317,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
     return PopScope<Object?>(
       canPop: !controller.isCreatingNewLessonDraft,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop ||
-            !controller.isCreatingNewLessonDraft ||
-            controller.isCreatingModule) {
+        if (didPop || !controller.isCreatingNewLessonDraft || controller.isCreatingModule) {
           return;
         }
 

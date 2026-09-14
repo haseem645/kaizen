@@ -193,7 +193,9 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
 
   Widget _buildTabPage(TrainingModuleController controller, int index) {
     final content = _buildTabContent(controller, index);
-    if (index == 1 || index == 3) return content;
+    final showsEmptyQuiz =
+        index == 2 && !controller.isQuestionsLoading && controller.selectedModuleQuestions.isEmpty;
+    if (index == 1 || index == 3 || showsEmptyQuiz) return content;
     return SingleChildScrollView(
       key: PageStorageKey<String>('${controller.selectedModuleId}:$index'),
       primary: false,
@@ -276,7 +278,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
             ),
           ),
           const AppTextView.body(
-            AppStrings.seatProfileTrainings,
+            AppStrings.training,
             color: AppColors.secondaryColor,
             fontSize: 20,
             fontWeight: FontWeight.w500,

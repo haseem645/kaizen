@@ -127,6 +127,9 @@ class TrainingLibraryDetailController extends ChangeNotifier {
     required Future<bool?> Function(TrainingLibraryLesson lesson) confirmDelete,
     required ValueChanged<String> showMessage,
   }) async {
+    if (_isDisposed || !canManageTraining) {
+      return;
+    }
     final action = await selectAction(
       canManageTraining,
       visibilityController.isLessonPubliclyAvailable(lesson),

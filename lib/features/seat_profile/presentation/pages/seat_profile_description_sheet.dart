@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/seat_profile_detail.dart';
 
+//
 typedef SeatProfileDescriptionSaveCallback =
     Future<void> Function(SeatProfileDescriptionFormData formData);
 
