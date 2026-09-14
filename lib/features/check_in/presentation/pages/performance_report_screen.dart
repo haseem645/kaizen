@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/managers/app_manager.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/app_permission_utils.dart';
 import '../../../../core/utils/custom_functions.dart';
@@ -289,116 +288,101 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                           ],
                           if (!widget.isMyReport) ...[
                             const SizedBox(height: 16),
-                            ListenableBuilder(
-                              listenable: AppManager.instance,
-                              builder: (context, _) {
-                                final canManageContent = AppManager
-                                    .instance
-                                    .canCurrentOrganizationModifyContent;
-                                final isCommitmentReadOnly =
-                                    report.isCertified || !canManageContent;
-
-                                return Column(
-                                  children: [
-                                    _CommitmentCard(
-                                      controller: _commentsController,
-                                      isReadOnly: isCommitmentReadOnly,
-                                      certifiedAt: report.certifiedAt,
-                                      employeeSignatureUrl:
-                                          report.selectedProfileSignatureUrl,
-                                      employeeName:
-                                          report.employeeSignatureName ??
-                                          report.profile.name,
-                                      employeeSignatureBytes:
-                                          state.employeeSignatureBytes,
-                                      facilitatorSignatureUrl:
-                                          report.facilitatorSignatureUrl,
-                                      facilitatorName: report.facilitatorName,
-                                      facilitatorSignatureBytes:
-                                          state.facilitatorSignatureBytes,
-                                      onChanged: controller
-                                          .updatePerformanceReportCommitment,
-                                      onAddEmployeeSignature: () =>
-                                          _openSignaturePad(
-                                            context,
-                                            title: 'Employee Signature',
-                                            existingSignatureUrl: report
-                                                .selectedProfileSignatureUrl,
-                                            onSaved: controller
-                                                .saveEmployeeSignature,
-                                          ),
-                                      onAddFacilitatorSignature: () async {
-                                        final user =
-                                            await AppPreference.getUser();
-                                        if (!context.mounted) {
-                                          return;
-                                        }
-                                        await _openSignaturePad(
-                                          context,
-                                          title: 'Facilitator Signature',
-                                          existingSignatureUrl:
-                                              user?.signature?.image,
-                                          onSaved: controller
-                                              .saveFacilitatorSignature,
-                                        );
-                                      },
-                                      onClearEmployeeSignature:
-                                          controller.clearEmployeeSignature,
-                                      onClearFacilitatorSignature:
-                                          controller.clearFacilitatorSignature,
-                                    ),
-                                    if (!report.isCertified &&
-                                        canManageContent) ...[
-                                      const SizedBox(height: 16),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: FilledButton(
-                                          onPressed:
-                                              state.isAuditActionLoading ||
-                                                  state
-                                                      .isFacilitatorSignatureUploading
-                                              ? null
-                                              : () => _handleCertify(
-                                                  context,
-                                                  controller,
-                                                ),
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor:
-                                                AppColors.secondaryColor,
-                                            foregroundColor:
-                                                AppColors.textPrimary,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 14,
+                            Column(
+                              children: [
+                                _CommitmentCard(
+                                  controller: _commentsController,
+                                  isReadOnly: report.isCertified,
+                                  certifiedAt: report.certifiedAt,
+                                  employeeSignatureUrl:
+                                      report.selectedProfileSignatureUrl,
+                                  employeeName:
+                                      report.employeeSignatureName ??
+                                      report.profile.name,
+                                  employeeSignatureBytes:
+                                      state.employeeSignatureBytes,
+                                  facilitatorSignatureUrl:
+                                      report.facilitatorSignatureUrl,
+                                  facilitatorName: report.facilitatorName,
+                                  facilitatorSignatureBytes:
+                                      state.facilitatorSignatureBytes,
+                                  onChanged: controller
+                                      .updatePerformanceReportCommitment,
+                                  onAddEmployeeSignature: () =>
+                                      _openSignaturePad(
+                                        context,
+                                        title: 'Employee Signature',
+                                        existingSignatureUrl:
+                                            report.selectedProfileSignatureUrl,
+                                        onSaved:
+                                            controller.saveEmployeeSignature,
+                                      ),
+                                  onAddFacilitatorSignature: () async {
+                                    final user = await AppPreference.getUser();
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    await _openSignaturePad(
+                                      context,
+                                      title: 'Facilitator Signature',
+                                      existingSignatureUrl:
+                                          user?.signature?.image,
+                                      onSaved:
+                                          controller.saveFacilitatorSignature,
+                                    );
+                                  },
+                                  onClearEmployeeSignature:
+                                      controller.clearEmployeeSignature,
+                                  onClearFacilitatorSignature:
+                                      controller.clearFacilitatorSignature,
+                                ),
+                                if (!report.isCertified) ...[
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton(
+                                      onPressed:
+                                          state.isAuditActionLoading ||
+                                              state
+                                                  .isFacilitatorSignatureUploading
+                                          ? null
+                                          : () => _handleCertify(
+                                              context,
+                                              controller,
                                             ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            AppColors.secondaryColor,
+                                        foregroundColor: AppColors.textPrimary,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          child:
-                                              state.isAuditActionLoading ||
-                                                  state
-                                                      .isFacilitatorSignatureUploading
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2.2,
-                                                    valueColor:
-                                                        AlwaysStoppedAnimation<
-                                                          Color
-                                                        >(
-                                                          AppColors.textPrimary,
-                                                        ),
-                                                  ),
-                                                )
-                                              : const Text(AppStrings.certify),
                                         ),
                                       ),
-                                    ],
-                                  ],
-                                );
-                              },
+                                      child:
+                                          state.isAuditActionLoading ||
+                                              state
+                                                  .isFacilitatorSignatureUploading
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(AppColors.textPrimary),
+                                              ),
+                                            )
+                                          : const Text(AppStrings.certify),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ] else if (reportViewData.shouldShowMessageOnly &&
@@ -702,10 +686,6 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     BuildContext context,
     CheckInController controller,
   ) async {
-    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
-      return;
-    }
-
     final message = await controller.certifyPerformanceReport();
     if (!context.mounted) {
       return;

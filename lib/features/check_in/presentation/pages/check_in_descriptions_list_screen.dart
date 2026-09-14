@@ -6,7 +6,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/constants/app_colors.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
-import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
@@ -31,16 +30,11 @@ bool _canEditSingleDescriptionAudit({
   required bool isOwner,
   required String date,
 }) {
-  return AppManager.instance.canCurrentOrganizationModifyContent &&
-      !isViewOnly &&
-      isOwner &&
-      CustomFunctions.isAuditWithinContinueWindow(date);
+  return !isViewOnly && isOwner && CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 bool _canCommentOnSingleDescriptionAudit({required bool isViewOnly, required String date}) {
-  return AppManager.instance.canCurrentOrganizationModifyContent &&
-      !isViewOnly &&
-      CustomFunctions.isAuditWithinContinueWindow(date);
+  return !isViewOnly && CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
@@ -199,7 +193,6 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
 
   @override
   Widget build(BuildContext context) {
-    context.watch<AppManager>();
     final controller = context.watch<CheckInController>();
     final state = controller.state;
     final audit = state.quarterlyAudit;
@@ -577,8 +570,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
             ),
           ],
         ),
-        if (widget.requireDescriptionSelection &&
-            AppManager.instance.canCurrentOrganizationModifyContent) ...[
+        if (widget.requireDescriptionSelection) ...[
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
