@@ -255,11 +255,8 @@ class _QuizEmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).height * 0.48;
-
     return Container(
       width: double.infinity,
-      height: height,
       decoration: BoxDecoration(
         color: AppColors.surfaceDark2.withValues(alpha: 0.38),
         borderRadius: BorderRadius.circular(18),

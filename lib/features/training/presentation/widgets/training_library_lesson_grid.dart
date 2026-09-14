@@ -19,7 +19,7 @@ class TrainingLibraryLessonGrid extends StatelessWidget {
 
   final List<TrainingLibraryLesson> lessons;
   final Future<void> Function(TrainingLibraryLesson) onLessonTap;
-  final Future<void> Function(TrainingLibraryLesson) onLessonActions;
+  final Future<void> Function(TrainingLibraryLesson)? onLessonActions;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +89,7 @@ class _TrainingLibraryLessonCard extends StatefulWidget {
   final int summaryLines;
   final double sortOrder;
   final Future<void> Function(TrainingLibraryLesson) onTap;
-  final Future<void> Function(TrainingLibraryLesson) onActions;
+  final Future<void> Function(TrainingLibraryLesson)? onActions;
 
   @override
   State<_TrainingLibraryLessonCard> createState() => _TrainingLibraryLessonCardState();
@@ -135,13 +135,14 @@ class _TrainingLibraryLessonCardState extends State<_TrainingLibraryLessonCard> 
   Widget _buildCard(BuildContext context, {required bool isHighlighted}) {
     final lesson = widget.lesson;
     final title = TrainingLibraryDetailController.displayLessonTitle(lesson);
+    final onActions = widget.onActions;
 
     return Semantics(
       sortKey: OrdinalSortKey(widget.sortOrder),
       button: true,
       selected: isHighlighted,
       label: title,
-      hint: AppStrings.trainingLibraryLessonActionsHint,
+      hint: onActions != null ? AppStrings.trainingLibraryLessonActionsHint : null,
       child: SizedBox(
         height: widget.height,
         width: double.infinity,
@@ -218,7 +219,7 @@ class _TrainingLibraryLessonCardState extends State<_TrainingLibraryLessonCard> 
                   overlayColor: const WidgetStatePropertyAll(Colors.transparent),
                   splashFactory: NoSplash.splashFactory,
                   onTap: () => _runAction(widget.onTap),
-                  onLongPress: () => _runAction(widget.onActions),
+                  onLongPress: onActions != null ? () => _runAction(onActions) : null,
                 ),
               ),
               if (isHighlighted)

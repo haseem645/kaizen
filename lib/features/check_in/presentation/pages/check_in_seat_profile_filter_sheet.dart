@@ -20,6 +20,7 @@ class CheckInSeatProfileFilterSheet extends StatefulWidget {
     this.searchHint = AppStrings.auditSearchSeatProfile,
     this.compactSpacing = false,
     this.showCloseHeader = false,
+    this.centerTitle = false,
   });
 
   final List<String> options;
@@ -30,6 +31,7 @@ class CheckInSeatProfileFilterSheet extends StatefulWidget {
   final String searchHint;
   final bool compactSpacing;
   final bool showCloseHeader;
+  final bool centerTitle;
 
   @override
   State<CheckInSeatProfileFilterSheet> createState() =>
@@ -94,6 +96,7 @@ class _CheckInSeatProfileFilterSheetState
             if (widget.showCloseHeader)
               AppSelectionHeading(
                 title: widget.title,
+                centerTitle: widget.centerTitle,
                 onClose: () => Navigator.of(context).pop(),
               )
             else ...[

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_module.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_lesson_grid.dart';
 
@@ -82,6 +83,34 @@ void main() {
   );
 
   testWidgets(
+    'read-only cards have no actions gesture or hint and still open the viewer',
+    (tester) async {
+      var openedLesson = false;
+      await tester.pumpWidget(
+        _host(
+          lessons: _lessons(1),
+          onTap: (_) async {
+            openedLesson = true;
+          },
+        ),
+      );
+
+      final card = _card('Lesson 0');
+      final gesture = find.descendant(of: card, matching: find.byType(InkWell));
+      expect(tester.widget<InkWell>(gesture).onLongPress, isNull);
+      expect(
+        tester.widget<Semantics>(card).properties.hint,
+        isNot(AppStrings.trainingLibraryLessonActionsHint),
+      );
+
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+      expect(openedLesson, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'a cancelled press clears the highlight without opening actions',
     (tester) async {
       var openedActions = false;
@@ -151,7 +180,7 @@ Widget _host({
           child: TrainingLibraryLessonGrid(
             lessons: lessons,
             onLessonTap: onTap ?? (_) async {},
-            onLessonActions: onActions ?? (_) async {},
+            onLessonActions: onActions,
           ),
         ),
       ),

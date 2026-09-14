@@ -110,7 +110,7 @@ class _TrainingLibraryLessons extends StatelessWidget {
                     : TrainingLibraryLessonGrid(
                         lessons: lessons,
                         onLessonTap: onLessonTap,
-                        onLessonActions: onLessonActions,
+                        onLessonActions: controller.canManageTraining ? onLessonActions : null,
                       ),
               ),
             ],

@@ -204,7 +204,7 @@ class _DescriptionCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppTextView.body2(
-                    AppStrings.seatProfileTrainings,
+                    AppStrings.training,
                     color: AppColors.secondaryColor,
                     fontWeight: FontWeight.w700,
                   ),

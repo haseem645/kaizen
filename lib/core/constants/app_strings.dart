@@ -346,7 +346,7 @@ class AppStrings {
   static const String seatProfilePercentageHold = 'Percentage Hold';
   static const String seatProfileMilestoneDays = 'Milestone Days';
   static const String seatProfileAuditSpecifics = 'Audit Specifics';
-  static const String seatProfileTrainings = 'Trainings';
+  static const String training = 'Training';
   static const String seatProfileViewTrainings = 'View Training';
   static const String seatProfileSetupTrainingTitle = 'Create Training';
   static const String seatProfileNoMatchFound = 'No Match Found';

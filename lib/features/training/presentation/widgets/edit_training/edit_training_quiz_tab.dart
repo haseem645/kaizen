@@ -33,6 +33,10 @@ class _QuizTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!isLoading && questions.isEmpty && !canManageQuestions) {
+      return const _QuizEmptyStateCard();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -49,8 +53,6 @@ class _QuizTabContent extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 36),
             child: Center(child: FastCircularProgressIndicator()),
           )
-        else if (questions.isEmpty && !canManageQuestions)
-          const _QuizEmptyStateCard()
         else if (questions.isNotEmpty)
           ListView.separated(
             shrinkWrap: true,
@@ -113,11 +115,10 @@ class _QuizCreationHeader extends StatelessWidget {
         const AppTextView.body1(
           AppStrings.trainingCreateQuiz,
           color: AppColors.textPrimary,
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
         _TrainingCreateWithAiButton(
-          compact: true,
           isEnabled: canGenerateQuiz,
           isLoading: isGeneratingQuiz,
           onTap: onGenerateQuizTap,
