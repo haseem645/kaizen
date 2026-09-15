@@ -112,14 +112,13 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
         children: [
-          if (controller.departments.isNotEmpty) ...[
-            _buildDepartmentStrip(controller),
-            const SizedBox(height: 24),
-          ],
           SeatProfileSearchBar(
             controller: controller.searchController,
             onChanged: controller.updateSearchQuery,
             hintText: AppStrings.paygradesSearchHint,
+            onFilterTap: controller.departments.isEmpty
+                ? null
+                : () => _openDepartmentSheet(controller),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -188,15 +187,6 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
             AppDepartmentFilterItem(id: department.id, name: department.name),
       ),
     ];
-  }
-
-  Widget _buildDepartmentStrip(PaygradesController controller) {
-    return AppDepartmentFilterStrip(
-      items: _departmentFilterItems(controller),
-      selectedDepartmentId: controller.selectedDepartmentId,
-      onSelected: controller.selectDepartment,
-      onSeeAll: () => _openDepartmentSheet(controller),
-    );
   }
 
   Future<void> _openDepartmentSheet(PaygradesController controller) async {

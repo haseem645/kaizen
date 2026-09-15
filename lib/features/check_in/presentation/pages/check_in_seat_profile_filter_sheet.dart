@@ -83,84 +83,103 @@ class _CheckInSeatProfileFilterSheetState
           color: AppColors.mainBg,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12 * spacingScale,
-          20,
-          24 * spacingScale,
-        ),
+        padding: EdgeInsets.only(bottom: 24 * spacingScale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: 12 * spacingScale),
             if (widget.showCloseHeader)
-              AppSelectionHeading(
+              AppFilterSheetHeader(
                 title: widget.title,
                 centerTitle: widget.centerTitle,
                 onClose: () => Navigator.of(context).pop(),
               )
-            else ...[
-              _SelectionHeader(
-                title: widget.title,
-                onBack: () => Navigator.of(context).pop(),
-              ),
-              SizedBox(height: 22 * spacingScale),
-              const AppDotDivider(),
-            ],
-            SizedBox(height: 24 * spacingScale),
-            _SeatProfileSearchBar(
-              controller: _searchController,
-              hintText: widget.searchHint,
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            SizedBox(height: 22 * spacingScale),
-            Expanded(
-              child: SingleChildScrollView(
+            else
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 24 * spacingScale, 20, 0),
                 child: Column(
                   children: [
-                    if (widget.showAllOption)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 18 * spacingScale),
-                        child: AppSeatSelectionTile(
-                          title: widget.allOptionLabel,
-                          isSelected: _selectedValue == '',
-                          onTap: () {
-                            setState(() {
-                              _selectedValue = '';
-                            });
-                          },
+                    _SelectionHeader(
+                      title: widget.title,
+                      onBack: () => Navigator.of(context).pop(),
+                    ),
+                    SizedBox(height: 22 * spacingScale),
+                    const AppDotDivider(),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  widget.showCloseHeader ? 4 : 24 * spacingScale,
+                  20,
+                  0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SeatProfileSearchBar(
+                      controller: _searchController,
+                      hintText: widget.searchHint,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                    ),
+                    SizedBox(height: 22 * spacingScale),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            if (widget.showAllOption)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: 18 * spacingScale,
+                                ),
+                                child: AppSeatSelectionTile(
+                                  title: widget.allOptionLabel,
+                                  isSelected: _selectedValue == '',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedValue = '';
+                                    });
+                                  },
+                                ),
+                              ),
+                            ...filteredOptions.map(
+                              (option) => Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: 18 * spacingScale,
+                                ),
+                                child: AppSeatSelectionTile(
+                                  title: option,
+                                  isSelected: _selectedValue == option,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedValue = option;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ...filteredOptions.map(
-                      (option) => Padding(
-                        padding: EdgeInsets.only(bottom: 18 * spacingScale),
-                        child: AppSeatSelectionTile(
-                          title: option,
-                          isSelected: _selectedValue == option,
-                          onTap: () {
-                            setState(() {
-                              _selectedValue = option;
-                            });
-                          },
-                        ),
-                      ),
+                    ),
+                    SizedBox(height: 4 * spacingScale),
+                    const AppDotDivider(),
+                    SizedBox(height: 22 * spacingScale),
+                    AppButton(
+                      text: AppStrings.done,
+                      onPressed:
+                          (!widget.showAllOption && _selectedValue == null)
+                          ? null
+                          : () => Navigator.of(context).pop(_selectedValue),
                     ),
                   ],
                 ),
               ),
-            ),
-            SizedBox(height: 4 * spacingScale),
-            const AppDotDivider(),
-            SizedBox(height: 22 * spacingScale),
-            AppButton(
-              text: AppStrings.done,
-              onPressed: (!widget.showAllOption && _selectedValue == null)
-                  ? null
-                  : () => Navigator.of(context).pop(_selectedValue),
             ),
           ],
         ),

@@ -18,7 +18,6 @@ import '../../domain/entities/seat_profile.dart';
 import '../../domain/usecases/get_seat_profiles_usecase.dart';
 import '../../widgets/seat_profile_search_bar.dart';
 import '../providers/seat_profile_controller.dart';
-import 'seat_profile_filter_sheet.dart';
 
 class SeatProfileScreen extends StatelessWidget {
   const SeatProfileScreen({super.key});
@@ -119,8 +118,6 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 1),
       child: Column(
         children: [
-          _buildDepartmentStrip(controller),
-          const SizedBox(height: 24),
           SeatProfileSearchBar(
             controller: controller.searchController,
             onChanged: controller.updateSearchQuery,
@@ -183,37 +180,6 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     );
   }
 
-  List<AppDepartmentFilterItem> _departmentFilterItems(SeatProfileController controller) {
-    return <AppDepartmentFilterItem>[
-      const AppDepartmentFilterItem(id: 'all', name: AppStrings.categoryAll),
-      ...controller.departments.map(
-        (department) => AppDepartmentFilterItem(id: department.id, name: department.name),
-      ),
-    ];
-  }
-
-  Widget _buildDepartmentStrip(SeatProfileController controller) {
-    return AppDepartmentFilterStrip(
-      items: _departmentFilterItems(controller),
-      selectedDepartmentId: controller.selectedDepartmentId,
-      onSelected: controller.selectDepartment,
-      onSeeAll: () => _openDepartmentSheet(controller),
-    );
-  }
-
-  Future<void> _openDepartmentSheet(SeatProfileController controller) async {
-    final departmentId = await showAppDepartmentSelectionSheet(
-      context,
-      items: _departmentFilterItems(controller),
-      selectedDepartmentId: controller.selectedDepartmentId,
-    );
-    if (departmentId == null || !mounted) {
-      return;
-    }
-
-    await controller.selectDepartment(departmentId);
-  }
-
   Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -264,17 +230,23 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   }
 
   Future<void> _openFilterSheet(BuildContext context, SeatProfileController controller) async {
-    final selectedFilter = await showModalBottomSheet<SeatProfileFilter>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => SeatProfileFilterSheet(selectedFilter: controller.selectedFilter),
+    final departmentId = await showAppDepartmentSelectionSheet(
+      context,
+      items: <AppDepartmentFilterItem>[
+        const AppDepartmentFilterItem(id: 'all', name: AppStrings.categoryAll),
+        ...controller.departments.map(
+          (department) => AppDepartmentFilterItem(id: department.id, name: department.name),
+        ),
+      ],
+      selectedDepartmentId: controller.selectedDepartmentId,
+      safeAreaBottom: false,
     );
 
-    if (selectedFilter == null) {
+    if (departmentId == null || !mounted) {
       return;
     }
 
-    controller.selectFilter(selectedFilter);
+    await controller.selectDepartment(departmentId);
   }
 }
 

@@ -11,6 +11,7 @@ Future<String?> showAppDepartmentSelectionSheet(
   BuildContext context, {
   required List<AppDepartmentFilterItem> items,
   required String selectedDepartmentId,
+  bool safeAreaBottom = true,
 }) {
   FocusScope.of(context).unfocus();
   return showModalBottomSheet<String>(
@@ -20,16 +21,24 @@ Future<String?> showAppDepartmentSelectionSheet(
     isDismissible: false,
     enableDrag: false,
     backgroundColor: Colors.transparent,
-    builder: (_) =>
-        _DepartmentSelectionContent(items: items, selectedDepartmentId: selectedDepartmentId),
+    builder: (_) => _DepartmentSelectionContent(
+      items: items,
+      selectedDepartmentId: selectedDepartmentId,
+      safeAreaBottom: safeAreaBottom,
+    ),
   );
 }
 
 class _DepartmentSelectionContent extends StatefulWidget {
-  const _DepartmentSelectionContent({required this.items, required this.selectedDepartmentId});
+  const _DepartmentSelectionContent({
+    required this.items,
+    required this.selectedDepartmentId,
+    required this.safeAreaBottom,
+  });
 
   final List<AppDepartmentFilterItem> items;
   final String selectedDepartmentId;
+  final bool safeAreaBottom;
 
   @override
   State<_DepartmentSelectionContent> createState() => _DepartmentSelectionContentState();
@@ -53,6 +62,7 @@ class _DepartmentSelectionContentState extends State<_DepartmentSelectionContent
             .where((item) => item.id == 'all' || item.name.toLowerCase().contains(query))
             .toList(growable: false);
         return AppSelectionSheet(
+          safeAreaBottom: widget.safeAreaBottom,
           child: CustomScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [

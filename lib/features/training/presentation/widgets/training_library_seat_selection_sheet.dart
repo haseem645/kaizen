@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_radio_selection_tile.dart';
+import '../../../../core/widgets/app_selection_sheet.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../controllers/training_library_controller.dart';
@@ -58,13 +59,10 @@ class _SeatSelectionContent extends StatelessWidget {
         isBusy: controller.isApplyingSelection,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-              child: TrainingLibrarySelectionHeading(
-                title: AppStrings.trainingLibraryFilterTitle,
-                centerTitle: true,
-                onClose: controller.isApplyingSelection ? null : () => Navigator.of(context).pop(),
-              ),
+            AppFilterSheetHeader(
+              title: AppStrings.trainingLibraryFilterTitle,
+              centerTitle: true,
+              onClose: controller.isApplyingSelection ? null : () => Navigator.of(context).pop(),
             ),
             Expanded(child: _SeatFilterFields(controller: controller)),
             TrainingLibrarySelectionError(message: controller.selectionErrorMessage),
@@ -108,7 +106,7 @@ class _SeatFilterFields extends StatelessWidget {
 
     final enabled = !controller.isApplyingSelection;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
       child: Column(
         children: [
           TrainingSelectionStepField(
