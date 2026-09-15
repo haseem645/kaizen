@@ -12,11 +12,13 @@ class AppSelectionSheet extends StatelessWidget {
     required this.child,
     this.isBusy = false,
     this.heightFactor = 0.7,
+    this.safeAreaBottom = true,
   });
 
   final Widget child;
   final bool isBusy;
   final double heightFactor;
+  final bool safeAreaBottom;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,7 @@ class AppSelectionSheet extends StatelessWidget {
             child: ListTileTheme.merge(
               tileColor: AppColors.cardBg,
               selectedTileColor: AppColors.cardBg,
-              child: SafeArea(top: false, child: child),
+              child: SafeArea(top: false, bottom: safeAreaBottom, child: child),
             ),
           ),
         ),
@@ -58,16 +60,15 @@ class AppSelectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      child: Column(
-        children: [
-          AppSelectionHeading(
-            title: title,
-            onClose: enabled ? () => Navigator.of(context).pop() : null,
-          ),
-          const SizedBox(height: 16),
-          TextField(
+    return Column(
+      children: [
+        AppFilterSheetHeader(
+          title: title,
+          onClose: enabled ? () => Navigator.of(context).pop() : null,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: TextField(
             enabled: enabled,
             onChanged: onSearchChanged,
             cursorHeight: 15,
@@ -98,8 +99,30 @@ class AppSelectionHeader extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Owns the full header inset so listing filters do not stack extra top gaps.
+class AppFilterSheetHeader extends StatelessWidget {
+  const AppFilterSheetHeader({
+    super.key,
+    required this.title,
+    required this.onClose,
+    this.centerTitle = false,
+  });
+
+  final String title;
+  final VoidCallback? onClose;
+  final bool centerTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      child: AppSelectionHeading(title: title, onClose: onClose, centerTitle: centerTitle),
     );
   }
 }

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_seat_selection_tile.dart';
-import '../../../../core/widgets/app_text_view.dart';
+import '../../../../core/widgets/app_selection_sheet.dart';
 
 class ComplianceLearningTrackFilterSheet extends StatefulWidget {
   const ComplianceLearningTrackFilterSheet({
@@ -37,70 +35,51 @@ class _ComplianceLearningTrackFilterSheetState extends State<ComplianceLearningT
           color: AppColors.mainBg,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              _buildHeader(context),
-              const SizedBox(height: 18),
-              const AppDotDivider(),
-              const SizedBox(height: 18),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: widget.seatProfiles.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final seatProfile = widget.seatProfiles[index];
-                    final isSelected = _selectedSeatProfiles.contains(seatProfile);
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppFilterSheetHeader(
+              title: AppStrings.complianceSeatProfileTitle,
+              centerTitle: true,
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        padding: EdgeInsets.zero,
+                        itemCount: widget.seatProfiles.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final seatProfile = widget.seatProfiles[index];
+                          final isSelected = _selectedSeatProfiles.contains(seatProfile);
 
-                    return _buildSeatProfileItem(
-                      name: seatProfile,
-                      isSelected: isSelected,
-                      onTap: () => _toggleSeatProfile(seatProfile),
-                    );
-                  },
+                          return _buildSeatProfileItem(
+                            name: seatProfile,
+                            isSelected: isSelected,
+                            onTap: () => _toggleSeatProfile(seatProfile),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AppButton(
+                      text: AppStrings.done,
+                      onPressed: () {
+                        Navigator.of(context).pop(_selectedSeatProfiles);
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              AppButton(
-                text: AppStrings.done,
-                onPressed: () {
-                  Navigator.of(context).pop(_selectedSeatProfiles);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Positioned(
-          left: 0,
-          child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: SvgPicture.asset('${AppStrings.imagePath}back.svg', width: 24, height: 24),
-          ),
-        ),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AppTextView.body1(
-              AppStrings.complianceSeatProfileTitle,
-              color: AppColors.secondaryColor,
-              fontWeight: FontWeight.w700,
-              textAlign: TextAlign.center,
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 

@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_ai_generate_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -595,7 +596,11 @@ class _PostCreateDescriptionActions extends StatelessWidget {
               : null,
         ),
         const SizedBox(height: 12),
-        _SeatProfileGradientActionButton(
+        AppAiGenerateButton(
+          expand: true,
+          minHeight: 48,
+          textSize: 15,
+          fontWeight: FontWeight.w700,
           label: AppStrings.seatProfileGenerateWithAiAction,
           onTap: isEnabled
               ? () => _showGenerateSeatContentDialog(context)
@@ -635,87 +640,6 @@ class _PostCreateDescriptionActions extends StatelessWidget {
     if (didSave == true && context.mounted) {
       onCompleteFlowToDetails();
     }
-  }
-}
-
-class _SeatProfileGradientActionButton extends StatelessWidget {
-  const _SeatProfileGradientActionButton({
-    required this.label,
-    required this.onTap,
-    this.isLoading = false,
-  });
-
-  final String label;
-  final VoidCallback? onTap;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    final isEnabled = onTap != null && !isLoading;
-    const minimumHeight = 48.0;
-
-    return Opacity(
-      opacity: isEnabled || isLoading ? 1 : 0.58,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isEnabled ? onTap : null,
-          borderRadius: BorderRadius.circular(14),
-          child: Ink(
-            width: double.infinity,
-            height: minimumHeight,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [AppColors.purple1, AppColors.secondaryColor],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.lightPurple1.withValues(alpha: 0.35),
-              ),
-              boxShadow: isEnabled
-                  ? [
-                      BoxShadow(
-                        color: AppColors.purple1.withValues(alpha: 0.36),
-                        blurRadius: 10,
-                        offset: const Offset(-6, 0),
-                        spreadRadius: -1,
-                      ),
-                      BoxShadow(
-                        color: AppColors.secondaryColor.withValues(alpha: 0.42),
-                        blurRadius: 16,
-                        offset: const Offset(12, 0),
-                        spreadRadius: -2,
-                      ),
-                    ]
-                  : const <BoxShadow>[],
-            ),
-            child: Center(
-              child: isLoading
-                  ? FastCircularProgressIndicator(width: 18, height: 18)
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.auto_awesome_rounded,
-                          size: 18,
-                          color: AppColors.textPrimary,
-                        ),
-                        const SizedBox(width: 10),
-                        AppTextView.body(
-                          label,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -1013,7 +937,11 @@ class _ManageSeatCategoriesDialogState
                               : Alignment.centerRight,
                           child: SizedBox(
                             width: isCompact ? double.infinity : 180,
-                            child: _SeatProfileGradientActionButton(
+                            child: AppAiGenerateButton(
+                              expand: true,
+                              minHeight: 48,
+                              textSize: 15,
+                              fontWeight: FontWeight.w700,
                               label: AppStrings.seatProfileSaveAction,
                               isLoading: _formController.isSaving,
                               onTap: _formController.isSaving ? null : _submit,
@@ -1672,7 +1600,11 @@ class _GenerateSeatContentDialog extends StatelessWidget {
                 Center(
                   child: SizedBox(
                     width: 220,
-                    child: _SeatProfileGradientActionButton(
+                    child: AppAiGenerateButton(
+                      expand: true,
+                      minHeight: 48,
+                      textSize: 15,
+                      fontWeight: FontWeight.w700,
                       label: AppStrings.seatProfileGenerateAction,
                       isLoading: controller.isGeneratingSeatContent,
                       onTap: () async {

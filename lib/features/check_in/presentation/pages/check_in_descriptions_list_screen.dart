@@ -20,6 +20,7 @@ import 'package:sparrowkaizen/features/check_in/domain/usecases/get_audit_overvi
 import 'package:sparrowkaizen/features/check_in/domain/usecases/get_quarterly_audit_usecase.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/providers/check_in_controller.dart';
 import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_media_comment_bottom_sheet.dart';
+import 'package:sparrowkaizen/features/check_in/presentation/widgets/description_text_comment_dialog.dart';
 import 'package:sparrowkaizen/routes/app_router.dart';
 
 import 'View_all_team_members.dart';
@@ -1307,14 +1308,6 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (canCreateComments) ...[
-                      const SizedBox(width: 8),
-                      _CommentIconButton(
-                        isEnabled: true,
-                        icon: Icons.camera_alt_outlined,
-                        onTap: _openCreateCommentDialog,
-                      ),
-                    ],
                     const SizedBox(width: 8),
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 220),
@@ -1353,6 +1346,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                   builder: (context, viewState, _) {
                     final counts = _auditCountsFromBlocks(viewState.blocks);
                     return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _SelectionCounter(
@@ -1370,7 +1364,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
-                        const SizedBox(width: 22),
+                        const SizedBox(width: 16),
                         _SelectionCounter(
                           color: canEditBlocks
                               ? AppColors.orange1
@@ -1390,7 +1384,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
-                        const SizedBox(width: 22),
+                        const SizedBox(width: 16),
                         _SelectionCounter(
                           color: canEditBlocks
                               ? AppColors.red1
@@ -1410,20 +1404,34 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                               : null,
                           canEditBlocks: canEditBlocks,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: _DescriptionAuditTypePill(
-                              text: auditFactorType.isEmpty
-                                  ? AppStrings.checkInTitle
-                                  : auditFactorType,
-                            ),
-                          ),
-                        ),
                       ],
                     );
                   },
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Spacer(),
+                    if (canCreateComments)
+                      _CommentIconButton(
+                        isEnabled: true,
+                        icon: Icons.camera_alt_outlined,
+                        onTap: _openCreateCommentDialog,
+                      ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: _DescriptionAuditTypePill(
+                            text: auditFactorType.isEmpty
+                                ? AppStrings.checkInTitle
+                                : auditFactorType,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1661,11 +1669,13 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
 
       final didCreateMediaComment = await showModalBottomSheet<bool>(
         context: context,
+        isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) {
           return _DescriptionMediaTypeSelectionBottomSheet(
             onTypeSelected: (selectedType) =>
                 _openSelectedMediaCommentDialog(auditUuid, selectedType),
+            onCommentOnlySelected: () => _openTextOnlyCommentDialog(auditUuid),
           );
         },
       );
@@ -1725,6 +1735,21 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
       _auditDescriptionFuture = null;
       rethrow;
     }
+  }
+
+  Future<bool> _openTextOnlyCommentDialog(String auditUuid) async {
+    final controller = context.read<CheckInController>();
+    final didSave = await showDialog<bool>(
+      context: context,
+      builder: (_) => DescriptionTextCommentDialog(
+        onSave: (comment) => controller.createAuditDescriptionComment(
+          descriptionId: auditUuid,
+          comment: comment,
+        ),
+      ),
+    );
+
+    return didSave == true && mounted;
   }
 
   Future<bool> _openSelectedMediaCommentDialog(
@@ -1923,10 +1948,12 @@ class _CommentIconButton extends StatelessWidget {
 class _DescriptionMediaTypeSelectionBottomSheet extends StatefulWidget {
   const _DescriptionMediaTypeSelectionBottomSheet({
     required this.onTypeSelected,
+    required this.onCommentOnlySelected,
   });
 
   final Future<bool> Function(DescriptionMediaCommentContentType selectedType)
   onTypeSelected;
+  final Future<bool> Function() onCommentOnlySelected;
 
   @override
   State<_DescriptionMediaTypeSelectionBottomSheet> createState() =>
@@ -1960,57 +1987,64 @@ class _DescriptionMediaTypeSelectionBottomSheetState
         return SafeArea(
           top: false,
           bottom: false,
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(18, 14, 18, bottomPadding + 24),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 46,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(18, 14, 18, bottomPadding + 24),
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 46,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                const AppTextView.body1(
-                  AppStrings.auditSelectMediaType,
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-                const SizedBox(height: 14),
-                for (
-                  var index = 0;
-                  index < _availableTypes.length;
-                  index += 1
-                ) ...[
+                  const SizedBox(height: 14),
+                  const AppTextView.body1(
+                    AppStrings.auditSelectMediaType,
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 14),
                   _MediaTypeOption(
-                    title: _mediaTypeTitle(_availableTypes[index]),
+                    title: AppStrings.auditCommentOnly,
                     onTap: isOpeningChildSheet
                         ? null
-                        : () => _openChildSheet(_availableTypes[index]),
+                        : () => _openChildSheet(widget.onCommentOnlySelected),
                   ),
-                  if (index != _availableTypes.length - 1)
-                    const SizedBox(height: 10),
+                  ..._availableTypes.map(
+                    (type) => Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: _MediaTypeOption(
+                        title: _mediaTypeTitle(type),
+                        onTap: isOpeningChildSheet
+                            ? null
+                            : () => _openChildSheet(
+                                () => widget.onTypeSelected(type),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  AppButton(
+                    text: AppStrings.done,
+                    onPressed: isOpeningChildSheet
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                  ),
                 ],
-                const SizedBox(height: 18),
-                AppButton(
-                  text: AppStrings.done,
-                  onPressed: isOpeningChildSheet
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -2028,21 +2062,21 @@ class _DescriptionMediaTypeSelectionBottomSheetState
     };
   }
 
-  Future<void> _openChildSheet(
-    DescriptionMediaCommentContentType selectedType,
-  ) async {
+  Future<void> _openChildSheet(Future<bool> Function() openSheet) async {
     if (_isOpeningChildSheetNotifier.value) {
       return;
     }
 
     _isOpeningChildSheetNotifier.value = true;
     try {
-      final didSave = await widget.onTypeSelected(selectedType);
+      final didSave = await openSheet();
       if (didSave && mounted) {
         Navigator.of(context).pop(true);
       }
     } finally {
-      _isOpeningChildSheetNotifier.value = false;
+      if (mounted) {
+        _isOpeningChildSheetNotifier.value = false;
+      }
     }
   }
 }
