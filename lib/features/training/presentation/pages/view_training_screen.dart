@@ -109,14 +109,6 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     unawaited(_syncSelectedTabData(index));
   }
 
-  Future<void> _selectModule(String moduleId) async {
-    if (moduleId != _trainingController.selectedModuleId) {
-      await _trainingController.selectModule(moduleId);
-      if (!mounted) return;
-    }
-    await _syncSelectedTabData(_coerceSelectedTab());
-  }
-
   Future<void> _syncSelectedTabData(int index) async {
     switch (index) {
       case 1:
@@ -174,20 +166,12 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TrainingLessonSelector(controller: controller, onModuleSelected: _selectModule),
-        Expanded(
-          child: TrainingTabView(
-            navigation: _navigation,
-            maxTabIndex: _maxTabIndex,
-            pagePaddingBuilder: (index) =>
-                index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
-            pageBuilder: (context, index) => _buildTabPage(controller, index),
-          ),
-        ),
-      ],
+    return TrainingTabView(
+      navigation: _navigation,
+      maxTabIndex: _maxTabIndex,
+      pagePaddingBuilder: (index) =>
+          index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
+      pageBuilder: (context, index) => _buildTabPage(controller, index),
     );
   }
 

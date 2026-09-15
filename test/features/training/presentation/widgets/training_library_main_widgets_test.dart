@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
+import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/repositories/seat_profile_repository.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_module.dart';
@@ -8,9 +10,9 @@ import 'package:sparrowkaizen/features/training/domain/entities/training_library
 import 'package:sparrowkaizen/features/training/domain/repositories/training_library_repository.dart';
 import 'package:sparrowkaizen/features/training/domain/usecases/get_training_library_modules_usecase.dart';
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_library_controller.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_content.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_department_filter_strip.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_module_card.dart';
-import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_result_area.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_search_bar.dart';
 
 void main() {
@@ -76,34 +78,30 @@ void main() {
   );
 
   testWidgets(
-    'department See All and module cards keep their action callbacks',
+    'LMS omits the department strip and keeps filters and module actions',
     (tester) async {
-      var openedDepartments = false;
+      var openedSeats = false;
       TrainingLibraryModule? openedModule;
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Column(
-              children: [
-                TrainingLibraryDepartmentFilterStrip(
-                  controller: controller,
-                  onSeeAll: () => openedDepartments = true,
-                ),
-                Expanded(
-                  child: TrainingLibraryResultArea(
-                    controller: controller,
-                    items: controller.visibleItems,
-                    scrollController: controller.scrollController,
-                    onModuleTap: (module) => openedModule = module,
-                  ),
-                ),
-              ],
+        ChangeNotifierProvider<AppManager>.value(
+          value: AppManager.instance,
+          child: MaterialApp(
+            home: TrainingLibraryContent(
+              controller: controller,
+              onOpenDetail: (module, _) async {
+                openedModule = module;
+                return false;
+              },
+              onSelectSeat: () => openedSeats = true,
+              onCreate: () {},
             ),
           ),
         ),
       );
-      await tester.tap(find.text(AppStrings.seeAllAction));
-      expect(openedDepartments, isTrue);
+      expect(find.byType(TrainingLibraryDepartmentFilterStrip), findsNothing);
+      expect(find.text(AppStrings.seeAllAction), findsNothing);
+      await tester.tap(find.byIcon(Icons.tune_rounded));
+      expect(openedSeats, isTrue);
       await tester.tap(find.byType(TrainingLibraryModuleCard));
       expect(openedModule, same(controller.items.single));
       expect(tester.takeException(), isNull);
