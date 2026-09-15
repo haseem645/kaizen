@@ -7,7 +7,6 @@ import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../domain/entities/training_library_module.dart';
 import '../controllers/training_library_controller.dart';
 import 'training_library_create_action.dart';
-import 'training_library_department_filter_strip.dart';
 import 'training_library_result_area.dart';
 import 'training_library_search_bar.dart';
 
@@ -16,14 +15,12 @@ class TrainingLibraryContent extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onOpenDetail,
-    required this.onSelectDepartment,
     required this.onSelectSeat,
     required this.onCreate,
   });
 
   final TrainingLibraryController controller;
   final Future<bool?> Function(TrainingLibraryModule module, String view) onOpenDetail;
-  final VoidCallback onSelectDepartment;
   final VoidCallback onSelectSeat;
   final VoidCallback onCreate;
 
@@ -45,7 +42,6 @@ class TrainingLibraryContent extends StatelessWidget {
                       controller: controller,
                       onModuleTap: (module) =>
                           controller.openLibraryDetail(module, openDetail: onOpenDetail),
-                      onSelectDepartment: onSelectDepartment,
                       onSelectSeat: onSelectSeat,
                     ),
             ),
@@ -63,13 +59,11 @@ class _TrainingLibraryFiltersAndResults extends StatelessWidget {
     required this.controller,
     required this.onModuleTap,
     required this.onSelectSeat,
-    required this.onSelectDepartment,
   });
 
   final TrainingLibraryController controller;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
   final VoidCallback onSelectSeat;
-  final VoidCallback onSelectDepartment;
 
   @override
   Widget build(BuildContext context) {
@@ -80,11 +74,6 @@ class _TrainingLibraryFiltersAndResults extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TrainingLibraryDepartmentFilterStrip(
-            controller: controller,
-            onSeeAll: onSelectDepartment,
-          ),
-          const SizedBox(height: 24),
           TrainingLibrarySearchBar(controller: controller, onSelectSeat: onSelectSeat),
           const SizedBox(height: 24),
           Expanded(

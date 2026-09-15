@@ -11,7 +11,6 @@ import '../../data/repositories/training_library_repository_impl.dart';
 import '../../domain/usecases/get_training_library_modules_usecase.dart';
 import '../controllers/training_library_controller.dart';
 import '../widgets/training_library_content.dart';
-import '../widgets/training_library_department_selection_sheet.dart';
 import '../widgets/training_library_seat_selection_sheet.dart';
 import 'training_library_detail_screen.dart';
 
@@ -66,8 +65,6 @@ class _TrainingLibraryScreenView extends StatelessWidget {
             builder: (_) => TrainingLibraryDetailScreen(module: module, view: view),
           ),
         ),
-        onSelectDepartment: () =>
-            showTrainingLibraryDepartmentSelectionSheet(context, controller: controller),
         onSelectSeat: () => showTrainingLibrarySeatSelectionSheet(context, controller: controller),
         onCreate: () => AppRouter.pushNamed(context, AppRouter.seatProfileTrainingSetup),
       ),

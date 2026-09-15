@@ -662,6 +662,9 @@ class AppStrings {
   static const String trainingLibraryUnableToUpdateVisibility =
       'Unable to update visibility. Please try again.';
   static const String trainingLibraryAllSeats = 'All Seats';
+  static const String trainingLibraryFilterTitle = 'Filter Training';
+  static const String trainingLibraryAllCategories = 'All Categories';
+  static const String trainingLibraryAllDescriptions = 'All Descriptions';
   static const String trainingLibraryUnableToLoadSeats = 'Unable to load seats. Please try again.';
   static const String trainingLibraryAllVideoLesson = 'All Video Lesson';
   static const String trainingLibraryAllVisibility = 'All Visibility';

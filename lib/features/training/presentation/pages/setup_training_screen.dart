@@ -15,6 +15,7 @@ import '../../../seat_profile/data/repositories/seat_profile_repository_impl.dar
 import '../../../seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
 import '../../domain/entities/seat_description_training_route.dart';
 import '../controllers/training_setup_controller.dart';
+import '../widgets/training_selection_step_field.dart';
 import 'edit_training_screen.dart';
 
 class SetupTrainingScreen extends StatelessWidget {
@@ -195,7 +196,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 390),
                   child: Column(
                     children: <Widget>[
-                      _TrainingSelectionStepField(
+                      TrainingSelectionStepField(
                         stepNumber: 1,
                         hintText: AppStrings.trainingSetupSelectSeat,
                         selectedText: controller.selectedSeatProfile?.title,
@@ -203,7 +204,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
                         onTap: () => _selectSeatProfile(context, controller),
                       ),
                       const SizedBox(height: 22),
-                      _TrainingSelectionStepField(
+                      TrainingSelectionStepField(
                         stepNumber: 2,
                         hintText: AppStrings.trainingSetupSelectCategory,
                         selectedText: controller.selectedCategory?.title,
@@ -213,7 +214,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
                         onTap: () => _selectCategory(context, controller),
                       ),
                       const SizedBox(height: 22),
-                      _TrainingSelectionStepField(
+                      TrainingSelectionStepField(
                         stepNumber: 3,
                         hintText: AppStrings.trainingSetupSelectDescription,
                         selectedText: controller.selectedDescription?.name,
@@ -366,83 +367,6 @@ class _SelectionListOption {
 
   final String id;
   final String label;
-}
-
-class _TrainingSelectionStepField extends StatelessWidget {
-  const _TrainingSelectionStepField({
-    required this.stepNumber,
-    required this.hintText,
-    required this.selectedText,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final int stepNumber;
-  final String hintText;
-  final String? selectedText;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final resolvedText = selectedText?.trim();
-    final hasSelection = resolvedText?.isNotEmpty ?? false;
-    final foregroundColor = enabled
-        ? AppColors.textPrimary
-        : AppColors.textSecondary.withValues(alpha: 0.3);
-    final borderColor = enabled
-        ? AppColors.fieldBorder.withValues(alpha: 0.75)
-        : AppColors.grey1.withValues(alpha: 0.35);
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 22,
-                height: 22,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: enabled ? AppColors.secondaryColor : AppColors.grey1,
-                  shape: BoxShape.circle,
-                ),
-                child: AppTextView.body(
-                  '$stepNumber',
-                  color: enabled ? AppColors.textPrimary : AppColors.mainBg,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: AppTextView.body(
-                  hasSelection ? resolvedText! : hintText,
-                  color: foregroundColor,
-                  fontSize: 15,
-                  fontWeight: hasSelection ? FontWeight.w600 : FontWeight.w400,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Icon(Icons.arrow_drop_down_rounded, color: foregroundColor, size: 21),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _TrainingSetupNextAction extends StatelessWidget {

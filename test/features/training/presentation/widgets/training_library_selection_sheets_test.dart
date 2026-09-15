@@ -7,8 +7,8 @@ import 'package:sparrowkaizen/core/widgets/app_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/domain/repositories/audit_repository.dart';
-import 'package:sparrowkaizen/features/seat_profile/domain/entities/seat_profile.dart';
-import 'package:sparrowkaizen/features/seat_profile/domain/entities/seat_profile_page.dart';
+import 'package:sparrowkaizen/features/seat_profile/domain/entities/department.dart';
+import 'package:sparrowkaizen/features/seat_profile/domain/entities/seat_profile_detail.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/repositories/seat_profile_repository.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_module.dart';
@@ -21,6 +21,7 @@ import 'package:sparrowkaizen/features/training/presentation/widgets/training_li
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_lesson_visibility_sheet.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_seat_selection_sheet.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_selection_sheet.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_selection_step_field.dart';
 
 void main() {
   for (final selectSeat in [true, false]) {
@@ -52,12 +53,20 @@ void main() {
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
 
+        if (selectSeat) {
+          await tester.tap(find.text(AppStrings.trainingSetupSelectSeat));
+          await tester.pumpAndSettle();
+        }
         final title = selectSeat ? 'Sales Seat' : 'Sales';
         final pending = Completer<TrainingLibraryPage>();
         repository.response = pending.future;
         final requestsBeforeSelection = repository.requests;
         await tester.tap(find.text(title));
-        await tester.pump();
+        if (selectSeat) {
+          await tester.pumpAndSettle();
+        } else {
+          await tester.pump();
+        }
 
         if (selectSeat) {
           expect(controller.pendingSeatSelectionId, 'sales');
@@ -164,8 +173,10 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       expect(controller.pendingSeatSelectionId, 'sales');
+      await tester.tap(find.text('Sales Seat'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.trainingLibraryAllSeats));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(controller.pendingSeatSelectionId, isNull);
       expect(controller.selectedSeatId, 'sales');
       expect(repository.requests, requestsBeforeOpening);
@@ -177,8 +188,10 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       expect(controller.pendingSeatSelectionId, 'sales');
+      await tester.tap(find.text('Sales Seat'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.trainingLibraryAllSeats));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(repository.requests, requestsBeforeOpening);
       await tester.tap(find.text(AppStrings.done));
       await tester.pumpAndSettle();
@@ -215,15 +228,97 @@ void main() {
     );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.trainingSetupSelectSeat));
+    await tester.pumpAndSettle();
     await tester.showKeyboard(find.byType(TextField));
     tester.view.viewInsets = const FakeViewPadding(bottom: 240);
     await tester.pumpAndSettle();
 
+    expect(find.text('Sales Seat').hitTestable(), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'missing');
+    await tester.pumpAndSettle();
+    expect(find.text(AppStrings.trainingSetupNoMatches), findsOneWidget);
+    expect(find.text('Sales Seat'), findsNothing);
+    await tester.tap(find.byType(AppOverlayCloseButton).last);
+    await tester.pumpAndSettle();
     expect(find.text(AppStrings.done).hitTestable(), findsOneWidget);
     expect(
       tester.getBottomLeft(find.byType(AppButton)).dy,
       lessThanOrEqualTo(400),
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('dropdowns unlock in order and apply together only on Done', (
+    tester,
+  ) async {
+    final repository = _LibraryRepository();
+    final controller = TrainingLibraryController(
+      GetTrainingLibraryModulesUseCase(repository),
+      getSeatProfilesUseCase: GetSeatProfilesUseCase(_SeatRepository()),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await tester.pumpWidget(
+      _host(
+        (context) => showTrainingLibrarySeatSelectionSheet(
+          context,
+          controller: controller,
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    List<bool> enabledSteps() => tester
+        .widgetList<TrainingSelectionStepField>(
+          find.byType(TrainingSelectionStepField),
+        )
+        .map((field) => field.enabled)
+        .toList();
+    expect(enabledSteps(), [true, false, false]);
+    await tester.tap(find.text(AppStrings.trainingSetupSelectSeat));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sales Seat'));
+    await tester.pumpAndSettle();
+    expect(enabledSteps(), [true, true, false]);
+    await tester.tap(find.text(AppStrings.trainingSetupSelectCategory));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Safety'));
+    await tester.pumpAndSettle();
+    expect(enabledSteps(), [true, true, true]);
+    await tester.tap(find.text(AppStrings.trainingSetupSelectDescription));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Safety procedures'));
+    await tester.pumpAndSettle();
+    expect(controller.selectedDescriptionId, isNull);
+    expect(repository.requests, 1);
+
+    await tester.tap(find.text('Safety'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Other category'));
+    await tester.pumpAndSettle();
+    expect(enabledSteps(), [true, true, false]);
+    expect(find.text('Safety procedures'), findsNothing);
+    expect(
+      find.text(AppStrings.seatProfileNoDescriptionsFound),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Other category'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Safety'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.trainingSetupSelectDescription));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Safety procedures'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.done));
+    await tester.pumpAndSettle();
+    expect(controller.selectedSeatId, 'sales');
+    expect(controller.selectedCategoryId, 'category');
+    expect(controller.selectedDescriptionId, 'sales');
+    expect(controller.visibleItems.single.id, 'sales');
+    expect(find.byType(TrainingLibrarySelectionSheet), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -333,25 +428,39 @@ class _LibraryRepository extends Fake implements TrainingLibraryRepository {
 
 class _SeatRepository extends Fake implements SeatProfileRepository {
   @override
-  Future<SeatProfilePage> getSeatProfiles({
-    required int page,
-    int pageSize = 10,
-    String? departmentId,
-    String title = '',
-  }) async => SeatProfilePage(
-    items: [
-      SeatProfile(
-        id: 'sales',
-        actualId: 'actual-sales',
-        name: 'Sales Seat',
-        categoriesCount: 0,
-        descriptionsCount: 0,
-        hasPrimaryPaygrade: false,
-        hasAncillaryPaygrade: false,
-      ),
-    ],
-    hasNextPage: false,
-  );
+  Future<List<SeatProfileDetail>> seatProfileCategoryTrainings() async =>
+      const [
+        SeatProfileDetail(
+          id: 'sales',
+          actualId: 'actual-sales',
+          title: 'Sales Seat',
+          department: Department(id: 'sales', name: 'Sales'),
+          paygradeUnit: '',
+          categories: [
+            SeatProfileCategory(
+              id: 'category',
+              title: 'Safety',
+              weightPercent: 0,
+              descriptions: [
+                SeatProfileDescription(
+                  id: 'sales',
+                  actualId: 'sales',
+                  name: 'Safety procedures',
+                  auditSpecifics: '',
+                  auditFactorType: '',
+                  milestoneDays: '',
+                ),
+              ],
+            ),
+            SeatProfileCategory(
+              id: 'other',
+              title: 'Other category',
+              weightPercent: 0,
+              descriptions: [],
+            ),
+          ],
+        ),
+      ];
 }
 
 class _AuditRepository extends Fake implements AuditRepository {

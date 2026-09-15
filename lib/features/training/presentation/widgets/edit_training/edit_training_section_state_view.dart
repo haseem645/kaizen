@@ -18,45 +18,14 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
       return Center(child: FastCircularProgressIndicator());
     }
 
-    final showModuleSelector =
-        controller.canManageTraining ||
-        controller.modules.isNotEmpty ||
-        controller.isCreatingNewLessonDraft;
     final fillAvailableSpace = !widget.isEmbedded;
     final isSopTab = _selectedTabIndex == 1;
     final isEditingSopWithKeyboard =
         fillAvailableSpace && isSopTab && MediaQuery.viewInsetsOf(context).bottom > 0;
     final collapseLessonHeader =
         fillAvailableSpace && isSopTab && (isEditingSopWithKeyboard || availableHeight < 440);
-    final contentCard = _buildTabContent(
-      controller,
-      showLessonHeader: !collapseLessonHeader,
-      showModuleSelector: showModuleSelector,
-    );
+    final contentCard = _buildTabContent(controller, showLessonHeader: !collapseLessonHeader);
     final contentChildren = <Widget>[
-      if (showModuleSelector) ...[
-        Offstage(
-          offstage: collapseLessonHeader,
-          child: TrainingLessonSelector(
-            controller: controller,
-            onAddNewLessonTap: () => _startNewLessonDraft(controller),
-            onModuleSelected: (moduleId) async {
-              if (moduleId == controller.selectedModuleId) {
-                await _syncSelectedTabData(controller);
-                return;
-              }
-
-              await controller.selectModule(moduleId);
-              if (!mounted) {
-                return;
-              }
-              await _syncSelectedTabData(controller);
-            },
-            onDeleteModuleTap: (module) =>
-                _showDeleteModuleDialog(controller: controller, module: module),
-          ),
-        ),
-      ],
       if (fillAvailableSpace) Expanded(child: contentCard) else contentCard,
     ];
 
@@ -133,11 +102,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     );
   }
 
-  Widget _buildTabContent(
-    TrainingModuleController controller, {
-    required bool showLessonHeader,
-    required bool showModuleSelector,
-  }) {
+  Widget _buildTabContent(TrainingModuleController controller, {required bool showLessonHeader}) {
     final isBackgroundVideoUploadActive =
         widget.useNonBlockingVideoUpload &&
         TrainingVideoUploadController.instance.isUploadActiveForModule(
@@ -168,7 +133,6 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         final page = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (index == 0 && showModuleSelector && showLessonHeader) const SizedBox(height: 4),
             Offstage(
               offstage: !showLessonHeader,
               child: _buildLessonHeader(controller, tabIndex: index),
@@ -214,11 +178,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
 
     if (!controller.hasSelectedModule) {
       return _ContentMessage(
-        message:
-            controller.errorMessage ??
-            (controller.canManageTraining
-                ? AppStrings.trainingAddLessonPrompt
-                : AppStrings.trainingNoModulesAvailable),
+        message: controller.errorMessage ?? AppStrings.trainingNoModulesAvailable,
       );
     }
 
@@ -347,33 +307,6 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     if (_selectedTabIndex == 3) {
       await controller.loadAssignmentForSelectedModule();
     }
-  }
-
-  void _startNewLessonDraft(TrainingModuleController controller) {
-    if (!controller.canManageTraining) {
-      return;
-    }
-
-    if (_tabNavigation.selectedIndex != 0) {
-      _tabNavigation.selectTab(0);
-    }
-    controller.startCreatingNewLessonDraft();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !controller.isCreatingNewLessonDraft) {
-        return;
-      }
-
-      _newLessonTitleFocusNode.requestFocus();
-      final fieldContext = _newLessonTitleFieldKey.currentContext;
-      if (fieldContext != null) {
-        Scrollable.ensureVisible(
-          fieldContext,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          alignment: 0.12,
-        );
-      }
-    });
   }
 
   Future<void> _createModuleFromDraft(TrainingModuleController controller) async {
