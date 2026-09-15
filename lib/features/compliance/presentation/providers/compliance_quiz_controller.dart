@@ -27,6 +27,8 @@ class ComplianceQuizController extends ChangeNotifier {
   final SubmitComplianceQuizUseCase _submitComplianceQuizUseCase;
 
   bool _isLoading = false;
+  bool _isDisposed = false;
+  Future<void>? _preparation;
   bool _isStartingQuiz = false;
   bool _isLoadingQuizResult = false;
   bool _isPausingQuiz = false;
@@ -44,6 +46,7 @@ class ComplianceQuizController extends ChangeNotifier {
   Map<String, String> _selectedAnswers = {};
 
   bool get isLoading => _isLoading;
+  bool get isPreparingQuiz => _preparation != null;
   bool get isStartingQuiz => _isStartingQuiz;
   bool get isLoadingQuizResult => _isLoadingQuizResult;
   bool get isPausingQuiz => _isPausingQuiz;
@@ -65,11 +68,62 @@ class ComplianceQuizController extends ChangeNotifier {
   Map<String, String> get selectedAnswers =>
       Map<String, String>.unmodifiable(_selectedAnswers);
 
+  Future<void> prepareQuiz({
+    required String trackAssignmentUuid,
+    required String trainingModuleUuid,
+  }) {
+    if (_isDisposed) {
+      return Future<void>.value();
+    }
+    final pending = _preparation;
+    if (pending != null) {
+      return pending;
+    }
+    final preparation = _prepareQuiz(
+      trackAssignmentUuid: trackAssignmentUuid,
+      trainingModuleUuid: trainingModuleUuid,
+    );
+    _preparation = preparation;
+    notifyListeners();
+    return preparation;
+  }
+
+  Future<void> waitForPreparation() async {
+    await _preparation;
+  }
+
+  Future<void> _prepareQuiz({
+    required String trackAssignmentUuid,
+    required String trainingModuleUuid,
+  }) async {
+    try {
+      await initialize(
+        trackAssignmentUuid: trackAssignmentUuid,
+        trainingModuleUuid: trainingModuleUuid,
+      );
+      if (_isDisposed) {
+        return;
+      }
+      await getQuizResult(
+        trackAssignmentUuid: trackAssignmentUuid,
+        trainingModuleUuid: trainingModuleUuid,
+      );
+    } finally {
+      _preparation = null;
+      if (!_isDisposed) {
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> initialize({
     required String trackAssignmentUuid,
     required String trainingModuleUuid,
     bool forceRefresh = false,
   }) async {
+    if (_isDisposed) {
+      return;
+    }
     if (!forceRefresh &&
         _loadedTrackAssignmentUuid == trackAssignmentUuid &&
         _loadedTrainingModuleUuid == trainingModuleUuid &&
@@ -85,6 +139,9 @@ class ComplianceQuizController extends ChangeNotifier {
         trackAssignmentUuid: trackAssignmentUuid,
         trainingModuleUuid: trainingModuleUuid,
       );
+      if (_isDisposed) {
+        return;
+      }
       final isDifferentQuiz =
           _loadedTrackAssignmentUuid != trackAssignmentUuid ||
           _loadedTrainingModuleUuid != trainingModuleUuid;
@@ -127,7 +184,9 @@ class ComplianceQuizController extends ChangeNotifier {
     }
 
     _isLoading = false;
-    notifyListeners();
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   String? selectedOptionUuid(String questionUuid) =>
@@ -284,7 +343,7 @@ class ComplianceQuizController extends ChangeNotifier {
     required String trackAssignmentUuid,
     required String trainingModuleUuid,
   }) async {
-    if (_isLoadingQuizResult) {
+    if (_isDisposed || _isLoadingQuizResult) {
       return null;
     }
 
@@ -296,6 +355,9 @@ class ComplianceQuizController extends ChangeNotifier {
         trackAssignmentUuid: trackAssignmentUuid,
         trainingModuleUuid: trainingModuleUuid,
       );
+      if (_isDisposed) {
+        return null;
+      }
       _quizResult = result;
       _hasPassedQuizResult = result.isPassed;
       return result;
@@ -303,12 +365,15 @@ class ComplianceQuizController extends ChangeNotifier {
       return null;
     } finally {
       _isLoadingQuizResult = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        notifyListeners();
+      }
     }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _quizTimer?.cancel();
     super.dispose();
   }

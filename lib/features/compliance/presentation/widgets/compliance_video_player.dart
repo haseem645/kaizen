@@ -25,6 +25,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
     this.showDuration = true,
     this.fillBounds = false,
     this.topRightActions = const <Widget>[],
+    this.onPositionChanged,
   });
 
   final String videoUrl;
@@ -37,6 +38,7 @@ class ComplianceVideoPlayer extends StatefulWidget {
   final bool showDuration;
   final bool fillBounds;
   final List<Widget> topRightActions;
+  final ValueChanged<Duration>? onPositionChanged;
 
   @override
   State<ComplianceVideoPlayer> createState() => _ComplianceVideoPlayerState();
@@ -132,6 +134,8 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
       setState(() {
         _controller = controller;
       });
+      controller.addListener(_notifyPlaybackPosition);
+      _notifyPlaybackPosition();
     } catch (error) {
       if (controller != null) {
         await VideoPlaybackService.releaseController(controller);
@@ -174,6 +178,13 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     return generation == _initializationGeneration;
   }
 
+  void _notifyPlaybackPosition() {
+    final controller = _controller;
+    if (controller != null && controller.value.isInitialized) {
+      widget.onPositionChanged?.call(controller.value.position);
+    }
+  }
+
   void _disposeController() {
     _initializationGeneration++;
 
@@ -185,6 +196,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     _isScrubbing = false;
     _scrubPositionMillis = null;
     if (controller != null) {
+      controller.removeListener(_notifyPlaybackPosition);
       unawaited(VideoPlaybackService.releaseController(controller));
     }
   }

@@ -36,10 +36,12 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
 
       final controller = context.read<ComplianceQuizController>();
       _controller = controller;
-      controller.initialize(
-        trackAssignmentUuid: widget.trackAssignmentUuid,
-        trainingModuleUuid: widget.trainingModuleUuid,
-      );
+      if (!controller.isPreparingQuiz) {
+        controller.initialize(
+          trackAssignmentUuid: widget.trackAssignmentUuid,
+          trainingModuleUuid: widget.trainingModuleUuid,
+        );
+      }
       _syncQuizTimer(controller);
     });
   }

@@ -8,13 +8,13 @@ import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../routes/app_router.dart';
-import '../../data/datasources/auth_remote_data_source.dart';
-import '../../data/repositories/auth_repository_impl.dart';
-import '../../domain/usecases/login_usecase.dart';
 import '../../../auth/presentation/auth_validators.dart';
 import '../../../auth/presentation/widgets/auth_link_button.dart';
 import '../../../auth/presentation/widgets/auth_outlined_text_field.dart';
 import '../../../auth/presentation/widgets/auth_page_frame.dart';
+import '../../data/datasources/auth_remote_data_source.dart';
+import '../../data/repositories/auth_repository_impl.dart';
+import '../../domain/usecases/login_usecase.dart';
 import '../providers/login_controller.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -24,12 +24,9 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuthRemoteDataSource>(
-          create: (_) => createAuthRemoteDataSource(),
-        ),
+        Provider<AuthRemoteDataSource>(create: (_) => createAuthRemoteDataSource()),
         ProxyProvider<AuthRemoteDataSource, AuthRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createAuthRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createAuthRepository(remoteDataSource),
         ),
         ProxyProvider<AuthRepositoryImpl, LoginUseCase>(
           update: (_, repository, __) => createLoginUseCase(repository),
@@ -84,11 +81,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
-            content: AppTextView.body2(
-              AppStrings.welcomeBackUser(user.displayName),
-            ),
-          ),
+          SnackBar(content: AppTextView.body2(AppStrings.welcomeBackUser(user.displayName))),
         );
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) {
@@ -99,8 +92,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
           return;
         }
         if (DeepLinkService.instance.hasPendingAuthenticatedTarget) {
-          await DeepLinkService.instance
-              .openPendingAuthenticatedTargetAfterLogin();
+          await DeepLinkService.instance.openPendingAuthenticatedTargetAfterLogin();
           return;
         }
 
@@ -133,6 +125,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildEmailField(),
+            const SizedBox(height: 4),
             _buildPasswordField(),
             Align(
               alignment: Alignment.centerRight,
@@ -192,9 +185,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
           });
         },
         icon: Icon(
-          _isPasswordHidden
-              ? Icons.visibility_off_outlined
-              : Icons.visibility_outlined,
+          _isPasswordHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
           color: AppColors.secondaryColor,
           size: 20,
         ),
@@ -210,12 +201,8 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
         setState(() {
           _hasInteractedWithEmail = true;
           _hasInteractedWithPassword = true;
-          _emailError = AuthValidators.validateEmail(
-            controller.emailController.text,
-          );
-          _passwordError = AuthValidators.validateLoginPassword(
-            controller.passwordController.text,
-          );
+          _emailError = AuthValidators.validateEmail(controller.emailController.text);
+          _passwordError = AuthValidators.validateLoginPassword(controller.passwordController.text);
         });
 
         if (_emailError != null || _passwordError != null) {
