@@ -1274,22 +1274,26 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _DescriptionAuditTypePill(
-                          text: auditFactorType.isEmpty ? AppStrings.checkInTitle : auditFactorType,
-                        ),
-                      ),
-                    ),
-                    if (canCreateComments) ...[
-                      const SizedBox(width: 8),
+                    const Spacer(),
+                    if (canCreateComments)
                       _CommentIconButton(
                         isEnabled: true,
                         icon: Icons.camera_alt_outlined,
                         onTap: _openCreateCommentDialog,
                       ),
-                    ],
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: _DescriptionAuditTypePill(
+                            text: auditFactorType.isEmpty
+                                ? AppStrings.checkInTitle
+                                : auditFactorType,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
