@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/google_authorization.dart';
+import '../../google_sign_in_diagnostics.dart';
 
 /// Uses the browser and the app's verified HTTPS callback for the web code flow.
 class GoogleAuthorizationDataSource {
@@ -42,6 +43,17 @@ class GoogleAuthorizationDataSource {
 
   Future<GoogleAuthorization?> authorize() async {
     final callback = Uri.tryParse(redirectUri);
+    GoogleSignInDiagnostics.log(
+      'authorization.config',
+      data: {
+        'client_id': clientId,
+        'redirect_uri': callback ?? redirectUri,
+        'platform': defaultTargetPlatform.name,
+        'supported': _isSupported,
+        'attempt_pending': _pending != null,
+        'timeout_seconds': timeout.inSeconds,
+      },
+    );
     if (!_isSupported ||
         _pending != null ||
         clientId.trim().isEmpty ||
@@ -51,6 +63,7 @@ class GoogleAuthorizationDataSource {
         callback.hasQuery ||
         callback.hasFragment ||
         callback.userInfo.isNotEmpty) {
+      GoogleSignInDiagnostics.log('authorization.unavailable');
       throw const GoogleAuthorizationException(GoogleAuthorizationFailure.unavailable);
     }
 
@@ -64,9 +77,29 @@ class GoogleAuthorizationDataSource {
     try {
       subscription = (_callbackUris ?? AppLinks().uriLinkStream).listen(
         (uri) => _handleCallback(uri, callback, state, result),
-        onError: (Object _) => _fail(result, GoogleAuthorizationFailure.unavailable),
+        onError: (Object error, StackTrace stackTrace) {
+          GoogleSignInDiagnostics.log(
+            'callback.stream_error',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          _fail(result, GoogleAuthorizationFailure.unavailable);
+        },
+        onDone: () => GoogleSignInDiagnostics.log('callback.stream_closed'),
       );
-      timer = Timer(timeout, () => _fail(result, GoogleAuthorizationFailure.timedOut));
+      GoogleSignInDiagnostics.log('callback.listener_attached');
+      timer = Timer(timeout, () {
+        GoogleSignInDiagnostics.log(
+          'callback.timeout',
+          data: {
+            'timeout_seconds': timeout.inSeconds,
+            'expected_callback': callback,
+            'reason':
+                'No valid Google callback reached this attempt; check browser redirect and app-link association.',
+          },
+        );
+        _fail(result, GoogleAuthorizationFailure.timedOut);
+      });
       final authorizationUri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
         'client_id': clientId,
         'redirect_uri': redirectUri,
@@ -81,18 +114,26 @@ class GoogleAuthorizationDataSource {
       timer?.cancel();
       await subscription?.cancel();
       _pending = null;
+      GoogleSignInDiagnostics.log('callback.listener_removed');
     }
   }
 
   void cancel() {
     final pending = _pending;
-    if (pending != null && !pending.isCompleted) pending.complete(null);
+    if (pending != null && !pending.isCompleted) {
+      GoogleSignInDiagnostics.log('authorization.cancel_requested');
+      pending.complete(null);
+    }
   }
 
   Future<void> _launch(Uri uri, Completer<GoogleAuthorization?> result) async {
     try {
-      if (!await _launchBrowser(uri)) _fail(result, GoogleAuthorizationFailure.unavailable);
-    } catch (_) {
+      GoogleSignInDiagnostics.log('browser.launch', data: {'url': uri});
+      final launched = await _launchBrowser(uri);
+      GoogleSignInDiagnostics.log('browser.launch_result', data: {'launched': launched});
+      if (!launched) _fail(result, GoogleAuthorizationFailure.unavailable);
+    } catch (error, stackTrace) {
+      GoogleSignInDiagnostics.log('browser.launch_error', error: error, stackTrace: stackTrace);
       _fail(result, GoogleAuthorizationFailure.unavailable);
     }
   }
@@ -103,22 +144,51 @@ class GoogleAuthorizationDataSource {
     String expectedState,
     Completer<GoogleAuthorization?> result,
   ) {
-    if (result.isCompleted ||
-        uri.scheme != callback.scheme ||
+    GoogleSignInDiagnostics.log(
+      'callback.received',
+      data: {'url': uri, 'parameters': uri.queryParametersAll},
+    );
+    if (result.isCompleted) {
+      GoogleSignInDiagnostics.log(
+        'callback.ignored',
+        data: {'reason': 'attempt_already_completed'},
+      );
+      return;
+    }
+    if (uri.scheme != callback.scheme ||
         uri.host != callback.host ||
         uri.port != callback.port ||
         uri.path != callback.path ||
-        uri.userInfo.isNotEmpty ||
-        uri.hasFragment) {
+        uri.userInfo.isNotEmpty) {
+      GoogleSignInDiagnostics.log(
+        'callback.ignored',
+        data: {'reason': 'callback_url_mismatch', 'expected_callback': callback},
+      );
       return;
+    }
+
+    // Browsers may append a fragment, including an empty trailing '#'. This
+    // code flow reads credentials only from the query, never from the fragment.
+    if (uri.hasFragment) {
+      GoogleSignInDiagnostics.log(
+        'callback.fragment_ignored',
+        data: {'fragment_is_empty': uri.fragment.isEmpty},
+      );
     }
 
     final states = uri.queryParametersAll['state'];
     // Ignore unsolicited or stale callbacks, including links from a prior attempt.
-    if (states == null || states.length != 1 || states.single != expectedState) return;
+    if (states == null || states.length != 1 || states.single != expectedState) {
+      GoogleSignInDiagnostics.log(
+        'callback.ignored',
+        data: {'reason': 'missing_duplicate_or_stale_state', 'state_count': states?.length ?? 0},
+      );
+      return;
+    }
 
     final errors = uri.queryParametersAll['error'];
     if (errors != null) {
+      GoogleSignInDiagnostics.log('google.error', data: {'parameters': uri.queryParametersAll});
       if (errors.length == 1 && errors.single == 'access_denied') {
         result.complete(null);
       } else {
@@ -128,14 +198,25 @@ class GoogleAuthorizationDataSource {
     }
     final codes = uri.queryParametersAll['code'];
     if (codes == null || codes.length != 1 || codes.single.trim().isEmpty) {
+      GoogleSignInDiagnostics.log(
+        'callback.invalid_code',
+        data: {
+          'code_count': codes?.length ?? 0,
+          'has_nonblank_code': codes?.any((code) => code.trim().isNotEmpty) ?? false,
+        },
+      );
       _fail(result, GoogleAuthorizationFailure.invalidResponse);
       return;
     }
+    GoogleSignInDiagnostics.log('callback.accepted', data: {'has_code': true});
     result.complete(GoogleAuthorization(code: codes.single, redirectUri: redirectUri));
   }
 
   static void _fail(Completer<GoogleAuthorization?> result, GoogleAuthorizationFailure failure) {
-    if (!result.isCompleted) result.completeError(GoogleAuthorizationException(failure));
+    if (!result.isCompleted) {
+      GoogleSignInDiagnostics.log('authorization.failure', data: {'reason': failure.name});
+      result.completeError(GoogleAuthorizationException(failure));
+    }
   }
 
   static Future<bool> _openBrowser(Uri uri) => launchUrl(uri, mode: LaunchMode.externalApplication);

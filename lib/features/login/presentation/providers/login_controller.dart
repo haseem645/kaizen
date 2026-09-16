@@ -6,6 +6,7 @@ import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/usecases/login_usecase.dart';
+import '../../google_sign_in_diagnostics.dart';
 
 typedef GoogleLoginAction = Future<AppUser?> Function({void Function()? onAuthorizationComplete});
 
@@ -94,7 +95,14 @@ class LoginController extends ChangeNotifier {
   }
 
   Future<void> loginWithGoogle() async {
-    if (_isLoading || _isDisposed) return;
+    GoogleSignInDiagnostics.log(
+      'button.pressed',
+      data: {'is_loading': _isLoading, 'is_disposed': _isDisposed},
+    );
+    if (_isLoading || _isDisposed) {
+      GoogleSignInDiagnostics.log('button.ignored');
+      return;
+    }
     _isLoading = true;
     _isGoogleLoading = true;
     _isAwaitingGoogleAuthorization = true;
@@ -111,23 +119,29 @@ class LoginController extends ChangeNotifier {
       // Cancellation returns null; only an app-authenticated user can navigate.
       _user = await googleLogin(
         onAuthorizationComplete: () {
+          GoogleSignInDiagnostics.log('button.authorization_finished');
           _isAwaitingGoogleAuthorization = false;
           if (!_isDisposed) notifyListeners();
         },
       );
-    } on LoginException catch (error) {
+      GoogleSignInDiagnostics.log('login.result', data: {'authenticated': _user != null});
+    } on LoginException catch (error, stackTrace) {
+      GoogleSignInDiagnostics.log('login.error', error: error, stackTrace: stackTrace);
       _errorMessage = error.message;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      GoogleSignInDiagnostics.log('login.unexpected_error', error: error, stackTrace: stackTrace);
       _errorMessage = AppStrings.loginGoogleFailed;
     } finally {
       _isLoading = false;
       _isGoogleLoading = false;
       _isAwaitingGoogleAuthorization = false;
+      GoogleSignInDiagnostics.log('button.loading_cleared', data: {'is_disposed': _isDisposed});
       if (!_isDisposed) notifyListeners();
     }
   }
 
   void cancelGoogleLogin() {
+    GoogleSignInDiagnostics.log('button.cancel', data: {'can_cancel': canCancelGoogleLogin});
     if (canCancelGoogleLogin) _cancelGoogleLogin?.call();
   }
 
