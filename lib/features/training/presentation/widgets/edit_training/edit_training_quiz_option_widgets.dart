@@ -226,30 +226,6 @@ class _QuizOptionTile extends StatelessWidget {
   }
 }
 
-class _TrainingReadOnlyBanner extends StatelessWidget {
-  const _TrainingReadOnlyBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark2.withValues(alpha: 0.38),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.18),
-        ),
-      ),
-      child: const AppTextView.body3(
-        AppStrings.trainingReadOnlyAccessMessage,
-        color: AppColors.textSecondary,
-        height: 1.45,
-      ),
-    );
-  }
-}
-
 class _QuizEmptyStateCard extends StatelessWidget {
   const _QuizEmptyStateCard();
 

@@ -8,5 +8,8 @@ abstract class TrainingLibraryRepository {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   });
 }

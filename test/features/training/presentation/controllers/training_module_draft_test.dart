@@ -30,6 +30,7 @@ void main() {
       controller.newLessonTitleController.text = 'Unsaved lesson';
       expect(controller.isCreatingNewLessonDraft, isTrue);
       expect(controller.hasSelectedModule, isFalse);
+      expect(controller.maxAccessibleTabIndex, 0);
 
       await controller.cancelCreatingNewLessonDraft();
 
@@ -39,10 +40,25 @@ void main() {
       expect(controller.selectedModuleDetail?.uuid, 'second');
       expect(controller.moduleTitleController.text, 'second');
       expect(controller.canAccessSelectedModuleExtras, isTrue);
+      expect(controller.maxAccessibleTabIndex, 3);
       expect(controller.modules, hasLength(2));
       expect(repository.createRequests, 0);
     },
   );
+
+  test('a selected lesson without edit permission allows only Video and SOP', () async {
+    final readOnly = TrainingModuleController(repository, canManageTraining: false);
+    addTearDown(readOnly.dispose);
+    await readOnly.initialize(
+      jobId: 'seat',
+      descriptionId: 'description',
+      initialModuleId: 'second',
+    );
+    expect(readOnly.selectedModuleId, 'second');
+    expect(readOnly.maxAccessibleTabIndex, 1);
+    expect(readOnly.canEditSelectedModuleTitle, isFalse);
+    expect(controller.maxAccessibleTabIndex, 3);
+  });
 
   test('cancelling with no saved lessons returns to the empty state', () async {
     repository.modules.clear();

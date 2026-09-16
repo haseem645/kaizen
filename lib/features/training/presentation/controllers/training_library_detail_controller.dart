@@ -81,13 +81,13 @@ class TrainingLibraryDetailController extends ChangeNotifier {
     TrainingLibraryLesson lesson,
   ) {
     final lessonId = lesson.id.trim();
-    if (lessonId.isEmpty) {
+    if (lessonId.isEmpty || _module.trainingDescriptionId.trim().isEmpty) {
       return null;
     }
     return SeatDescriptionTrainingRoute(
       job: _module.seat.id,
       category: _module.category.id,
-      description: _module.id,
+      description: _module.trainingDescriptionId,
       initialModuleId: lessonId,
     );
   }
@@ -183,14 +183,17 @@ class TrainingLibraryDetailController extends ChangeNotifier {
     required ValueChanged<String> showMessage,
   }) async {
     final lessonId = lesson.id.trim();
-    if (_isDisposed || !canManageTraining || lessonId.isEmpty) {
+    if (_isDisposed ||
+        !canManageTraining ||
+        lessonId.isEmpty ||
+        _module.trainingDescriptionId.trim().isEmpty) {
       return;
     }
     await openEditor(
       SeatDescriptionTrainingRoute(
         job: _module.seat.id,
         category: _module.category.id,
-        description: _module.id,
+        description: _module.trainingDescriptionId,
       ),
       lessonId,
       canManageTraining,
@@ -246,8 +249,8 @@ class TrainingLibraryDetailController extends ChangeNotifier {
   }
 
   Future<bool> refreshModule() async {
-    final descriptionId = _module.id.trim();
-    if (_isDisposed || isBusy || descriptionId.isEmpty) {
+    final moduleId = _module.id.trim();
+    if (_isDisposed || isBusy || moduleId.isEmpty) {
       return false;
     }
 
@@ -256,7 +259,7 @@ class TrainingLibraryDetailController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final refreshedModule = await _findModuleByDescriptionId(descriptionId);
+      final refreshedModule = await _findModuleById(moduleId);
       if (_isDisposed) {
         return false;
       }
@@ -316,6 +319,7 @@ class TrainingLibraryDetailController extends ChangeNotifier {
         ),
         thumbnailLink: _module.thumbnailLink,
         category: _module.category,
+        descriptionId: _module.descriptionId,
       );
       _shouldRefreshOnExit = true;
       visibilityController.syncWithLessons(_module.lessons);
@@ -334,9 +338,7 @@ class TrainingLibraryDetailController extends ChangeNotifier {
     }
   }
 
-  Future<TrainingLibraryModule?> _findModuleByDescriptionId(
-    String descriptionId,
-  ) async {
+  Future<TrainingLibraryModule?> _findModuleById(String moduleId) async {
     var page = 1;
     var hasNextPage = true;
 
@@ -350,7 +352,7 @@ class TrainingLibraryDetailController extends ChangeNotifier {
       );
 
       for (final module in response.items) {
-        if (module.id.trim() == descriptionId) {
+        if (module.id.trim() == moduleId) {
           return module;
         }
       }

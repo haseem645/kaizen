@@ -48,13 +48,15 @@ class ViewTrainingScreen extends StatelessWidget {
               ),
         ),
       ],
-      child: const _ViewTrainingScreenView(),
+      child: _ViewTrainingScreenView(seatProfileId: trainingRoute.job),
     );
   }
 }
 
 class _ViewTrainingScreenView extends StatefulWidget {
-  const _ViewTrainingScreenView();
+  const _ViewTrainingScreenView({required this.seatProfileId});
+
+  final String seatProfileId;
 
   @override
   State<_ViewTrainingScreenView> createState() => _ViewTrainingScreenViewState();
@@ -83,15 +85,20 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     super.dispose();
   }
 
-  int get _maxTabIndex =>
-      _trainingController.canAccessSelectedModuleExtras ? trainingViewerTabCount - 1 : 0;
+  bool get _canManageTraining => AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+    seatProfileId: widget.seatProfileId,
+  );
+
+  int get _maxTabIndex => maxTrainingTabIndex(
+    hasSelectedModule: _trainingController.canAccessSelectedModuleExtras,
+    canManageTraining: _canManageTraining,
+  );
 
   int _coerceSelectedTab() {
     final index = _trainingController.canAccessSelectedModuleExtras
         ? normalizeTrainingViewerTabIndex(
-            isPubliclyAvailable: _trainingController.isSelectedModulePubliclyAvailable,
+            canManageTraining: _canManageTraining,
             tabIndex: _navigation.selectedIndex,
-            isChildOrganization: AppManager.instance.isCurrentOrganizationChild,
           )
         : 0;
     if (_navigation.selectedIndex != index) _navigation.selectTab(index);
@@ -110,6 +117,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
   }
 
   Future<void> _syncSelectedTabData(int index) async {
+    if (index > _maxTabIndex) return;
     switch (index) {
       case 1:
         await _trainingController.loadDocumentForSelectedModule();
@@ -189,12 +197,12 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (index == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
-            AppTextView.body1(
-              controller.selectedModuleTitle,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
+            TrainingLessonTitleField(
+              valueText: controller.selectedModuleTitle,
+              hintText: AppStrings.trainingLessonTitleHint,
+              isReadOnly: true,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
           ],
           content,
         ],

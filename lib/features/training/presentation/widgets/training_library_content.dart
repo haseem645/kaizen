@@ -4,9 +4,11 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/navigation/app_menu_type.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../domain/entities/seat_description_training_route.dart';
 import '../../domain/entities/training_library_module.dart';
 import '../controllers/training_library_controller.dart';
 import 'training_library_create_action.dart';
+import 'training_library_filter_tags.dart';
 import 'training_library_result_area.dart';
 import 'training_library_search_bar.dart';
 
@@ -14,15 +16,17 @@ class TrainingLibraryContent extends StatelessWidget {
   const TrainingLibraryContent({
     super.key,
     required this.controller,
-    required this.onOpenDetail,
+    required this.onOpenLesson,
     required this.onSelectSeat,
     required this.onCreate,
+    this.onModuleActions,
   });
 
   final TrainingLibraryController controller;
-  final Future<bool?> Function(TrainingLibraryModule module, String view) onOpenDetail;
+  final Future<void> Function(SeatDescriptionTrainingRoute route) onOpenLesson;
   final VoidCallback onSelectSeat;
   final VoidCallback onCreate;
+  final ValueChanged<TrainingLibraryModule>? onModuleActions;
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +45,9 @@ class TrainingLibraryContent extends StatelessWidget {
                   : _TrainingLibraryFiltersAndResults(
                       controller: controller,
                       onModuleTap: (module) =>
-                          controller.openLibraryDetail(module, openDetail: onOpenDetail),
+                          controller.openLesson(module, openDetails: onOpenLesson),
                       onSelectSeat: onSelectSeat,
+                      onModuleActions: onModuleActions,
                     ),
             ),
             if (!controller.isShowingFullscreenLoading && controller.canCreateTraining)
@@ -59,11 +64,13 @@ class _TrainingLibraryFiltersAndResults extends StatelessWidget {
     required this.controller,
     required this.onModuleTap,
     required this.onSelectSeat,
+    required this.onModuleActions,
   });
 
   final TrainingLibraryController controller;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
   final VoidCallback onSelectSeat;
+  final ValueChanged<TrainingLibraryModule>? onModuleActions;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +82,10 @@ class _TrainingLibraryFiltersAndResults extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TrainingLibrarySearchBar(controller: controller, onSelectSeat: onSelectSeat),
+          if (controller.appliedFilterTags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            TrainingLibraryFilterTags(controller: controller),
+          ],
           const SizedBox(height: 24),
           Expanded(
             child: RefreshIndicator.noSpinner(
@@ -84,6 +95,7 @@ class _TrainingLibraryFiltersAndResults extends StatelessWidget {
                 items: items,
                 scrollController: controller.scrollController,
                 onModuleTap: onModuleTap,
+                onModuleActions: onModuleActions,
               ),
             ),
           ),

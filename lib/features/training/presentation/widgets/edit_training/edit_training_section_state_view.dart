@@ -35,10 +35,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         children: [
           ...contentChildren,
           const SizedBox(height: 18),
-          TrainingTabs(
-            navigation: _tabNavigation,
-            maxTabIndex: controller.canAccessSelectedModuleExtras ? 3 : 0,
-          ),
+          TrainingTabs(navigation: _tabNavigation, maxTabIndex: controller.maxAccessibleTabIndex),
         ],
       );
     }
@@ -54,7 +51,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         minimum: const EdgeInsets.only(top: 10, bottom: 14),
         child: TrainingTabs(
           navigation: _tabNavigation,
-          maxTabIndex: controller.canAccessSelectedModuleExtras ? 3 : 0,
+          maxTabIndex: controller.maxAccessibleTabIndex,
         ),
       ),
     );
@@ -74,28 +71,16 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
             onSubmit: () => _createModuleFromDraft(controller),
           ),
           const SizedBox(height: 16),
-        ] else if (tabIndex == 0 &&
-            controller.hasSelectedModule &&
-            controller.canEditSelectedModuleTitle) ...[
-          _TrainingTapEditField(
+        ] else if (tabIndex == 0 && controller.hasSelectedModule) ...[
+          TrainingLessonTitleField(
             valueText: controller.selectedModuleTitle,
             hintText: AppStrings.trainingLessonTitleHint,
-            onTap: controller.isSavingModuleTitle
+            isReadOnly: !controller.canEditSelectedModuleTitle,
+            onTap: !controller.canEditSelectedModuleTitle || controller.isSavingModuleTitle
                 ? null
                 : () => _showModuleTitleEditBottomSheet(controller),
             isLoading: controller.isSavingModuleTitle,
           ),
-          const SizedBox(height: 16),
-        ] else if (tabIndex == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
-          AppTextView.body1(
-            controller.selectedModuleTitle,
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-          const SizedBox(height: 14),
-        ],
-        if (!controller.canManageTraining) ...[
-          const _TrainingReadOnlyBanner(),
           const SizedBox(height: 16),
         ],
       ],
@@ -111,7 +96,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         );
     return TrainingTabView(
       navigation: _tabNavigation,
-      maxTabIndex: controller.canAccessSelectedModuleExtras ? 3 : 0,
+      maxTabIndex: controller.maxAccessibleTabIndex,
       // Quiz keeps the screen's 16px inset, reducing its former 24px margin by a third.
       pagePaddingBuilder: (index) =>
           index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
@@ -290,7 +275,8 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
   }
 
   Future<void> _syncSelectedTabData(TrainingModuleController controller) async {
-    if (!controller.canAccessSelectedModuleExtras) {
+    if (!controller.canAccessSelectedModuleExtras ||
+        _selectedTabIndex > controller.maxAccessibleTabIndex) {
       return;
     }
 
