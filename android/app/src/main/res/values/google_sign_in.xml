@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Android OAuth registration from android-client.json:
+        273718420607-hlfcopqref984gkjpedid02h1cl05sgi.apps.googleusercontent.com
+        Google resolves this client using com.kaizenteam and its signing certificate.
+        The native SDK's server client below must be the Web application client.
+        The current browser login uses the same Web client in Dart.
+    -->
+    <string name="default_web_client_id" translatable="false">273718420607-sma08mj14celj9c4dshthl3nbeqttb12.apps.googleusercontent.com</string>
+</resources>
