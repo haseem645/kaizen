@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_processor.dart';
@@ -6,12 +8,16 @@ import '../models/organization_hierarchy_node_model.dart';
 import '../../domain/entities/login_response.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/user_hierarchy_membership.dart';
+import '../../google_sign_in_diagnostics.dart';
 
 class AuthRemoteDataSource {
   AuthRemoteDataSource({ApiCallExecutor? apiCallExecutor})
-    : _apiCallExecutor = apiCallExecutor ?? const ApiCallExecutor();
+    : _apiCallExecutor = apiCallExecutor ?? const ApiCallExecutor(),
+      _googleApiCallExecutor =
+          apiCallExecutor ?? const ApiCallExecutor(onResponse: _logGoogleHttpResponse);
 
   final ApiCallExecutor _apiCallExecutor;
+  final ApiCallExecutor _googleApiCallExecutor;
 
   Future<LoginResponse> login({required String email, required String password}) {
     return _apiCallExecutor.processApi<LoginResponse>(
@@ -23,15 +29,53 @@ class AuthRemoteDataSource {
     );
   }
 
-  Future<LoginResponse> loginWithGoogle({required String code, required String redirectUri}) {
-    return _apiCallExecutor.processApi<LoginResponse>(
-      apiCallType: ApiCallType.post,
-      endpoint: ApiEndPoints.googleLogin,
-      parameters: {'code': code, 'redirect_uri': redirectUri},
-      authToken: '',
-      allowAutoRefresh: false,
-      allowConflictRetry: false,
-      decoder: _decodeLoginResponse,
+  Future<LoginResponse> loginWithGoogle({required String code, required String redirectUri}) async {
+    GoogleSignInDiagnostics.log(
+      'backend.request',
+      data: {
+        'method': 'POST',
+        'url': '${ApiEndPoints.baseUrl}${ApiEndPoints.version}${ApiEndPoints.googleLogin}',
+        'body': {'code': code, 'redirect_uri': redirectUri},
+        'has_code': code.trim().isNotEmpty,
+      },
+    );
+    try {
+      final response = await _googleApiCallExecutor.processApi<LoginResponse>(
+        apiCallType: ApiCallType.post,
+        endpoint: ApiEndPoints.googleLogin,
+        parameters: {'code': code, 'redirect_uri': redirectUri},
+        authToken: '',
+        allowAutoRefresh: false,
+        allowConflictRetry: false,
+        decoder: _decodeLoginResponse,
+      );
+      GoogleSignInDiagnostics.log(
+        'backend.tokens_validated',
+        data: {
+          'has_access_token': response.access.isNotEmpty,
+          'has_refresh_token': response.refresh.isNotEmpty,
+        },
+      );
+      return response;
+    } catch (error, stackTrace) {
+      GoogleSignInDiagnostics.log(
+        'backend.error',
+        data: {if (error is ApiError) 'status_code': error.statusCode},
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  static void _logGoogleHttpResponse(http.Response response) {
+    GoogleSignInDiagnostics.log(
+      'backend.response',
+      data: {
+        'status_code': response.statusCode,
+        'headers': response.headers,
+        'body': response.body,
+      },
     );
   }
 

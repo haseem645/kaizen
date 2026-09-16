@@ -4,6 +4,10 @@ The Login button opens Google in the external browser using `url_launcher`.
 `GoogleAuthorizationDataSource` listens through `app_links` for the verified HTTPS
 callback, validates a fresh random `state`, and returns the single-use code.
 Cancel, denied consent, timeout, and callbacks from older attempts do not create a session.
+Browser-added callback fragments (including an empty trailing `#`) are ignored.
+The callback must still match the configured scheme, host, port, and path, with
+the current `state` and authorization `code` read exclusively from query parameters.
+The configured redirect URI remains fragment-free when exchanging the code.
 
 `GoogleLoginUseCase` sends the code through `AuthRepository` to:
 
@@ -75,6 +79,37 @@ Validate real Google login on an associated Android/iOS build, including return
 from the browser, cancel, wrong-account rejection, and the post-login destination.
 If the OS kills the app while the browser is open, restart sign-in: the previous
 in-memory state is intentionally not accepted by a new app instance.
+
+## Debugging a stalled sign-in
+
+Run a debug build and filter the Flutter console or Android Studio Logcat for
+`[GoogleSignIn]`. Each line includes a timestamp and event name. Long response
+bodies are split into chunks with the same event name. Authorization codes are
+visible in the callback URL, callback parameters, and backend request for debugging.
+Tokens, OAuth state, cookies, and email addresses remain masked. These diagnostics
+are disabled in release and profile builds.
+
+The expected sequence is `button.pressed` → `authorization.start` →
+`browser.launch_result` → `callback.received` → `callback.accepted` →
+`backend.request` → `backend.response` → `session_initialization.complete` →
+`login.result` → `button.loading_cleared`.
+
+- `authorization.waiting` repeats every 15 seconds while awaiting a valid callback.
+  If no `callback.received` appears, the browser has not delivered a link to the
+  running app. Verify the redirect URL and Android App Links / iOS Universal Links.
+  Browser-only Google errors cannot appear in Flutter logs unless Google returns
+  an error callback to the app.
+- `callback.ignored` records why a received URL or OAuth state was rejected.
+- `callback.fragment_ignored` records browser-added fragment metadata without
+  rejecting an otherwise valid query callback or reading fragment credentials.
+- `google.error` includes returned OAuth error parameters and descriptions.
+- `callback.timeout` records the existing three-minute authorization timeout.
+- `backend.response` includes HTTP status, headers, and the masked body before
+  error handling or JSON decoding, including non-JSON server failures.
+- `backend_exchange.waiting` and `session_initialization.waiting` distinguish a
+  pending code exchange from loading the user's profile/workspace.
+- Failures log the exception type, message, and stack trace. Cancel, completion,
+  and failure all stop the corresponding waiting diagnostics.
 
 References:
 - https://developers.google.com/identity/protocols/oauth2/web-server
