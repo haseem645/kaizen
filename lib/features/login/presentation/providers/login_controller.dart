@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../auth/presentation/auth_validators.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/usecases/login_usecase.dart';
 
+typedef GoogleLoginAction = Future<AppUser?> Function({void Function()? onAuthorizationComplete});
+
 class LoginController extends ChangeNotifier {
-  LoginController(this._loginUseCase);
+  LoginController(
+    this._loginUseCase, {
+    GoogleLoginAction? googleLogin,
+    VoidCallback? cancelGoogleLogin,
+  }) : _googleLogin = googleLogin,
+       _cancelGoogleLogin = cancelGoogleLogin;
 
   final LoginUseCase _loginUseCase;
+  final GoogleLoginAction? _googleLogin;
+  final VoidCallback? _cancelGoogleLogin;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
+  bool _isAwaitingGoogleAuthorization = false;
+  bool _isDisposed = false;
+  bool _isPasswordHidden = true;
+  bool _hasInteractedWithEmail = false;
+  bool _hasInteractedWithPassword = false;
+  bool _hasShownError = false;
+  String? _emailError;
+  String? _passwordError;
   AppUser? _user;
   String? _errorMessage;
   AppUser? _lastUser;
@@ -21,14 +40,21 @@ class LoginController extends ChangeNotifier {
   String _lastAttemptedPassword = '';
 
   bool get isLoading => _isLoading;
+  bool get isGoogleLoading => _isGoogleLoading;
+  bool get canCancelGoogleLogin => _isAwaitingGoogleAuthorization && _cancelGoogleLogin != null;
+  bool get isPasswordLoading => _isLoading && !_isGoogleLoading;
+  bool get isPasswordHidden => _isPasswordHidden;
+  String? get emailError => _hasInteractedWithEmail ? _emailError : null;
+  String? get passwordError => _hasInteractedWithPassword ? _passwordError : null;
   AppUser? get user => _user;
   String? get errorMessage => _errorMessage;
 
   bool shouldShowErrorMessage() {
-    if (_errorMessage == null) {
+    if (_errorMessage == null || _hasShownError) {
       return false;
     }
 
+    _hasShownError = true;
     return true;
   }
 
@@ -42,11 +68,13 @@ class LoginController extends ChangeNotifier {
   }
 
   Future<void> login({required String email, required String password}) async {
+    if (_isLoading || _isDisposed) return;
     _lastAttemptedEmail = email;
     _lastAttemptedPassword = password;
     _isLoading = true;
     _user = null;
     _errorMessage = null;
+    _hasShownError = false;
     notifyListeners();
 
     try {
@@ -54,15 +82,79 @@ class LoginController extends ChangeNotifier {
     } on LoginException catch (error) {
       _user = null;
       _errorMessage = error.message;
-      _restoreLastAttemptedCredentials();
+      if (!_isDisposed) _restoreLastAttemptedCredentials();
     } catch (_) {
       _user = null;
       _errorMessage = AppStrings.loginSomethingWentWrong;
-      _restoreLastAttemptedCredentials();
+      if (!_isDisposed) _restoreLastAttemptedCredentials();
     }
 
     _isLoading = false;
+    if (!_isDisposed) notifyListeners();
+  }
+
+  Future<void> loginWithGoogle() async {
+    if (_isLoading || _isDisposed) return;
+    _isLoading = true;
+    _isGoogleLoading = true;
+    _isAwaitingGoogleAuthorization = true;
+    _user = null;
+    _errorMessage = null;
+    _hasShownError = false;
     notifyListeners();
+
+    try {
+      final googleLogin = _googleLogin;
+      if (googleLogin == null) {
+        throw const LoginException(AppStrings.loginGoogleUnavailable);
+      }
+      // Cancellation returns null; only an app-authenticated user can navigate.
+      _user = await googleLogin(
+        onAuthorizationComplete: () {
+          _isAwaitingGoogleAuthorization = false;
+          if (!_isDisposed) notifyListeners();
+        },
+      );
+    } on LoginException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = AppStrings.loginGoogleFailed;
+    } finally {
+      _isLoading = false;
+      _isGoogleLoading = false;
+      _isAwaitingGoogleAuthorization = false;
+      if (!_isDisposed) notifyListeners();
+    }
+  }
+
+  void cancelGoogleLogin() {
+    if (canCancelGoogleLogin) _cancelGoogleLogin?.call();
+  }
+
+  void updateEmail(String value) {
+    _hasInteractedWithEmail = true;
+    _emailError = AuthValidators.validateEmail(value);
+    notifyListeners();
+  }
+
+  void updatePassword(String value) {
+    _hasInteractedWithPassword = true;
+    _passwordError = AuthValidators.validateLoginPassword(value);
+    notifyListeners();
+  }
+
+  void togglePasswordVisibility() {
+    _isPasswordHidden = !_isPasswordHidden;
+    notifyListeners();
+  }
+
+  bool validateLoginFields() {
+    _hasInteractedWithEmail = true;
+    _hasInteractedWithPassword = true;
+    _emailError = AuthValidators.validateEmail(emailController.text);
+    _passwordError = AuthValidators.validateLoginPassword(passwordController.text);
+    notifyListeners();
+    return _emailError == null && _passwordError == null;
   }
 
   void _restoreLastAttemptedCredentials() {
@@ -76,15 +168,15 @@ class LoginController extends ChangeNotifier {
     if (passwordController.text != _lastAttemptedPassword) {
       passwordController.value = TextEditingValue(
         text: _lastAttemptedPassword,
-        selection: TextSelection.collapsed(
-          offset: _lastAttemptedPassword.length,
-        ),
+        selection: TextSelection.collapsed(offset: _lastAttemptedPassword.length),
       );
     }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
+    cancelGoogleLogin();
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
