@@ -1,6 +1,7 @@
 import 'app_strings.dart';
 
 abstract final class AppAssets {
+  static const String googleLogo = '${AppStrings.imagePath}google_g.png';
   static const String upload = '${AppStrings.imagePath}upload.svg';
   static const String video = '${AppStrings.imagePath}video.svg';
   static const String videoEnabled = '${AppStrings.imagePath}video_enabled.svg';

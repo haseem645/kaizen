@@ -22,6 +22,16 @@ class AppStrings {
   static const String loginEmailLabel = 'Enter you email';
   static const String loginPasswordLabel = 'Enter your password';
   static const String loginButton = 'Login';
+  static const String loginContinueWithGoogle = 'Continue with Google';
+  static const String loginAlternativeSeparator = 'OR';
+  static const String loginFailedTitle = 'Login Failed';
+  static const String loginGoogleUnavailable =
+      'Google sign-in is unavailable right now. Please use your email and password.';
+  static const String loginGoogleFailed = 'Unable to sign in with Google. Please try again.';
+  static const String loginGoogleTimedOut = 'Google sign-in timed out. Please try again.';
+  static const String loginGoogleCodeRejected =
+      'Google sign-in could not be completed. Please try again or use your email and password.';
+  static const String loginCancelGoogle = 'Cancel Google sign-in';
   static const String loginForgotPassword = 'Forgot Password?';
   static const String loginEnterEmail = 'Please enter your email.';
   static const String loginEnterValidEmail = 'Please enter a valid email address.';
