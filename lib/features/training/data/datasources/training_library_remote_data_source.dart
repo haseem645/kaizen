@@ -16,16 +16,26 @@ class TrainingLibraryRemoteDataSource {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   }) {
     return _apiCallExecutor.processApi<TrainingLibraryPageModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.trainingModulesAll,
       parameters: <String, dynamic>{
+        if (jobId?.trim().isNotEmpty ?? false) 'job': jobId!.trim(),
+        if (jobCategoryId?.trim().isNotEmpty ?? false)
+          'job_category': jobCategoryId!.trim(),
+        if (jobCategoryDescriptionId?.trim().isNotEmpty ?? false)
+          'job_category_description': jobCategoryDescriptionId!.trim(),
+        'page': page,
+        'page_size': pageSize,
         'view': view,
         'searchType': searchType,
-        if (searchText.trim().isNotEmpty) 'searchText': searchText.trim(),
         if (departmentId?.trim().isNotEmpty ?? false)
           'department': departmentId!.trim(),
+        if (searchText.trim().isNotEmpty) 'search': searchText.trim(),
       },
       decoder: (json) {
         if (json is Map<String, dynamic>) {

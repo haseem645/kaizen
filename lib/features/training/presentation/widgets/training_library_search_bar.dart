@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_listing_search_bar.dart';
 import '../controllers/training_library_controller.dart';
@@ -49,37 +48,10 @@ class _TrainingLibrarySearchBarState extends State<TrainingLibrarySearchBar> {
     return AppListingSearchBar(
       controller: _textController,
       onChanged: widget.controller.updateSearchQuery,
-      hintText: AppStrings.trainingLibraryFilterHint(AppStrings.trainingLibrarySeat),
+      hintText: AppStrings.trainingLibrarySearchLesson,
       onClearTap: widget.controller.clearSearch,
       onFilterTap: widget.onSelectSeat,
       filterTooltip: AppStrings.trainingSetupSelectSeat,
-      trailing: _TrainingLibrarySeatDropdownButton(onTap: widget.onSelectSeat),
-    );
-  }
-}
-
-class _TrainingLibrarySeatDropdownButton extends StatelessWidget {
-  const _TrainingLibrarySeatDropdownButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: AppStrings.trainingSetupSelectSeat,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: const SizedBox(
-            width: 36,
-            height: 38,
-            child: Icon(Icons.arrow_drop_down_rounded, color: AppColors.textPrimary, size: 20),
-          ),
-        ),
-      ),
     );
   }
 }

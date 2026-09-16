@@ -675,6 +675,11 @@ class AppStrings {
   static const String trainingLibraryFilterTitle = 'Filter Training';
   static const String trainingLibraryAllCategories = 'All Categories';
   static const String trainingLibraryAllDescriptions = 'All Descriptions';
+  static String trainingLibraryRemoveFilter(String name) => 'Remove $name filter';
+  static const String trainingLibrarySeatFilterPrefix = 'Seat:';
+  static const String trainingLibraryCategoryFilterPrefix = 'Category:';
+  static const String trainingLibraryDescriptionFilterPrefix = 'Description:';
+  static String trainingLibraryFilterTagLabel(String prefix, String name) => '$prefix $name';
   static const String trainingLibraryUnableToLoadSeats = 'Unable to load seats. Please try again.';
   static const String trainingLibraryAllVideoLesson = 'All Video Lesson';
   static const String trainingLibraryAllVisibility = 'All Visibility';

@@ -183,7 +183,8 @@ void main() {
       await tester.tap(find.byType(AppOverlayCloseButton));
       await tester.pumpAndSettle();
       expect(controller.selectedSeatId, 'sales');
-      expect(controller.searchQuery, 'Sales Seat');
+      expect(controller.searchQuery, isEmpty);
+      expect(controller.appliedFilterTags.single.label, 'Sales Seat');
 
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
@@ -413,6 +414,9 @@ class _LibraryRepository extends Fake implements TrainingLibraryRepository {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   }) async {
     requests++;
     return response ??

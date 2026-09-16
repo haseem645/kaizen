@@ -4,17 +4,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/custom_functions.dart';
+import '../../../check_in/domain/repositories/audit_repository.dart';
 import '../../../seat_profile/domain/entities/seat_profile_detail.dart';
 import '../../../seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
 import '../../data/repositories/training_library_repository_impl.dart';
+import '../../domain/entities/seat_description_training_route.dart';
 import '../../domain/entities/training_library_module.dart';
 import '../../domain/usecases/get_training_library_modules_usecase.dart';
+import '../models/training_library_filter_tag.dart';
+import 'training_library_detail_controller.dart';
 
 enum TrainingLibraryViewMode { grid, list }
 
 enum TrainingLibrarySearchFilter { category, department, seat }
 
-enum _LibrarySelectionField { department, seat }
+enum _LibrarySelectionField { department, seat, filterTag }
 
 extension TrainingLibrarySearchFilterValue on TrainingLibrarySearchFilter {
   String get apiValue => name;
@@ -25,14 +29,21 @@ class TrainingLibraryController extends ChangeNotifier {
     this._getTrainingLibraryModulesUseCase, {
     required GetSeatProfilesUseCase getSeatProfilesUseCase,
     bool Function()? canCreateTraining,
+    AuditRepository? auditRepository,
+    bool Function(String seatProfileId)? canManageSeatTraining,
   }) : _getSeatProfilesUseCase = getSeatProfilesUseCase,
-       _canCreateTraining = canCreateTraining {
+       _canCreateTraining = canCreateTraining,
+       _auditRepository = auditRepository,
+       _canManageSeatTraining = canManageSeatTraining {
     scrollController.addListener(_handleScroll);
   }
 
   final GetTrainingLibraryModulesUseCase _getTrainingLibraryModulesUseCase;
   final GetSeatProfilesUseCase _getSeatProfilesUseCase;
   final bool Function()? _canCreateTraining;
+  final AuditRepository? _auditRepository;
+  final bool Function(String seatProfileId)? _canManageSeatTraining;
+  bool _isShowingModuleActions = false;
   final ScrollController scrollController = ScrollController();
   bool _isDisposed = false;
   static const int _pageSize = 10;
@@ -49,7 +60,8 @@ class TrainingLibraryController extends ChangeNotifier {
   TrainingLibraryViewMode _viewMode = TrainingLibraryViewMode.list;
   TrainingLibrarySearchFilter _searchFilter = TrainingLibrarySearchFilter.seat;
   String _searchQuery = '';
-  String? _selectedSeatId;
+  TrainingLibrarySeat? _selectedSeat;
+  String? get _selectedSeatId => _selectedSeat?.id;
   SeatProfileCategory? _selectedCategory;
   SeatProfileDescription? _selectedDescription;
   TrainingLibrarySeat? _pendingSeatSelection;
@@ -100,13 +112,72 @@ class TrainingLibraryController extends ChangeNotifier {
         : duration;
   }
 
-  Future<void> openLibraryDetail(
+  Future<void> openLesson(
     TrainingLibraryModule module, {
-    required Future<bool?> Function(TrainingLibraryModule module, String view)
-    openDetail,
+    required Future<void> Function(SeatDescriptionTrainingRoute route)
+    openDetails,
   }) async {
-    final shouldRefresh = await openDetail(module, _viewMode.name);
-    if (!_isDisposed && shouldRefresh == true) {
+    final lessonId = module.id.trim();
+    final descriptionId = module.trainingDescriptionId.trim();
+    if (_isDisposed ||
+        !module.isLessonListing ||
+        lessonId.isEmpty ||
+        descriptionId.isEmpty) {
+      return;
+    }
+    final canManageTraining =
+        _canManageSeatTraining?.call(module.seat.id) ?? false;
+    await openDetails(
+      SeatDescriptionTrainingRoute(
+        job: module.seat.id,
+        category: module.category.id,
+        description: descriptionId,
+        initialModuleId: lessonId,
+      ),
+    );
+    if (!_isDisposed && canManageTraining) {
+      await refresh();
+    }
+  }
+
+  bool canShowModuleActions(TrainingLibraryModule module) =>
+      !_isDisposed &&
+      _auditRepository != null &&
+      module.isLessonListing &&
+      module.id.trim().isNotEmpty &&
+      module.lessons.length == 1 &&
+      module.lessons.single.id == module.id &&
+      (_canManageSeatTraining?.call(module.seat.id) ?? false);
+
+  Future<void> openModuleActions(
+    TrainingLibraryModule module, {
+    required Future<void> Function(
+      TrainingLibraryDetailController controller,
+      TrainingLibraryLesson lesson,
+    )
+    showActions,
+  }) async {
+    if (_isShowingModuleActions || !canShowModuleActions(module)) {
+      return;
+    }
+    _isShowingModuleActions = true;
+    final actionsController = TrainingLibraryDetailController(
+      initialModule: module,
+      getTrainingLibraryModules: _getTrainingLibraryModulesUseCase,
+      auditRepository: _auditRepository!,
+      canManageSeatTraining: (seatId) =>
+          !_isDisposed && (_canManageSeatTraining?.call(seatId) ?? false),
+      view: _viewMode.name,
+    );
+    var didChange = false;
+    try {
+      await showActions(actionsController, module.lessons.single);
+      didChange = actionsController.navigationResult == true;
+    } finally {
+      actionsController.dispose();
+      _isShowingModuleActions = false;
+    }
+    if (!_isDisposed && didChange) {
       await refresh();
     }
   }
@@ -129,7 +200,8 @@ class TrainingLibraryController extends ChangeNotifier {
   bool get isViewSyncing => _isViewSyncing;
   bool get isLoadingMore => _isLoadingMore;
   bool get isInlineLoading =>
-      !isApplyingSelection && (_isRefreshing || _isViewSyncing);
+      _applyingSelectionField == _LibrarySelectionField.filterTag ||
+      (!isApplyingSelection && (_isRefreshing || _isViewSyncing));
   bool get isApplyingSelection => _applyingSelectionField != null;
   bool get canApplySelection =>
       !isApplyingSelection &&
@@ -173,7 +245,7 @@ class TrainingLibraryController extends ChangeNotifier {
     }
     final previous = (
       departmentId: _selectedDepartmentId,
-      seatId: _selectedSeatId,
+      seat: _selectedSeat,
       category: _selectedCategory,
       description: _selectedDescription,
       searchQuery: _searchQuery,
@@ -195,7 +267,7 @@ class TrainingLibraryController extends ChangeNotifier {
       final succeeded = await apply();
       if (!succeeded) {
         _selectedDepartmentId = previous.departmentId;
-        _selectedSeatId = previous.seatId;
+        _selectedSeat = previous.seat;
         _selectedCategory = previous.category;
         _selectedDescription = previous.description;
         _searchQuery = previous.searchQuery;
@@ -226,6 +298,17 @@ class TrainingLibraryController extends ChangeNotifier {
   String? get selectedSeatId => _selectedSeatId;
   String? get selectedCategoryId => _selectedCategory?.id;
   String? get selectedDescriptionId => _selectedDescription?.id;
+  List<TrainingLibraryFilterTag> get appliedFilterTags => [
+    if (_selectedSeat != null)
+      (type: TrainingLibraryFilter.seat, label: _selectedSeat!.title),
+    if (_selectedCategory != null)
+      (type: TrainingLibraryFilter.category, label: _selectedCategory!.title),
+    if (_selectedDescription != null)
+      (
+        type: TrainingLibraryFilter.description,
+        label: _selectedDescription!.name,
+      ),
+  ];
   String? get pendingSeatSelectionId => _pendingSeatSelection?.id;
   TrainingLibrarySeat? get pendingSeatSelection => _pendingSeatSelection;
   SeatProfileCategory? get pendingCategorySelection =>
@@ -290,13 +373,12 @@ class TrainingLibraryController extends ChangeNotifier {
         (_selectedSeatId == null || item.seat.id == _selectedSeatId) &&
         (_selectedCategory == null ||
             item.category.id == _selectedCategory!.id) &&
-        (_selectedDescription == null || item.id == _selectedDescription!.id),
+        (_selectedDescription == null ||
+            item.trainingDescriptionId == _selectedDescription!.id),
   );
 
   Future<void> openSeatSelection() {
-    _pendingSeatSelection = _selectedSeatId == null
-        ? null
-        : TrainingLibrarySeat(id: _selectedSeatId!, title: _searchQuery);
+    _pendingSeatSelection = _selectedSeat;
     _pendingCategorySelection = _selectedCategory;
     _pendingDescriptionSelection = _selectedDescription;
     return loadSeatOptions();
@@ -346,6 +428,17 @@ class TrainingLibraryController extends ChangeNotifier {
       _pendingSeatSelection,
       category: _pendingCategorySelection,
       description: _pendingDescriptionSelection,
+    ),
+  );
+
+  Future<bool> removeFilter(TrainingLibraryFilter filter) => _applySelection(
+    field: _LibrarySelectionField.filterTag,
+    id: _selectedSeatId,
+    apply: () => _selectSeatFilter(
+      filter == TrainingLibraryFilter.seat ? null : _selectedSeat,
+      category: filter == TrainingLibraryFilter.description
+          ? _selectedCategory
+          : null,
     ),
   );
 
@@ -412,10 +505,9 @@ class TrainingLibraryController extends ChangeNotifier {
     SeatProfileDescription? description,
   }) async {
     _searchDebounceTimer?.cancel();
-    _selectedSeatId = seat?.id;
+    _selectedSeat = seat;
     _selectedCategory = category;
     _selectedDescription = description;
-    _searchQuery = seat?.title.trim() ?? '';
     _searchFilter = TrainingLibrarySearchFilter.seat;
     _errorMessage = null;
     notifyListeners();
@@ -490,7 +582,7 @@ class TrainingLibraryController extends ChangeNotifier {
     _searchDebounceTimer?.cancel();
     _selectedDepartmentId = departmentId;
     if (_selectedSeatId != null) {
-      _selectedSeatId = null;
+      _selectedSeat = null;
       _selectedCategory = null;
       _selectedDescription = null;
       _searchQuery = '';
@@ -522,27 +614,18 @@ class TrainingLibraryController extends ChangeNotifier {
     }
 
     _searchQuery = value;
-    _selectedSeatId = null;
-    _selectedCategory = null;
-    _selectedDescription = null;
     _errorMessage = null;
     notifyListeners();
     _scheduleSearchRefresh();
   }
 
   Future<void> clearSearch() async {
-    final hadSearch = _hasActiveSearch;
-    final hadDepartmentFilter = _hasActiveDepartmentFilter;
-    if (!hadSearch && !hadDepartmentFilter) {
+    if (!_hasActiveSearch) {
       return;
     }
 
     _searchDebounceTimer?.cancel();
     _searchQuery = '';
-    _selectedSeatId = null;
-    _selectedCategory = null;
-    _selectedDescription = null;
-    _selectedDepartmentId = 'all';
     _errorMessage = null;
     notifyListeners();
     await _reloadModulesForActiveFilters();
@@ -588,6 +671,9 @@ class TrainingLibraryController extends ChangeNotifier {
       searchType: _searchFilter.apiValue,
       searchText: _searchQuery.trim(),
       departmentId: _hasActiveDepartmentFilter ? _selectedDepartmentId : null,
+      jobId: _selectedSeatId,
+      jobCategoryId: _selectedCategory?.id,
+      jobCategoryDescriptionId: _selectedDescription?.id,
     );
 
     final seenIds = replace

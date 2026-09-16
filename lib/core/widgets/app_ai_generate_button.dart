@@ -15,6 +15,7 @@ class AppAiGenerateButton extends StatelessWidget {
     this.showOutline = false,
     this.minHeight,
     this.textSize,
+    this.maxLines = 1,
     this.fontWeight = FontWeight.w600,
   });
 
@@ -26,6 +27,7 @@ class AppAiGenerateButton extends StatelessWidget {
   final bool showOutline;
   final double? minHeight;
   final double? textSize;
+  final int? maxLines;
   final FontWeight fontWeight;
 
   @override
@@ -85,8 +87,8 @@ class AppAiGenerateButton extends StatelessWidget {
               label,
               fontSize: textSize ?? 13,
               fontWeight: fontWeight,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: maxLines,
+              overflow: maxLines == null ? TextOverflow.visible : TextOverflow.ellipsis,
             ),
           ),
         ),

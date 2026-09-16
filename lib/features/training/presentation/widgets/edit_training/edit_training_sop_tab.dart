@@ -60,31 +60,37 @@ class _SopTabContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
+        OverflowBar(
+          alignment: MainAxisAlignment.spaceBetween,
+          overflowAlignment: OverflowBarAlignment.end,
+          spacing: 12,
+          overflowSpacing: 8,
           children: [
-            const Expanded(
-              child: AppTextView.body1(
-                AppStrings.trainingCreateSop,
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (isSavingDocument || (isLoading && hasEditorContent))
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: FastCircularProgressIndicator(width: 16, height: 16),
-              ),
-            if (canManageGeneration)
-              Flexible(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _TrainingCreateWithAiButton(
-                    isEnabled: canGenerate,
-                    isLoading: isGeneratingSop,
-                    onTap: onGenerateSopTap,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Flexible(
+                  child: AppTextView.body1(
+                    AppStrings.trainingCreateSop,
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (isSavingDocument || (isLoading && hasEditorContent)) ...[
+                  const SizedBox(width: 12),
+                  const FastCircularProgressIndicator(width: 16, height: 16),
+                ],
+              ],
+            ),
+            if (canManageGeneration)
+              AppAiGenerateButton(
+                label: AppStrings.trainingCreateWithAi,
+                isEnabled: canGenerate,
+                isLoading: isGeneratingSop,
+                onTap: onGenerateSopTap,
+                showOutline: true,
+                maxLines: null,
               ),
           ],
         ),

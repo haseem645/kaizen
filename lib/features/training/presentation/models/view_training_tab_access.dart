@@ -1,24 +1,17 @@
 const int trainingViewerTabCount = 4;
 
-/// Lesson visibility and organisation type do not restrict read-only tabs.
-bool isTrainingViewerTabEnabled({
-  required bool isPubliclyAvailable,
-  required int tabIndex,
-  bool isChildOrganization = false,
-}) {
-  return tabIndex >= 0 && tabIndex < trainingViewerTabCount;
+int maxTrainingTabIndex({required bool hasSelectedModule, required bool canManageTraining}) =>
+    !hasSelectedModule ? 0 : (canManageTraining ? trainingViewerTabCount - 1 : 1);
+
+/// Video and SOP remain available without permission to edit the lesson.
+bool isTrainingViewerTabEnabled({required bool canManageTraining, required int tabIndex}) {
+  return tabIndex >= 0 &&
+      tabIndex <=
+          maxTrainingTabIndex(hasSelectedModule: true, canManageTraining: canManageTraining);
 }
 
-int normalizeTrainingViewerTabIndex({
-  required bool isPubliclyAvailable,
-  required int tabIndex,
-  bool isChildOrganization = false,
-}) {
-  if (isTrainingViewerTabEnabled(
-    isPubliclyAvailable: isPubliclyAvailable,
-    tabIndex: tabIndex,
-    isChildOrganization: isChildOrganization,
-  )) {
+int normalizeTrainingViewerTabIndex({required bool canManageTraining, required int tabIndex}) {
+  if (isTrainingViewerTabEnabled(canManageTraining: canManageTraining, tabIndex: tabIndex)) {
     return tabIndex;
   }
 

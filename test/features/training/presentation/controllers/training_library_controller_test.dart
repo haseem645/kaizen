@@ -6,79 +6,235 @@ import 'package:sparrowkaizen/features/seat_profile/domain/entities/department.d
 import 'package:sparrowkaizen/features/seat_profile/domain/entities/seat_profile_detail.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/repositories/seat_profile_repository.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
+import 'package:sparrowkaizen/features/training/data/models/training_library_module_model.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_module.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_page.dart';
 import 'package:sparrowkaizen/features/training/domain/repositories/training_library_repository.dart';
 import 'package:sparrowkaizen/features/training/domain/usecases/get_training_library_modules_usecase.dart';
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_library_controller.dart';
+import 'package:sparrowkaizen/features/training/presentation/models/training_library_filter_tag.dart';
+
+import '../../fixtures/training_library_fixtures.dart';
 
 void main() {
   late _LibraryRepository repository;
   late _SeatRepository seatRepository;
   late TrainingLibraryController controller;
   late bool canCreateTraining;
+  late bool canManageTraining;
 
   setUp(() async {
     repository = _LibraryRepository();
     seatRepository = _SeatRepository();
     canCreateTraining = false;
+    canManageTraining = false;
     controller = TrainingLibraryController(
       GetTrainingLibraryModulesUseCase(repository),
       getSeatProfilesUseCase: GetSeatProfilesUseCase(seatRepository),
       canCreateTraining: () => canCreateTraining,
+      canManageSeatTraining: (_) => canManageTraining,
     );
     await controller.initialize();
   });
 
   tearDown(() => controller.dispose());
 
+  Future<void> applyHierarchy() async {
+    await controller.openSeatSelection();
+    controller.updatePendingSeatSelection(controller.seatOptions.first);
+    controller.updatePendingCategorySelection(controller.categoryOptions.first);
+    controller.updatePendingDescriptionSelection(
+      controller.descriptionOptions.last,
+    );
+    expect(await controller.applyPendingSeatSelection(), isTrue);
+    controller.closeSeatSelection();
+  }
+
   test(
-    'opening detail refreshes only after a changed result returns',
+    'draft names become applied tags only on Done and IDs reach every page',
+    () async {
+      await controller.openSeatSelection();
+      controller.updatePendingSeatSelection(controller.seatOptions.first);
+      controller.updatePendingCategorySelection(
+        controller.categoryOptions.first,
+      );
+      controller.updatePendingDescriptionSelection(
+        controller.descriptionOptions.last,
+      );
+      expect(controller.appliedFilterTags, isEmpty);
+      expect(repository.requests, 1);
+
+      repository.respond = () async => TrainingLibraryPage(
+        items: [_module('two', _seatA, 'operations')],
+        hasNextPage: true,
+      );
+      expect(await controller.applyPendingSeatSelection(), isTrue);
+      controller.closeSeatSelection();
+      expect(controller.appliedFilterTags.map((tag) => tag.label), [
+        'Manager',
+        'Category',
+        'Same description title',
+      ]);
+      expect(repository.filterRequests.last, (
+        jobId: 'a',
+        categoryId: 'category',
+        descriptionId: 'two',
+        searchText: '',
+        page: 1,
+      ));
+      await controller.loadNextPage();
+      expect(repository.filterRequests.last, (
+        jobId: 'a',
+        categoryId: 'category',
+        descriptionId: 'two',
+        searchText: '',
+        page: 2,
+      ));
+      await controller.refresh();
+      expect(repository.filterRequests.last.page, 1);
+    },
+  );
+
+  test(
+    'removing each tag clears only that selection and its descendants',
+    () async {
+      for (final filter in TrainingLibraryFilter.values) {
+        await applyHierarchy();
+        expect(await controller.removeFilter(filter), isTrue);
+        final request = repository.filterRequests.last;
+        expect(request.page, 1);
+        expect(
+          request.jobId,
+          filter == TrainingLibraryFilter.seat ? null : 'a',
+        );
+        expect(
+          request.categoryId,
+          filter == TrainingLibraryFilter.description ? 'category' : null,
+        );
+        expect(request.descriptionId, isNull);
+        expect(controller.appliedFilterTags.length, filter.index);
+        await controller.openSeatSelection();
+        expect(controller.pendingSeatSelectionId, request.jobId);
+        expect(controller.pendingCategorySelection?.id, request.categoryId);
+        expect(controller.pendingDescriptionSelection, isNull);
+        controller.closeSeatSelection();
+      }
+    },
+  );
+
+  test(
+    'failed tag removal restores filters and results and allows retry',
+    () async {
+      await applyHierarchy();
+      final tags = controller.appliedFilterTags;
+      final items = controller.visibleItems;
+      final response = Completer<TrainingLibraryPage>();
+      repository.respond = () => response.future;
+      final removal = controller.removeFilter(TrainingLibraryFilter.category);
+      expect(controller.isInlineLoading, isTrue);
+      expect(controller.canApplySelection, isFalse);
+      expect(
+        await controller.removeFilter(TrainingLibraryFilter.seat),
+        isFalse,
+      );
+      response.completeError(Exception('API failure'));
+      expect(await removal, isFalse);
+      expect(controller.appliedFilterTags, tags);
+      expect(controller.visibleItems, items);
+      expect(
+        controller.selectionErrorMessage,
+        AppStrings.trainingLibraryUnableToApplyFilter,
+      );
+      expect(controller.isInlineLoading, isFalse);
+      repository.respond = null;
+      expect(
+        await controller.removeFilter(TrainingLibraryFilter.category),
+        isTrue,
+      );
+      expect(
+        controller.appliedFilterTags.single.type,
+        TrainingLibraryFilter.seat,
+      );
+    },
+  );
+
+  test(
+    'opening a lesson passes its own UUID and related IDs directly to details',
     () async {
       await controller.changeViewMode(TrainingLibraryViewMode.grid);
-      final module = controller.items.first;
       final requestsBeforeOpening = repository.requests;
-      for (final result in [null, false]) {
-        await controller.openLibraryDetail(
+      for (final lessonId in ['first-lesson', 'second-lesson']) {
+        final module = TrainingLibraryModuleModel.fromApiJson(
+          lessonListingJson(id: lessonId),
+        );
+        await controller.openLesson(
           module,
-          openDetail: (selectedModule, view) async {
-            expect(selectedModule, same(module));
-            expect(view, 'grid');
-            return result;
+          openDetails: (route) async {
+            expect(route.initialModuleId, lessonId);
+            expect(route.description, '53a7288c-576d-45e4-a7b4-a0398336bb6c');
+            expect(route.job, module.seat.id);
+            expect(route.category, module.category.id);
           },
         );
       }
       expect(repository.requests, requestsBeforeOpening);
+    },
+  );
 
-      final closed = Completer<bool?>();
-      final opening = controller.openLibraryDetail(
-        module,
-        openDetail: (_, __) => closed.future,
+  test(
+    'returning from editable lesson details refreshes the filtered listing',
+    () async {
+      canManageTraining = true;
+      await applyHierarchy();
+      final requestsBeforeOpening = repository.requests;
+      final closed = Completer<void>();
+      final opening = controller.openLesson(
+        TrainingLibraryModuleModel.fromApiJson(lessonListingJson()),
+        openDetails: (_) => closed.future,
       );
       expect(repository.requests, requestsBeforeOpening);
-      closed.complete(true);
+      closed.complete();
       await opening;
+      expect(repository.requests, requestsBeforeOpening + 1);
+      expect(repository.filterRequests.last, (
+        jobId: 'a',
+        categoryId: 'category',
+        descriptionId: 'two',
+        searchText: '',
+        page: 1,
+      ));
+
+      canManageTraining = false;
+      await controller.openLesson(
+        TrainingLibraryModuleModel.fromApiJson(lessonListingJson()),
+        openDetails: (_) async {},
+      );
       expect(repository.requests, requestsBeforeOpening + 1);
     },
   );
 
   test(
-    'a detail result cannot refresh a disposed library controller',
+    'details cannot be opened after disposal or without a lesson and description ID',
     () async {
+      for (final json in [
+        {...lessonListingJson(), 'uuid': ''},
+        {...lessonListingJson(), 'description': null},
+      ]) {
+        await controller.openLesson(
+          TrainingLibraryModuleModel.fromApiJson(json),
+          openDetails: (_) async => fail('Invalid IDs must not open details.'),
+        );
+      }
       final detached = TrainingLibraryController(
         GetTrainingLibraryModulesUseCase(repository),
         getSeatProfilesUseCase: GetSeatProfilesUseCase(seatRepository),
       );
-      final closed = Completer<bool?>();
-      final requestsBeforeOpening = repository.requests;
-      final opening = detached.openLibraryDetail(
-        controller.items.first,
-        openDetail: (_, __) => closed.future,
-      );
       detached.dispose();
-      closed.complete(true);
-      await opening;
-      expect(repository.requests, requestsBeforeOpening);
+      await detached.openLesson(
+        TrainingLibraryModuleModel.fromApiJson(lessonListingJson()),
+        openDetails: (_) async =>
+            fail('Disposed controllers must not navigate.'),
+      );
     },
   );
 
@@ -333,6 +489,50 @@ void main() {
   );
 
   test(
+    'filters flat lessons by description and keeps distinct lessons across pages',
+    () async {
+      TrainingLibraryModule lesson(String id, String descriptionId) =>
+          TrainingLibraryModuleModel.fromApiJson({
+            ...lessonListingJson(id: id, descriptionId: descriptionId),
+            'job': {'uuid': 'a', 'title': 'Manager'},
+            'category': {'uuid': 'category', 'title': 'Category'},
+          });
+      var responsePage = 0;
+      repository.requestedPages.clear();
+      repository.respond = () async => TrainingLibraryPage(
+        items: ++responsePage == 1
+            ? [lesson('lesson-a', 'two'), lesson('unrelated', 'one')]
+            : [lesson('lesson-b', 'two')],
+        hasNextPage: responsePage == 1,
+      );
+      await controller.openSeatSelection();
+      controller.updatePendingSeatSelection(controller.seatOptions.first);
+      controller.updatePendingCategorySelection(
+        controller.categoryOptions.first,
+      );
+      controller.updatePendingDescriptionSelection(
+        controller.descriptionOptions.last,
+      );
+
+      expect(await controller.applyPendingSeatSelection(), isTrue);
+      expect(controller.visibleItems.map((item) => item.id), ['lesson-a']);
+      expect(controller.visibleItems.single.totalDuration, 706);
+      expect(controller.visibleItems.single.lessonsCount, 1);
+
+      await controller.loadNextPage();
+      expect(controller.visibleItems.map((item) => item.id), [
+        'lesson-a',
+        'lesson-b',
+      ]);
+      expect(controller.items, hasLength(3));
+      expect(repository.requestedPages, [1, 2]);
+
+      await controller.loadNextPage();
+      expect(repository.requestedPages, [1, 2]);
+    },
+  );
+
+  test(
     'exact filters continue loading when the match is on a later page',
     () async {
       await controller.openSeatSelection();
@@ -380,32 +580,27 @@ void main() {
     expect(controller.items, hasLength(1));
   });
 
-  test(
-    'reset, department changes, and typed search clear dependent filters',
-    () async {
-      for (final reset in [
-        () => controller.selectSeat(null),
-        () => controller.selectDepartment('sales'),
-        () async => controller.updateSearchQuery('new query'),
-        () => controller.clearSearch(),
-      ]) {
-        await controller.selectDepartment('all');
-        await controller.openSeatSelection();
-        controller.updatePendingSeatSelection(controller.seatOptions.first);
-        controller.updatePendingCategorySelection(
-          controller.categoryOptions.first,
-        );
-        controller.updatePendingDescriptionSelection(
-          controller.descriptionOptions.first,
-        );
-        await controller.applyPendingSeatSelection();
-        await reset();
-        expect(controller.selectedSeatId, isNull);
-        expect(controller.selectedCategoryId, isNull);
-        expect(controller.selectedDescriptionId, isNull);
-      }
-    },
-  );
+  test('reset and department changes clear dependent filters', () async {
+    for (final reset in [
+      () => controller.selectSeat(null),
+      () => controller.selectDepartment('sales'),
+    ]) {
+      await controller.selectDepartment('all');
+      await controller.openSeatSelection();
+      controller.updatePendingSeatSelection(controller.seatOptions.first);
+      controller.updatePendingCategorySelection(
+        controller.categoryOptions.first,
+      );
+      controller.updatePendingDescriptionSelection(
+        controller.descriptionOptions.first,
+      );
+      await controller.applyPendingSeatSelection();
+      await reset();
+      expect(controller.selectedSeatId, isNull);
+      expect(controller.selectedCategoryId, isNull);
+      expect(controller.selectedDescriptionId, isNull);
+    }
+  });
 
   test(
     'a selected API seat filters the LMS by UUID even with duplicate titles',
@@ -414,7 +609,10 @@ void main() {
       await controller.selectSeat(controller.seatOptions.first);
 
       expect(repository.lastSearchType, 'seat');
-      expect(controller.searchQuery, 'Manager');
+      expect(controller.searchQuery, isEmpty);
+      expect(repository.filterRequests.last.jobId, 'a');
+      expect(repository.filterRequests.last.searchText, isEmpty);
+      expect(controller.appliedFilterTags.single.label, 'Manager');
       expect(controller.visibleItems.map((module) => module.id), [
         'one',
         'two',
@@ -451,14 +649,71 @@ void main() {
     expect(controller.seatOptions.map((seat) => seat.id), ['c']);
   });
 
-  test('typing a new query releases the exact seat filter', () async {
-    await controller.selectSeat(_seatA);
+  test(
+    'typing and clearing search preserves the applied filter tags',
+    () async {
+      await controller.selectSeat(_seatA);
 
-    controller.updateSearchQuery('Sales');
+      controller.updateSearchQuery('Sales');
 
-    expect(controller.selectedSeatId, isNull);
-    expect(controller.searchQuery, 'Sales');
-  });
+      expect(controller.selectedSeatId, 'a');
+      expect(controller.searchQuery, 'Sales');
+      expect(controller.appliedFilterTags.single.label, 'Manager');
+      await controller.clearSearch();
+      expect(controller.selectedSeatId, 'a');
+      expect(controller.searchQuery, isEmpty);
+      expect(repository.filterRequests.last.jobId, 'a');
+      expect(repository.filterRequests.last.searchText, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'debounces the latest search and keeps filter IDs for every page',
+    (tester) async {
+      await applyHierarchy();
+      repository.respond = () async => TrainingLibraryPage(
+        items: [_module('two', _seatA, 'operations')],
+        hasNextPage: true,
+      );
+      final requestsBeforeTyping = repository.requests;
+      controller.updateSearchQuery('L');
+      await tester.pump(const Duration(milliseconds: 300));
+      controller.updateSearchQuery(' Lesson ');
+      await tester.pump(const Duration(milliseconds: 399));
+      expect(repository.requests, requestsBeforeTyping);
+
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(repository.requests, requestsBeforeTyping + 1);
+      expect(repository.filterRequests.last, (
+        jobId: 'a',
+        categoryId: 'category',
+        descriptionId: 'two',
+        searchText: 'Lesson',
+        page: 1,
+      ));
+      expect(controller.appliedFilterTags, hasLength(3));
+      await controller.loadNextPage();
+      expect(repository.filterRequests.last, (
+        jobId: 'a',
+        categoryId: 'category',
+        descriptionId: 'two',
+        searchText: 'Lesson',
+        page: 2,
+      ));
+
+      await controller.clearSearch();
+      expect(repository.filterRequests.last, (
+        jobId: 'a',
+        categoryId: 'category',
+        descriptionId: 'two',
+        searchText: '',
+        page: 1,
+      ));
+      expect(controller.appliedFilterTags, hasLength(3));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(repository.requests, requestsBeforeTyping + 3);
+    },
+  );
 }
 
 const _seatA = TrainingLibrarySeat(id: 'a', title: 'Manager');
@@ -516,6 +771,17 @@ SeatProfileDescription _description(String id) => SeatProfileDescription(
 
 class _LibraryRepository implements TrainingLibraryRepository {
   int requests = 0;
+  final List<int> requestedPages = [];
+  final List<
+    ({
+      String? jobId,
+      String? categoryId,
+      String? descriptionId,
+      String searchText,
+      int page,
+    })
+  >
+  filterRequests = [];
   final List<TrainingLibraryModule> _modules = [
     _module('one', _seatA, 'operations'),
     _module('two', _seatA, 'operations'),
@@ -535,8 +801,19 @@ class _LibraryRepository implements TrainingLibraryRepository {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   }) async {
     requests++;
+    requestedPages.add(page);
+    filterRequests.add((
+      jobId: jobId,
+      categoryId: jobCategoryId,
+      descriptionId: jobCategoryDescriptionId,
+      searchText: searchText,
+      page: page,
+    ));
     lastSearchType = searchType;
     final response = respond;
     if (response != null) {

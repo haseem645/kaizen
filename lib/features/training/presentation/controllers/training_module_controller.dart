@@ -13,6 +13,7 @@ import '../../../../core/services/file_uploader.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/seat_description_training.dart';
 import '../../../check_in/domain/repositories/audit_repository.dart';
+import '../models/view_training_tab_access.dart';
 
 enum QuizGenerationDifficulty {
   easy('easy'),
@@ -1049,6 +1050,10 @@ class TrainingModuleController extends ChangeNotifier {
       newLessonTitleController.text.trim().isNotEmpty;
   bool get canAccessSelectedModuleExtras =>
       !_isCreatingNewLessonDraft && hasSelectedModule;
+  int get maxAccessibleTabIndex => maxTrainingTabIndex(
+    hasSelectedModule: canAccessSelectedModuleExtras,
+    canManageTraining: canManageTraining,
+  );
   bool get hasSelectedModuleVideo {
     final video = _selectedModuleDetail?.trainingVideo;
     if (video == null) {

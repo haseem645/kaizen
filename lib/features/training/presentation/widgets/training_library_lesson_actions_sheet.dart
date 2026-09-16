@@ -131,23 +131,6 @@ class TrainingLibraryLessonActionsSheet extends StatelessWidget {
                 if (canEdit) ...[
                   const SizedBox(height: 12),
                   _LessonActionTile(
-                    title: AppStrings.trainingEditAssignment,
-                    icon: const Icon(
-                      Icons.edit_outlined,
-                      color: AppColors.textPrimary,
-                      size: 28,
-                    ),
-                    iconBackground: AppColors.lightGreen1,
-                    subtitle: const AppTextView.body(
-                      AppStrings.trainingLibraryEditLessonDescription,
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                      height: 1.25,
-                    ),
-                    onTap: () => onSelected(TrainingLibraryLessonAction.edit),
-                  ),
-                  const SizedBox(height: 12),
-                  _LessonActionTile(
                     title: AppStrings.trainingDeleteModuleAction,
                     icon: SvgPicture.asset(
                       '${AppStrings.imagePath}delete.svg',

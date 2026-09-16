@@ -3,18 +3,24 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/utils/custom_functions.dart';
+import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/training_library_module.dart';
 import '../controllers/training_library_controller.dart';
 
 /// Keeps the thumbnail behind the content while allowing larger text to grow
 /// the list card beyond its minimum image height.
 class TrainingLibraryModuleCard extends StatelessWidget {
-  const TrainingLibraryModuleCard({super.key, required this.module, required this.onTap});
+  const TrainingLibraryModuleCard({
+    super.key,
+    required this.module,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   final TrainingLibraryModule module;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -61,14 +67,19 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                       AppTextView.body1(
                         TrainingLibraryController.displayModuleTitle(module),
                         color: AppColors.textPrimary,
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                         height: 1.2,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      _CardMetaRow(module: module),
+                      AppTextView.body2(
+                        TrainingLibraryController.displayModuleDuration(module),
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ],
                   ),
                 ),
@@ -78,9 +89,13 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: onTap,
+                    onLongPress: onLongPress,
                     child: Semantics(
                       button: true,
                       label: TrainingLibraryController.displayModuleTitle(module),
+                      hint: onLongPress == null
+                          ? null
+                          : AppStrings.trainingLibraryLessonActionsHint,
                     ),
                   ),
                 ),
@@ -106,7 +121,7 @@ class _ModuleSeatLabel extends StatelessWidget {
           AppStrings.trainingLibrarySeatPrefix,
           color: AppColors.secondaryColor,
           fontSize: 13,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w500,
         ),
         Expanded(
           child: AppTextView.body(
@@ -114,7 +129,7 @@ class _ModuleSeatLabel extends StatelessWidget {
             color: AppColors.textPrimary,
             fontSize: 13,
             maxLines: 1,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w500,
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -156,49 +171,6 @@ class _ImagePlaceholder extends StatelessWidget {
           child: Icon(Icons.video_library_rounded, color: AppColors.textSecondary, size: 30),
         );
       },
-    );
-  }
-}
-
-class _CardMetaRow extends StatelessWidget {
-  const _CardMetaRow({required this.module});
-
-  final TrainingLibraryModule module;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 6,
-      runSpacing: 4,
-      children: [
-        AppTextView.body2(
-          TrainingLibraryController.displayModuleLessonCount(module),
-          color: AppColors.lightGrey1,
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-        ),
-        const _MetaDot(),
-        AppTextView.body2(
-          TrainingLibraryController.displayModuleDuration(module),
-          color: AppColors.lightGrey1,
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-        ),
-      ],
-    );
-  }
-}
-
-class _MetaDot extends StatelessWidget {
-  const _MetaDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 3,
-      height: 3,
-      decoration: const BoxDecoration(color: AppColors.textSecondary, shape: BoxShape.circle),
     );
   }
 }

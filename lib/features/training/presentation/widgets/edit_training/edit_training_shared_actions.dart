@@ -369,67 +369,76 @@ class _TrainingSingleLineInputCard extends StatelessWidget {
   }
 }
 
-class _TrainingTapEditField extends StatelessWidget {
-  const _TrainingTapEditField({
+/// Keeps lesson titles in the same field layout for editing and read-only previews.
+class TrainingLessonTitleField extends StatelessWidget {
+  const TrainingLessonTitleField({
+    super.key,
     required this.valueText,
     required this.hintText,
     this.onTap,
     this.isLoading = false,
+    this.isReadOnly = false,
   });
 
   final String valueText;
   final String hintText;
   final VoidCallback? onTap;
   final bool isLoading;
+  final bool isReadOnly;
 
   @override
   Widget build(BuildContext context) {
     final hasValue = valueText.trim().isNotEmpty;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark2.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.6)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  hasValue ? valueText.trim() : hintText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: hasValue
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary.withValues(alpha: 0.74),
-                    fontSize: 16,
-                    fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
-                    height: 1.25,
+    return Semantics(
+      textField: true,
+      readOnly: isReadOnly,
+      enabled: !isReadOnly,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isReadOnly ? null : onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark2.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.6)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasValue ? valueText.trim() : hintText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: hasValue
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary.withValues(alpha: 0.74),
+                      fontSize: 16,
+                      fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
+                      height: 1.25,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              if (isLoading)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: FastCircularProgressIndicator(width: 12, height: 12),
-                )
-              else
-                Icon(
-                  Icons.edit_outlined,
-                  color: onTap != null ? AppColors.secondaryColor : AppColors.textSecondary,
-                  size: 18,
-                ),
-            ],
+                if (isLoading || !isReadOnly) const SizedBox(width: 12),
+                if (isLoading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: FastCircularProgressIndicator(width: 12, height: 12),
+                  )
+                else if (!isReadOnly)
+                  Icon(
+                    Icons.edit_outlined,
+                    color: onTap != null ? AppColors.secondaryColor : AppColors.textSecondary,
+                    size: 18,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/managers/app_manager.dart';
 import '../../../../routes/app_router.dart';
+import '../../../check_in/data/datasources/audit_remote_data_source.dart';
+import '../../../check_in/data/repositories/audit_repository_impl.dart';
 import '../../../seat_profile/data/datasources/seat_profile_remote_data_source.dart';
 import '../../../seat_profile/data/repositories/seat_profile_repository_impl.dart';
 import '../../../seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
@@ -11,8 +13,9 @@ import '../../data/repositories/training_library_repository_impl.dart';
 import '../../domain/usecases/get_training_library_modules_usecase.dart';
 import '../controllers/training_library_controller.dart';
 import '../widgets/training_library_content.dart';
+import '../widgets/training_library_lesson_actions.dart';
 import '../widgets/training_library_seat_selection_sheet.dart';
-import 'training_library_detail_screen.dart';
+import 'edit_training_screen.dart';
 
 class TrainingLibraryScreen extends StatelessWidget {
   const TrainingLibraryScreen({super.key});
@@ -42,6 +45,9 @@ class TrainingLibraryScreen extends StatelessWidget {
             context.read<GetTrainingLibraryModulesUseCase>(),
             getSeatProfilesUseCase: context.read<GetSeatProfilesUseCase>(),
             canCreateTraining: () => AppManager.instance.currentUserCanOpenTrainingModuleCreateFlow,
+            auditRepository: AuditRepositoryImpl(AuditRemoteDataSource()),
+            canManageSeatTraining: (seatId) => AppManager.instance
+                .canCurrentUserManageTrainingForSeatProfile(seatProfileId: seatId),
           )..initialize(),
         ),
       ],
@@ -60,9 +66,18 @@ class _TrainingLibraryScreenView extends StatelessWidget {
       listenable: AppManager.instance,
       builder: (context, _) => TrainingLibraryContent(
         controller: controller,
-        onOpenDetail: (module, view) => Navigator.of(context).push<bool>(
-          MaterialPageRoute<bool>(
-            builder: (_) => TrainingLibraryDetailScreen(module: module, view: view),
+        onModuleActions: (module) => controller.openModuleActions(
+          module,
+          showActions: (actionsController, lesson) => showTrainingLibraryLessonActions(
+            context,
+            controller: actionsController,
+            lesson: lesson,
+          ),
+        ),
+        onOpenLesson: (route) => Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                EditTrainingScreen(trainingRoute: route, useNonBlockingVideoUpload: true),
           ),
         ),
         onSelectSeat: () => showTrainingLibrarySeatSelectionSheet(context, controller: controller),

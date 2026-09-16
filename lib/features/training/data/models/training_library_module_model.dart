@@ -47,11 +47,15 @@ class TrainingLibraryLessonModel extends TrainingLibraryLesson {
     required super.description,
     required super.thumbnailLink,
     required super.isPubliclyAvailable,
+    super.duration,
+    super.fromSandbox,
+    super.sopExists,
+    super.quizExists,
   });
 
   factory TrainingLibraryLessonModel.fromApiJson(Map<String, dynamic> json) {
     final title = _readNullableString(json['title']);
-    final description = _readNullableString(json['description']);
+    final description = _readDescription(json['description']);
 
     return TrainingLibraryLessonModel(
       id: _readString(json['uuid']),
@@ -61,6 +65,10 @@ class TrainingLibraryLessonModel extends TrainingLibraryLesson {
       description: description?.trim() ?? '',
       thumbnailLink: _readNullableString(json['thumbnail_link']),
       isPubliclyAvailable: _readBool(json['is_publicly_available']),
+      duration: _readInt(json['duration']),
+      fromSandbox: _readBool(json['from_sandbox']),
+      sopExists: _readBool(json['sop_exists']),
+      quizExists: _readBool(json['quiz_exists']),
     );
   }
 }
@@ -76,10 +84,15 @@ class TrainingLibraryModuleModel extends TrainingLibraryModule {
     required super.lessons,
     required super.thumbnailLink,
     required super.category,
+    super.descriptionId,
   });
 
   factory TrainingLibraryModuleModel.fromApiJson(Map<String, dynamic> json) {
-    final description = _readNullableString(json['description']);
+    final descriptionJson = json['description'];
+    final description = _readDescription(descriptionJson);
+    final isLessonListing =
+        descriptionJson is Map<String, dynamic> ||
+        (json['training_modules'] is! List && json.containsKey('duration'));
     final title = _readNullableString(json['title']);
     final department = json['department'] is Map<String, dynamic>
         ? TrainingLibraryDepartmentModel.fromApiJson(
@@ -104,11 +117,18 @@ class TrainingLibraryModuleModel extends TrainingLibraryModule {
           : (description?.trim() ?? ''),
       description: description?.trim() ?? '',
       department: department,
-      totalDuration: _readInt(json['total_duration']),
+      totalDuration: _readInt(json['duration'] ?? json['total_duration']),
       seat: seat,
-      lessons: _readLessons(json['training_modules']),
+      lessons: isLessonListing
+          ? [TrainingLibraryLessonModel.fromApiJson(json)]
+          : _readLessons(json['training_modules']),
       thumbnailLink: _readNullableString(json['thumbnail_link']),
       category: category,
+      descriptionId: isLessonListing
+          ? (descriptionJson is Map<String, dynamic>
+                ? _readString(descriptionJson['uuid'])
+                : '')
+          : null,
     );
   }
 
@@ -122,6 +142,13 @@ class TrainingLibraryModuleModel extends TrainingLibraryModule {
         .map(TrainingLibraryLessonModel.fromApiJson)
         .toList(growable: false);
   }
+}
+
+String? _readDescription(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return _readNullableString(value['description']);
+  }
+  return value is String ? _readNullableString(value) : null;
 }
 
 String _readString(dynamic value) {
