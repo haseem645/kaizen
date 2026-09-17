@@ -5,6 +5,7 @@ import 'package:mime/mime.dart';
 import '../../features/check_in/domain/entities/audit_details.dart';
 import '../../features/check_in/domain/entities/quarterly_audit.dart';
 import '../../features/login/domain/entities/user.dart';
+import '../constants/app_strings.dart';
 import '../network/api_endpoints.dart';
 import '../widgets/custom_alert_dialogue.dart';
 
@@ -760,10 +761,13 @@ class CustomFunctions {
     return Uri.parse('${ApiEndPoints.baseUrl}/$value').toString();
   }
 
-  static String stripHtmlTags(String? value) {
+  static String stripHtmlTags(
+    String? value, {
+    String emptyText = AppStrings.noContentAvailable,
+  }) {
     final text = value?.trim();
     if (text == null || text.isEmpty) {
-      return 'No content available.';
+      return emptyText;
     }
 
     final withoutTags = text
@@ -777,7 +781,7 @@ class CustomFunctions {
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
 
-    return withoutTags.isEmpty ? 'No content available.' : withoutTags;
+    return withoutTags.isEmpty ? emptyText : withoutTags;
   }
 
   static String formatDuration(int seconds) {

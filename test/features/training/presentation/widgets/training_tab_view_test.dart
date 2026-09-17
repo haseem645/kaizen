@@ -15,6 +15,7 @@ void main() {
     double width = 360,
     double height = 480,
     IndexedWidgetBuilder? pageBuilder,
+    ValueChanged<int>? onPageApproaching,
   }) {
     return tester.pumpWidget(
       MaterialApp(
@@ -25,6 +26,7 @@ void main() {
             child: TrainingTabView(
               navigation: navigation,
               maxTabIndex: maxTabIndex,
+              onPageApproaching: onPageApproaching,
               pageBuilder:
                   pageBuilder ??
                   (_, index) => SizedBox.expand(
@@ -116,6 +118,38 @@ void main() {
         expectSettled(tester, index);
       }
     }
+  });
+
+  testWidgets('incoming SOP data can load before the swipe passes its midpoint', (tester) async {
+    final approaching = <int>[];
+    await mountTabs(tester, onPageApproaching: approaching.add);
+    expect(approaching, isEmpty);
+
+    final gesture = await beginSwipe(tester, -1);
+    expect(pageController(tester).page, inExclusiveRange(0, 0.5));
+    expect(navigation.selectedIndex, 0);
+    expect(approaching, [1]);
+
+    await gesture.moveBy(const Offset(-20, 0));
+    await tester.pump();
+    expect(approaching, [1]);
+    await gesture.cancel();
+    await tester.pumpAndSettle();
+    expectSettled(tester, 0);
+  });
+
+  testWidgets('restricted pages never trigger incoming data requests', (tester) async {
+    final approaching = <int>[];
+    await mountTabs(tester, maxTabIndex: 1, onPageApproaching: approaching.add);
+    navigation.selectTab(1);
+    await tester.pumpAndSettle();
+    approaching.clear();
+
+    final gesture = await beginSwipe(tester, -1);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(approaching, isEmpty);
+    expectSettled(tester, 1);
   });
 
   testWidgets('tab taps interrupt swipes and settle every source and destination', (tester) async {

@@ -33,7 +33,10 @@ class _QuizTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isLoading && questions.isEmpty && !canManageQuestions) {
+    if (isLoading) {
+      return const Center(child: FastCircularProgressIndicator());
+    }
+    if (questions.isEmpty && !canManageQuestions) {
       return const _QuizEmptyStateCard();
     }
 
@@ -48,12 +51,7 @@ class _QuizTabContent extends StatelessWidget {
           ),
           const SizedBox(height: 14),
         ],
-        if (isLoading)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 36),
-            child: Center(child: FastCircularProgressIndicator()),
-          )
-        else if (questions.isNotEmpty)
+        if (questions.isNotEmpty)
           ListView.separated(
             shrinkWrap: true,
             primary: false,
@@ -80,7 +78,7 @@ class _QuizTabContent extends StatelessWidget {
               );
             },
           ),
-        if (canManageQuestions && !isLoading) ...[
+        if (canManageQuestions) ...[
           if (questions.isNotEmpty) const SizedBox(height: 12),
           _QuizAddQuestionButton(
             canAddQuestion: canAddQuestion,
