@@ -210,13 +210,13 @@ class _QuizAnswerRow extends StatelessWidget {
           Icon(
             isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
             size: 18,
-            color: isSelected ? AppColors.secondaryColor : AppColors.grey1,
+            color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: AppTextView.body2(
               text,
-              color: isSelected ? AppColors.textPrimary : AppColors.grey1,
+              color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
               height: 1.4,
