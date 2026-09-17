@@ -9,6 +9,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_listing_search_bar.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/data/datasources/audit_remote_data_source.dart';
@@ -37,10 +38,7 @@ bool _canEditSingleDescriptionAudit({
       CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
-bool _canCommentOnSingleDescriptionAudit({
-  required bool isViewOnly,
-  required String date,
-}) {
+bool _canCommentOnSingleDescriptionAudit({required bool isViewOnly, required String date}) {
   return AppManager.instance.canCurrentOrganizationModifyContent &&
       !isViewOnly &&
       CustomFunctions.isAuditWithinContinueWindow(date);
@@ -49,18 +47,12 @@ bool _canCommentOnSingleDescriptionAudit({
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
 
 class _PassSelectionViewState {
-  const _PassSelectionViewState({
-    required this.blocks,
-    required this.hasLocalChanges,
-  });
+  const _PassSelectionViewState({required this.blocks, required this.hasLocalChanges});
 
   final List<_PassBlockState> blocks;
   final bool hasLocalChanges;
 
-  _PassSelectionViewState copyWith({
-    List<_PassBlockState>? blocks,
-    bool? hasLocalChanges,
-  }) {
+  _PassSelectionViewState copyWith({List<_PassBlockState>? blocks, bool? hasLocalChanges}) {
     return _PassSelectionViewState(
       blocks: blocks ?? this.blocks,
       hasLocalChanges: hasLocalChanges ?? this.hasLocalChanges,
@@ -92,20 +84,15 @@ class CheckInDescriptionsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AuditRemoteDataSource>(
-          create: (_) => createAuditRemoteDataSource(),
-        ),
+        Provider<AuditRemoteDataSource>(create: (_) => createAuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createAuditRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createAuditRepository(remoteDataSource),
         ),
         ProxyProvider<AuditRepositoryImpl, GetAuditOverviewUseCase>(
-          update: (_, repository, __) =>
-              createGetAuditOverviewUseCase(repository),
+          update: (_, repository, __) => createGetAuditOverviewUseCase(repository),
         ),
         ProxyProvider<AuditRepositoryImpl, GetQuarterlyAuditUseCase>(
-          update: (_, repository, __) =>
-              createGetQuarterlyAuditUseCase(repository),
+          update: (_, repository, __) => createGetQuarterlyAuditUseCase(repository),
         ),
         ChangeNotifierProvider<CheckInController>(
           create: (context) =>
@@ -161,14 +148,11 @@ class _CheckInDescriptionsListView extends StatefulWidget {
   final bool isSelfAudit;
 
   @override
-  State<_CheckInDescriptionsListView> createState() =>
-      _CheckInDescriptionsListViewState();
+  State<_CheckInDescriptionsListView> createState() => _CheckInDescriptionsListViewState();
 }
 
-class _CheckInDescriptionsListViewState
-    extends State<_CheckInDescriptionsListView> {
-  late final ValueNotifier<_CheckInDescriptionsListFiltersState>
-  _filtersNotifier;
+class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListView> {
+  late final ValueNotifier<_CheckInDescriptionsListFiltersState> _filtersNotifier;
 
   @override
   void initState() {
@@ -187,8 +171,7 @@ class _CheckInDescriptionsListViewState
         oldWidget.quarterlyAuditId != widget.quarterlyAuditId ||
         oldWidget.year != widget.year ||
         oldWidget.quarter != widget.quarter ||
-        oldWidget.requireDescriptionSelection !=
-            widget.requireDescriptionSelection ||
+        oldWidget.requireDescriptionSelection != widget.requireDescriptionSelection ||
         oldWidget.isSelfAudit != widget.isSelfAudit;
     if (!didIdentityChange) {
       return;
@@ -229,10 +212,7 @@ class _CheckInDescriptionsListViewState
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-              child: _buildHeader(context),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
             const SizedBox(height: 18),
             if (state.isLoading)
               Expanded(child: Center(child: FastCircularProgressIndicator()))
@@ -257,16 +237,10 @@ class _CheckInDescriptionsListViewState
                         _buildTeamMembersSection(context, audit, members),
                       ],
                       const SizedBox(height: 18),
-                      ValueListenableBuilder<
-                        _CheckInDescriptionsListFiltersState
-                      >(
+                      ValueListenableBuilder<_CheckInDescriptionsListFiltersState>(
                         valueListenable: _filtersNotifier,
                         builder: (context, filtersState, _) {
-                          return _buildDescriptionsSection(
-                            context,
-                            audit,
-                            filtersState,
-                          );
+                          return _buildDescriptionsSection(context, audit, filtersState);
                         },
                       ),
                       const SizedBox(height: 24),
@@ -347,9 +321,7 @@ class _CheckInDescriptionsListViewState
     AuditProfile member, {
     required bool isSelected,
   }) {
-    final profileName = member.name.trim().isEmpty
-        ? AppStrings.noProfile
-        : member.name;
+    final profileName = member.name.trim().isEmpty ? AppStrings.noProfile : member.name;
 
     return GestureDetector(
       onTap: isSelected ? null : () => _openSelectedTeamMember(context, member),
@@ -410,19 +382,14 @@ class _CheckInDescriptionsListViewState
       ),
     );
 
-    if (!context.mounted ||
-        selectedMember == null ||
-        _isCurrentMember(audit, selectedMember)) {
+    if (!context.mounted || selectedMember == null || _isCurrentMember(audit, selectedMember)) {
       return;
     }
 
     await _openSelectedTeamMember(context, selectedMember);
   }
 
-  Future<void> _openSelectedTeamMember(
-    BuildContext context,
-    AuditProfile member,
-  ) {
+  Future<void> _openSelectedTeamMember(BuildContext context, AuditProfile member) {
     return AppRouter.pushNamed<void>(
       context,
       AppRouter.checkInDetails,
@@ -439,10 +406,8 @@ class _CheckInDescriptionsListViewState
     final memberProfileUuid = member.profileUuid.trim();
     final memberProfileJob = member.profileJob.trim();
 
-    return memberProfileUuid.isNotEmpty &&
-            memberProfileUuid == audit.profileUuid.trim() ||
-        memberProfileJob.isNotEmpty &&
-            memberProfileJob == audit.profileJob.trim();
+    return memberProfileUuid.isNotEmpty && memberProfileUuid == audit.profileUuid.trim() ||
+        memberProfileJob.isNotEmpty && memberProfileJob == audit.profileJob.trim();
   }
 
   Future<void> _openDescriptionDetails(
@@ -453,12 +418,8 @@ class _CheckInDescriptionsListViewState
     Map<String, int> initialRatingCounts,
   ) async {
     final auditController = context.read<CheckInController>();
-    final descriptionPages = List<QuarterlyAuditDescription>.unmodifiable(
-      descriptions,
-    );
-    auditController.selectQuarterlyAuditDescription(
-      descriptionPages[initialDescriptionIndex].uuid,
-    );
+    final descriptionPages = List<QuarterlyAuditDescription>.unmodifiable(descriptions);
+    auditController.selectQuarterlyAuditDescription(descriptionPages[initialDescriptionIndex].uuid);
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -496,10 +457,7 @@ class _CheckInDescriptionsListViewState
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
-                  ),
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                 ),
               ),
             ),
@@ -538,9 +496,7 @@ class _CheckInDescriptionsListViewState
                   fontWeight: FontWeight.w600,
                 ),
                 AppTextView.body(
-                  audit.profileName.trim().isEmpty
-                      ? AppStrings.noProfile
-                      : audit.profileName,
+                  audit.profileName.trim().isEmpty ? AppStrings.noProfile : audit.profileName,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -553,9 +509,7 @@ class _CheckInDescriptionsListViewState
                       TextSpan(
                         text: '${AppStrings.lastAudit}: ',
                         style: TextStyle(
-                          color: AppColors.textSecondary.withValues(
-                            alpha: 0.78,
-                          ),
+                          color: AppColors.textSecondary.withValues(alpha: 0.78),
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                         ),
@@ -586,7 +540,10 @@ class _CheckInDescriptionsListViewState
     QuarterlyAudit audit,
     _CheckInDescriptionsListFiltersState filtersState,
   ) {
-    final filteredDescriptions = _filteredDescriptions(audit, filtersState);
+    final controller = context.read<CheckInController>();
+    final filteredDescriptions = controller.searchDescriptions(
+      _filteredDescriptions(audit, filtersState),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,9 +553,7 @@ class _CheckInDescriptionsListViewState
           children: [
             Expanded(
               child: AppTextView.body1(
-                filtersState.isFilterOptionsVisible
-                    ? 'Filter Options'
-                    : 'Descriptions',
+                filtersState.isFilterOptionsVisible ? 'Filter Options' : 'Descriptions',
                 color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -610,9 +565,7 @@ class _CheckInDescriptionsListViewState
               onTap: _toggleFilterOptions,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.all(
-                  filtersState.isFilterOptionsVisible ? 8 : 8,
-                ),
+                padding: EdgeInsets.all(filtersState.isFilterOptionsVisible ? 8 : 8),
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor,
                   borderRadius: BorderRadius.circular(12),
@@ -628,26 +581,12 @@ class _CheckInDescriptionsListViewState
             ),
           ],
         ),
-        if (widget.requireDescriptionSelection &&
-            AppManager.instance.canCurrentOrganizationModifyContent) ...[
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.secondaryColor.withValues(alpha: 0.24),
-              ),
-            ),
-            child: const AppTextView.body2(
-              AppStrings.checkInSelectDescriptionPrompt,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        const SizedBox(height: 10),
+        AppListingSearchBar(
+          controller: controller.descriptionSearchController,
+          hintText: AppStrings.auditSearchDescriptionsHint,
+          onChanged: controller.updateDescriptionSearchQuery,
+        ),
         const SizedBox(height: 10),
         AnimatedSize(
           duration: const Duration(milliseconds: 280),
@@ -668,20 +607,14 @@ class _CheckInDescriptionsListViewState
                 child: SizeTransition(
                   sizeFactor: animation,
                   axisAlignment: -1,
-                  child: SlideTransition(
-                    position: slideAnimation,
-                    child: child,
-                  ),
+                  child: SlideTransition(position: slideAnimation, child: child),
                 ),
               );
             },
             layoutBuilder: (currentChild, previousChildren) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final child in previousChildren) child,
-                  if (currentChild != null) currentChild,
-                ],
+                children: [...previousChildren, if (currentChild != null) currentChild],
               );
             },
             child: filtersState.isFilterOptionsVisible
@@ -695,8 +628,10 @@ class _CheckInDescriptionsListViewState
                       color: AppColors.surfaceDark,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const AppTextView.body2(
-                      AppStrings.auditNoMatchingDescriptions,
+                    child: AppTextView.body2(
+                      controller.descriptionSearchQuery.isEmpty
+                          ? AppStrings.auditNoMatchingDescriptions
+                          : AppStrings.auditNoMatchingDescriptionSearch,
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -714,19 +649,15 @@ class _CheckInDescriptionsListViewState
                         audit: audit,
                         description: description,
                         date: widget.date,
-                        isOwner: context
-                            .read<CheckInController>()
-                            .state
-                            .isOwner,
+                        isOwner: context.read<CheckInController>().state.isOwner,
                         isSelfAudit: widget.isSelfAudit,
-                        onOpenDetails: (initialRatingCounts) =>
-                            _openDescriptionDetails(
-                              context,
-                              audit,
-                              filteredDescriptions,
-                              index,
-                              initialRatingCounts,
-                            ),
+                        onOpenDetails: (initialRatingCounts) => _openDescriptionDetails(
+                          context,
+                          audit,
+                          filteredDescriptions,
+                          index,
+                          initialRatingCounts,
+                        ),
                       );
                     },
                   ),
@@ -809,9 +740,7 @@ class _CheckInDescriptionsListViewState
     );
   }
 
-  Widget _buildAuditedOnlyRow(
-    _CheckInDescriptionsListFiltersState filtersState,
-  ) {
+  Widget _buildAuditedOnlyRow(_CheckInDescriptionsListFiltersState filtersState) {
     return Row(
       children: [
         const Expanded(
@@ -868,11 +797,7 @@ class _CheckInDescriptionsListViewState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppTextView.body2(
-          label,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
+        AppTextView.body2(label, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         const SizedBox(height: 10),
         SizedBox(
           height: 32,
@@ -888,17 +813,12 @@ class _CheckInDescriptionsListViewState
                 onTap: () => onTap(option),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.orange2 : Colors.transparent,
                     borderRadius: BorderRadius.circular(50),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.orange2
-                          : AppColors.textPrimary,
+                      color: isSelected ? AppColors.orange2 : AppColors.textPrimary,
                     ),
                   ),
                   child: Center(
@@ -923,11 +843,7 @@ class _CheckInDescriptionsListViewState
   ) {
     return audit.descriptions
         .where((description) {
-          if (!_isDescriptionEligibleForDisplay(
-            audit,
-            description,
-            filtersState,
-          )) {
+          if (!_isDescriptionEligibleForDisplay(audit, description, filtersState)) {
             return false;
           }
 
@@ -935,13 +851,9 @@ class _CheckInDescriptionsListViewState
             audit: audit,
             description: description,
           );
-          final milestone = CustomFunctions.normalizeAuditMilestone(
-            description.milestoneDay,
-          );
+          final milestone = CustomFunctions.normalizeAuditMilestone(description.milestoneDay);
           final auditTiming = CustomFunctions.resolveAuditTiming(description);
-          final auditType = CustomFunctions.normalizeAuditType(
-            description.auditFactorType,
-          );
+          final auditType = CustomFunctions.normalizeAuditType(description.auditFactorType);
 
           final matchesCategory =
               filtersState.selectedCategories.isEmpty ||
@@ -956,10 +868,7 @@ class _CheckInDescriptionsListViewState
               filtersState.selectedAuditTypes.isEmpty ||
               filtersState.selectedAuditTypes.contains(auditType);
 
-          return matchesCategory &&
-              matchesMilestone &&
-              matchesAuditTiming &&
-              matchesAuditType;
+          return matchesCategory && matchesMilestone && matchesAuditTiming && matchesAuditType;
         })
         .toList(growable: false);
   }
@@ -973,11 +882,7 @@ class _CheckInDescriptionsListViewState
     QuarterlyAuditDescription description,
     _CheckInDescriptionsListFiltersState filtersState,
   ) {
-    if (!_isDescriptionEligibleForFilterOptions(
-      audit,
-      description,
-      filtersState,
-    )) {
+    if (!_isDescriptionEligibleForFilterOptions(audit, description, filtersState)) {
       return false;
     }
 
@@ -999,11 +904,10 @@ class _CheckInDescriptionsListViewState
     _CheckInDescriptionsListFiltersState filtersState,
   ) {
     final isAudited = _isDescriptionAudited(description);
-    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(
-      widget.date,
+    final isSelectedAuditDateBeforeToday = CustomFunctions.isDateBeforeToday(widget.date);
+    final shouldIncludeUnauditedContinueDescriptions = _shouldIncludeUnauditedContinueDescriptions(
+      audit,
     );
-    final shouldIncludeUnauditedContinueDescriptions =
-        _shouldIncludeUnauditedContinueDescriptions(audit);
 
     if (audit.isMismatch && !isAudited) {
       return false;
@@ -1019,8 +923,7 @@ class _CheckInDescriptionsListViewState
   }
 
   bool _shouldIncludeUnauditedContinueDescriptions(QuarterlyAudit audit) {
-    return !audit.isMismatch &&
-        CustomFunctions.isAuditWithinContinueWindow(widget.date);
+    return !audit.isMismatch && CustomFunctions.isAuditWithinContinueWindow(widget.date);
   }
 
   List<String> _categoryOptions(
@@ -1030,11 +933,8 @@ class _CheckInDescriptionsListViewState
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(
-                audit,
-                description,
-                filtersState,
-              ),
+              (description) =>
+                  _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
             )
             .map(
               (description) => CustomFunctions.resolveAuditCategoryOption(
@@ -1056,17 +956,10 @@ class _CheckInDescriptionsListViewState
     final options =
         audit.descriptions
             .where(
-              (description) => _isDescriptionEligibleForFilterOptions(
-                audit,
-                description,
-                filtersState,
-              ),
+              (description) =>
+                  _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
             )
-            .map(
-              (description) => CustomFunctions.normalizeAuditMilestone(
-                description.milestoneDay,
-              ),
-            )
+            .map((description) => CustomFunctions.normalizeAuditMilestone(description.milestoneDay))
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
@@ -1081,19 +974,13 @@ class _CheckInDescriptionsListViewState
     final preferredOrder = AppStrings.auditTimingOptions;
     final availableOptions = audit.descriptions
         .where(
-          (description) => _isDescriptionEligibleForFilterOptions(
-            audit,
-            description,
-            filtersState,
-          ),
+          (description) => _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
         )
         .map(CustomFunctions.resolveAuditTiming)
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder
-        .where(availableOptions.contains)
-        .toList(growable: false);
+    return preferredOrder.where(availableOptions.contains).toList(growable: false);
   }
 
   List<String> _auditTypeOptions(
@@ -1103,22 +990,13 @@ class _CheckInDescriptionsListViewState
     final preferredOrder = AppStrings.auditTypeOptions;
     final availableOptions = audit.descriptions
         .where(
-          (description) => _isDescriptionEligibleForFilterOptions(
-            audit,
-            description,
-            filtersState,
-          ),
+          (description) => _isDescriptionEligibleForFilterOptions(audit, description, filtersState),
         )
-        .map(
-          (description) =>
-              CustomFunctions.normalizeAuditType(description.auditFactorType),
-        )
+        .map((description) => CustomFunctions.normalizeAuditType(description.auditFactorType))
         .where((value) => value.isNotEmpty)
         .toSet();
 
-    return preferredOrder
-        .where(availableOptions.contains)
-        .toList(growable: false);
+    return preferredOrder.where(availableOptions.contains).toList(growable: false);
   }
 
   bool _hasActiveFilters(_CheckInDescriptionsListFiltersState filtersState) =>
@@ -1141,9 +1019,7 @@ class _CheckInDescriptionsListViewState
 
   void _toggleShowAuditedOnly() {
     final currentState = _filtersNotifier.value;
-    _filtersNotifier.value = currentState.copyWith(
-      showAuditedOnly: !currentState.showAuditedOnly,
-    );
+    _filtersNotifier.value = currentState.copyWith(showAuditedOnly: !currentState.showAuditedOnly);
   }
 
   void _toggleMilestone(String value) {
@@ -1204,8 +1080,7 @@ class _CheckInDescriptionCard extends StatefulWidget {
   final bool isSelfAudit;
 
   @override
-  State<_CheckInDescriptionCard> createState() =>
-      _CheckInDescriptionCardState();
+  State<_CheckInDescriptionCard> createState() => _CheckInDescriptionCardState();
 }
 
 class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
@@ -1292,147 +1167,138 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.transparent, width: 1.4),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
+              alignment: Alignment.centerRight,
               children: [
-                Row(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: AppTextView.body1(
-                        descriptionText,
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: isMediaCommentCreated
-                            ? AppColors.green1
-                            : AppColors.secondaryColor.withValues(alpha: 0.14),
-                        shape: BoxShape.circle,
-                      ),
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: _isOpeningDetailsNotifier,
-                        builder: (context, isOpeningDetails, _) {
-                          if (isOpeningDetails) {
-                            return Padding(
-                              padding: const EdgeInsets.all(7),
-                              child: FastCircularProgressIndicator(),
-                            );
-                          }
-                          return Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: isMediaCommentCreated
-                                ? Colors.white
-                                : AppColors.secondaryColor,
-                            size: 16,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ValueListenableBuilder<_PassSelectionViewState>(
-                  valueListenable: _viewStateNotifier,
-                  builder: (context, viewState, _) {
-                    final counts = _auditCountsFromBlocks(viewState.blocks);
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SelectionCounter(
-                          color: canEditBlocks
-                              ? AppColors.green1
-                              : AppColors.green1.withValues(alpha: 0.5),
-                          count: counts['great'] ?? 0,
-                          showDecrementControl:
-                              widget.isOwner && !widget.isSelfAudit,
-                          onTapCount: canEditBlocks
-                              ? () => _incrementRating(_PassBlockState.great)
-                              : null,
-                          onTapArrow: canEditBlocks
-                              ? () => _decrementRating(_PassBlockState.great)
-                              : null,
-                          canEditBlocks: canEditBlocks,
-                        ),
-                        const SizedBox(width: 16),
-                        _SelectionCounter(
-                          color: canEditBlocks
-                              ? AppColors.orange1
-                              : AppColors.orange1.withValues(alpha: 0.5),
-                          count: counts['almost_there'] ?? 0,
-                          showDecrementControl:
-                              widget.isOwner && !widget.isSelfAudit,
-                          onTapCount: canEditBlocks
-                              ? () => _incrementRating(
-                                  _PassBlockState.almostThere,
-                                )
-                              : null,
-                          onTapArrow: canEditBlocks
-                              ? () => _decrementRating(
-                                  _PassBlockState.almostThere,
-                                )
-                              : null,
-                          canEditBlocks: canEditBlocks,
-                        ),
-                        const SizedBox(width: 16),
-                        _SelectionCounter(
-                          color: canEditBlocks
-                              ? AppColors.red1
-                              : AppColors.red1.withValues(alpha: 0.5),
-                          count: counts['needs_improvement'] ?? 0,
-                          showDecrementControl:
-                              widget.isOwner && !widget.isSelfAudit,
-                          onTapCount: canEditBlocks
-                              ? () => _incrementRating(
-                                  _PassBlockState.needsImprovement,
-                                )
-                              : null,
-                          onTapArrow: canEditBlocks
-                              ? () => _decrementRating(
-                                  _PassBlockState.needsImprovement,
-                                )
-                              : null,
-                          canEditBlocks: canEditBlocks,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Spacer(),
-                    if (canCreateComments)
-                      _CommentIconButton(
-                        isEnabled: true,
-                        icon: Icons.camera_alt_outlined,
-                        onTap: _openCreateCommentDialog,
-                      ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: _DescriptionAuditTypePill(
-                            text: auditFactorType.isEmpty
-                                ? AppStrings.checkInTitle
-                                : auditFactorType,
+                        Expanded(
+                          child: AppTextView.body1(
+                            descriptionText,
+                            color: AppColors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: isMediaCommentCreated
+                                ? AppColors.green1
+                                : AppColors.secondaryColor.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                          ),
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: _isOpeningDetailsNotifier,
+                            builder: (context, isOpeningDetails, _) {
+                              if (isOpeningDetails) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(7),
+                                  child: FastCircularProgressIndicator(),
+                                );
+                              }
+                              return Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: isMediaCommentCreated
+                                    ? Colors.white
+                                    : AppColors.secondaryColor,
+                                size: 16,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const SizedBox(width: 30),
+                        Expanded(
+                          child: ValueListenableBuilder<_PassSelectionViewState>(
+                            valueListenable: _viewStateNotifier,
+                            builder: (context, viewState, _) {
+                              final counts = _auditCountsFromBlocks(viewState.blocks);
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _SelectionCounter(
+                                    color: canEditBlocks
+                                        ? AppColors.green1
+                                        : AppColors.green1.withValues(alpha: 0.5),
+                                    count: counts['great'] ?? 0,
+                                    showDecrementControl: widget.isOwner && !widget.isSelfAudit,
+                                    onTapCount: canEditBlocks
+                                        ? () => _incrementRating(_PassBlockState.great)
+                                        : null,
+                                    onTapArrow: canEditBlocks
+                                        ? () => _decrementRating(_PassBlockState.great)
+                                        : null,
+                                    canEditBlocks: canEditBlocks,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _SelectionCounter(
+                                    color: canEditBlocks
+                                        ? AppColors.orange1
+                                        : AppColors.orange1.withValues(alpha: 0.5),
+                                    count: counts['almost_there'] ?? 0,
+                                    showDecrementControl: widget.isOwner && !widget.isSelfAudit,
+                                    onTapCount: canEditBlocks
+                                        ? () => _incrementRating(_PassBlockState.almostThere)
+                                        : null,
+                                    onTapArrow: canEditBlocks
+                                        ? () => _decrementRating(_PassBlockState.almostThere)
+                                        : null,
+                                    canEditBlocks: canEditBlocks,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _SelectionCounter(
+                                    color: canEditBlocks
+                                        ? AppColors.red1
+                                        : AppColors.red1.withValues(alpha: 0.5),
+                                    count: counts['needs_improvement'] ?? 0,
+                                    showDecrementControl: widget.isOwner && !widget.isSelfAudit,
+                                    onTapCount: canEditBlocks
+                                        ? () => _incrementRating(_PassBlockState.needsImprovement)
+                                        : null,
+                                    onTapArrow: canEditBlocks
+                                        ? () => _decrementRating(_PassBlockState.needsImprovement)
+                                        : null,
+                                    canEditBlocks: canEditBlocks,
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 30),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _DescriptionAuditTypePill(
+                        text: auditFactorType.isEmpty ? AppStrings.checkInTitle : auditFactorType,
                       ),
                     ),
                   ],
                 ),
+                // Center against the card content, including its header and tag.
+                if (canCreateComments)
+                  _CommentIconButton(
+                    isEnabled: true,
+                    icon: Icons.camera_alt_outlined,
+                    onTap: _openCreateCommentDialog,
+                  ),
               ],
             ),
           );
@@ -1441,9 +1307,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     );
   }
 
-  Map<String, int> _auditCountsFromDescription(
-    QuarterlyAuditDescription description,
-  ) {
+  Map<String, int> _auditCountsFromDescription(QuarterlyAuditDescription description) {
     return <String, int>{
       'great': description.great,
       'almost_there': description.almostThere,
@@ -1473,9 +1337,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
       if (!mounted) {
         return;
       }
-      widget.onOpenDetails(
-        _auditCountsFromBlocks(_viewStateNotifier.value.blocks),
-      );
+      widget.onOpenDetails(_auditCountsFromBlocks(_viewStateNotifier.value.blocks));
     } finally {
       if (mounted) {
         _isOpeningDetailsNotifier.value = false;
@@ -1486,9 +1348,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   Map<String, int> _auditCountsFromBlocks(List<_PassBlockState> blocks) {
     return <String, int>{
       'great': blocks.where((block) => block == _PassBlockState.great).length,
-      'almost_there': blocks
-          .where((block) => block == _PassBlockState.almostThere)
-          .length,
+      'almost_there': blocks.where((block) => block == _PassBlockState.almostThere).length,
       'needs_improvement': blocks
           .where((block) => block == _PassBlockState.needsImprovement)
           .length,
@@ -1501,10 +1361,8 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     final needsImprovement = counts['needs_improvement'] ?? 0;
     final blocks = <_PassBlockState>[
       for (var index = 0; index < great; index += 1) _PassBlockState.great,
-      for (var index = 0; index < almostThere; index += 1)
-        _PassBlockState.almostThere,
-      for (var index = 0; index < needsImprovement; index += 1)
-        _PassBlockState.needsImprovement,
+      for (var index = 0; index < almostThere; index += 1) _PassBlockState.almostThere,
+      for (var index = 0; index < needsImprovement; index += 1) _PassBlockState.needsImprovement,
     ];
     if (blocks.isEmpty) {
       blocks.add(_PassBlockState.defaultValue);
@@ -1584,9 +1442,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   }
 
   List<_PassBlockState> _normalizeDefaultBlocks(List<_PassBlockState> blocks) {
-    final hasSelectedBlock = blocks.any(
-      (block) => block != _PassBlockState.defaultValue,
-    );
+    final hasSelectedBlock = blocks.any((block) => block != _PassBlockState.defaultValue);
     if (hasSelectedBlock) {
       return blocks;
     }
@@ -1608,19 +1464,13 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     });
   }
 
-  Future<void> _submitDescriptionAudit(
-    Map<String, int> audit,
-    int submissionRevision,
-  ) {
+  Future<void> _submitDescriptionAudit(Map<String, int> audit, int submissionRevision) {
     final submission = _saveDescriptionAudit(audit, submissionRevision);
     _ratingSubmission = submission;
     return submission;
   }
 
-  Future<void> _saveDescriptionAudit(
-    Map<String, int> audit,
-    int submissionRevision,
-  ) async {
+  Future<void> _saveDescriptionAudit(Map<String, int> audit, int submissionRevision) async {
     try {
       final controller = context.read<CheckInController>();
       final descriptionId = await _resolveAuditUuid();
@@ -1727,9 +1577,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
 
     try {
       final auditDescription = await future;
-      _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(
-        auditDescription,
-      );
+      _auditDescriptionFuture = Future<AuditDescriptionAudit>.value(auditDescription);
       return auditDescription;
     } catch (_) {
       _auditDescriptionFuture = null;
@@ -1742,10 +1590,8 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     final didSave = await showDialog<bool>(
       context: context,
       builder: (_) => DescriptionTextCommentDialog(
-        onSave: (comment) => controller.createAuditDescriptionComment(
-          descriptionId: auditUuid,
-          comment: comment,
-        ),
+        onSave: (comment) =>
+            controller.createAuditDescriptionComment(descriptionId: auditUuid, comment: comment),
       ),
     );
 
@@ -1808,9 +1654,7 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -1823,10 +1667,7 @@ class _DescriptionAuditTypePill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.orange1,
-        borderRadius: BorderRadius.circular(50),
-      ),
+      decoration: BoxDecoration(color: AppColors.orange1, borderRadius: BorderRadius.circular(50)),
       child: AppTextView.body2(
         text,
         color: AppColors.textPrimary,
@@ -1890,15 +1731,11 @@ class _SelectionCounter extends StatelessWidget {
               width: 42,
               height: 24,
               decoration: BoxDecoration(
-                color: canEditBlocks
-                    ? AppColors.grey1
-                    : AppColors.grey1.withValues(alpha: 0.5),
+                color: canEditBlocks ? AppColors.grey1 : AppColors.grey1.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                canEditBlocks
-                    ? Icons.keyboard_arrow_down_rounded
-                    : Icons.lock_rounded,
+                canEditBlocks ? Icons.keyboard_arrow_down_rounded : Icons.lock_rounded,
                 color: Colors.white,
                 size: canEditBlocks ? 24 : 16,
               ),
@@ -1911,11 +1748,7 @@ class _SelectionCounter extends StatelessWidget {
 }
 
 class _CommentIconButton extends StatelessWidget {
-  const _CommentIconButton({
-    required this.isEnabled,
-    required this.icon,
-    this.onTap,
-  });
+  const _CommentIconButton({required this.isEnabled, required this.icon, this.onTap});
 
   final bool isEnabled;
   final IconData icon;
@@ -1951,8 +1784,7 @@ class _DescriptionMediaTypeSelectionBottomSheet extends StatefulWidget {
     required this.onCommentOnlySelected,
   });
 
-  final Future<bool> Function(DescriptionMediaCommentContentType selectedType)
-  onTypeSelected;
+  final Future<bool> Function(DescriptionMediaCommentContentType selectedType) onTypeSelected;
   final Future<bool> Function() onCommentOnlySelected;
 
   @override
@@ -1968,8 +1800,7 @@ class _DescriptionMediaTypeSelectionBottomSheetState
     DescriptionMediaCommentContentType.upload,
   ];
 
-  late final ValueNotifier<bool> _isOpeningChildSheetNotifier =
-      ValueNotifier<bool>(false);
+  late final ValueNotifier<bool> _isOpeningChildSheetNotifier = ValueNotifier<bool>(false);
 
   @override
   void dispose() {
@@ -2030,18 +1861,14 @@ class _DescriptionMediaTypeSelectionBottomSheetState
                         title: _mediaTypeTitle(type),
                         onTap: isOpeningChildSheet
                             ? null
-                            : () => _openChildSheet(
-                                () => widget.onTypeSelected(type),
-                              ),
+                            : () => _openChildSheet(() => widget.onTypeSelected(type)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 18),
                   AppButton(
                     text: AppStrings.done,
-                    onPressed: isOpeningChildSheet
-                        ? null
-                        : () => Navigator.of(context).pop(),
+                    onPressed: isOpeningChildSheet ? null : () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
@@ -2057,8 +1884,7 @@ class _DescriptionMediaTypeSelectionBottomSheetState
       DescriptionMediaCommentContentType.photo => AppStrings.auditPhoto,
       DescriptionMediaCommentContentType.video => AppStrings.auditVideo,
       DescriptionMediaCommentContentType.upload => AppStrings.auditUpload,
-      DescriptionMediaCommentContentType.screenRecording =>
-        AppStrings.auditScreenRecording,
+      DescriptionMediaCommentContentType.screenRecording => AppStrings.auditScreenRecording,
     };
   }
 
@@ -2111,11 +1937,7 @@ class _MediaTypeOption extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textPrimary,
-                size: 22,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.textPrimary, size: 22),
             ],
           ),
         ),
@@ -2150,8 +1972,7 @@ class _CheckInDescriptionsListFiltersState {
     Set<String>? selectedAuditTypes,
   }) {
     return _CheckInDescriptionsListFiltersState(
-      isFilterOptionsVisible:
-          isFilterOptionsVisible ?? this.isFilterOptionsVisible,
+      isFilterOptionsVisible: isFilterOptionsVisible ?? this.isFilterOptionsVisible,
       showAuditedOnly: showAuditedOnly ?? this.showAuditedOnly,
       selectedCategories: selectedCategories ?? this.selectedCategories,
       selectedMilestones: selectedMilestones ?? this.selectedMilestones,
@@ -2161,27 +1982,19 @@ class _CheckInDescriptionsListFiltersState {
   }
 
   _CheckInDescriptionsListFiltersState toggleCategory(String value) {
-    return copyWith(
-      selectedCategories: _toggleSetValue(selectedCategories, value),
-    );
+    return copyWith(selectedCategories: _toggleSetValue(selectedCategories, value));
   }
 
   _CheckInDescriptionsListFiltersState toggleMilestone(String value) {
-    return copyWith(
-      selectedMilestones: _toggleSetValue(selectedMilestones, value),
-    );
+    return copyWith(selectedMilestones: _toggleSetValue(selectedMilestones, value));
   }
 
   _CheckInDescriptionsListFiltersState toggleAuditTiming(String value) {
-    return copyWith(
-      selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value),
-    );
+    return copyWith(selectedAuditTimings: _toggleSetValue(selectedAuditTimings, value));
   }
 
   _CheckInDescriptionsListFiltersState toggleAuditType(String value) {
-    return copyWith(
-      selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value),
-    );
+    return copyWith(selectedAuditTypes: _toggleSetValue(selectedAuditTypes, value));
   }
 
   static Set<String> _toggleSetValue(Set<String> values, String value) {
