@@ -401,8 +401,6 @@ class AppStrings {
   static const String checkInTitle = 'Check-In';
   static const String checkInReadOnlyOrganization =
       'Check-ins are view-only in child organisations.';
-  static const String checkInSelectDescriptionPrompt =
-      'Select a description first to start this check-in.';
   static const String reportsTitle = 'Reports';
   static const String reportsScreenTitle = 'Reports';
   static const String myReportsTitle = 'My Reports';
@@ -882,6 +880,9 @@ class AppStrings {
   static const String auditNextDescription = 'Next description';
   static const String auditNoDescriptionAvailable = 'No description available.';
   static const String auditNoMatchingDescriptions = 'No descriptions match the selected filters.';
+  static const String auditSearchDescriptionsHint = 'Search descriptions';
+  static const String auditNoMatchingDescriptionSearch =
+      'No descriptions match your search.';
   static const String auditSeatDescription = 'Seat Description';
   static const String auditSeatSpecifics = 'Seat Specifics';
   static const String auditNoSeatSpecificsAvailable = 'No seat specifics available.';
