@@ -116,7 +116,7 @@ class AppListingSearchBar extends StatelessWidget {
                 child: const SizedBox(
                   width: 40,
                   height: 40,
-                  child: Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 20),
+                  child: Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 23),
                 ),
               ),
             ),
