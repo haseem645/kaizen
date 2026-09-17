@@ -1,6 +1,7 @@
 class AppStrings {
   AppStrings._();
   static const String appTitle = 'KaizenTeams';
+  static const String noContentAvailable = 'No content available.';
   static const String apiInvalidUrl = 'Invalid URL';
   static const String apiInvalidResponse = 'Invalid response';
   static const String apiRequestFailedPrefix = 'Request failed with status code:';
@@ -736,7 +737,7 @@ class AppStrings {
   static const String trainingEditTextSheetDescription =
       'Update the text below and save your changes.';
   static const String trainingSummaryLabel = 'Summary';
-  static const String trainingSummaryHint = 'Write a short summary for this lesson.';
+  static const String trainingSummaryHint = noContentAvailable;
   static const String trainingSummarySavedSuccess = 'Summary updated successfully.';
   static const String trainingSaveAction = 'Save';
   static const String trainingSaveChangesAction = 'Save Changes';

@@ -119,6 +119,9 @@ class _VideoTabContent extends StatelessWidget {
               ? _TrainingOutlinedTextField(
                   controller: summaryController,
                   hintText: AppStrings.trainingSummaryHint,
+                  readOnly: !isEditingSummary,
+                  showCursor: isEditingSummary,
+                  onTap: onEditSummaryTap,
                   minLines: 4,
                   maxLines: 8,
                   textInputAction: TextInputAction.newline,

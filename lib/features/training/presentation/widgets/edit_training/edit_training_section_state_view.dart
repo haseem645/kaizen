@@ -97,17 +97,25 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     return TrainingTabView(
       navigation: _tabNavigation,
       maxTabIndex: controller.maxAccessibleTabIndex,
+      onPageApproaching: (index) {
+        if (index == 1) {
+          unawaited(controller.loadDocumentForSelectedModule());
+        }
+      },
       // Quiz keeps the screen's 16px inset, reducing its former 24px margin by a third.
       pagePaddingBuilder: (index) =>
           index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
       pageBuilder: (context, index) {
+        final showsLoading =
+            (controller.isLoading && controller.selectedModuleDetail == null) ||
+            (index == 2 && controller.isQuestionsLoading);
         final showsEmptyQuiz =
             index == 2 &&
             !controller.canManageTraining &&
             !controller.isQuestionsLoading &&
             controller.selectedModuleQuestions.isEmpty;
         final fillsPage =
-            (index == 1 || index == 3 || showsEmptyQuiz) &&
+            (index == 1 || index == 3 || showsEmptyQuiz || showsLoading) &&
             controller.hasSelectedModule &&
             !controller.isCreatingNewLessonDraft;
         final tabContent = _buildTabPageForIndex(
@@ -168,10 +176,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
     }
 
     if (controller.isLoading && controller.selectedModuleDetail == null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 36),
-        child: Center(child: FastCircularProgressIndicator()),
-      );
+      return const Center(child: FastCircularProgressIndicator());
     }
 
     if (controller.errorMessage != null && controller.selectedModuleDetail == null) {
@@ -204,7 +209,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
 
     if (tabIndex == 1) {
       return _SopTabContent(
-        isLoading: controller.isDocumentLoading,
+        isLoading: controller.isDocumentLoading || !controller.hasResolvedSelectedModuleDocument,
         canManageGeneration: controller.canManageTraining,
         canGenerate: controller.canGenerateSopForSelectedModule,
         isGeneratingSop: controller.isGeneratingSop,

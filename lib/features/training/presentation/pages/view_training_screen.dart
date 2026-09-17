@@ -177,6 +177,11 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     return TrainingTabView(
       navigation: _navigation,
       maxTabIndex: _maxTabIndex,
+      onPageApproaching: (index) {
+        if (index == 1) {
+          unawaited(_syncSelectedTabData(index));
+        }
+      },
       pagePaddingBuilder: (index) =>
           index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
       pageBuilder: (context, index) => _buildTabPage(controller, index),
@@ -188,25 +193,30 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     final showsEmptyQuiz =
         index == 2 && !controller.isQuestionsLoading && controller.selectedModuleQuestions.isEmpty;
     if (index == 1 || index == 3 || showsEmptyQuiz) return content;
+    final showsLoading =
+        (controller.isLoading && controller.selectedModuleDetail == null) ||
+        (index == 2 && controller.isQuestionsLoading);
+    final page = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (index == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
+          TrainingLessonTitleField(
+            valueText: controller.selectedModuleTitle,
+            hintText: AppStrings.trainingLessonTitleHint,
+            isReadOnly: true,
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (showsLoading) Expanded(child: content) else content,
+      ],
+    );
+    if (showsLoading) return page;
     return SingleChildScrollView(
       key: PageStorageKey<String>('${controller.selectedModuleId}:$index'),
       primary: false,
       padding: const EdgeInsets.only(bottom: 12),
       physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (index == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
-            TrainingLessonTitleField(
-              valueText: controller.selectedModuleTitle,
-              hintText: AppStrings.trainingLessonTitleHint,
-              isReadOnly: true,
-            ),
-            const SizedBox(height: 16),
-          ],
-          content,
-        ],
-      ),
+      child: page,
     );
   }
 

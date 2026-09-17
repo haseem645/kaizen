@@ -31,12 +31,14 @@ class TrainingLibraryResultArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (controller.isInlineLoading) {
-      return ListView(
+      return CustomScrollView(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 48),
-          Center(child: FastCircularProgressIndicator(width: 24, height: 24)),
+        slivers: const [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: FastCircularProgressIndicator(width: 24, height: 24)),
+          ),
         ],
       );
     }

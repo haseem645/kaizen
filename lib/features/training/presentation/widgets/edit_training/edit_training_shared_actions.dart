@@ -12,7 +12,7 @@ class _GradientTrainingActionButton extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final IconData? icon;
   final bool isEnabled;
   final bool isLoading;
   final bool showLoaderInIconSlot;
@@ -66,23 +66,36 @@ class _GradientTrainingActionButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (showLoaderInIconSlot && isLoading)
-                FastCircularProgressIndicator(width: 16, height: 16)
-              else
-                Icon(
-                  icon,
-                  size: 16,
-                  color: isEnabledAppearance
-                      ? Colors.white.withValues(alpha: 0.96)
-                      : AppColors.textSecondary,
+              if (icon != null) ...[
+                SizedBox.square(
+                  dimension: 16,
+                  child: showLoaderInIconSlot && isLoading
+                      ? const FastCircularProgressIndicator(width: 16, height: 16)
+                      : Icon(
+                          icon,
+                          size: 16,
+                          color: isEnabledAppearance
+                              ? Colors.white.withValues(alpha: 0.96)
+                              : AppColors.textSecondary,
+                        ),
                 ),
-              const SizedBox(width: 8),
-              AppTextView.body2(
-                label,
-                color: isEnabledAppearance ? AppColors.textPrimary : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+                const SizedBox(width: 8),
+              ],
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Opacity(
+                    opacity: icon == null && isLoading ? 0 : 1,
+                    child: _buildLabel(label, isEnabledAppearance),
+                  ),
+                  if (icon == null && isLoading)
+                    const SizedBox.square(
+                      dimension: 16,
+                      child: FastCircularProgressIndicator(width: 16, height: 16),
+                    ),
+                ],
               ),
-              if (isLoading && !showLoaderInIconSlot) ...[
+              if (icon != null && isLoading && !showLoaderInIconSlot) ...[
                 const SizedBox(width: 10),
                 FastCircularProgressIndicator(width: 14, height: 14),
               ],
@@ -90,6 +103,14 @@ class _GradientTrainingActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLabel(String text, bool isEnabledAppearance) {
+    return AppTextView.body2(
+      text,
+      color: isEnabledAppearance ? AppColors.textPrimary : AppColors.textSecondary,
+      fontWeight: FontWeight.w700,
     );
   }
 }
@@ -452,6 +473,9 @@ class _TrainingOutlinedTextField extends StatelessWidget {
     required this.hintText,
     required this.minLines,
     required this.maxLines,
+    this.readOnly = false,
+    this.showCursor,
+    this.onTap,
     this.textInputAction,
     this.fontSize = 14,
     this.fontWeight = FontWeight.w600,
@@ -464,6 +488,9 @@ class _TrainingOutlinedTextField extends StatelessWidget {
   final String hintText;
   final int minLines;
   final int maxLines;
+  final bool readOnly;
+  final bool? showCursor;
+  final VoidCallback? onTap;
   final TextInputAction? textInputAction;
   final double fontSize;
   final FontWeight fontWeight;
@@ -475,7 +502,12 @@ class _TrainingOutlinedTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      autofocus: false,
+      readOnly: readOnly,
+      showCursor: showCursor,
+      onTap: onTap,
       cursorColor: Colors.white,
+      cursorHeight: 15,
       minLines: minLines,
       maxLines: maxLines,
       textInputAction: textInputAction,
