@@ -140,6 +140,8 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 
 ## Data And Media Rules
 
+- Google browser sign-in must select the Web/backend OAuth client and exact registered callback together through `GoogleOAuthConfiguration` using the backend environment. Do not add independent client/redirect fallback strings in the authorization datasource, substitute Android/iOS native client IDs, or construct a callback by appending a path to the REST API host. Keep Android/iOS callback links aligned with both environments, forward the same redirect URI during code exchange, and generate a fresh state instead of copying Google's account-chooser session URL.
+- For iOS Google callback changes, inspect Runner's `CODE_SIGN_ENTITLEMENTS` in every build configuration. Debug/Profile use `RunnerTesting.entitlements`, while Release uses `Runner.entitlements`; both must include the production callback domain. Verify the domains embedded in a signed app, not only the source plist.
 - For Check-In ratings, publish successfully saved counts through the shared controller to the matching description UUID. Keep saves for the same description ordered, and preserve pending detail edits when navigating back; do not wait for an older list-card count before accepting detail updates.
 - Prefer local feature data shaping inside providers/controllers instead of scattering UI-specific transforms across widgets.
 - Keep business logic, status mapping, and display label mapping out of widget trees when the logic is reused or non-trivial.
