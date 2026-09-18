@@ -8,24 +8,20 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/google_authorization.dart';
 import '../../google_sign_in_diagnostics.dart';
+import 'google_oauth_configuration.dart';
 
 /// Uses the browser and the app's verified HTTPS callback for the web code flow.
 class GoogleAuthorizationDataSource {
   GoogleAuthorizationDataSource({
-    this.clientId = const String.fromEnvironment(
-      'GOOGLE_OAUTH_CLIENT_ID',
-      // Public web client used by dev.kaizenteams.ai; this is not a client secret.
-      defaultValue: '273718420607-sma08mj14celj9c4dshthl3nbeqttb12.apps.googleusercontent.com',
-    ),
-    this.redirectUri = const String.fromEnvironment(
-      'GOOGLE_OAUTH_REDIRECT_URI',
-      defaultValue: 'https://dev.kaizenteams.ai/auth/google/callback',
-    ),
+    String? clientId,
+    String? redirectUri,
     Stream<Uri>? callbackUris,
     Future<bool> Function(Uri)? launchBrowser,
     bool? isSupported,
     this.timeout = const Duration(minutes: 3),
-  }) : _callbackUris = callbackUris,
+  }) : clientId = (clientId ?? GoogleOAuthConfiguration.current.clientId).trim(),
+       redirectUri = redirectUri ?? GoogleOAuthConfiguration.current.redirectUri,
+       _callbackUris = callbackUris,
        _launchBrowser = launchBrowser ?? _openBrowser,
        _isSupported =
            isSupported ??
@@ -56,7 +52,11 @@ class GoogleAuthorizationDataSource {
     );
     if (!_isSupported ||
         _pending != null ||
-        clientId.trim().isEmpty ||
+        clientId.isEmpty ||
+        !GoogleOAuthConfiguration(
+          clientId: clientId,
+          redirectUri: redirectUri,
+        ).hasMatchingCallback ||
         callback == null ||
         callback.scheme != 'https' ||
         callback.host.isEmpty ||

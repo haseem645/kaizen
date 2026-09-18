@@ -15,7 +15,7 @@ The configured redirect URI remains fragment-free when exchanging the code.
 POST /api/v1/accounts/google/login/
 Content-Type: application/json
 
-{"code":"<fresh authorization code>","redirect_uri":"https://dev.kaizenteams.ai/auth/google/callback"}
+{"code":"<fresh authorization code>","redirect_uri":"https://app.kaizenteams.ai/auth/google/callback"}
 ```
 
 The response must include nonempty string `access` and `refresh` app tokens.
@@ -26,8 +26,10 @@ Existing authenticated deep-link navigation runs after successful login.
 
 ## Configuration
 
-Development defaults match the public configuration served by
-`https://dev.kaizenteams.ai/assets/googleOAuth-580ea6d8.js`.
+The browser flow selects a Web/backend client and its registered callback together
+in `data/datasources/google_oauth_configuration.dart`, based on `ApiEndPoints.baseUrl`.
+Production uses client `273718420607-q4dcl17i18nql3s6n7hr31o7m5rvsjkf.apps.googleusercontent.com`
+with `https://app.kaizenteams.ai/auth/google/callback`, matching the working web app.
 The OAuth client ID is public; the Google client secret remains on the backend.
 Only `openid email profile` is requested; this does not request Gmail access.
 
@@ -42,7 +44,8 @@ replace `google-services.json` or `GoogleService-Info.plist` with these OAuth ex
 | --- | --- | --- |
 | Android registration | `273718420607-hlfcopqref984gkjpedid02h1cl05sgi.apps.googleusercontent.com` | Google Cloud Android client for `com.kaizenteam` and its signing certificate; recorded in `android/app/src/main/res/values/google_sign_in.xml` |
 | iOS client | `273718420607-ome8m3n16fs468u05dbettnmts6n7om9.apps.googleusercontent.com` | `GIDClientID` in `ios/Runner/Info.plist` |
-| Web/backend client | `273718420607-sma08mj14celj9c4dshthl3nbeqttb12.apps.googleusercontent.com` | Existing Dart browser configuration, Android `default_web_client_id`, and iOS `GIDServerClientID` |
+| Production Web/backend client | `273718420607-q4dcl17i18nql3s6n7hr31o7m5rvsjkf.apps.googleusercontent.com` | `GoogleOAuthConfiguration.production`; also recorded in Android `default_web_client_id` and iOS `GIDServerClientID` |
+| Development Web/backend client | `273718420607-sma08mj14celj9c4dshthl3nbeqttb12.apps.googleusercontent.com` | `GoogleOAuthConfiguration.development` |
 
 The iOS `REVERSED_CLIENT_ID` is registered as an additional URL scheme in
 `ios/Runner/Info.plist`, alongside the existing `kaizenteams` scheme. Its bundle ID
@@ -56,24 +59,53 @@ name or signing fingerprint, so these must be checked in Google Cloud. Android
 configuration contains no Web OAuth entry. If an updated `google-services.json`
 generates this resource later, remove the manual resource to avoid a duplicate.
 
-These platform settings prepare native Google Sign-In configuration only. The
-login button still uses the browser flow described above, and the project does not
-include `google_sign_in`. Switching that flow requires native SDK integration and
+The browser flow uses the selected Web/backend environment pair; the Android
+and iOS native client IDs are not used in its authorization request. The project
+does not include `google_sign_in`. Switching to native sign-in requires SDK integration and
 verification that the backend accepts the resulting credentials. These settings
 do not replace the HTTPS app-link associations required by the current flow.
 
 ### Browser configuration
 
-For a different environment, provide `GOOGLE_OAUTH_CLIENT_ID` and
-`GOOGLE_OAUTH_REDIRECT_URI` using Dart defines. The backend and Google's registered
-redirect must use that exact URI. Update the Android callback intent filter and
+`https://api.kaizenteams.ai` selects the production pair; the development backend
+`https://dev-api.kaizenteams.ai` selects the development pair automatically.
+Do not edit separate fallback strings in `GoogleAuthorizationDataSource`.
+For an explicit build override, supply both `GOOGLE_OAUTH_CLIENT_ID` and
+`GOOGLE_OAUTH_REDIRECT_URI` using Dart defines as a registered pair.
+An explicit constructor value takes precedence over the build configuration.
+Blank client IDs and mixed production/development pairs fail before opening Google.
+
+The production callback is `https://app.kaizenteams.ai/auth/google/callback`;
+the development callback is `https://dev.kaizenteams.ai/auth/google/callback`.
+Both are covered by the Android callback intent filters and iOS associated domains.
+Xcode Debug and Profile use `ios/Runner/RunnerTesting.entitlements`; Release uses
+`ios/Runner/Runner.entitlements`. Keep the production callback domain in both
+files. Check `CODE_SIGN_ENTITLEMENTS` for each Runner configuration and inspect
+the built app's signed entitlements when debugging a return to the website.
+Updating only the Release file does not update builds run from Flutter or Xcode.
+The callback is separate from `ApiEndPoints.baseUrl`; never construct it by
+appending a path to the REST API host. The code exchange forwards the exact
+`redirectUri` returned by authorization, including any explicit override.
+The backend and Google's registered redirect must use that exact URI.
+Update the Android callback intent filter and
 iOS associated domain when changing the callback host/path.
 
-The dev domain already publishes Android app links and an iOS association covering
+The production domain publishes Android app links and an iOS association covering
 `/auth/*`. The installed Android signing certificate must match its published
 `/.well-known/assetlinks.json`; additional debug/release signing certificates need
 to be registered there. The iOS app ID must match its published association.
 The web callback should not exchange a mobile attempt's code before the app receives it.
+
+If the browser reports `redirect_uri_mismatch`, inspect `authorization.config` and
+`browser.launch` in the current device log. Google's validation happens before
+the app calls the backend. Native Android/iOS credentials and mismatched Web client
+and callback pairs both fail this HTTPS browser flow. Backend acceptance of a
+redirect URI does not register it for an OAuth client in Google Cloud.
+
+Always start at `https://accounts.google.com/o/oauth2/v2/auth` with a newly
+generated state. Google's `/v3/signin/accountchooser` URL is a later step; do not
+copy its session parameters (`continue`, `dsh`, or `part`) into the mobile request.
+`[REDACTED]` is only the diagnostics display of state, never the transmitted value.
 
 Validate real Google login on an associated Android/iOS build, including return
 from the browser, cancel, wrong-account rejection, and the post-login destination.
@@ -115,5 +147,5 @@ References:
 - https://developers.google.com/identity/protocols/oauth2/web-server
 - https://pub.dev/packages/google_sign_in_android
 - https://pub.dev/packages/google_sign_in_ios
-- https://dev.kaizenteams.ai/.well-known/apple-app-site-association
-- https://dev.kaizenteams.ai/.well-known/assetlinks.json
+- https://app.kaizenteams.ai/.well-known/apple-app-site-association
+- https://app.kaizenteams.ai/.well-known/assetlinks.json

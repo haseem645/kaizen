@@ -5,7 +5,7 @@
         273718420607-hlfcopqref984gkjpedid02h1cl05sgi.apps.googleusercontent.com
         Google resolves this client using com.kaizenteam and its signing certificate.
         The native SDK's server client below must be the Web application client.
-        The current browser login uses the same Web client in Dart.
+        Browser login selects its environment pair in GoogleOAuthConfiguration.
     -->
-    <string name="default_web_client_id" translatable="false">273718420607-sma08mj14celj9c4dshthl3nbeqttb12.apps.googleusercontent.com</string>
+    <string name="default_web_client_id" translatable="false">273718420607-q4dcl17i18nql3s6n7hr31o7m5rvsjkf.apps.googleusercontent.com</string>
 </resources>

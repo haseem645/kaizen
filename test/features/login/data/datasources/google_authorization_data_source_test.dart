@@ -4,8 +4,98 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sparrowkaizen/features/login/data/datasources/google_authorization_data_source.dart';
 import 'package:sparrowkaizen/features/login/domain/entities/google_authorization.dart';
+import 'package:sparrowkaizen/features/login/data/datasources/google_oauth_configuration.dart';
+
+const _testClientId = 'test-web-client.apps.googleusercontent.com';
+const _productionWebClientId =
+    '273718420607-q4dcl17i18nql3s6n7hr31o7m5rvsjkf.apps.googleusercontent.com';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('OAuth configuration', () {
+    test('default browser request uses the production Web client and callback together', () async {
+      final harness = _Harness(clientId: null);
+      addTearDown(harness.close);
+      final pending = harness.source.authorize();
+      final request = await harness.firstRequest.future;
+      expect(request.queryParameters['client_id'], _productionWebClientId);
+      expect(
+        request.queryParameters['redirect_uri'],
+        'https://app.kaizenteams.ai/auth/google/callback',
+      );
+      expect(request.path, '/o/oauth2/v2/auth');
+      expect(request.queryParameters['state'], isNot('[REDACTED]'));
+      harness.callbacks.add(harness.callback());
+      expect((await pending)!.code, 'test-code');
+    });
+
+    test('development backend selects its Web client and callback together', () {
+      final config = GoogleOAuthConfiguration.forBackend('https://dev-api.kaizenteams.ai');
+      expect(
+        config.clientId,
+        '273718420607-sma08mj14celj9c4dshthl3nbeqttb12.apps.googleusercontent.com',
+      );
+      expect(config.redirectUri, 'https://dev.kaizenteams.ai/auth/google/callback');
+      expect(config.hasMatchingCallback, isTrue);
+    });
+
+    test('production backend selects its Web client and callback together', () {
+      final config = GoogleOAuthConfiguration.forBackend('https://api.kaizenteams.ai');
+      expect(config.clientId, _productionWebClientId);
+      expect(config.redirectUri, 'https://app.kaizenteams.ai/auth/google/callback');
+      expect(config.hasMatchingCallback, isTrue);
+    });
+
+    test('explicit configuration overrides are preserved and trimmed', () async {
+      final config = GoogleOAuthConfiguration.forBackend(
+        'https://api.kaizenteams.ai',
+        clientIdOverride: '  $_testClientId  ',
+        redirectUriOverride: '  https://login.example.com/google/callback/  ',
+      );
+      final harness = _Harness(clientId: config.clientId, redirectUri: config.redirectUri);
+      addTearDown(harness.close);
+      final pending = harness.source.authorize();
+      expect(harness.requests.single.queryParameters['client_id'], _testClientId);
+      expect(
+        harness.requests.single.queryParameters['redirect_uri'],
+        'https://login.example.com/google/callback/',
+      );
+      harness.source.cancel();
+      expect(await pending, isNull);
+    });
+
+    for (final clientId in ['', '   ']) {
+      test('blank client ID ($clientId) cannot open the browser', () async {
+        final harness = _Harness(clientId: clientId);
+        addTearDown(harness.close);
+        await expectLater(harness.source.authorize(), throwsA(_unavailableAuthorization));
+        expect(harness.requests, isEmpty);
+      });
+    }
+
+    for (final config in [
+      GoogleOAuthConfiguration(
+        clientId: GoogleOAuthConfiguration.development.clientId,
+        redirectUri: GoogleOAuthConfiguration.production.redirectUri,
+      ),
+      GoogleOAuthConfiguration(
+        clientId: GoogleOAuthConfiguration.production.clientId,
+        redirectUri: GoogleOAuthConfiguration.development.redirectUri,
+      ),
+    ]) {
+      test(
+        'mixed environment credentials (${config.redirectUri}) cannot open the browser',
+        () async {
+          final harness = _Harness(clientId: config.clientId, redirectUri: config.redirectUri);
+          addTearDown(harness.close);
+          await expectLater(harness.source.authorize(), throwsA(_unavailableAuthorization));
+          expect(harness.requests, isEmpty);
+        },
+      );
+    }
+  });
+
   test('callback diagnostics explain ignored state and preserve Google errors', () async {
     final harness = _Harness();
     addTearDown(harness.close);
@@ -45,6 +135,10 @@ void main() {
     expect(request.origin, 'https://accounts.google.com');
     expect(request.queryParameters['response_type'], 'code');
     expect(request.queryParameters['scope'], 'openid email profile');
+    expect(
+      request.queryParameters['redirect_uri'],
+      'https://app.kaizenteams.ai/auth/google/callback',
+    );
     expect(request.queryParameters['redirect_uri'], harness.source.redirectUri);
     expect(request.queryParameters['state']!.length, greaterThanOrEqualTo(32));
     harness.callbacks.add(harness.callback(code: 'code+/with_underscores'));
@@ -193,12 +287,14 @@ void main() {
 
   test('browser launch failure and timeout release the pending attempt', () async {
     final failed = GoogleAuthorizationDataSource(
+      clientId: _testClientId,
       isSupported: true,
       callbackUris: const Stream.empty(),
       launchBrowser: (_) async => false,
     );
     await expectLater(failed.authorize(), throwsA(isA<GoogleAuthorizationException>()));
     final timedOut = GoogleAuthorizationDataSource(
+      clientId: _testClientId,
       isSupported: true,
       callbackUris: const Stream.empty(),
       launchBrowser: (_) async => true,
@@ -234,13 +330,27 @@ void main() {
   });
 }
 
+final _unavailableAuthorization = isA<GoogleAuthorizationException>().having(
+  (error) => error.reason,
+  'reason',
+  GoogleAuthorizationFailure.unavailable,
+);
+
 class _Harness {
-  _Harness() {
+  _Harness({
+    String? clientId = _testClientId,
+    String? redirectUri,
+    Duration timeout = const Duration(minutes: 3),
+  }) {
     source = GoogleAuthorizationDataSource(
+      clientId: clientId,
+      redirectUri: redirectUri,
+      timeout: timeout,
       isSupported: true,
       callbackUris: callbacks.stream,
       launchBrowser: (uri) async {
         requests.add(uri);
+        if (!firstRequest.isCompleted) firstRequest.complete(uri);
         return true;
       },
     );
@@ -248,6 +358,7 @@ class _Harness {
 
   final callbacks = StreamController<Uri>.broadcast(sync: true);
   final requests = <Uri>[];
+  final firstRequest = Completer<Uri>();
   late final GoogleAuthorizationDataSource source;
 
   Uri callback({String code = 'test-code'}) => Uri.parse(

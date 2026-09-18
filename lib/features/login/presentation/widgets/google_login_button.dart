@@ -26,8 +26,8 @@ class GoogleLoginButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       icon: isLoading
-          ? FastCircularProgressIndicator(width: 20, height: 20)
-          : Image.asset(AppAssets.googleLogo, width: 20, height: 20, excludeFromSemantics: true),
+          ? FastCircularProgressIndicator(width: 17, height: 17)
+          : Image.asset(AppAssets.googleLogo, width: 17, height: 17, excludeFromSemantics: true),
       label: const AppTextView.body(
         AppStrings.loginContinueWithGoogle,
         color: AppColors.textPrimary,
