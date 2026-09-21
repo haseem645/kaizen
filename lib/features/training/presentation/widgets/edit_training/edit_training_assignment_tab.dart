@@ -123,31 +123,25 @@ class _AssignmentTabContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (isResolvingAssignmentState)
-                SizedBox.square(
-                  dimension: 20,
-                  child: FastCircularProgressIndicator(width: 14, height: 14),
-                )
-              else
-                Flexible(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: _GradientTrainingActionButton(
-                        label: hasSavedAssignment
-                            ? AppStrings.trainingSaveAction
-                            : AppStrings.trainingCreateAssignment,
-                        icon: hasSavedAssignment ? Icons.save_rounded : Icons.assignment_rounded,
-                        isEnabled: canSaveAssignment,
-                        isLoading: isSavingAssignment,
-                        showLoaderInIconSlot: true,
-                        verticalPadding: 8,
-                        onTap: canSaveAssignment ? () => unawaited(onSaveTap()) : null,
-                      ),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: _GradientTrainingActionButton(
+                      label: hasSavedAssignment
+                          ? AppStrings.trainingSaveAction
+                          : AppStrings.trainingCreateAssignment,
+                      icon: hasSavedAssignment ? null : Icons.assignment_rounded,
+                      isEnabled: canSaveAssignment,
+                      isLoading: isSavingAssignment || isResolvingAssignmentState,
+                      showLoaderInIconSlot: true,
+                      verticalPadding: 8,
+                      onTap: canSaveAssignment ? () => unawaited(onSaveTap()) : null,
                     ),
                   ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 16),

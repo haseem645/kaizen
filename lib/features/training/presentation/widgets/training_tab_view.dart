@@ -12,6 +12,7 @@ class TrainingTabView extends StatefulWidget {
     required this.maxTabIndex,
     required this.pageBuilder,
     this.pagePaddingBuilder,
+    this.onPageApproaching,
   }) : assert(maxTabIndex >= 0),
        assert(maxTabIndex < TrainingTabNavigationController.tabCount);
 
@@ -19,6 +20,7 @@ class TrainingTabView extends StatefulWidget {
   final int maxTabIndex;
   final IndexedWidgetBuilder pageBuilder;
   final EdgeInsetsGeometry Function(int index)? pagePaddingBuilder;
+  final ValueChanged<int>? onPageApproaching;
 
   @override
   State<TrainingTabView> createState() => _TrainingTabViewState();
@@ -27,6 +29,7 @@ class TrainingTabView extends StatefulWidget {
 class _TrainingTabViewState extends State<TrainingTabView> {
   late final PageController _pageController;
   bool _isReportingPage = false;
+  int? _lastApproachingIndex;
 
   @override
   void initState() {
@@ -34,7 +37,7 @@ class _TrainingTabViewState extends State<TrainingTabView> {
     _pageController = PageController(
       initialPage: widget.navigation.selectedIndex.clamp(0, widget.maxTabIndex),
       keepPage: false,
-    );
+    )..addListener(_handlePageMovement);
     widget.navigation.addListener(_handleTabSelection);
   }
 
@@ -73,6 +76,27 @@ class _TrainingTabViewState extends State<TrainingTabView> {
     );
   }
 
+  void _handlePageMovement() {
+    final page = _pageController.page;
+    if (page == null || page == widget.navigation.selectedIndex) {
+      return;
+    }
+    final index =
+        (page > widget.navigation.selectedIndex ? page.ceil() : page.floor())
+            .clamp(0, widget.maxTabIndex);
+    if (index == _lastApproachingIndex ||
+        index == widget.navigation.selectedIndex) {
+      return;
+    }
+    _lastApproachingIndex = index;
+    // Scroll positions may change during layout; fetch before the next frame.
+    scheduleMicrotask(() {
+      if (mounted && index <= widget.maxTabIndex) {
+        widget.onPageApproaching?.call(index);
+      }
+    });
+  }
+
   bool _handleScrollEnd(ScrollEndNotification notification) {
     if (notification.depth != 0 ||
         notification.metrics.axis != Axis.horizontal ||
@@ -80,6 +104,7 @@ class _TrainingTabViewState extends State<TrainingTabView> {
       return false;
     }
     final index = _pageController.page!.round().clamp(0, widget.maxTabIndex);
+    _lastApproachingIndex = null;
     if (index != widget.navigation.selectedIndex) {
       _isReportingPage = true;
       try {
@@ -94,6 +119,7 @@ class _TrainingTabViewState extends State<TrainingTabView> {
   @override
   void dispose() {
     widget.navigation.removeListener(_handleTabSelection);
+    _pageController.removeListener(_handlePageMovement);
     _pageController.dispose();
     super.dispose();
   }

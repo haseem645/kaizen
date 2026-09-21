@@ -9,11 +9,8 @@ import '../../domain/entities/training_library_module.dart';
 import '../../domain/usecases/get_training_library_modules_usecase.dart';
 import '../controllers/training_library_detail_controller.dart';
 import '../widgets/training_library_detail_view.dart';
-import '../widgets/training_library_lesson_actions_sheet.dart';
-import '../widgets/training_library_lesson_delete_dialog.dart';
+import '../widgets/training_library_lesson_actions.dart';
 import '../widgets/training_library_lesson_selection_sheet.dart';
-import '../widgets/training_library_lesson_visibility_sheet.dart';
-import 'edit_training_screen.dart';
 import 'view_training_screen.dart';
 
 class TrainingLibraryDetailScreen extends StatefulWidget {
@@ -72,41 +69,8 @@ class _TrainingLibraryDetailScreenState extends State<TrainingLibraryDetailScree
             MaterialPageRoute<void>(builder: (_) => ViewTrainingScreen(trainingRoute: route)),
           ),
         ),
-        onLessonActions: (lesson) => controller.showLessonActions(
-          lesson,
-          selectAction: (canEdit, isPubliclyAvailable) => showTrainingLibraryLessonActionsSheet(
-            context,
-            canEdit: canEdit,
-            isPubliclyAvailable: isPubliclyAvailable,
-          ),
-          openEditor: (route, lessonId, canManageTraining) => Navigator.of(context).push<void>(
-            MaterialPageRoute<void>(
-              builder: (_) => EditTrainingScreen(
-                trainingRoute: route,
-                initialModuleId: lessonId,
-                canManageTraining: canManageTraining,
-                useNonBlockingVideoUpload: true,
-              ),
-            ),
-          ),
-          showVisibility: (lesson) => showTrainingLibraryLessonVisibilitySheet(
-            context,
-            lesson: lesson,
-            controller: controller.visibilityController,
-            onApply: (value) =>
-                controller.updateLessonVisibility(lesson: lesson, isPubliclyAvailable: value),
-          ),
-          confirmDelete: (lesson) => showTrainingLibraryLessonDeleteDialog(
-            context,
-            lesson: lesson,
-            controller: controller,
-          ),
-          showMessage: (message) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(message)));
-          },
-        ),
+        onLessonActions: (lesson) =>
+            showTrainingLibraryLessonActions(context, controller: controller, lesson: lesson),
       ),
     );
   }

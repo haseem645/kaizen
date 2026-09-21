@@ -12,7 +12,7 @@ class _GradientTrainingActionButton extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final IconData? icon;
   final bool isEnabled;
   final bool isLoading;
   final bool showLoaderInIconSlot;
@@ -66,23 +66,36 @@ class _GradientTrainingActionButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (showLoaderInIconSlot && isLoading)
-                FastCircularProgressIndicator(width: 16, height: 16)
-              else
-                Icon(
-                  icon,
-                  size: 16,
-                  color: isEnabledAppearance
-                      ? Colors.white.withValues(alpha: 0.96)
-                      : AppColors.textSecondary,
+              if (icon != null) ...[
+                SizedBox.square(
+                  dimension: 16,
+                  child: showLoaderInIconSlot && isLoading
+                      ? const FastCircularProgressIndicator(width: 16, height: 16)
+                      : Icon(
+                          icon,
+                          size: 16,
+                          color: isEnabledAppearance
+                              ? Colors.white.withValues(alpha: 0.96)
+                              : AppColors.textSecondary,
+                        ),
                 ),
-              const SizedBox(width: 8),
-              AppTextView.body2(
-                label,
-                color: isEnabledAppearance ? AppColors.textPrimary : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+                const SizedBox(width: 8),
+              ],
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Opacity(
+                    opacity: icon == null && isLoading ? 0 : 1,
+                    child: _buildLabel(label, isEnabledAppearance),
+                  ),
+                  if (icon == null && isLoading)
+                    const SizedBox.square(
+                      dimension: 16,
+                      child: FastCircularProgressIndicator(width: 16, height: 16),
+                    ),
+                ],
               ),
-              if (isLoading && !showLoaderInIconSlot) ...[
+              if (icon != null && isLoading && !showLoaderInIconSlot) ...[
                 const SizedBox(width: 10),
                 FastCircularProgressIndicator(width: 14, height: 14),
               ],
@@ -90,6 +103,14 @@ class _GradientTrainingActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLabel(String text, bool isEnabledAppearance) {
+    return AppTextView.body2(
+      text,
+      color: isEnabledAppearance ? AppColors.textPrimary : AppColors.textSecondary,
+      fontWeight: FontWeight.w700,
     );
   }
 }
@@ -369,67 +390,76 @@ class _TrainingSingleLineInputCard extends StatelessWidget {
   }
 }
 
-class _TrainingTapEditField extends StatelessWidget {
-  const _TrainingTapEditField({
+/// Keeps lesson titles in the same field layout for editing and read-only previews.
+class TrainingLessonTitleField extends StatelessWidget {
+  const TrainingLessonTitleField({
+    super.key,
     required this.valueText,
     required this.hintText,
     this.onTap,
     this.isLoading = false,
+    this.isReadOnly = false,
   });
 
   final String valueText;
   final String hintText;
   final VoidCallback? onTap;
   final bool isLoading;
+  final bool isReadOnly;
 
   @override
   Widget build(BuildContext context) {
     final hasValue = valueText.trim().isNotEmpty;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark2.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.6)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  hasValue ? valueText.trim() : hintText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: hasValue
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary.withValues(alpha: 0.74),
-                    fontSize: 16,
-                    fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
-                    height: 1.25,
+    return Semantics(
+      textField: true,
+      readOnly: isReadOnly,
+      enabled: !isReadOnly,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isReadOnly ? null : onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark2.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.6)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasValue ? valueText.trim() : hintText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: hasValue
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary.withValues(alpha: 0.74),
+                      fontSize: 16,
+                      fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
+                      height: 1.25,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              if (isLoading)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: FastCircularProgressIndicator(width: 12, height: 12),
-                )
-              else
-                Icon(
-                  Icons.edit_outlined,
-                  color: onTap != null ? AppColors.secondaryColor : AppColors.textSecondary,
-                  size: 18,
-                ),
-            ],
+                if (isLoading || !isReadOnly) const SizedBox(width: 12),
+                if (isLoading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: FastCircularProgressIndicator(width: 12, height: 12),
+                  )
+                else if (!isReadOnly)
+                  Icon(
+                    Icons.edit_outlined,
+                    color: onTap != null ? AppColors.secondaryColor : AppColors.textSecondary,
+                    size: 18,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -443,6 +473,9 @@ class _TrainingOutlinedTextField extends StatelessWidget {
     required this.hintText,
     required this.minLines,
     required this.maxLines,
+    this.readOnly = false,
+    this.showCursor,
+    this.onTap,
     this.textInputAction,
     this.fontSize = 14,
     this.fontWeight = FontWeight.w600,
@@ -455,6 +488,9 @@ class _TrainingOutlinedTextField extends StatelessWidget {
   final String hintText;
   final int minLines;
   final int maxLines;
+  final bool readOnly;
+  final bool? showCursor;
+  final VoidCallback? onTap;
   final TextInputAction? textInputAction;
   final double fontSize;
   final FontWeight fontWeight;
@@ -466,7 +502,12 @@ class _TrainingOutlinedTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      autofocus: false,
+      readOnly: readOnly,
+      showCursor: showCursor,
+      onTap: onTap,
       cursorColor: Colors.white,
+      cursorHeight: 15,
       minLines: minLines,
       maxLines: maxLines,
       textInputAction: textInputAction,

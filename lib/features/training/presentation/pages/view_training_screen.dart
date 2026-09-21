@@ -48,13 +48,15 @@ class ViewTrainingScreen extends StatelessWidget {
               ),
         ),
       ],
-      child: const _ViewTrainingScreenView(),
+      child: _ViewTrainingScreenView(seatProfileId: trainingRoute.job),
     );
   }
 }
 
 class _ViewTrainingScreenView extends StatefulWidget {
-  const _ViewTrainingScreenView();
+  const _ViewTrainingScreenView({required this.seatProfileId});
+
+  final String seatProfileId;
 
   @override
   State<_ViewTrainingScreenView> createState() => _ViewTrainingScreenViewState();
@@ -83,15 +85,20 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     super.dispose();
   }
 
-  int get _maxTabIndex =>
-      _trainingController.canAccessSelectedModuleExtras ? trainingViewerTabCount - 1 : 0;
+  bool get _canManageTraining => AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+    seatProfileId: widget.seatProfileId,
+  );
+
+  int get _maxTabIndex => maxTrainingTabIndex(
+    hasSelectedModule: _trainingController.canAccessSelectedModuleExtras,
+    canManageTraining: _canManageTraining,
+  );
 
   int _coerceSelectedTab() {
     final index = _trainingController.canAccessSelectedModuleExtras
         ? normalizeTrainingViewerTabIndex(
-            isPubliclyAvailable: _trainingController.isSelectedModulePubliclyAvailable,
+            canManageTraining: _canManageTraining,
             tabIndex: _navigation.selectedIndex,
-            isChildOrganization: AppManager.instance.isCurrentOrganizationChild,
           )
         : 0;
     if (_navigation.selectedIndex != index) _navigation.selectTab(index);
@@ -110,6 +117,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
   }
 
   Future<void> _syncSelectedTabData(int index) async {
+    if (index > _maxTabIndex) return;
     switch (index) {
       case 1:
         await _trainingController.loadDocumentForSelectedModule();
@@ -169,6 +177,11 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     return TrainingTabView(
       navigation: _navigation,
       maxTabIndex: _maxTabIndex,
+      onPageApproaching: (index) {
+        if (index == 1) {
+          unawaited(_syncSelectedTabData(index));
+        }
+      },
       pagePaddingBuilder: (index) =>
           index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
       pageBuilder: (context, index) => _buildTabPage(controller, index),
@@ -180,25 +193,30 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     final showsEmptyQuiz =
         index == 2 && !controller.isQuestionsLoading && controller.selectedModuleQuestions.isEmpty;
     if (index == 1 || index == 3 || showsEmptyQuiz) return content;
+    final showsLoading =
+        (controller.isLoading && controller.selectedModuleDetail == null) ||
+        (index == 2 && controller.isQuestionsLoading);
+    final page = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (index == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
+          TrainingLessonTitleField(
+            valueText: controller.selectedModuleTitle,
+            hintText: AppStrings.trainingLessonTitleHint,
+            isReadOnly: true,
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (showsLoading) Expanded(child: content) else content,
+      ],
+    );
+    if (showsLoading) return page;
     return SingleChildScrollView(
       key: PageStorageKey<String>('${controller.selectedModuleId}:$index'),
       primary: false,
       padding: const EdgeInsets.only(bottom: 12),
       physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (index == 0 && controller.selectedModuleTitle.isNotEmpty) ...[
-            AppTextView.body1(
-              controller.selectedModuleTitle,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-            const SizedBox(height: 14),
-          ],
-          content,
-        ],
-      ),
+      child: page,
     );
   }
 

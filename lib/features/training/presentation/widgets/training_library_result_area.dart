@@ -14,22 +14,31 @@ class TrainingLibraryResultArea extends StatelessWidget {
     required this.items,
     required this.scrollController,
     required this.onModuleTap,
+    this.onModuleActions,
   });
 
   final TrainingLibraryController controller;
   final List<TrainingLibraryModule> items;
   final ScrollController scrollController;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
+  final ValueChanged<TrainingLibraryModule>? onModuleActions;
+
+  VoidCallback? _actionsFor(TrainingLibraryModule module) =>
+      onModuleActions != null && controller.canShowModuleActions(module)
+      ? () => onModuleActions!(module)
+      : null;
 
   @override
   Widget build(BuildContext context) {
     if (controller.isInlineLoading) {
-      return ListView(
+      return CustomScrollView(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 48),
-          Center(child: FastCircularProgressIndicator(width: 24, height: 24)),
+        slivers: const [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: FastCircularProgressIndicator(width: 24, height: 24)),
+          ),
         ],
       );
     }
@@ -63,11 +72,13 @@ class TrainingLibraryResultArea extends StatelessWidget {
         items: items,
         scrollController: scrollController,
         onModuleTap: onModuleTap,
+        actionsFor: _actionsFor,
       ),
       TrainingLibraryViewMode.list => _TrainingLibraryList(
         items: items,
         scrollController: scrollController,
         onModuleTap: onModuleTap,
+        actionsFor: _actionsFor,
       ),
     };
   }
@@ -78,11 +89,13 @@ class _TrainingLibraryGrid extends StatelessWidget {
     required this.items,
     required this.scrollController,
     required this.onModuleTap,
+    required this.actionsFor,
   });
 
   final List<TrainingLibraryModule> items;
   final ScrollController scrollController;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
+  final VoidCallback? Function(TrainingLibraryModule module) actionsFor;
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +125,7 @@ class _TrainingLibraryGrid extends StatelessWidget {
             return TrainingLibraryModuleCard(
               module: items[index],
               onTap: () => onModuleTap(items[index]),
+              onLongPress: actionsFor(items[index]),
             );
           },
         );
@@ -125,11 +139,13 @@ class _TrainingLibraryList extends StatelessWidget {
     required this.items,
     required this.scrollController,
     required this.onModuleTap,
+    required this.actionsFor,
   });
 
   final List<TrainingLibraryModule> items;
   final ScrollController scrollController;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
+  final VoidCallback? Function(TrainingLibraryModule module) actionsFor;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +159,7 @@ class _TrainingLibraryList extends StatelessWidget {
         return TrainingLibraryModuleCard(
           module: items[index],
           onTap: () => onModuleTap(items[index]),
+          onLongPress: actionsFor(items[index]),
         );
       },
     );

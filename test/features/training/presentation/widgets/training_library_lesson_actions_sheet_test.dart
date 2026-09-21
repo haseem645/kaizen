@@ -17,16 +17,14 @@ void main() {
     final delete = find.text(AppStrings.trainingDeleteModuleAction);
     expect(
       tester.getTopLeft(visibility).dy,
-      lessThan(tester.getTopLeft(edit).dy),
+      lessThan(tester.getTopLeft(delete).dy),
     );
-    expect(tester.getTopLeft(edit).dy, lessThan(tester.getTopLeft(delete).dy));
+    expect(edit, findsNothing);
     expect(find.text(AppStrings.trainingLibraryLessonActions), findsOneWidget);
     expect(find.byIcon(Icons.north_east), findsOneWidget);
 
     await tester.tap(visibility);
     expect(selected, TrainingLibraryLessonAction.visibility);
-    await tester.tap(edit);
-    expect(selected, TrainingLibraryLessonAction.edit);
     await tester.tap(delete);
     expect(selected, TrainingLibraryLessonAction.delete);
   });

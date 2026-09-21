@@ -13,6 +13,9 @@ class GetTrainingLibraryModulesUseCase {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   }) {
     return _repository.getTrainingLibraryModules(
       view: view,
@@ -21,6 +24,9 @@ class GetTrainingLibraryModulesUseCase {
       searchType: searchType,
       searchText: searchText,
       departmentId: departmentId,
+      jobId: jobId,
+      jobCategoryId: jobCategoryId,
+      jobCategoryDescriptionId: jobCategoryDescriptionId,
     );
   }
 }

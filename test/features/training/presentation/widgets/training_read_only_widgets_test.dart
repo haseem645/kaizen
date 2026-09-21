@@ -5,6 +5,7 @@ import 'package:sparrowkaizen/features/check_in/domain/repositories/audit_reposi
 import 'package:sparrowkaizen/features/training/domain/entities/seat_description_training.dart';
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_module_controller.dart';
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_tab_navigation_controller.dart';
+import 'package:sparrowkaizen/features/training/presentation/models/view_training_tab_access.dart';
 import 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_swipe_delete_action.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_tab_view.dart';
@@ -22,6 +23,75 @@ void main() {
       ),
     ),
   );
+
+  for (final readOnly in [false, true]) {
+    testWidgets('lesson title stays in its field and respects read-only access: $readOnly', (
+      tester,
+    ) async {
+      var edits = 0;
+      await mount(
+        tester,
+        TrainingLessonTitleField(
+          valueText: 'Lesson title',
+          hintText: AppStrings.trainingLessonTitleHint,
+          isReadOnly: readOnly,
+          onTap: () => edits++,
+        ),
+      );
+      expect(find.text('Lesson title'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), readOnly ? findsNothing : findsOneWidget);
+      await tester.tap(find.text('Lesson title'));
+      await tester.pumpAndSettle();
+      expect(edits, readOnly ? 0 : 1);
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('Quiz and Assignment look disabled and reject taps and swipes without edit access', (
+    tester,
+  ) async {
+    final navigation = TrainingTabNavigationController();
+    addTearDown(navigation.dispose);
+    final maxTabIndex = maxTrainingTabIndex(hasSelectedModule: true, canManageTraining: false);
+    await mount(
+      tester,
+      Column(
+        children: [
+          Expanded(
+            child: TrainingTabView(
+              navigation: navigation,
+              maxTabIndex: maxTabIndex,
+              pageBuilder: (_, index) => Center(child: Text('Tab $index')),
+            ),
+          ),
+          TrainingTabs(navigation: navigation, maxTabIndex: maxTabIndex),
+        ],
+      ),
+    );
+    for (final label in [AppStrings.trainingQuizTab, AppStrings.trainingAssignmentTab]) {
+      final tab = find.text(label);
+      final opacity = find.ancestor(of: tab, matching: find.byType(Opacity));
+      expect(tester.widget<Opacity>(opacity).opacity, lessThan(1));
+      final semantics = find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == label,
+      );
+      expect(tester.widget<Semantics>(semantics).properties.enabled, isFalse);
+      await tester.tap(tab);
+      await tester.pumpAndSettle();
+      expect(navigation.selectedIndex, 0);
+    }
+    await tester.tap(find.text(AppStrings.trainingSopTab));
+    await tester.pumpAndSettle();
+    expect(navigation.selectedIndex, 1);
+    await tester.fling(find.byType(PageView), const Offset(-350, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(navigation.selectedIndex, 1);
+    expect(find.text('Tab 1'), findsOneWidget);
+    expect(find.text('Tab 2', skipOffstage: false), findsNothing);
+    expect(find.text('Tab 3', skipOffstage: false), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('video and quiz previews never expose editing actions, including for managers', (
     tester,

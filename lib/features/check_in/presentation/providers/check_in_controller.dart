@@ -83,6 +83,9 @@ class CheckInController extends ChangeNotifier {
   Timer? _mainListSearchDebounceTimer;
   Timer? _teamMembersSearchDebounceTimer;
   String _teamMembersSearchQuery = '';
+  final TextEditingController descriptionSearchController =
+      TextEditingController();
+  String _descriptionSearchQuery = '';
   bool _isSeatProfileFilterLoading = false;
   List<String> _seatProfileOptions = const <String>[];
   Map<String, String> _seatProfileJobUuids = const <String, String>{};
@@ -93,6 +96,33 @@ class CheckInController extends ChangeNotifier {
       <String, _CachedCertifiedReportPdfUrl>{};
 
   CheckInState get state => _state;
+  String get descriptionSearchQuery => _descriptionSearchQuery;
+
+  void updateDescriptionSearchQuery(String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (_descriptionSearchQuery == normalizedQuery) {
+      return;
+    }
+
+    _descriptionSearchQuery = normalizedQuery;
+    notifyListeners();
+  }
+
+  List<QuarterlyAuditDescription> searchDescriptions(
+    List<QuarterlyAuditDescription> descriptions,
+  ) {
+    if (_descriptionSearchQuery.isEmpty) {
+      return descriptions;
+    }
+
+    return descriptions
+        .where(
+          (description) => description.description.toLowerCase().contains(
+            _descriptionSearchQuery,
+          ),
+        )
+        .toList(growable: false);
+  }
 
   PerformanceReportViewData? get performanceReportViewData {
     final report = _state.performanceReport;
@@ -690,6 +720,8 @@ class CheckInController extends ChangeNotifier {
     int? quarter,
   }) async {
     _singleAuditDetailsGeneration += 1;
+    descriptionSearchController.clear();
+    _descriptionSearchQuery = '';
     try {
       final user = await AppPreference.getUser();
       final isOwner = _hasTeamMemberTabsAccess(user);
@@ -2702,6 +2734,7 @@ class CheckInController extends ChangeNotifier {
     _isDisposed = true;
     _mainListSearchDebounceTimer?.cancel();
     _teamMembersSearchDebounceTimer?.cancel();
+    descriptionSearchController.dispose();
     super.dispose();
   }
 

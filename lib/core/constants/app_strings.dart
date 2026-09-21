@@ -1,6 +1,7 @@
 class AppStrings {
   AppStrings._();
   static const String appTitle = 'KaizenTeams';
+  static const String noContentAvailable = 'No content available.';
   static const String apiInvalidUrl = 'Invalid URL';
   static const String apiInvalidResponse = 'Invalid response';
   static const String apiRequestFailedPrefix = 'Request failed with status code:';
@@ -401,8 +402,6 @@ class AppStrings {
   static const String checkInTitle = 'Check-In';
   static const String checkInReadOnlyOrganization =
       'Check-ins are view-only in child organisations.';
-  static const String checkInSelectDescriptionPrompt =
-      'Select a description first to start this check-in.';
   static const String reportsTitle = 'Reports';
   static const String reportsScreenTitle = 'Reports';
   static const String myReportsTitle = 'My Reports';
@@ -675,6 +674,11 @@ class AppStrings {
   static const String trainingLibraryFilterTitle = 'Filter Training';
   static const String trainingLibraryAllCategories = 'All Categories';
   static const String trainingLibraryAllDescriptions = 'All Descriptions';
+  static String trainingLibraryRemoveFilter(String name) => 'Remove $name filter';
+  static const String trainingLibrarySeatFilterPrefix = 'Seat:';
+  static const String trainingLibraryCategoryFilterPrefix = 'Category:';
+  static const String trainingLibraryDescriptionFilterPrefix = 'Description:';
+  static String trainingLibraryFilterTagLabel(String prefix, String name) => '$prefix $name';
   static const String trainingLibraryUnableToLoadSeats = 'Unable to load seats. Please try again.';
   static const String trainingLibraryAllVideoLesson = 'All Video Lesson';
   static const String trainingLibraryAllVisibility = 'All Visibility';
@@ -743,7 +747,7 @@ class AppStrings {
   static const String trainingEditTextSheetDescription =
       'Update the text below and save your changes.';
   static const String trainingSummaryLabel = 'Summary';
-  static const String trainingSummaryHint = 'Write a short summary for this lesson.';
+  static const String trainingSummaryHint = noContentAvailable;
   static const String trainingSummarySavedSuccess = 'Summary updated successfully.';
   static const String trainingSaveAction = 'Save';
   static const String trainingSaveChangesAction = 'Save Changes';
@@ -877,6 +881,9 @@ class AppStrings {
   static const String auditNextDescription = 'Next description';
   static const String auditNoDescriptionAvailable = 'No description available.';
   static const String auditNoMatchingDescriptions = 'No descriptions match the selected filters.';
+  static const String auditSearchDescriptionsHint = 'Search descriptions';
+  static const String auditNoMatchingDescriptionSearch =
+      'No descriptions match your search.';
   static const String auditSeatDescription = 'Seat Description';
   static const String auditSeatSpecifics = 'Seat Specifics';
   static const String auditNoSeatSpecificsAvailable = 'No seat specifics available.';

@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/features/check_in/domain/repositories/audit_repository.dart';
+import 'package:sparrowkaizen/features/training/data/models/training_library_module_model.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_module.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/training_library_page.dart';
 import 'package:sparrowkaizen/features/training/domain/repositories/training_library_repository.dart';
 import 'package:sparrowkaizen/features/training/domain/usecases/get_training_library_modules_usecase.dart';
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_library_detail_controller.dart';
 import 'package:sparrowkaizen/features/training/presentation/models/training_library_lesson_action.dart';
+
+import '../../fixtures/training_library_fixtures.dart';
 
 void main() {
   late _LibraryRepository repository;
@@ -33,6 +36,95 @@ void main() {
   });
 
   tearDown(() => controller.dispose());
+
+  group('flat lesson listings', () {
+    setUp(() {
+      controller.dispose();
+      controller = TrainingLibraryDetailController(
+        initialModule: TrainingLibraryModuleModel.fromApiJson(
+          lessonListingJson(),
+        ),
+        getTrainingLibraryModules: GetTrainingLibraryModulesUseCase(repository),
+        auditRepository: auditRepository,
+        canManageSeatTraining: (_) => canManage,
+        view: 'list',
+      );
+    });
+
+    test(
+      'viewer and editor use the related description ID and selected lesson ID',
+      () async {
+        final module = controller.module;
+        final lesson = module.lessons.single;
+        final route = controller.viewerRouteForLesson(lesson)!;
+        expect(route.job, module.seat.id);
+        expect(route.category, module.category.id);
+        expect(route.description, '53a7288c-576d-45e4-a7b4-a0398336bb6c');
+        expect(route.initialModuleId, 'c22bec4b-e69b-4387-9b75-2ccba55991a0');
+
+        repository.module = TrainingLibraryModuleModel.fromApiJson({
+          ...lessonListingJson(),
+          'title': 'Updated lesson',
+        });
+        var editorOpened = false;
+        await controller.openLessonEditor(
+          lesson,
+          openEditor: (editorRoute, lessonId, canManageTraining) async {
+            editorOpened = true;
+            expect(editorRoute.description, route.description);
+            expect(lessonId, route.initialModuleId);
+            expect(canManageTraining, isTrue);
+          },
+          showMessage: (message) => fail(message),
+        );
+        expect(editorOpened, isTrue);
+        expect(controller.module.title, 'Updated lesson');
+        expect(controller.navigationResult, isTrue);
+      },
+    );
+
+    test('visibility and delete target the lesson UUID', () async {
+      final lesson = controller.module.lessons.single;
+      expect(
+        controller.visibilityController.isLessonPubliclyAvailable(lesson),
+        isTrue,
+      );
+      expect(
+        await controller.updateLessonVisibility(
+          lesson: lesson,
+          isPubliclyAvailable: false,
+        ),
+        isTrue,
+      );
+      expect(auditRepository.visibilityIds, [lesson.id]);
+      expect(await controller.deleteLesson(lesson.id), isTrue);
+      expect(auditRepository.deletedIds, [lesson.id]);
+      expect(controller.module.lessons, isEmpty);
+      expect(
+        controller.module.trainingDescriptionId,
+        '53a7288c-576d-45e4-a7b4-a0398336bb6c',
+      );
+    });
+
+    test(
+      'missing description does not route the lesson UUID as a description',
+      () async {
+        repository.module = TrainingLibraryModuleModel.fromApiJson({
+          ...lessonListingJson(),
+          'description': null,
+        });
+        expect(await controller.refreshModule(), isTrue);
+        final lesson = controller.module.lessons.single;
+        expect(controller.viewerRouteForLesson(lesson), isNull);
+        await controller.openLessonEditor(
+          lesson,
+          openEditor: (_, __, ___) async =>
+              fail('An editor requires a description ID.'),
+          showMessage: (message) => fail(message),
+        );
+      },
+    );
+  });
 
   test(
     'the lesson picker opens the selected filtered lesson for read-only users',
@@ -305,6 +397,9 @@ class _LibraryRepository extends Fake implements TrainingLibraryRepository {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   }) async {
     requests++;
     if (error != null) {

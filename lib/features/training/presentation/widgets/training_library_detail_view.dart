@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_lesson_search_bar.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -8,7 +9,6 @@ import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../domain/entities/training_library_module.dart';
 import '../controllers/training_library_detail_controller.dart';
 import 'training_library_lesson_grid.dart';
-import 'training_library_lesson_search_bar.dart';
 
 class TrainingLibraryDetailView extends StatelessWidget {
   const TrainingLibraryDetailView({
