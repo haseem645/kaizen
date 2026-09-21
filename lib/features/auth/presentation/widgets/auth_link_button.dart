@@ -34,15 +34,14 @@ class AuthLinkButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-          ],
-          AppTextView.body2(
-            label,
-            color: color,
-            fontWeight: fontWeight,
-            fontSize: fontSize,
+          if (icon != null) ...[Icon(icon, size: 16, color: color), const SizedBox(width: 6)],
+          Flexible(
+            child: AppTextView.body2(
+              label,
+              color: color,
+              fontWeight: fontWeight,
+              fontSize: fontSize,
+            ),
           ),
         ],
       ),

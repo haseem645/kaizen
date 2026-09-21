@@ -220,6 +220,12 @@ class DeepLinkService {
         .toList();
     final normalizedPath = uri.path.trim().toLowerCase();
 
+    // Accept reset links from the production web app. Google callbacks on
+    // this domain are handled separately by the active sign-in attempt.
+    if (host == 'app.kaizenteams.ai') {
+      return _resolvePasswordResetTarget(uri);
+    }
+
     const supportedHosts = <String>{'dev.kaizenteams.ai', 'api.kaizenteams.ai'};
 
     if (!supportedHosts.contains(host)) {

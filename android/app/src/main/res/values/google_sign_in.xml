@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Android OAuth registration from android-client.json:
+        273718420607-hlfcopqref984gkjpedid02h1cl05sgi.apps.googleusercontent.com
+        Google resolves this client using com.kaizenteam and its signing certificate.
+        The native SDK's server client below must be the Web application client.
+        Browser login selects its environment pair in GoogleOAuthConfiguration.
+    -->
+    <string name="default_web_client_id" translatable="false">273718420607-q4dcl17i18nql3s6n7hr31o7m5rvsjkf.apps.googleusercontent.com</string>
+</resources>
