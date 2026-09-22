@@ -1148,6 +1148,16 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     final auditFactorType = CustomFunctions.capitalizeFirstLetter(
       widget.description.auditFactorType,
     );
+    final milestone = CustomFunctions.normalizeAuditMilestone(
+      widget.description.milestoneDay,
+    );
+    final hasMilestone = AppStrings.auditMilestoneOptions.contains(milestone);
+    final auditTypeLabel = auditFactorType.isEmpty
+        ? AppStrings.checkInTitle
+        : auditFactorType;
+    final milestoneLabel = hasMilestone
+        ? AppStrings.auditMilestoneCardLabel(milestone)
+        : null;
     final descriptionText = widget.description.description.isEmpty
         ? AppStrings.auditNoDescriptionAvailable
         : widget.description.description;
@@ -1161,117 +1171,121 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 12, 12, 14),
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 16),
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.transparent, width: 1.4),
             ),
-            child: Stack(
-              alignment: Alignment.centerRight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: AppTextView.body1(
-                            descriptionText,
-                            color: AppColors.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: isMediaCommentCreated
-                                ? AppColors.green1
-                                : AppColors.secondaryColor.withValues(alpha: 0.14),
-                            shape: BoxShape.circle,
-                          ),
-                          child: ValueListenableBuilder<bool>(
-                            valueListenable: _isOpeningDetailsNotifier,
-                            builder: (context, isOpeningDetails, _) {
-                              if (isOpeningDetails) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(7),
-                                  child: FastCircularProgressIndicator(),
-                                );
-                              }
-                              return Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                color: isMediaCommentCreated
-                                    ? Colors.white
-                                    : AppColors.secondaryColor,
-                                size: 16,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+                    Expanded(
+                      child: AppTextView.body1(
+                        descriptionText,
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const SizedBox(width: 30),
-                        Expanded(
-                          child: ValueListenableBuilder<_PassSelectionViewState>(
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 90),
+                      child: _DescriptionAuditTypePill(text: auditTypeLabel),
+                    ),
+                    if (milestoneLabel != null) ...[
+                      const SizedBox(width: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 80),
+                        child: _DescriptionMilestonePill(text: milestoneLabel),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 18),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: canCreateComments ? 78 : 42,
+                  ),
+                  child: Stack(
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(child: SizedBox.shrink()),
+                          ValueListenableBuilder<_PassSelectionViewState>(
                             valueListenable: _viewStateNotifier,
                             builder: (context, viewState, _) {
-                              final counts = _auditCountsFromBlocks(viewState.blocks);
+                              final counts = _auditCountsFromBlocks(
+                                viewState.blocks,
+                              );
                               return Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _SelectionCounter(
                                     color: canEditBlocks
                                         ? AppColors.green1
-                                        : AppColors.green1.withValues(alpha: 0.5),
+                                        : AppColors.green1.withValues(
+                                            alpha: 0.5,
+                                          ),
                                     count: counts['great'] ?? 0,
-                                    showDecrementControl: widget.isOwner && !widget.isSelfAudit,
+                                    showDecrementControl:
+                                        widget.isOwner && !widget.isSelfAudit,
                                     onTapCount: canEditBlocks
-                                        ? () => _incrementRating(_PassBlockState.great)
+                                        ? () => _incrementRating(
+                                            _PassBlockState.great,
+                                          )
                                         : null,
                                     onTapArrow: canEditBlocks
-                                        ? () => _decrementRating(_PassBlockState.great)
+                                        ? () => _decrementRating(
+                                            _PassBlockState.great,
+                                          )
                                         : null,
                                     canEditBlocks: canEditBlocks,
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 8),
                                   _SelectionCounter(
                                     color: canEditBlocks
                                         ? AppColors.orange1
-                                        : AppColors.orange1.withValues(alpha: 0.5),
+                                        : AppColors.orange1.withValues(
+                                            alpha: 0.5,
+                                          ),
                                     count: counts['almost_there'] ?? 0,
-                                    showDecrementControl: widget.isOwner && !widget.isSelfAudit,
+                                    showDecrementControl:
+                                        widget.isOwner && !widget.isSelfAudit,
                                     onTapCount: canEditBlocks
-                                        ? () => _incrementRating(_PassBlockState.almostThere)
+                                        ? () => _incrementRating(
+                                            _PassBlockState.almostThere,
+                                          )
                                         : null,
                                     onTapArrow: canEditBlocks
-                                        ? () => _decrementRating(_PassBlockState.almostThere)
+                                        ? () => _decrementRating(
+                                            _PassBlockState.almostThere,
+                                          )
                                         : null,
                                     canEditBlocks: canEditBlocks,
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 8),
                                   _SelectionCounter(
                                     color: canEditBlocks
                                         ? AppColors.red1
                                         : AppColors.red1.withValues(alpha: 0.5),
                                     count: counts['needs_improvement'] ?? 0,
-                                    showDecrementControl: widget.isOwner && !widget.isSelfAudit,
+                                    showDecrementControl:
+                                        widget.isOwner && !widget.isSelfAudit,
                                     onTapCount: canEditBlocks
-                                        ? () => _incrementRating(_PassBlockState.needsImprovement)
+                                        ? () => _incrementRating(
+                                            _PassBlockState.needsImprovement,
+                                          )
                                         : null,
                                     onTapArrow: canEditBlocks
-                                        ? () => _decrementRating(_PassBlockState.needsImprovement)
+                                        ? () => _decrementRating(
+                                            _PassBlockState.needsImprovement,
+                                          )
                                         : null,
                                     canEditBlocks: canEditBlocks,
                                   ),
@@ -1279,26 +1293,57 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                               );
                             },
                           ),
-                        ),
-                        const SizedBox(width: 30),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _DescriptionAuditTypePill(
-                        text: auditFactorType.isEmpty ? AppStrings.checkInTitle : auditFactorType,
+                          const Expanded(child: SizedBox.shrink()),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                // Center against the card content, including its header and tag.
-                if (canCreateComments)
-                  _CommentIconButton(
-                    isEnabled: true,
-                    icon: Icons.camera_alt_outlined,
-                    onTap: _openCreateCommentDialog,
+                      Positioned.fill(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: isMediaCommentCreated
+                                    ? AppColors.green1
+                                    : AppColors.secondaryColor.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _isOpeningDetailsNotifier,
+                                builder: (context, isOpeningDetails, _) {
+                                  if (isOpeningDetails) {
+                                    return Padding(
+                                      padding: const EdgeInsets.all(7),
+                                      child: FastCircularProgressIndicator(),
+                                    );
+                                  }
+                                  return Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: isMediaCommentCreated
+                                        ? Colors.white
+                                        : AppColors.secondaryColor,
+                                    size: 16,
+                                  );
+                                },
+                              ),
+                            ),
+                            if (canCreateComments)
+                              _CommentIconButton(
+                                isEnabled: true,
+                                icon: Icons.camera_alt_outlined,
+                                onTap: _openCreateCommentDialog,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
           );
@@ -1671,6 +1716,32 @@ class _DescriptionAuditTypePill extends StatelessWidget {
       child: AppTextView.body2(
         text,
         color: AppColors.textPrimary,
+        fontWeight: FontWeight.w600,
+        fontSize: 9,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+class _DescriptionMilestonePill extends StatelessWidget {
+  const _DescriptionMilestonePill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.hexe8f2ff,
+        border: Border.all(color: AppColors.purple1),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: AppTextView.body2(
+        text,
+        color: AppColors.purple1,
         fontWeight: FontWeight.w600,
         fontSize: 9,
         maxLines: 1,

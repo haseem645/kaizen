@@ -7,7 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
-import '../../../../core/widgets/app_seat_selection_tile.dart';
+import '../../../../core/widgets/app_radio_selection_tile.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../seat_profile/data/datasources/seat_profile_remote_data_source.dart';
@@ -253,7 +253,6 @@ class _SetupTrainingScreenView extends StatelessWidget {
           .map((seatProfile) => _SelectionListOption(id: seatProfile.id, label: seatProfile.title))
           .toList(growable: false),
       selectedId: controller.selectedSeatProfileId,
-      isSeatProfileSelection: true,
     );
 
     if (selectedId == null || !context.mounted) {
@@ -313,7 +312,6 @@ class _SetupTrainingScreenView extends StatelessWidget {
     required String searchHint,
     required List<_SelectionListOption> options,
     required String? selectedId,
-    bool isSeatProfileSelection = false,
   }) {
     return showModalBottomSheet<String>(
       context: context,
@@ -324,7 +322,6 @@ class _SetupTrainingScreenView extends StatelessWidget {
         searchHint: searchHint,
         options: options,
         initialSelectedId: selectedId,
-        isSeatProfileSelection: isSeatProfileSelection,
       ),
     );
   }
@@ -338,6 +335,7 @@ class _SetupTrainingScreenView extends StatelessWidget {
       MaterialPageRoute<void>(
         builder: (_) => EditTrainingScreen(
           trainingRoute: _resolvedTrainingRoute(controller),
+          startNewLessonWhenEmpty: true,
           canManageTraining: AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
             seatProfileId: controller.selectedSeatProfile?.id ?? '',
             additionalSeatProfileIds: <String>[
@@ -411,14 +409,12 @@ class _TrainingSetupOptionSheet extends StatefulWidget {
     required this.searchHint,
     required this.options,
     required this.initialSelectedId,
-    required this.isSeatProfileSelection,
   });
 
   final String title;
   final String searchHint;
   final List<_SelectionListOption> options;
   final String? initialSelectedId;
-  final bool isSeatProfileSelection;
 
   @override
   State<_TrainingSetupOptionSheet> createState() => _TrainingSetupOptionSheetState();
@@ -510,19 +506,10 @@ class _TrainingSetupOptionSheetState extends State<_TrainingSetupOptionSheet> {
                               return ValueListenableBuilder<String?>(
                                 valueListenable: _selectedIdNotifier,
                                 builder: (context, selectedId, _) {
-                                  if (widget.isSeatProfileSelection) {
-                                    return AppSeatSelectionTile(
-                                      title: option.label,
-                                      isSelected: selectedId == option.id,
-                                      onTap: () => _selectedIdNotifier.value = option.id,
-                                    );
-                                  }
-                                  return _TrainingSetupOptionTile(
+                                  return AppRadioSelectionTile(
                                     title: option.label,
                                     isSelected: selectedId == option.id,
-                                    onTap: () {
-                                      _selectedIdNotifier.value = option.id;
-                                    },
+                                    onTap: () => _selectedIdNotifier.value = option.id,
                                   );
                                 },
                               );
@@ -640,56 +627,6 @@ class _TrainingSetupSearchField extends StatelessWidget {
           border: InputBorder.none,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 9),
-        ),
-      ),
-    );
-  }
-}
-
-class _TrainingSetupOptionTile extends StatelessWidget {
-  const _TrainingSetupOptionTile({
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected ? AppColors.secondaryColor : AppColors.hexd9d4f0,
-                border: Border.all(
-                  color: isSelected ? AppColors.hex7747e6 : AppColors.hexd9d4f0,
-                  width: 2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: AppTextView.body(
-                title,
-                color: AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
         ),
       ),
     );

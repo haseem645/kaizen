@@ -70,12 +70,14 @@ class TrainingLibraryResultArea extends StatelessWidget {
     return switch (controller.viewMode) {
       TrainingLibraryViewMode.grid => _TrainingLibraryGrid(
         items: items,
+        isLoadingMore: controller.isLoadingMore,
         scrollController: scrollController,
         onModuleTap: onModuleTap,
         actionsFor: _actionsFor,
       ),
       TrainingLibraryViewMode.list => _TrainingLibraryList(
         items: items,
+        isLoadingMore: controller.isLoadingMore,
         scrollController: scrollController,
         onModuleTap: onModuleTap,
         actionsFor: _actionsFor,
@@ -87,12 +89,14 @@ class TrainingLibraryResultArea extends StatelessWidget {
 class _TrainingLibraryGrid extends StatelessWidget {
   const _TrainingLibraryGrid({
     required this.items,
+    required this.isLoadingMore,
     required this.scrollController,
     required this.onModuleTap,
     required this.actionsFor,
   });
 
   final List<TrainingLibraryModule> items;
+  final bool isLoadingMore;
   final ScrollController scrollController;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
   final VoidCallback? Function(TrainingLibraryModule module) actionsFor;
@@ -110,24 +114,36 @@ class _TrainingLibraryGrid extends StatelessWidget {
             (MediaQuery.textScalerOf(context).scale(16) - 16).clamp(0.0, double.infinity) * 6;
         final cardHeight = (cardWidth / 1.9).clamp(176.0, 280.0) + textScaleExtra;
 
-        return GridView.builder(
+        return CustomScrollView(
           controller: scrollController,
-          padding: const EdgeInsets.only(bottom: 16),
           physics: const AlwaysScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            mainAxisExtent: cardHeight,
-          ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            return TrainingLibraryModuleCard(
-              module: items[index],
-              onTap: () => onModuleTap(items[index]),
-              onLongPress: actionsFor(items[index]),
-            );
-          },
+          slivers: [
+            SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                mainAxisExtent: cardHeight,
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                return TrainingLibraryModuleCard(
+                  module: items[index],
+                  onTap: () => onModuleTap(items[index]),
+                  onLongPress: actionsFor(items[index]),
+                );
+              },
+            ),
+            if (isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 18, bottom: 16),
+                  child: Center(child: FastCircularProgressIndicator()),
+                ),
+              )
+            else
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          ],
         );
       },
     );
@@ -137,12 +153,14 @@ class _TrainingLibraryGrid extends StatelessWidget {
 class _TrainingLibraryList extends StatelessWidget {
   const _TrainingLibraryList({
     required this.items,
+    required this.isLoadingMore,
     required this.scrollController,
     required this.onModuleTap,
     required this.actionsFor,
   });
 
   final List<TrainingLibraryModule> items;
+  final bool isLoadingMore;
   final ScrollController scrollController;
   final ValueChanged<TrainingLibraryModule> onModuleTap;
   final VoidCallback? Function(TrainingLibraryModule module) actionsFor;
@@ -153,9 +171,14 @@ class _TrainingLibraryList extends StatelessWidget {
       controller: scrollController,
       padding: const EdgeInsets.only(bottom: 16),
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemCount: items.length + (isLoadingMore ? 1 : 0),
+      separatorBuilder: (_, index) => SizedBox(
+        height: isLoadingMore && index == items.length - 1 ? 18 : 16,
+      ),
       itemBuilder: (context, index) {
+        if (index == items.length) {
+          return const Center(child: FastCircularProgressIndicator());
+        }
         return TrainingLibraryModuleCard(
           module: items[index],
           onTap: () => onModuleTap(items[index]),

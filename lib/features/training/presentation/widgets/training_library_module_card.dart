@@ -32,7 +32,9 @@ class TrainingLibraryModuleCard extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: Stack(
             children: [
-              Positioned.fill(child: _ModuleThumbnail(thumbnailLink: module.thumbnailLink)),
+              Positioned.fill(
+                child: _ModuleThumbnail(thumbnailLink: module.thumbnailLink),
+              ),
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -92,7 +94,9 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                     onLongPress: onLongPress,
                     child: Semantics(
                       button: true,
-                      label: TrainingLibraryController.displayModuleTitle(module),
+                      label: TrainingLibraryController.displayModuleTitle(
+                        module,
+                      ),
                       hint: onLongPress == null
                           ? null
                           : AppStrings.trainingLibraryLessonActionsHint,
@@ -151,7 +155,7 @@ class _ModuleThumbnail extends StatelessWidget {
         ? const _ImagePlaceholder()
         : CachedNetworkImage(
             imageUrl: imageUrl,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             placeholder: (_, __) => const _ImagePlaceholder(),
             errorWidget: (_, __, ___) => const _ImagePlaceholder(),
           );
@@ -165,10 +169,14 @@ class _ImagePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       '${AppStrings.imagePath}fallback.png',
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       errorBuilder: (_, __, ___) {
         return const Center(
-          child: Icon(Icons.video_library_rounded, color: AppColors.textSecondary, size: 30),
+          child: Icon(
+            Icons.video_library_rounded,
+            color: AppColors.textSecondary,
+            size: 30,
+          ),
         );
       },
     );

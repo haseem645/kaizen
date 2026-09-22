@@ -1,10 +1,11 @@
 import '../preference/app_preference.dart';
 
+////////////
 class ApiEndPoints {
   ApiEndPoints._();
-  // static const String baseUrl = 'https://dev-api.kaizenteams.ai';
+  static const String baseUrl = 'https://dev-api.kaizenteams.ai';
 
-  static const String baseUrl = 'https://api.kaizenteams.ai';
+  // static const String baseUrl = 'https://api.kaizenteams.ai';
   static const String version = '/api/v1/';
   static const String parentPrefix = 'parent_';
   static const String login = 'accounts/login/';

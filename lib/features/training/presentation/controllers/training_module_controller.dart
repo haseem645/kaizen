@@ -1069,6 +1069,12 @@ class TrainingModuleController extends ChangeNotifier {
   bool get hasSelectedModuleVideoTranscript =>
       _selectedModuleDetail?.trainingVideo?.transcript?.trim().isNotEmpty ??
       false;
+  // A generated summary can arrive before the cached video transcript updates.
+  bool get hasSelectedModuleSummary =>
+      CustomFunctions.stripHtmlTags(
+        _selectedModuleDetail?.description,
+        emptyText: '',
+      ).isNotEmpty;
 
   bool get canUploadSelectedModuleVideo =>
       _canManageTraining &&
@@ -1082,13 +1088,13 @@ class TrainingModuleController extends ChangeNotifier {
       _canManageTraining &&
       hasSelectedModule &&
       hasSelectedModuleVideo &&
-      hasSelectedModuleVideoTranscript &&
+      (hasSelectedModuleVideoTranscript || hasSelectedModuleSummary) &&
       !_isGeneratingSop;
   bool get canGenerateQuizForSelectedModule =>
       _canManageTraining &&
       hasSelectedModule &&
       hasSelectedModuleVideo &&
-      hasSelectedModuleVideoTranscript &&
+      (hasSelectedModuleVideoTranscript || hasSelectedModuleSummary) &&
       !_isGeneratingQuiz;
   bool get canAddQuestionToSelectedModule =>
       _canManageTraining &&
@@ -1218,6 +1224,7 @@ class TrainingModuleController extends ChangeNotifier {
     required String jobId,
     required String descriptionId,
     String? initialModuleId,
+    bool startNewLessonWhenEmpty = false,
   }) async {
     final resolvedJobId = jobId.trim();
     final resolvedDescriptionId = descriptionId.trim();
@@ -1250,6 +1257,12 @@ class TrainingModuleController extends ChangeNotifier {
         descriptionId: resolvedDescriptionId,
       );
       _modules = modules;
+
+      if (modules.isEmpty && startNewLessonWhenEmpty && _canManageTraining) {
+        _isLoading = false;
+        startCreatingNewLessonDraft();
+        return;
+      }
 
       if (modules.isEmpty) {
         _isLoading = false;

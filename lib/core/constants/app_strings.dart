@@ -454,6 +454,7 @@ class AppStrings {
   static const String auditApplyFilters = 'Apply Filters';
   static const String auditSearchSeatProfile = 'Search Seat Profile';
   static const List<String> auditMilestoneOptions = <String>['30 Days', '60 Days', '90 Days'];
+  static String auditMilestoneCardLabel(String milestone) => '${milestone.split(' ').first} Day';
   static const List<String> auditTimingOptions = <String>[
     'Available',
     'Wait',
@@ -570,6 +571,7 @@ class AppStrings {
       'Record a new video or upload one from your library.';
   static const String trainingRecordVideo = 'Shoot Video';
   static const String trainingRecordVideoHint = 'Capture a video to attach to this lesson.';
+  static const String trainingOpenGallery = 'Open Gallery';
   static const String trainingRecentVideos = 'Recent Videos';
   static const String trainingNoGalleryVideos =
       'No gallery videos found yet. Use the camera tile to record one.';
@@ -882,8 +884,7 @@ class AppStrings {
   static const String auditNoDescriptionAvailable = 'No description available.';
   static const String auditNoMatchingDescriptions = 'No descriptions match the selected filters.';
   static const String auditSearchDescriptionsHint = 'Search descriptions';
-  static const String auditNoMatchingDescriptionSearch =
-      'No descriptions match your search.';
+  static const String auditNoMatchingDescriptionSearch = 'No descriptions match your search.';
   static const String auditSeatDescription = 'Seat Description';
   static const String auditSeatSpecifics = 'Seat Specifics';
   static const String auditNoSeatSpecificsAvailable = 'No seat specifics available.';

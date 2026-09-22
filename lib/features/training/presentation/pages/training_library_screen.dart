@@ -81,7 +81,15 @@ class _TrainingLibraryScreenView extends StatelessWidget {
           ),
         ),
         onSelectSeat: () => showTrainingLibrarySeatSelectionSheet(context, controller: controller),
-        onCreate: () => AppRouter.pushNamed(context, AppRouter.seatProfileTrainingSetup),
+        onCreate: () async {
+          await AppRouter.pushNamed<void>(
+            context,
+            AppRouter.seatProfileTrainingSetup,
+          );
+          if (context.mounted) {
+            await controller.refresh(preservePosition: true);
+          }
+        },
       ),
     );
   }

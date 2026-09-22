@@ -12,20 +12,33 @@ class TrainingLibraryFilterTags extends StatelessWidget {
   final TrainingLibraryController controller;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: controller.appliedFilterTags
-        .map(
-          (tag) => _FilterTag(
-            key: ValueKey(tag.type),
-            prefix: tag.type.prefix,
-            label: tag.label,
-            accentColor: tag.type == TrainingLibraryFilter.seat ? AppColors.secondaryColor : null,
-            onRemove: controller.canApplySelection ? () => _removeFilter(context, tag.type) : null,
-          ),
-        )
-        .toList(),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      const spacing = 8.0;
+      final tagWidth = (constraints.maxWidth - spacing) / 2;
+      return Wrap(
+        spacing: spacing,
+        runSpacing: spacing,
+        children: controller.appliedFilterTags
+            .map(
+              (tag) => SizedBox(
+                width: tagWidth,
+                child: _FilterTag(
+                  key: ValueKey(tag.type),
+                  prefix: tag.type.prefix,
+                  label: tag.label,
+                  accentColor: tag.type == TrainingLibraryFilter.seat
+                      ? AppColors.secondaryColor
+                      : null,
+                  onRemove: controller.canApplySelection
+                      ? () => _removeFilter(context, tag.type)
+                      : null,
+                ),
+              ),
+            )
+            .toList(),
+      );
+    },
   );
 
   Future<void> _removeFilter(BuildContext context, TrainingLibraryFilter filter) async {

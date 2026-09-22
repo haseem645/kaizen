@@ -267,7 +267,7 @@ class _TrainingVideoActionButton extends StatelessWidget {
         button: true,
         enabled: onTap != null,
         child: Material(
-          color: AppColors.grey2.withValues(alpha: 0.88),
+          color: AppColors.surfaceDark2,
           borderRadius: borderRadius,
           clipBehavior: Clip.antiAlias,
           child: InkWell(

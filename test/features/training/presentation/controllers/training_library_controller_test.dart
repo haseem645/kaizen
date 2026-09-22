@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/entities/department.dart';
@@ -13,6 +14,7 @@ import 'package:sparrowkaizen/features/training/domain/repositories/training_lib
 import 'package:sparrowkaizen/features/training/domain/usecases/get_training_library_modules_usecase.dart';
 import 'package:sparrowkaizen/features/training/presentation/controllers/training_library_controller.dart';
 import 'package:sparrowkaizen/features/training/presentation/models/training_library_filter_tag.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_result_area.dart';
 
 import '../../fixtures/training_library_fixtures.dart';
 
@@ -210,6 +212,88 @@ void main() {
         openDetails: (_) async {},
       );
       expect(repository.requests, requestsBeforeOpening + 1);
+    },
+  );
+
+  testWidgets(
+    'returning from a later lesson keeps the list at its scroll position',
+    (tester) async {
+      final firstPage = List.generate(
+        10,
+        (index) => TrainingLibraryModuleModel.fromApiJson(
+          lessonListingJson(id: 'lesson-$index'),
+        ),
+      );
+      final secondPage = List.generate(
+        10,
+        (index) => TrainingLibraryModuleModel.fromApiJson(
+          lessonListingJson(id: 'lesson-${index + 10}'),
+        ),
+      );
+      TrainingLibraryPage pageFor(int page) => TrainingLibraryPage(
+        items: page == 1 ? firstPage : secondPage,
+        hasNextPage: page == 1,
+      );
+      repository.respond = () async => pageFor(repository.requestedPages.last);
+      await controller.refresh();
+      await controller.loadNextPage();
+      canManageTraining = true;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 300,
+              width: 360,
+              child: AnimatedBuilder(
+                animation: controller,
+                builder: (context, _) => TrainingLibraryResultArea(
+                  controller: controller,
+                  items: controller.visibleItems,
+                  scrollController: controller.scrollController,
+                  onModuleTap: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      controller.scrollController.jumpTo(2800);
+      await tester.pump();
+      final openedAt = controller.scrollController.offset;
+
+      final refreshedFirstPage = Completer<TrainingLibraryPage>();
+      final refreshedSecondPage = Completer<TrainingLibraryPage>();
+      repository.respond = () => repository.requestedPages.last == 1
+          ? refreshedFirstPage.future
+          : refreshedSecondPage.future;
+      final opening = controller.openLesson(
+        secondPage[2],
+        openDetails: (_) async {},
+      );
+      await tester.pump();
+
+      expect(controller.isRefreshing, isTrue);
+      expect(controller.isInlineLoading, isFalse);
+      expect(controller.scrollController.offset, openedAt);
+      expect(controller.visibleItems.length, 20);
+
+      refreshedFirstPage.complete(pageFor(1));
+      await tester.pump();
+      expect(controller.isRefreshing, isTrue);
+      expect(controller.visibleItems.length, 20);
+      expect(controller.scrollController.offset, openedAt);
+
+      refreshedSecondPage.complete(pageFor(2));
+      await opening;
+      await tester.pump();
+
+      expect(
+        repository.requestedPages.sublist(repository.requestedPages.length - 2),
+        [1, 2],
+      );
+      expect(controller.visibleItems.length, 20);
+      expect(controller.scrollController.offset, openedAt);
     },
   );
 

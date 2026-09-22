@@ -23,6 +23,88 @@ void main() {
 
   tearDown(() => controller.dispose());
 
+  test('Create entry opens a new lesson draft when no lessons exist', () async {
+    repository.modules.clear();
+
+    await controller.initialize(
+      jobId: 'seat',
+      descriptionId: 'description',
+      startNewLessonWhenEmpty: true,
+    );
+
+    expect(controller.isLoading, isFalse);
+    expect(controller.isCreatingNewLessonDraft, isTrue);
+    expect(controller.hasSelectedModule, isFalse);
+    expect(controller.maxAccessibleTabIndex, 0);
+    expect(controller.modules, isEmpty);
+
+    repository.pendingCreate = Completer<SeatDescriptionTrainingModule>();
+    controller.newLessonTitleController.text = 'First lesson';
+    final creation = controller.createModuleFromDraft();
+    repository.pendingCreate!.complete(_lesson('created'));
+
+    expect(await creation, isTrue);
+    expect(controller.isCreatingNewLessonDraft, isFalse);
+    expect(controller.selectedModuleId, 'created');
+    expect(repository.createRequests, 1);
+  });
+
+  test(
+    'Create entry loads the existing lesson when the description has lessons',
+    () async {
+      final detailRequests = repository.detailRequests;
+
+      await controller.initialize(
+        jobId: 'seat',
+        descriptionId: 'description',
+        startNewLessonWhenEmpty: true,
+      );
+
+      expect(controller.isCreatingNewLessonDraft, isFalse);
+      expect(controller.modules, hasLength(2));
+      expect(controller.selectedModuleId, 'first');
+      expect(controller.selectedModuleDetail?.uuid, 'first');
+      expect(repository.detailRequests, detailRequests + 1);
+    },
+  );
+
+  test('read-only Create entry loads the lesson without editing controls', () async {
+    final readOnly = TrainingModuleController(
+      repository,
+      canManageTraining: false,
+    );
+    addTearDown(readOnly.dispose);
+
+    await readOnly.initialize(
+      jobId: 'seat',
+      descriptionId: 'description',
+      startNewLessonWhenEmpty: true,
+    );
+
+    expect(readOnly.isCreatingNewLessonDraft, isFalse);
+    expect(readOnly.selectedModuleId, 'first');
+    expect(readOnly.maxAccessibleTabIndex, 1);
+    expect(readOnly.canEditSelectedModuleTitle, isFalse);
+  });
+
+  test('read-only Create entry cannot draft an empty description', () async {
+    repository.modules.clear();
+    final readOnly = TrainingModuleController(
+      repository,
+      canManageTraining: false,
+    );
+    addTearDown(readOnly.dispose);
+
+    await readOnly.initialize(
+      jobId: 'seat',
+      descriptionId: 'description',
+      startNewLessonWhenEmpty: true,
+    );
+
+    expect(readOnly.isCreatingNewLessonDraft, isFalse);
+    expect(readOnly.hasSelectedModule, isFalse);
+  });
+
   test(
     'cancelling a new lesson clears its title and restores the previously selected lesson',
     () async {

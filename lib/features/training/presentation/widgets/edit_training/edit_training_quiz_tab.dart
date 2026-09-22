@@ -33,22 +33,36 @@ class _QuizTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    if (isLoading && !canManageQuestions) {
       return const Center(child: FastCircularProgressIndicator());
     }
     if (questions.isEmpty && !canManageQuestions) {
       return const _QuizEmptyStateCard();
     }
 
+    final creationHeader = _QuizCreationHeader(
+      canGenerateQuiz: canGenerateQuiz && !isLoading,
+      isGeneratingQuiz: isGeneratingQuiz,
+      onGenerateQuizTap: onGenerateQuizTap,
+    );
+    if (isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          creationHeader,
+          const SizedBox(height: 14),
+          const Expanded(
+            child: Center(child: FastCircularProgressIndicator()),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (canManageQuestions) ...[
-          _QuizCreationHeader(
-            canGenerateQuiz: canGenerateQuiz,
-            isGeneratingQuiz: isGeneratingQuiz,
-            onGenerateQuizTap: onGenerateQuizTap,
-          ),
+          creationHeader,
           const SizedBox(height: 14),
         ],
         if (questions.isNotEmpty)
