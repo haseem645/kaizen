@@ -31,6 +31,9 @@ class _GenerateSopDialogState extends State<_GenerateSopDialog> {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: _confirmationController,
       builder: (context, _, __) {
+        final canGenerate =
+            controller.canGenerateSopForSelectedModule &&
+            (!hasExistingSop || _canRegenerate);
         return Padding(
           padding: const EdgeInsets.only(top: 16),
           child: Align(
@@ -153,11 +156,8 @@ class _GenerateSopDialogState extends State<_GenerateSopDialog> {
                     SizedBox(
                       width: double.infinity,
                       child: TextButton.icon(
-                        onPressed:
-                            (controller.isGeneratingSop ||
-                                (hasExistingSop && !_canRegenerate))
-                            ? null
-                            : () async {
+                        onPressed: canGenerate
+                            ? () async {
                                 final didGenerate = await context
                                     .read<TrainingModuleController>()
                                     .generateSopForSelectedModule();
@@ -166,27 +166,24 @@ class _GenerateSopDialogState extends State<_GenerateSopDialog> {
                                 }
 
                                 Navigator.of(context).pop(true);
-                              },
+                              }
+                            : null,
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.textPrimary,
                           disabledForegroundColor: AppColors.textSecondary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor:
-                              (controller.isGeneratingSop ||
-                                  (hasExistingSop && !_canRegenerate))
-                              ? AppColors.surfaceDark3
-                              : AppColors.secondaryColor,
+                          backgroundColor: canGenerate
+                              ? AppColors.secondaryColor
+                              : AppColors.surfaceDark3,
                           disabledBackgroundColor: AppColors.surfaceDark3,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             side: BorderSide(
-                              color:
-                                  (controller.isGeneratingSop ||
-                                      (hasExistingSop && !_canRegenerate))
-                                  ? AppColors.fieldBorder.withValues(
+                              color: canGenerate
+                                  ? AppColors.secondaryColor
+                                  : AppColors.fieldBorder.withValues(
                                       alpha: 0.12,
-                                    )
-                                  : AppColors.secondaryColor,
+                                    ),
                             ),
                           ),
                         ),
@@ -205,11 +202,9 @@ class _GenerateSopDialogState extends State<_GenerateSopDialog> {
                               ? AppStrings.trainingRegenerate
                               : AppStrings.trainingGenerateWithAi,
                           fontSize: 14,
-                          color:
-                              (controller.isGeneratingSop ||
-                                  (hasExistingSop && !_canRegenerate))
-                              ? AppColors.textSecondary.withValues(alpha: 0.7)
-                              : AppColors.textPrimary,
+                          color: canGenerate
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

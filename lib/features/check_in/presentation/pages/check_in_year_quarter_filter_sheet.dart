@@ -80,7 +80,7 @@ class _CheckInYearQuarterFilterSheetState
                     Container(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppColors.grey1.withValues(alpha: 0.75),
                         ),
@@ -126,7 +126,7 @@ class _CheckInYearQuarterFilterSheetState
                               final isSelected = year == _selectedYear;
 
                               return InkWell(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                                 splashFactory: NoSplash.splashFactory,
                                 splashColor: Colors.transparent,
                                 highlightColor: Colors.transparent,
@@ -156,7 +156,7 @@ class _CheckInYearQuarterFilterSheetState
                                     color: isSelected
                                         ? AppColors.secondaryColor
                                         : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: AppTextView.body(
                                     '$year',
@@ -276,7 +276,7 @@ class _SelectionOptionTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,

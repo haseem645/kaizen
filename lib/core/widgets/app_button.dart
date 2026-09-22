@@ -12,7 +12,7 @@ class AppButton extends StatelessWidget {
     this.backgroundColor,
     this.textColor,
     this.isLoading = false,
-    this.borderRadius = 4,
+    this.borderRadius = 12,
     this.minimumHeight = 40,
     this.textSize = 16,
   });
@@ -38,9 +38,7 @@ class AppButton extends StatelessWidget {
         disabledBackgroundColor: backgroundColor ?? AppColors.grey1,
         disabledForegroundColor: resolvedTextColor,
         minimumSize: Size.fromHeight(minimumHeight),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
       ),
       child: SizedBox(
         height: minimumHeight,

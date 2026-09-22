@@ -683,15 +683,15 @@ class _ReusableCommentField extends StatelessWidget {
           fillColor: AppColors.fieldFill,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: AppColors.fieldBorder.withValues(alpha: 0.35)),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppColors.secondaryColor),
           ),
           disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: AppColors.grey1.withValues(alpha: 0.25)),
           ),
         ),
@@ -711,7 +711,7 @@ class _ContentContainer extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.surfaceDark3,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.45)),
       ),
       child: child,
@@ -884,7 +884,7 @@ class _SelectedMediaPreview extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: isVideo
               ? _LocalVideoPreview(videoFile: mediaFile)
               : ColoredBox(
@@ -932,7 +932,7 @@ class _SelectedMediaPreview extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 label: const Text(AppStrings.auditMarkupImage),

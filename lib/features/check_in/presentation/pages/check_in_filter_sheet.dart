@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
+import '../../../../core/widgets/app_selection_sheet.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import 'check_in_seat_profile_filter_sheet.dart';
 import 'check_in_year_quarter_filter_sheet.dart';
@@ -63,7 +64,6 @@ class _CheckInFilterSheetState extends State<CheckInFilterSheet> {
           color: AppColors.mainBg,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: ValueListenableBuilder<CheckInFilterResult>(
           valueListenable: _selection,
           builder: (context, selection, _) {
@@ -71,35 +71,39 @@ class _CheckInFilterSheetState extends State<CheckInFilterSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 12),
-                AppTextView.title(
-                  AppStrings.auditFiltersTitle,
-                  color: AppColors.secondaryColor,
-                  fontSize: 20,
-                  textAlign: TextAlign.center,
+                AppFilterSheetHeader(
+                  title: AppStrings.auditFiltersTitle,
+                  centerTitle: true,
+                  onClose: () => Navigator.of(context).pop(),
                 ),
-                const SizedBox(height: 22),
-                const AppDotDivider(),
-                const SizedBox(height: 28),
-                _FilterSelectionTile(
-                  title: AppStrings.auditSeatProfile,
-                  value: selection.seatProfile,
-                  onTap: () => _openSeatProfileSheet(context),
-                ),
-                const SizedBox(height: 28),
-                _FilterSelectionTile(
-                  title: AppStrings.auditSelectYearQuarter,
-                  value: selection.yearQuarter,
-                  onTap: () => _openYearQuarterSheet(context),
-                ),
-                const SizedBox(height: 26),
-                const AppDotDivider(),
-                const SizedBox(height: 22),
-                AppButton(
-                  text: AppStrings.auditApplyFilters,
-                  onPressed: () {
-                    Navigator.of(context).pop(selection);
-                  },
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _FilterSelectionTile(
+                        title: AppStrings.auditSeatProfile,
+                        value: selection.seatProfile,
+                        onTap: () => _openSeatProfileSheet(context),
+                      ),
+                      const SizedBox(height: 28),
+                      _FilterSelectionTile(
+                        title: AppStrings.auditSelectYearQuarter,
+                        value: selection.yearQuarter,
+                        onTap: () => _openYearQuarterSheet(context),
+                      ),
+                      const SizedBox(height: 26),
+                      const AppDotDivider(),
+                      const SizedBox(height: 22),
+                      AppButton(
+                        text: AppStrings.auditApplyFilters,
+                        onPressed: () {
+                          Navigator.of(context).pop(selection);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );
@@ -117,6 +121,8 @@ class _CheckInFilterSheetState extends State<CheckInFilterSheet> {
       builder: (_) => CheckInSeatProfileFilterSheet(
         options: widget.seatProfileOptions,
         initialValue: _selection.value.seatProfile,
+        compactSpacing: true,
+        showCloseHeader: true,
       ),
     );
 
@@ -167,9 +173,9 @@ class _FilterSelectionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
@@ -179,7 +185,7 @@ class _FilterSelectionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: AppColors.grey1.withValues(alpha: 0.75),
               width: 1,

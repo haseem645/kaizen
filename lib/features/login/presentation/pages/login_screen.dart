@@ -8,14 +8,15 @@ import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../routes/app_router.dart';
-import '../../../auth/presentation/auth_validators.dart';
 import '../../../auth/presentation/widgets/auth_link_button.dart';
 import '../../../auth/presentation/widgets/auth_outlined_text_field.dart';
 import '../../../auth/presentation/widgets/auth_page_frame.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/usecases/login_usecase.dart';
+import '../../domain/usecases/google_login_usecase.dart';
 import '../providers/login_controller.dart';
+import '../widgets/google_login_button.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -31,8 +32,15 @@ class LoginScreen extends StatelessWidget {
         ProxyProvider<AuthRepositoryImpl, LoginUseCase>(
           update: (_, repository, __) => createLoginUseCase(repository),
         ),
+        ProxyProvider<AuthRepositoryImpl, GoogleLoginUseCase>(
+          update: (_, repository, __) => GoogleLoginUseCase(repository),
+        ),
         ChangeNotifierProvider<LoginController>(
-          create: (context) => LoginController(context.read<LoginUseCase>()),
+          create: (context) => LoginController(
+            context.read<LoginUseCase>(),
+            googleLogin: context.read<GoogleLoginUseCase>().call,
+            cancelGoogleLogin: context.read<GoogleLoginUseCase>().cancelAuthorization,
+          ),
         ),
       ],
       child: const _LoginScreenView(),
@@ -50,11 +58,6 @@ class _LoginScreenView extends StatefulWidget {
 class _LoginScreenViewState extends State<_LoginScreenView> {
   late final LoginController _controller;
   bool _isErrorDialogVisible = false;
-  bool _isPasswordHidden = true;
-  String? _emailError;
-  String? _passwordError;
-  bool _hasInteractedWithEmail = false;
-  bool _hasInteractedWithPassword = false;
 
   @override
   void initState() {
@@ -88,9 +91,6 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
           return;
         }
 
-        if (!mounted) {
-          return;
-        }
         if (DeepLinkService.instance.hasPendingAuthenticatedTarget) {
           await DeepLinkService.instance.openPendingAuthenticatedTargetAfterLogin();
           return;
@@ -109,7 +109,7 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
       return;
     }
     _isErrorDialogVisible = true;
-    CustomFunctions.showCustomAlert(context, "Login Failed", message);
+    CustomFunctions.showCustomAlert(context, AppStrings.loginFailedTitle, message);
     _isErrorDialogVisible = false;
   }
 
@@ -141,6 +141,24 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
             ),
             const SizedBox(height: 16),
             _buildLoginButton(context, controller),
+            const _LoginMethodSeparator(),
+            GoogleLoginButton(
+              isLoading: controller.isGoogleLoading,
+              onPressed: controller.isLoading
+                  ? null
+                  : () {
+                      FocusScope.of(context).unfocus();
+                      controller.loginWithGoogle();
+                    },
+            ),
+            if (controller.canCancelGoogleLogin)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: AuthLinkButton(
+                  label: AppStrings.loginCancelGoogle,
+                  onTap: controller.cancelGoogleLogin,
+                ),
+              ),
           ],
         ),
       ),
@@ -151,16 +169,11 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
     return AuthOutlinedTextField(
       controller: _controller.emailController,
       labelText: AppStrings.loginEmailLabel,
-      errorText: _hasInteractedWithEmail ? _emailError : null,
+      errorText: _controller.emailError,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       autofillHints: const <String>[AutofillHints.email],
-      onChanged: (value) {
-        setState(() {
-          _hasInteractedWithEmail = true;
-          _emailError = AuthValidators.validateEmail(value);
-        });
-      },
+      onChanged: _controller.updateEmail,
     );
   }
 
@@ -168,24 +181,15 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
     return AuthOutlinedTextField(
       controller: _controller.passwordController,
       labelText: AppStrings.loginPasswordLabel,
-      errorText: _hasInteractedWithPassword ? _passwordError : null,
-      obscureText: _isPasswordHidden,
+      errorText: _controller.passwordError,
+      obscureText: _controller.isPasswordHidden,
       textInputAction: TextInputAction.done,
       autofillHints: const <String>[AutofillHints.password],
-      onChanged: (value) {
-        setState(() {
-          _hasInteractedWithPassword = true;
-          _passwordError = AuthValidators.validateLoginPassword(value);
-        });
-      },
+      onChanged: _controller.updatePassword,
       suffixIcon: IconButton(
-        onPressed: () {
-          setState(() {
-            _isPasswordHidden = !_isPasswordHidden;
-          });
-        },
+        onPressed: _controller.togglePasswordVisibility,
         icon: Icon(
-          _isPasswordHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          _controller.isPasswordHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
           color: AppColors.secondaryColor,
           size: 20,
         ),
@@ -196,24 +200,44 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
   Widget _buildLoginButton(BuildContext context, LoginController controller) {
     return AppButton(
       text: AppStrings.loginButton,
-      isLoading: controller.isLoading,
-      onPressed: () async {
-        setState(() {
-          _hasInteractedWithEmail = true;
-          _hasInteractedWithPassword = true;
-          _emailError = AuthValidators.validateEmail(controller.emailController.text);
-          _passwordError = AuthValidators.validateLoginPassword(controller.passwordController.text);
-        });
+      isLoading: controller.isPasswordLoading,
+      onPressed: controller.isLoading
+          ? null
+          : () async {
+              if (!controller.validateLoginFields()) {
+                return;
+              }
 
-        if (_emailError != null || _passwordError != null) {
-          return;
-        }
+              await context.read<LoginController>().login(
+                email: controller.emailController.text,
+                password: controller.passwordController.text,
+              );
+            },
+    );
+  }
+}
 
-        await context.read<LoginController>().login(
-          email: controller.emailController.text,
-          password: controller.passwordController.text,
-        );
-      },
+class _LoginMethodSeparator extends StatelessWidget {
+  const _LoginMethodSeparator();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 18),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppColors.fieldBorder, height: 1)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: AppTextView.body2(
+              AppStrings.loginAlternativeSeparator,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Expanded(child: Divider(color: AppColors.fieldBorder, height: 1)),
+        ],
+      ),
     );
   }
 }

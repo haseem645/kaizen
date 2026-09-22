@@ -35,7 +35,7 @@ class CheckInEvaluationChartWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(left: 10, right: 10, top: 10),
       margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -131,7 +131,7 @@ class CheckInEvaluationChartWidget extends StatelessWidget {
             BarChartRodData(
               toY: total,
               width: 12,
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(12),
               color: total == 0 ? Colors.white12 : AppColors.green1,
               rodStackItems: total == 0
                   ? const <BarChartRodStackItem>[]

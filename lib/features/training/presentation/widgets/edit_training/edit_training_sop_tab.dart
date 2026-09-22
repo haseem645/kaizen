@@ -1,5 +1,6 @@
 part of 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 
+//////
 class _SopTabContent extends StatelessWidget {
   const _SopTabContent({
     required this.isLoading,
@@ -10,6 +11,7 @@ class _SopTabContent extends StatelessWidget {
     required this.isSavingDocument,
     required this.documentController,
     required this.onGenerateSopTap,
+    required this.onDoneTap,
     this.onBoldTap,
     this.onItalicTap,
     this.onUnderlineTap,
@@ -27,6 +29,7 @@ class _SopTabContent extends StatelessWidget {
   final bool isSavingDocument;
   final TrainingRichTextEditingController documentController;
   final VoidCallback onGenerateSopTap;
+  final VoidCallback onDoneTap;
   final VoidCallback? onBoldTap;
   final VoidCallback? onItalicTap;
   final VoidCallback? onUnderlineTap;
@@ -37,89 +40,107 @@ class _SopTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final content = _buildContent();
+        if (constraints.hasBoundedHeight) {
+          return content;
+        }
+
+        // Embedded sections and incoming swipe previews have no height constraint.
+        return SizedBox(height: MediaQuery.sizeOf(context).height * 0.65, child: content);
+      },
+    );
+  }
+
+  Widget _buildContent() {
     final hasEditorContent = documentController.text.trim().isNotEmpty;
-    final showToolbarProgressIndicator =
-        isSavingDocument || (isLoading && hasEditorContent && !isGeneratingSop);
-    final sopContent = isLoading && !hasEditorContent
-        ? SizedBox(
-            height: 180,
-            child: Center(child: FastCircularProgressIndicator()),
-          )
-        : _TrainingEditableTextCard(
-            controller: documentController,
-            hintText: AppStrings.trainingSopHint,
-            minLines: 10,
-            maxLines: 18,
-            readOnly: !canEditDocument || isSavingDocument,
-            wrapWithCard: !canEditDocument,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-          );
+    final showProgress = isSavingDocument || isLoading;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        OverflowBar(
+          alignment: MainAxisAlignment.spaceBetween,
+          overflowAlignment: OverflowBarAlignment.end,
+          spacing: 12,
+          overflowSpacing: 8,
           children: [
-            const Expanded(
-              child: AppTextView.body3(
-                AppStrings.trainingCreateSop,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Flexible(
+                  child: AppTextView.body1(
+                    AppStrings.trainingCreateSop,
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (isSavingDocument || (isLoading && hasEditorContent)) ...[
+                  const SizedBox(width: 12),
+                  const FastCircularProgressIndicator(width: 16, height: 16),
+                ],
+              ],
             ),
             if (canManageGeneration)
-              _AiGenerateButton(
-                label: AppStrings.trainingGenerateWithAi,
+              AppAiGenerateButton(
+                label: AppStrings.trainingCreateWithAi,
                 isEnabled: canGenerate,
                 isLoading: isGeneratingSop,
-                verticalPadding: 8,
-                onTap: canGenerate ? onGenerateSopTap : null,
+                onTap: onGenerateSopTap,
+                showOutline: true,
+                maxLines: null,
               ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (canEditDocument)
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.18),
-              ),
-            ),
+        const SizedBox(height: 24),
+        Expanded(
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TrainingFormattingToolbar(
-                  controller: documentController,
-                  isSaving: isSavingDocument,
-                  showTrailingProgressIndicator: showToolbarProgressIndicator,
-                  onBoldTap: onBoldTap,
-                  onItalicTap: onItalicTap,
-                  onUnderlineTap: onUnderlineTap,
-                  onBulletListTap: onBulletListTap,
-                  onNumberedListTap: onNumberedListTap,
-                  onQuoteTap: onQuoteTap,
-                  onHeadingTap: onHeadingTap,
+                Expanded(
+                  child: isLoading && !hasEditorContent
+                      ? const Center(
+                          child: FastCircularProgressIndicator(color: AppColors.secondaryColor),
+                        )
+                      : _TrainingEditableTextCard(
+                          controller: documentController,
+                          hintText: AppStrings.trainingSopHint,
+                          minLines: 10,
+                          maxLines: 18,
+                          expands: true,
+                          readOnly: !canEditDocument,
+                          wrapWithCard: false,
+                          textColor: AppColors.mainBg,
+                          hintColor: AppColors.trainingUploadMuted,
+                          padding: const EdgeInsets.all(16),
+                        ),
                 ),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(bottom: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.mainBg,
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(14),
+                if (canEditDocument)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+                    child: TextFieldTapRegion(
+                      child: _TrainingFormattingToolbar(
+                        controller: documentController,
+                        isSaving: showProgress,
+                        onDoneTap: onDoneTap,
+                        onBoldTap: onBoldTap,
+                        onItalicTap: onItalicTap,
+                        onUnderlineTap: onUnderlineTap,
+                        onBulletListTap: onBulletListTap,
+                        onNumberedListTap: onNumberedListTap,
+                        onQuoteTap: onQuoteTap,
+                        onHeadingTap: onHeadingTap,
+                      ),
                     ),
                   ),
-                  child: sopContent,
-                ),
               ],
             ),
-          )
-        else
-          sopContent,
+          ),
+        ),
       ],
     );
   }

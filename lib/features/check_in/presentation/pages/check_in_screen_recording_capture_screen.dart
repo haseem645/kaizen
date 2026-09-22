@@ -73,7 +73,7 @@ class _CheckInScreenRecordingCaptureScreenState
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         width: double.infinity,
                         color: AppColors.surfaceDark,
@@ -386,7 +386,9 @@ class _RecordingActionButton extends StatelessWidget {
           backgroundColor: backgroundColor,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(44),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         ),
         icon: Icon(icon, size: 18),

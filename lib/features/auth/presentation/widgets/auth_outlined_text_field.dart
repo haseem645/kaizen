@@ -36,7 +36,7 @@ class AuthOutlinedTextField extends StatelessWidget {
     final resolvedErrorText = errorText?.trim();
     final showError = resolvedErrorText != null && resolvedErrorText.isNotEmpty;
     final inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: AppColors.fieldBorder, width: 1),
     );
 

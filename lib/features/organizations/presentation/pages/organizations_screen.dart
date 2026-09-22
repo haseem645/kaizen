@@ -106,7 +106,7 @@ class OrganizationsScreen extends StatelessWidget {
                             return Column(
                               children: [
                                 InkWell(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                   onTap: appManager.isSettingActiveOrganization
                                       ? null
                                       : () => _handleOrganizationTap(
@@ -123,7 +123,7 @@ class OrganizationsScreen extends StatelessWidget {
                                               alpha: 0.20,
                                             )
                                           : AppColors.surfaceDark,
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isSelected
                                             ? AppColors.lightPurple3.withValues(

@@ -174,6 +174,14 @@ abstract class AuditRepository {
     required String questionText,
     required List<SeatDescriptionTrainingQuestionOption> options,
     required String correctOptionUuid,
+    String? imageId,
+  });
+
+  /// Returns the uploaded image UUID to attach when creating a quiz question.
+  Future<String> uploadTrainingQuestionImage({
+    required String fileName,
+    required List<int> fileBytes,
+    required String contentType,
   });
 
   Future<void> generateSeatDescriptionTrainingModuleQuiz({

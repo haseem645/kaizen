@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const Color mainBg = Color(0xFF2A2D3D);
   static const Color secondaryColor = Color(0xFFA67DFF);
+  static const Color trainingLessonPressedPurple = Color(0xFF9234FF);
+  static const Color trainingLessonActionSurface = Color(0xFF242633);
+  static const Color trainingNavigationInactive = Color(0xFF59607E);
+  static const Color trainingUploadMuted = Color(0xFF667085);
   static const Color purple1 = Color(0xFF7F56D9);
   static const Color purple2 = Color(0xFF9260FE);
   static const Color bgDark = Color(0xFF1B1139);
@@ -16,11 +20,14 @@ class AppColors {
   static const Color surfaceDark2 = Color(0xFF2A2D3D);
   static const Color surfaceDark3 = Color(0xFF24283D);
   static const Color fieldFill = Color(0xFF2A2D3D);
-  static const Color fieldBorder = Color(0xFFB8BAC6);
+  static const Color cardBg = Color(0xFF222534);
+  static const Color fieldBorder = Color(0xFF9699A4);
   static const Color progressColor = Color(0xFF25D7C2);
   static const Color lightGreen1 = Color(0xFF15B79F);
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFB8BAC9);
+  static const Color lightGrey1 = Color(0xFFCCCCCC);
+  static const Color lightGrey2 = Color(0xFFDFE0E3);
   static const Color grey1 = Color(0xFF9699A4);
   static const Color grey2 = Color(0xFF4C4C4C);
   static const Color grey3 = Color(0xFF2A2D3D);

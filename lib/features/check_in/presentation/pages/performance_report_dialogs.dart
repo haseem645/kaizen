@@ -464,7 +464,7 @@ class _TimeRangeDialogContentState extends State<_TimeRangeDialogContent> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text('Apply'),
@@ -848,7 +848,7 @@ class _SignatureDialogContentState extends State<_SignatureDialogContent> {
                                 color: AppColors.textSecondary,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
                                   color: AppColors.fieldBorder.withValues(
                                     alpha: 0.4,
@@ -857,7 +857,7 @@ class _SignatureDialogContentState extends State<_SignatureDialogContent> {
                               ),
                               focusedBorder: const OutlineInputBorder(
                                 borderRadius: BorderRadius.all(
-                                  Radius.circular(8),
+                                  Radius.circular(12),
                                 ),
                                 borderSide: BorderSide(
                                   color: AppColors.secondaryColor,
@@ -1239,14 +1239,14 @@ class _DialogOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark3,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: AppColors.fieldBorder.withValues(alpha: 0.4),
           ),
@@ -1279,7 +1279,7 @@ class _DateSelectionChip extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1287,7 +1287,7 @@ class _DateSelectionChip extends StatelessWidget {
             color: isSelected
                 ? AppColors.secondaryColor.withValues(alpha: 0.18)
                 : AppColors.surfaceDark2,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
                   ? AppColors.secondaryColor
@@ -1483,12 +1483,12 @@ class _CalendarDayCell extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: !isEnabled
                   ? AppColors.fieldBorder.withValues(alpha: 0.08)

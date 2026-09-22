@@ -169,13 +169,46 @@ extension _EditTrainingSectionViewStateDialogs
       barrierColor: Colors.black.withValues(alpha: 0.56),
       builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
         value: controller,
-        child: const _AddQuestionDialog(),
+        child: _AddQuestionDialog(
+          onPickImage: () async {
+            _prepareForExternalMediaPicker();
+            final image = await _imagePicker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 85,
+            );
+            return image == null ? null : File(image.path);
+          },
+        ),
       ),
     );
 
     if (!mounted || didAdd != true) {
       return;
     }
+  }
+
+  Future<void> _showEditQuestionDialog(
+    TrainingModuleController controller,
+    SeatDescriptionTrainingQuestion question,
+  ) async {
+    if (!controller.canManageTraining ||
+        controller.isSavingQuestion(question.uuid) ||
+        controller.isDeletingQuestion(question.uuid) ||
+        !controller.selectedModuleQuestions.any(
+          (item) => item.uuid == question.uuid,
+        )) {
+      return;
+    }
+
+    await _showTrainingModalBottomSheet<bool>(
+      builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
+        value: controller,
+        child: _EditQuestionDialog(
+          question: question,
+          moduleId: controller.selectedModuleId,
+        ),
+      ),
+    );
   }
 
   Future<void> _handleGenerateSopTap(

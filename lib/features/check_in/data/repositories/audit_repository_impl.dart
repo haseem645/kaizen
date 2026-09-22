@@ -364,12 +364,27 @@ class AuditRepositoryImpl implements AuditRepository {
     required String questionText,
     required List<SeatDescriptionTrainingQuestionOption> options,
     required String correctOptionUuid,
+    String? imageId,
   }) {
     return _remoteDataSource.addSeatDescriptionTrainingQuestion(
       moduleId: moduleId,
       questionText: questionText,
       options: options,
       correctOptionUuid: correctOptionUuid,
+      imageId: imageId,
+    );
+  }
+
+  @override
+  Future<String> uploadTrainingQuestionImage({
+    required String fileName,
+    required List<int> fileBytes,
+    required String contentType,
+  }) {
+    return _remoteDataSource.uploadTrainingQuestionImage(
+      fileName: fileName,
+      fileBytes: fileBytes,
+      contentType: contentType,
     );
   }
 

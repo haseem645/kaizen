@@ -130,14 +130,14 @@ class _SingleCheckInReportCategoryDetailsScreenState
 
   Widget _buildQuarterYearSelector(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       onTap: _openQuarterYearPicker,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
         ),
         child: Row(
@@ -539,12 +539,12 @@ class _CategoryDetailsCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
           ),
           child: Column(
@@ -605,7 +605,7 @@ class _CategoryDetailsCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.secondaryColor,
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -638,7 +638,7 @@ Widget _buildRatingBadge({required int value, required Color color}) {
     height: 27,
     decoration: BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(12),
     ),
     child: AppTextView.body2(
       '$value',

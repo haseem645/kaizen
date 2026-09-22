@@ -5,11 +5,13 @@ class _AssignmentTabContent extends StatelessWidget {
     required this.isLoading,
     required this.hasResolvedAssignment,
     required this.canEditAssignment,
+    required this.canSaveAssignment,
     required this.isSavingAssignment,
     required this.hasSavedAssignment,
     required this.titleController,
     required this.descriptionController,
     required this.onSaveTap,
+    required this.onDoneTap,
     this.onBoldTap,
     this.onItalicTap,
     this.onUnderlineTap,
@@ -22,11 +24,13 @@ class _AssignmentTabContent extends StatelessWidget {
   final bool isLoading;
   final bool hasResolvedAssignment;
   final bool canEditAssignment;
+  final bool canSaveAssignment;
   final bool isSavingAssignment;
   final bool hasSavedAssignment;
   final TextEditingController titleController;
   final TrainingRichTextEditingController descriptionController;
   final Future<bool> Function() onSaveTap;
+  final VoidCallback onDoneTap;
   final VoidCallback? onBoldTap;
   final VoidCallback? onItalicTap;
   final VoidCallback? onUnderlineTap;
@@ -37,82 +41,107 @@ class _AssignmentTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasTitleContent = titleController.text.trim().isNotEmpty;
-    final hasDescriptionContent = descriptionController.text.trim().isNotEmpty;
-    final hasVisibleContent = hasTitleContent || hasDescriptionContent;
-    final isResolvingAssignmentState =
-        canEditAssignment && !hasResolvedAssignment;
-    final actionHeader = hasSavedAssignment
-        ? AppStrings.trainingEditAction
-        : AppStrings.trainingLibraryCreate;
-    final actionLabel = hasSavedAssignment
-        ? AppStrings.trainingSaveAction
-        : AppStrings.trainingCreateAssignment;
-    final actionIcon = hasSavedAssignment
-        ? Icons.save_rounded
-        : Icons.assignment_rounded;
-    final descriptionContent = isLoading && !hasDescriptionContent
-        ? SizedBox(
-            height: 180,
-            child: Center(child: FastCircularProgressIndicator()),
-          )
-        : _TrainingEditableTextCard(
-            controller: descriptionController,
-            hintText: AppStrings.trainingAssignmentDescriptionHint,
-            minLines: 10,
-            maxLines: 18,
-            readOnly: !canEditAssignment || isSavingAssignment,
-            wrapWithCard: !canEditAssignment,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-          );
-
+    final hasVisibleContent =
+        titleController.text.trim().isNotEmpty || descriptionController.text.trim().isNotEmpty;
     if (!canEditAssignment && !hasVisibleContent) {
-      if (isLoading) {
-        return SizedBox(
-          height: 180,
-          child: Center(child: FastCircularProgressIndicator()),
-        );
-      }
-
-      return const _ContentMessage(
-        message: AppStrings.trainingNoAssignmentAvailable,
-      );
+      return _AssignmentPlaceholder(isLoading: isLoading);
     }
 
+    return _buildContent();
+  }
+
+  Widget _buildContent() {
+    final isResolvingAssignmentState = canEditAssignment && !hasResolvedAssignment;
+    final hasDescriptionContent = descriptionController.text.trim().isNotEmpty;
+    final isBusy = isLoading || isSavingAssignment || isResolvingAssignmentState;
+
+    return TrainingAssignmentLayout(
+      header: _buildTitleSection(isResolvingAssignmentState),
+      body: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        child: Column(
+          children: [
+            Expanded(
+              child: isResolvingAssignmentState || (isLoading && !hasDescriptionContent)
+                  ? const Center(
+                      child: FastCircularProgressIndicator(color: AppColors.secondaryColor),
+                    )
+                  : _TrainingEditableTextCard(
+                      controller: descriptionController,
+                      scrollPhysics: const AlwaysScrollableScrollPhysics(),
+                      hintText: AppStrings.trainingAssignmentDescriptionHint,
+                      minLines: 10,
+                      maxLines: 18,
+                      expands: true,
+                      readOnly: !canEditAssignment || isBusy,
+                      wrapWithCard: false,
+                      textColor: AppColors.mainBg,
+                      hintColor: AppColors.trainingUploadMuted,
+                      padding: const EdgeInsets.all(16),
+                    ),
+            ),
+            if (canEditAssignment && !isResolvingAssignmentState)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+                child: TextFieldTapRegion(
+                  child: _TrainingFormattingToolbar(
+                    controller: descriptionController,
+                    isSaving: isBusy,
+                    onDoneTap: onDoneTap,
+                    onBoldTap: onBoldTap,
+                    onItalicTap: onItalicTap,
+                    onUnderlineTap: onUnderlineTap,
+                    onBulletListTap: onBulletListTap,
+                    onNumberedListTap: onNumberedListTap,
+                    onQuoteTap: onQuoteTap,
+                    onHeadingTap: onHeadingTap,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTitleSection(bool isResolvingAssignmentState) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (canEditAssignment) ...[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: AppTextView.body3(
-                  actionHeader,
+                child: AppTextView.body1(
+                  hasSavedAssignment
+                      ? AppStrings.trainingEditAction
+                      : AppStrings.trainingLibraryCreate,
                   color: AppColors.textPrimary,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              if (isResolvingAssignmentState)
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: FastCircularProgressIndicator(width: 14, height: 14),
-                )
-              else
-                _GradientTrainingActionButton(
-                  label: actionLabel,
-                  icon: actionIcon,
-                  isEnabled: !isLoading,
-                  isLoading: isSavingAssignment,
-                  showLoaderInIconSlot: true,
-                  verticalPadding: 8,
-                  onTap: !isLoading
-                      ? () {
-                          unawaited(onSaveTap());
-                        }
-                      : null,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: _GradientTrainingActionButton(
+                      label: hasSavedAssignment
+                          ? AppStrings.trainingSaveAction
+                          : AppStrings.trainingCreateAssignment,
+                      icon: hasSavedAssignment ? null : Icons.assignment_rounded,
+                      isEnabled: canSaveAssignment,
+                      isLoading: isSavingAssignment || isResolvingAssignmentState,
+                      showLoaderInIconSlot: true,
+                      verticalPadding: 8,
+                      onTap: canSaveAssignment ? () => unawaited(onSaveTap()) : null,
+                    ),
+                  ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -122,62 +151,39 @@ class _AssignmentTabContent extends StatelessWidget {
         _TrainingSingleLineInputCard(
           controller: titleController,
           hintText: AppStrings.trainingAssignmentTitleHint,
-          readOnly:
-              !canEditAssignment ||
-              isSavingAssignment ||
-              isResolvingAssignmentState,
+          readOnly: !canEditAssignment || isSavingAssignment || isResolvingAssignmentState,
         ),
         const SizedBox(height: 18),
-        const _TrainingSectionHeader(
-          title: AppStrings.trainingAssignmentDescriptionLabel,
-        ),
+        const _TrainingSectionHeader(title: AppStrings.trainingAssignmentDescriptionLabel),
         const SizedBox(height: 8),
-        if (canEditAssignment && !isResolvingAssignmentState)
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.mainBg,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.18),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _TrainingFormattingToolbar(
-                  controller: descriptionController,
-                  isSaving: isSavingAssignment,
-                  onBoldTap: onBoldTap,
-                  onItalicTap: onItalicTap,
-                  onUnderlineTap: onUnderlineTap,
-                  onBulletListTap: onBulletListTap,
-                  onNumberedListTap: onNumberedListTap,
-                  onQuoteTap: onQuoteTap,
-                  onHeadingTap: onHeadingTap,
-                ),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(bottom: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.mainBg,
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(14),
-                    ),
-                  ),
-                  child: descriptionContent,
-                ),
-              ],
-            ),
-          )
-        else if (isResolvingAssignmentState)
-          SizedBox(
-            height: 180,
-            child: Center(child: FastCircularProgressIndicator()),
-          )
-        else
-          descriptionContent,
       ],
+    );
+  }
+}
+
+class _AssignmentPlaceholder extends StatelessWidget {
+  const _AssignmentPlaceholder({this.isLoading = false});
+
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: isLoading
+              ? const FastCircularProgressIndicator(color: AppColors.secondaryColor)
+              : const AppTextView.body3(
+                  AppStrings.trainingNoAssignmentAvailable,
+                  color: AppColors.mainBg,
+                  textAlign: TextAlign.center,
+                  height: 1.55,
+                ),
+        ),
+      ),
     );
   }
 }

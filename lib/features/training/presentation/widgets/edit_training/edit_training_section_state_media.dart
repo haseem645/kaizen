@@ -300,25 +300,32 @@ extension _EditTrainingSectionViewStateMedia on _EditTrainingSectionViewState {
     }
   }
 
-  Future<void> _showDeleteVideoDialog(
-    TrainingModuleController controller,
-  ) async {
+  Future<void> _reUploadVideo(TrainingModuleController controller) async {
+    if (!controller.canUploadSelectedModuleVideo ||
+        _isPickingVideo ||
+        _isFinalizingVideoSetup ||
+        !_ensureNoModuleVideoUploadInProgress(controller)) {
+      return;
+    }
+
+    final moduleId = controller.selectedModuleId;
     final didDelete = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.56),
       builder: (_) => ChangeNotifierProvider<TrainingModuleController>.value(
         value: controller,
-        child: _DeleteTrainingVideoDialog(
+        child: _ReUploadTrainingVideoDialog(
           moduleTitle: controller.selectedModuleTitle,
         ),
       ),
     );
 
-    if (!mounted) {
+    if (!mounted || controller.selectedModuleId != moduleId) {
       return;
     }
 
     if (didDelete == true) {
+      await _selectVideoSourceAndUpload(controller);
       return;
     }
 

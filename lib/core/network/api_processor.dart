@@ -13,7 +13,10 @@ import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/utils/auth_controller.dart';
 
 class ApiCallExecutor {
-  const ApiCallExecutor();
+  const ApiCallExecutor({this.onResponse});
+
+  /// Optional diagnostics, including HTTP failures and bodies that cannot decode.
+  final void Function(http.Response response)? onResponse;
 
   static const Duration _getCacheTtl = Duration(seconds: 30);
   static const Duration _requestTimeout = Duration(seconds: 30);
@@ -76,6 +79,12 @@ class ApiCallExecutor {
     final fullEndpoint =
         '${ApiEndPoints.baseUrl}${ApiEndPoints.version}$resolvedEndpoint';
     debugPrint('Call $fullEndpoint $statusCode');
+    try {
+      onResponse?.call(response);
+    } catch (error) {
+      // Diagnostics must never change the request's result or retry behavior.
+      debugPrint('Response diagnostics failed (${error.runtimeType})');
+    }
 
     if (statusCode == 401 &&
         allowAutoRefresh &&

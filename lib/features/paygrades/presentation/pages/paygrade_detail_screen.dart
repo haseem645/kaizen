@@ -7,7 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
-import '../../../../core/widgets/app_gradient_action_button.dart';
+import '../../../../core/widgets/app_ai_generate_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_swipe_reveal_action.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -96,7 +96,12 @@ class _PaygradeDetailScreenView extends StatelessWidget {
                           _buildSummary(detail),
                           if (canManageContent) ...[
                             const SizedBox(height: 18),
-                            _RegenerateWithAiButton(
+                            AppAiGenerateButton(
+                              label: AppStrings.paygradesGenerateWithAiAction,
+                              expand: true,
+                              minHeight: 48,
+                              textSize: 15,
+                              fontWeight: FontWeight.w700,
                               isLoading: controller.isGeneratingPaygrades,
                               onTap: controller.isGeneratingPaygrades
                                   ? null
@@ -191,7 +196,7 @@ class _PaygradeDetailScreenView extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +375,7 @@ class _PaygradeTabSwitcher extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -414,7 +419,7 @@ class _TabButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.secondaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: AppTextView.body2(
           title,
@@ -422,38 +427,6 @@ class _TabButton extends StatelessWidget {
           color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
           fontWeight: FontWeight.w700,
         ),
-      ),
-    );
-  }
-}
-
-class _RegenerateWithAiButton extends StatelessWidget {
-  const _RegenerateWithAiButton({required this.isLoading, required this.onTap});
-
-  final bool isLoading;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.centerRight,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: AppGradientActionButton(
-              label: AppStrings.paygradesGenerateWithAiAction,
-              icon: Icons.auto_awesome_rounded,
-              onTap: onTap,
-            ),
-          ),
-          if (isLoading)
-            Positioned(
-              right: 16,
-              child: FastCircularProgressIndicator(width: 18, height: 18),
-            ),
-        ],
       ),
     );
   }
@@ -494,13 +467,13 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
     final paygradePrefix = _buildPaygradePrefix(cleanedTitle, widget.rowNumber);
     final shouldShowExpandedDetails = _isExpanded;
     final card = InkWell(
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(12),
       onTap: _toggleExpanded,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: AnimatedSize(
           duration: const Duration(milliseconds: 220),
@@ -589,7 +562,7 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
     return AppSwipeRevealAction(
       isEnabled: widget.onDeleteTap != null && !widget.isDeleting,
       onActionTap: widget.onDeleteTap,
-      borderRadius: 6,
+      borderRadius: 12,
       actionWidth: 64,
       actionGap: 10,
       actionChild: SizedBox.expand(
@@ -819,7 +792,7 @@ class _AddPaygradeLevelButton extends StatelessWidget {
   const _AddPaygradeLevelButton({required this.onTap});
 
   final VoidCallback onTap;
-  static const double _borderRadius = 10;
+  static const double _borderRadius = 12;
 
   @override
   Widget build(BuildContext context) {

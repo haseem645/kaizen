@@ -202,7 +202,7 @@ class _SetProfileImageScreenViewState
                               isLoading: controller.isSubmitting,
                               backgroundColor: AppColors.secondaryColor,
                               minimumHeight: 45,
-                              borderRadius: 8,
+                              borderRadius: 12,
                               textSize: 18,
                             ),
                             const SizedBox(height: 32),

@@ -16,7 +16,7 @@ class _VideoTabContent extends StatelessWidget {
     required this.isSavingSummary,
     required this.summaryController,
     this.onUploadVideoTap,
-    this.onDeleteVideoTap,
+    this.onReUploadVideoTap,
     this.onUpdateThumbnailTap,
     this.onEditSummaryTap,
     this.onCancelSummaryTap,
@@ -37,7 +37,7 @@ class _VideoTabContent extends StatelessWidget {
   final bool isSavingSummary;
   final TextEditingController summaryController;
   final VoidCallback? onUploadVideoTap;
-  final VoidCallback? onDeleteVideoTap;
+  final VoidCallback? onReUploadVideoTap;
   final VoidCallback? onUpdateThumbnailTap;
   final VoidCallback? onEditSummaryTap;
   final VoidCallback? onCancelSummaryTap;
@@ -50,6 +50,13 @@ class _VideoTabContent extends StatelessWidget {
     final summary = detail?.description?.trim();
     final hasVideo = videoUrl != null && videoUrl.isNotEmpty;
     final canRevealVideo = hasVideo && !isFinalizingVideoSetup;
+    final canUseVideoActions =
+        isUploadEnabled &&
+        !isPickingVideo &&
+        !isFinalizingVideoSetup &&
+        !isUploadingVideo &&
+        !isDeletingVideo &&
+        !isUploadingThumbnail;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,19 +68,22 @@ class _VideoTabContent extends StatelessWidget {
             localVideoPath: localVideoPath,
             title: detail?.title ?? '',
             thumbnailLink: detail?.previewThumbnailLink,
+            height: (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0),
             fillBounds: true,
             topRightActions: !isReadOnly
                 ? [
-                    _TrainingVideoActionMenu(
-                      isLoading: isDeletingVideo || isUploadingThumbnail,
-                      onSelected: (action) {
-                        if (action == _TrainingVideoMenuAction.delete) {
-                          onDeleteVideoTap?.call();
-                          return;
-                        }
-
-                        onUpdateThumbnailTap?.call();
-                      },
+                    _TrainingVideoActionButton(
+                      icon: Icons.photo_library_outlined,
+                      tooltip: AppStrings.trainingThumbnailAction,
+                      isLoading: isUploadingThumbnail,
+                      onTap: canUseVideoActions ? onUpdateThumbnailTap : null,
+                    ),
+                    _TrainingVideoActionButton(
+                      icon: Icons.sync_rounded,
+                      tooltip: AppStrings.trainingReUploadVideoAction,
+                      label: AppStrings.trainingReUploadVideoAction,
+                      isLoading: isDeletingVideo || isPickingVideo || isUploadingVideo,
+                      onTap: canUseVideoActions ? onReUploadVideoTap : null,
                     ),
                   ]
                 : const <Widget>[],
@@ -87,10 +97,7 @@ class _VideoTabContent extends StatelessWidget {
             isUploading: isUploadingVideo,
             isFinalizingSetup: isFinalizingVideoSetup,
             isLoading:
-                isUploadingVideo ||
-                isDeletingVideo ||
-                isPickingVideo ||
-                isFinalizingVideoSetup,
+                isUploadingVideo || isDeletingVideo || isPickingVideo || isFinalizingVideoSetup,
             onTap: onUploadVideoTap,
           ),
         if (canRevealVideo) ...[
@@ -98,11 +105,7 @@ class _VideoTabContent extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Expanded(
-                child: _TrainingSectionHeader(
-                  title: AppStrings.trainingSummaryLabel,
-                ),
-              ),
+              const Expanded(child: _TrainingSectionHeader(title: AppStrings.trainingSummaryLabel)),
               if (canEditSummary && isSavingSummary)
                 SizedBox(
                   width: 16,
@@ -116,6 +119,9 @@ class _VideoTabContent extends StatelessWidget {
               ? _TrainingOutlinedTextField(
                   controller: summaryController,
                   hintText: AppStrings.trainingSummaryHint,
+                  readOnly: !isEditingSummary,
+                  showCursor: isEditingSummary,
+                  onTap: onEditSummaryTap,
                   minLines: 4,
                   maxLines: 8,
                   textInputAction: TextInputAction.newline,
@@ -123,10 +129,7 @@ class _VideoTabContent extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                   textHeight: 1.65,
                   hintFontWeight: FontWeight.w400,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 )
               : _TrainingDisplayCard(
                   child: AppTextView.body3(
@@ -175,9 +178,7 @@ class _NewLessonTitleField extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.mainBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.6)),
           ),
           child: Row(
             children: [
@@ -227,9 +228,7 @@ class _NewLessonTitleField extends StatelessWidget {
                         ? FastCircularProgressIndicator(width: 14, height: 14)
                         : Icon(
                             Icons.check_rounded,
-                            color: canSubmit
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
+                            color: canSubmit ? AppColors.textPrimary : AppColors.textSecondary,
                             size: 18,
                           ),
                   ),
@@ -243,105 +242,80 @@ class _NewLessonTitleField extends StatelessWidget {
   }
 }
 
-enum _TrainingVideoMenuAction { delete, thumbnail }
-
-class _TrainingVideoActionMenu extends StatelessWidget {
-  const _TrainingVideoActionMenu({
+class _TrainingVideoActionButton extends StatelessWidget {
+  const _TrainingVideoActionButton({
+    required this.icon,
+    required this.tooltip,
     required this.isLoading,
-    required this.onSelected,
+    this.label,
+    this.onTap,
   });
 
+  final IconData icon;
+  final String tooltip;
   final bool isLoading;
-  final ValueChanged<_TrainingVideoMenuAction> onSelected;
+  final String? label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return SizedBox(
-        width: 34,
-        height: 34,
-        child: Center(
-          child: FastCircularProgressIndicator(width: 14, height: 14),
-        ),
-      );
-    }
+    final borderRadius = BorderRadius.circular(12);
 
-    return PopupMenuButton<_TrainingVideoMenuAction>(
-      tooltip: AppStrings.trainingVideoMoreActions,
-      color: AppColors.surfaceDark3,
-      surfaceTintColor: AppColors.surfaceDark3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: onSelected,
-      itemBuilder: (context) => [
-        PopupMenuItem<_TrainingVideoMenuAction>(
-          value: _TrainingVideoMenuAction.delete,
-          child: _TrainingVideoMenuItemContent(
-            icon: SvgPicture.asset(
-              '${AppStrings.imagePath}delete.svg',
-              width: 18,
-              height: 18,
-              colorFilter: const ColorFilter.mode(
-                AppColors.red,
-                BlendMode.srcIn,
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        enabled: onTap != null,
+        child: Material(
+          color: AppColors.surfaceDark2,
+          borderRadius: borderRadius,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: isLoading ? null : onTap,
+            borderRadius: borderRadius,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: 34,
+                minHeight: 34,
+                maxWidth: label == null ? 34 : 132,
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: label == null ? 8 : 10, vertical: 7),
+                child: Opacity(
+                  opacity: onTap != null || isLoading ? 1 : 0.5,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isLoading)
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Center(
+                            child: FastCircularProgressIndicator(width: 14, height: 14),
+                          ),
+                        )
+                      else
+                        Icon(icon, color: AppColors.textPrimary, size: 18),
+                      if (label != null) ...[
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: AppTextView.body2(
+                            label!,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w400,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
-            label: AppStrings.trainingDeleteVideoAction,
-            color: AppColors.red,
           ),
-        ),
-        const PopupMenuItem<_TrainingVideoMenuAction>(
-          value: _TrainingVideoMenuAction.thumbnail,
-          child: _TrainingVideoMenuItemContent(
-            icon: Icon(
-              Icons.image_outlined,
-              color: AppColors.secondaryColor,
-              size: 18,
-            ),
-            label: AppStrings.trainingThumbnailAction,
-            color: AppColors.secondaryColor,
-          ),
-        ),
-      ],
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: AppColors.mainBg,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.fieldBorder.withValues(alpha: 0.25),
-          ),
-        ),
-        child: const Icon(
-          Icons.more_vert_rounded,
-          color: AppColors.textPrimary,
-          size: 18,
         ),
       ),
-    );
-  }
-}
-
-class _TrainingVideoMenuItemContent extends StatelessWidget {
-  const _TrainingVideoMenuItemContent({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  final Widget icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        icon,
-        const SizedBox(width: 10),
-        AppTextView.body3(label, color: color, fontWeight: FontWeight.w700),
-      ],
     );
   }
 }
@@ -365,87 +339,128 @@ class _TrainingVideoEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final label = isFinalizingSetup
+        ? AppStrings.trainingFinishingVideoSetup
+        : isUploading
+        ? AppStrings.trainingUploadingVideo
+        : isPickingVideo
+        ? AppStrings.trainingPreparingVideoUpload
+        : AppStrings.trainingVideoUploadPrompt;
+
     return Material(
-      color: Colors.transparent,
+      color: AppColors.mainBg,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: isEnabled && !isLoading ? onTap : null,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: CustomPaint(
-          painter: _DottedRoundedBorderPainter(
-            color: isEnabled
-                ? AppColors.secondaryColor.withValues(alpha: 0.75)
-                : AppColors.fieldBorder.withValues(alpha: 0.38),
-            radius: 14,
+          foregroundPainter: _DottedRoundedBorderPainter(
+            color: AppColors.fieldBorder.withValues(alpha: 0.7),
+            radius: 16,
+            strokeWidth: 0.8,
+            dashLength: 2.5,
+            gapLength: 2.5,
           ),
-          child: Ink(
-            width: double.infinity,
-            height: 440,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-            decoration: BoxDecoration(
-              color: AppColors.secondaryColor.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: AppColors.secondaryColor.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: isPickingVideo
-                          ? FastCircularProgressIndicator(width: 20, height: 20)
-                          : const Icon(
-                              Icons.video_library_outlined,
-                              color: AppColors.textPrimary,
-                              size: 30,
-                            ),
-                    ),
+          child: LayoutBuilder(
+            builder: (context, constraints) => ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                minHeight: (constraints.maxWidth * 1.22).clamp(320.0, 520.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                child: Center(
+                  child: _TrainingVideoUploadContent(
+                    label: label,
+                    isBusy: isLoading,
+                    showProgress: isUploading || isFinalizingSetup,
                   ),
-                  const SizedBox(height: 16),
-                  AppTextView.body(
-                    isFinalizingSetup
-                        ? AppStrings.trainingFinishingVideoSetup
-                        : isUploading
-                        ? AppStrings.trainingUploadingVideo
-                        : AppStrings.trainingUploadVideo,
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    textAlign: TextAlign.center,
-                  ),
-                  if (!isUploading && !isFinalizingSetup) ...<Widget>[
-                    const SizedBox(height: 8),
-                    const AppTextView.body3(
-                      AppStrings.trainingUploadVideoHint,
-                      color: AppColors.textSecondary,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  if (isUploading || isFinalizingSetup) ...[
-                    const SizedBox(height: 14),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: 6,
-                        backgroundColor: AppColors.secondaryColor.withValues(
-                          alpha: 0.18,
-                        ),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TrainingVideoUploadContent extends StatelessWidget {
+  const _TrainingVideoUploadContent({
+    required this.label,
+    required this.isBusy,
+    required this.showProgress,
+  });
+
+  final String label;
+  final bool isBusy;
+  final bool showProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _TrainingVideoUploadIcon(isBusy: isBusy),
+        const SizedBox(height: 24),
+        AppTextView.body(
+          label,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+          textAlign: TextAlign.center,
+          height: 1.25,
+        ),
+        if (!isBusy) ...[
+          const SizedBox(height: 12),
+          const AppTextView.body3(
+            AppStrings.trainingVideoFileFormat,
+            color: AppColors.textPrimary,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const AppTextView.body3(
+            AppStrings.trainingVideoMaxFileSize,
+            color: AppColors.textPrimary,
+            textAlign: TextAlign.center,
+          ),
+        ],
+        if (showProgress) ...[
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              backgroundColor: AppColors.secondaryColor.withValues(alpha: 0.18),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TrainingVideoUploadIcon extends StatelessWidget {
+  const _TrainingVideoUploadIcon({required this.isBusy});
+
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 54,
+      height: 54,
+      decoration: const BoxDecoration(color: AppColors.secondaryColor, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: isBusy
+          ? FastCircularProgressIndicator(width: 20, height: 20)
+          : SvgPicture.asset(
+              AppAssets.upload,
+              width: 18,
+              height: 18,
+              excludeFromSemantics: true,
+              colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
+            ),
     );
   }
 }

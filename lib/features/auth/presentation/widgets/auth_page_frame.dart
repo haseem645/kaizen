@@ -61,11 +61,15 @@ class _AuthBrandHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AppTextView.body1(
-          AppStrings.kaizen,
-          color: AppColors.secondaryColor,
-          fontSize: 25,
-          fontWeight: FontWeight.w400,
+        const Flexible(
+          child: AppTextView.body1(
+            AppStrings.kaizen,
+            color: AppColors.secondaryColor,
+            fontSize: 25,
+            fontWeight: FontWeight.w400,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         Container(
           width: 1,
@@ -73,11 +77,15 @@ class _AuthBrandHeader extends StatelessWidget {
           margin: const EdgeInsets.only(left: 7, top: 4, right: 7),
           color: AppColors.textPrimary,
         ),
-        AppTextView.body1(
-          AppStrings.teams,
-          color: AppColors.textPrimary,
-          fontSize: 25,
-          fontWeight: FontWeight.w400,
+        const Flexible(
+          child: AppTextView.body1(
+            AppStrings.teams,
+            color: AppColors.textPrimary,
+            fontSize: 25,
+            fontWeight: FontWeight.w400,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

@@ -15,7 +15,7 @@ class TracksBreakpointCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.35)),
       ),
       child: Column(

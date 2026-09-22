@@ -31,6 +31,10 @@ class TrainingLibraryLesson {
     required this.description,
     required this.thumbnailLink,
     required this.isPubliclyAvailable,
+    this.duration = 0,
+    this.fromSandbox = false,
+    this.sopExists = false,
+    this.quizExists = false,
   });
 
   final String id;
@@ -38,6 +42,10 @@ class TrainingLibraryLesson {
   final String description;
   final String? thumbnailLink;
   final bool isPubliclyAvailable;
+  final int duration;
+  final bool fromSandbox;
+  final bool sopExists;
+  final bool quizExists;
 
   bool get hasDescription => description.trim().isNotEmpty;
 }
@@ -53,6 +61,7 @@ class TrainingLibraryModule {
     required this.lessons,
     required this.thumbnailLink,
     required this.category,
+    this.descriptionId,
   });
 
   final String id;
@@ -65,5 +74,11 @@ class TrainingLibraryModule {
   final String? thumbnailLink;
   final TrainingLibraryCategory category;
 
+  /// Separate from the lesson UUID in the flat listing response. Legacy grouped
+  /// responses use [id] as their description UUID.
+  final String? descriptionId;
+
   int get lessonsCount => lessons.length;
+  bool get isLessonListing => descriptionId != null;
+  String get trainingDescriptionId => descriptionId ?? id;
 }

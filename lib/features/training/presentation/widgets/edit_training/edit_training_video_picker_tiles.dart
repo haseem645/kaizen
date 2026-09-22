@@ -43,6 +43,49 @@ class _TrainingVideoCameraTile extends StatelessWidget {
   }
 }
 
+class _TrainingVideoOpenGalleryTile extends StatelessWidget {
+  const _TrainingVideoOpenGalleryTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark2,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.secondaryColor.withValues(alpha: 0.4),
+          ),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.video_library_outlined,
+                color: AppColors.secondaryColor,
+                size: 32,
+              ),
+              SizedBox(height: 10),
+              AppTextView.body3(
+                AppStrings.trainingOpenGallery,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TrainingVideoSystemPickerOptionTile extends StatelessWidget {
   const _TrainingVideoSystemPickerOptionTile({
     required this.icon,

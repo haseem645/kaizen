@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/app_permission_utils.dart';
 import '../../../../core/utils/custom_functions.dart';
@@ -288,101 +289,116 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
                           ],
                           if (!widget.isMyReport) ...[
                             const SizedBox(height: 16),
-                            Column(
-                              children: [
-                                _CommitmentCard(
-                                  controller: _commentsController,
-                                  isReadOnly: report.isCertified,
-                                  certifiedAt: report.certifiedAt,
-                                  employeeSignatureUrl:
-                                      report.selectedProfileSignatureUrl,
-                                  employeeName:
-                                      report.employeeSignatureName ??
-                                      report.profile.name,
-                                  employeeSignatureBytes:
-                                      state.employeeSignatureBytes,
-                                  facilitatorSignatureUrl:
-                                      report.facilitatorSignatureUrl,
-                                  facilitatorName: report.facilitatorName,
-                                  facilitatorSignatureBytes:
-                                      state.facilitatorSignatureBytes,
-                                  onChanged: controller
-                                      .updatePerformanceReportCommitment,
-                                  onAddEmployeeSignature: () =>
-                                      _openSignaturePad(
-                                        context,
-                                        title: 'Employee Signature',
-                                        existingSignatureUrl:
-                                            report.selectedProfileSignatureUrl,
-                                        onSaved:
-                                            controller.saveEmployeeSignature,
-                                      ),
-                                  onAddFacilitatorSignature: () async {
-                                    final user = await AppPreference.getUser();
-                                    if (!context.mounted) {
-                                      return;
-                                    }
-                                    await _openSignaturePad(
-                                      context,
-                                      title: 'Facilitator Signature',
-                                      existingSignatureUrl:
-                                          user?.signature?.image,
-                                      onSaved:
-                                          controller.saveFacilitatorSignature,
-                                    );
-                                  },
-                                  onClearEmployeeSignature:
-                                      controller.clearEmployeeSignature,
-                                  onClearFacilitatorSignature:
-                                      controller.clearFacilitatorSignature,
-                                ),
-                                if (!report.isCertified) ...[
-                                  const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton(
-                                      onPressed:
-                                          state.isAuditActionLoading ||
-                                              state
-                                                  .isFacilitatorSignatureUploading
-                                          ? null
-                                          : () => _handleCertify(
-                                              context,
-                                              controller,
-                                            ),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor:
-                                            AppColors.secondaryColor,
-                                        foregroundColor: AppColors.textPrimary,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                            ListenableBuilder(
+                              listenable: AppManager.instance,
+                              builder: (context, _) {
+                                final canManageContent = AppManager
+                                    .instance
+                                    .canCurrentOrganizationModifyContent;
+                                final isCommitmentReadOnly =
+                                    report.isCertified || !canManageContent;
+
+                                return Column(
+                                  children: [
+                                    _CommitmentCard(
+                                      controller: _commentsController,
+                                      isReadOnly: isCommitmentReadOnly,
+                                      certifiedAt: report.certifiedAt,
+                                      employeeSignatureUrl:
+                                          report.selectedProfileSignatureUrl,
+                                      employeeName:
+                                          report.employeeSignatureName ??
+                                          report.profile.name,
+                                      employeeSignatureBytes:
+                                          state.employeeSignatureBytes,
+                                      facilitatorSignatureUrl:
+                                          report.facilitatorSignatureUrl,
+                                      facilitatorName: report.facilitatorName,
+                                      facilitatorSignatureBytes:
+                                          state.facilitatorSignatureBytes,
+                                      onChanged: controller
+                                          .updatePerformanceReportCommitment,
+                                      onAddEmployeeSignature: () =>
+                                          _openSignaturePad(
+                                            context,
+                                            title: 'Employee Signature',
+                                            existingSignatureUrl: report
+                                                .selectedProfileSignatureUrl,
+                                            onSaved: controller
+                                                .saveEmployeeSignature,
                                           ),
+                                      onAddFacilitatorSignature: () async {
+                                        final user =
+                                            await AppPreference.getUser();
+                                        if (!context.mounted) {
+                                          return;
+                                        }
+                                        await _openSignaturePad(
+                                          context,
+                                          title: 'Facilitator Signature',
+                                          existingSignatureUrl:
+                                              user?.signature?.image,
+                                          onSaved: controller
+                                              .saveFacilitatorSignature,
+                                        );
+                                      },
+                                      onClearEmployeeSignature:
+                                          controller.clearEmployeeSignature,
+                                      onClearFacilitatorSignature:
+                                          controller.clearFacilitatorSignature,
+                                    ),
+                                    if (!report.isCertified &&
+                                        canManageContent) ...[
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: FilledButton(
+                                          onPressed:
+                                              state.isAuditActionLoading ||
+                                                  state
+                                                      .isFacilitatorSignatureUploading
+                                              ? null
+                                              : () => _handleCertify(
+                                                  context,
+                                                  controller,
+                                                ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                AppColors.secondaryColor,
+                                            foregroundColor:
+                                                AppColors.textPrimary,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          child:
+                                              state.isAuditActionLoading ||
+                                                  state
+                                                      .isFacilitatorSignatureUploading
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2.2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(
+                                                          AppColors.textPrimary,
+                                                        ),
+                                                  ),
+                                                )
+                                              : const Text(AppStrings.certify),
                                         ),
                                       ),
-                                      child:
-                                          state.isAuditActionLoading ||
-                                              state
-                                                  .isFacilitatorSignatureUploading
-                                          ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.2,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(AppColors.textPrimary),
-                                              ),
-                                            )
-                                          : const Text(AppStrings.certify),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                                    ],
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ] else if (reportViewData.shouldShowMessageOnly &&
@@ -686,6 +702,10 @@ class _PerformanceReportViewState extends State<_PerformanceReportView> {
     BuildContext context,
     CheckInController controller,
   ) async {
+    if (!AppManager.instance.canCurrentOrganizationModifyContent) {
+      return;
+    }
+
     final message = await controller.certifyPerformanceReport();
     if (!context.mounted) {
       return;
@@ -1034,7 +1054,7 @@ class _TimeRangeSelector extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.7)),
       ),
       child: DropdownButtonHideUnderline(
@@ -1110,11 +1130,11 @@ class _CertifiedReportsSelector extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.7)),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         onTap: () => _showCertifiedReportsSheet(context),
         child: Row(
           children: [
@@ -1189,7 +1209,7 @@ class _PersonaCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
@@ -1355,11 +1375,11 @@ class _ProfileNameChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? AppColors.purple2 : AppColors.grey2,
               width: 1,
@@ -1398,7 +1418,7 @@ class _RatingsTable extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(
@@ -1698,7 +1718,7 @@ class _DescriptionRatingCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.fieldBorder.withValues(alpha: 0.18),
         ),
@@ -1802,7 +1822,7 @@ class _RatingBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: AppTextView.body4(
         '$value',
@@ -1833,13 +1853,13 @@ class _CoreValuesCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             onTap: onToggle,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
@@ -2052,7 +2072,7 @@ class _CommitmentCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2131,13 +2151,13 @@ class _CommitmentCard extends StatelessWidget {
                     filled: true,
                     fillColor: AppColors.surfaceDark,
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
                         color: AppColors.fieldBorder.withValues(alpha: 0.4),
                       ),
                     ),
                     focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(6)),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                       borderSide: BorderSide(color: AppColors.secondaryColor),
                     ),
                   ),
@@ -2329,7 +2349,7 @@ class _SignatureSection extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: signatureBytes != null
                       ? Image.memory(signatureBytes!, fit: BoxFit.contain)
@@ -2361,7 +2381,7 @@ class _SignatureSection extends StatelessWidget {
                             color: AppColors.fieldBorder.withValues(alpha: 0.4),
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: const Text('Clear'),
@@ -2374,7 +2394,7 @@ class _SignatureSection extends StatelessWidget {
                         foregroundColor: AppColors.secondaryColor,
                         side: const BorderSide(color: AppColors.secondaryColor),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       icon: Icon(
@@ -2403,7 +2423,7 @@ class _SignatureSection extends StatelessWidget {
 BoxDecoration _cardDecoration() {
   return BoxDecoration(
     color: AppColors.surfaceDark,
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppColors.grey2.withValues(alpha: 0.4)),
   );
 }
@@ -2411,7 +2431,7 @@ BoxDecoration _cardDecoration() {
 BoxDecoration _innerCardDecoration() {
   return BoxDecoration(
     // color: AppColors.surfaceDark2,
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.18)),
   );
 }

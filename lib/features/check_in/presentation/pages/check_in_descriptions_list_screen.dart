@@ -6,8 +6,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/constants/app_colors.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
+import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_listing_search_bar.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/data/datasources/audit_remote_data_source.dart';
@@ -30,11 +32,16 @@ bool _canEditSingleDescriptionAudit({
   required bool isOwner,
   required String date,
 }) {
-  return !isViewOnly && isOwner && CustomFunctions.isAuditWithinContinueWindow(date);
+  return AppManager.instance.canCurrentOrganizationModifyContent &&
+      !isViewOnly &&
+      isOwner &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 bool _canCommentOnSingleDescriptionAudit({required bool isViewOnly, required String date}) {
-  return !isViewOnly && CustomFunctions.isAuditWithinContinueWindow(date);
+  return AppManager.instance.canCurrentOrganizationModifyContent &&
+      !isViewOnly &&
+      CustomFunctions.isAuditWithinContinueWindow(date);
 }
 
 enum _PassBlockState { great, almostThere, needsImprovement, defaultValue }
@@ -193,6 +200,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
 
   @override
   Widget build(BuildContext context) {
+    context.watch<AppManager>();
     final controller = context.watch<CheckInController>();
     final state = controller.state;
     final audit = state.quarterlyAudit;
@@ -323,7 +331,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
         padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.secondaryColor : Colors.transparent,
             width: 1.2,
@@ -473,7 +481,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -532,7 +540,10 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
     QuarterlyAudit audit,
     _CheckInDescriptionsListFiltersState filtersState,
   ) {
-    final filteredDescriptions = _filteredDescriptions(audit, filtersState);
+    final controller = context.read<CheckInController>();
+    final filteredDescriptions = controller.searchDescriptions(
+      _filteredDescriptions(audit, filtersState),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,14 +561,14 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
             ),
             const SizedBox(width: 12),
             InkWell(
-              borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
+              borderRadius: BorderRadius.circular(12),
               onTap: _toggleFilterOptions,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: EdgeInsets.all(filtersState.isFilterOptionsVisible ? 8 : 8),
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor,
-                  borderRadius: BorderRadius.circular(filtersState.isFilterOptionsVisible ? 8 : 8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   filtersState.isFilterOptionsVisible
@@ -570,23 +581,12 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
             ),
           ],
         ),
-        if (widget.requireDescriptionSelection) ...[
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.24)),
-            ),
-            child: const AppTextView.body2(
-              AppStrings.checkInSelectDescriptionPrompt,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        const SizedBox(height: 10),
+        AppListingSearchBar(
+          controller: controller.descriptionSearchController,
+          hintText: AppStrings.auditSearchDescriptionsHint,
+          onChanged: controller.updateDescriptionSearchQuery,
+        ),
         const SizedBox(height: 10),
         AnimatedSize(
           duration: const Duration(milliseconds: 280),
@@ -614,10 +614,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
             layoutBuilder: (currentChild, previousChildren) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final child in previousChildren) child,
-                  if (currentChild != null) currentChild,
-                ],
+                children: [...previousChildren, if (currentChild != null) currentChild],
               );
             },
             child: filtersState.isFilterOptionsVisible
@@ -629,10 +626,12 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const AppTextView.body2(
-                      AppStrings.auditNoMatchingDescriptions,
+                    child: AppTextView.body2(
+                      controller.descriptionSearchQuery.isEmpty
+                          ? AppStrings.auditNoMatchingDescriptions
+                          : AppStrings.auditNoMatchingDescriptionSearch,
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -683,7 +682,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1149,12 +1148,22 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     final auditFactorType = CustomFunctions.capitalizeFirstLetter(
       widget.description.auditFactorType,
     );
+    final milestone = CustomFunctions.normalizeAuditMilestone(
+      widget.description.milestoneDay,
+    );
+    final hasMilestone = AppStrings.auditMilestoneOptions.contains(milestone);
+    final auditTypeLabel = auditFactorType.isEmpty
+        ? AppStrings.checkInTitle
+        : auditFactorType;
+    final milestoneLabel = hasMilestone
+        ? AppStrings.auditMilestoneCardLabel(milestone)
+        : null;
     final descriptionText = widget.description.description.isEmpty
         ? AppStrings.auditNoDescriptionAvailable
         : widget.description.description;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       onTap: _openDetails,
       child: ValueListenableBuilder<bool>(
         valueListenable: _isMediaCommentCreatedNotifier,
@@ -1162,17 +1171,16 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 12, 12, 14),
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 16),
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.transparent, width: 1.4),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: AppTextView.body1(
@@ -1180,121 +1188,161 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
                         color: AppColors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: isMediaCommentCreated
-                            ? AppColors.green1
-                            : AppColors.secondaryColor.withValues(alpha: 0.14),
-                        shape: BoxShape.circle,
-                      ),
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: _isOpeningDetailsNotifier,
-                        builder: (context, isOpeningDetails, _) {
-                          if (isOpeningDetails) {
-                            return Padding(
-                              padding: const EdgeInsets.all(7),
-                              child: FastCircularProgressIndicator(),
-                            );
-                          }
-                          return Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: isMediaCommentCreated ? Colors.white : AppColors.secondaryColor,
-                            size: 16,
-                          );
-                        },
-                      ),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 90),
+                      child: _DescriptionAuditTypePill(text: auditTypeLabel),
                     ),
+                    if (milestoneLabel != null) ...[
+                      const SizedBox(width: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 80),
+                        child: _DescriptionMilestonePill(text: milestoneLabel),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 6),
-                ValueListenableBuilder<_PassSelectionViewState>(
-                  valueListenable: _viewStateNotifier,
-                  builder: (context, viewState, _) {
-                    final counts = _auditCountsFromBlocks(viewState.blocks);
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SelectionCounter(
-                          color: canEditBlocks
-                              ? AppColors.green1
-                              : AppColors.green1.withValues(alpha: 0.5),
-                          count: counts['great'] ?? 0,
-                          showDecrementControl: widget.isOwner && !widget.isSelfAudit,
-                          onTapCount: canEditBlocks
-                              ? () => _incrementRating(_PassBlockState.great)
-                              : null,
-                          onTapArrow: canEditBlocks
-                              ? () => _decrementRating(_PassBlockState.great)
-                              : null,
-                          canEditBlocks: canEditBlocks,
-                        ),
-                        const SizedBox(width: 16),
-                        _SelectionCounter(
-                          color: canEditBlocks
-                              ? AppColors.orange1
-                              : AppColors.orange1.withValues(alpha: 0.5),
-                          count: counts['almost_there'] ?? 0,
-                          showDecrementControl: widget.isOwner && !widget.isSelfAudit,
-                          onTapCount: canEditBlocks
-                              ? () => _incrementRating(_PassBlockState.almostThere)
-                              : null,
-                          onTapArrow: canEditBlocks
-                              ? () => _decrementRating(_PassBlockState.almostThere)
-                              : null,
-                          canEditBlocks: canEditBlocks,
-                        ),
-                        const SizedBox(width: 16),
-                        _SelectionCounter(
-                          color: canEditBlocks
-                              ? AppColors.red1
-                              : AppColors.red1.withValues(alpha: 0.5),
-                          count: counts['needs_improvement'] ?? 0,
-                          showDecrementControl: widget.isOwner && !widget.isSelfAudit,
-                          onTapCount: canEditBlocks
-                              ? () => _incrementRating(_PassBlockState.needsImprovement)
-                              : null,
-                          onTapArrow: canEditBlocks
-                              ? () => _decrementRating(_PassBlockState.needsImprovement)
-                              : null,
-                          canEditBlocks: canEditBlocks,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Spacer(),
-                    if (canCreateComments)
-                      _CommentIconButton(
-                        isEnabled: true,
-                        icon: Icons.camera_alt_outlined,
-                        onTap: _openCreateCommentDialog,
-                      ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: _DescriptionAuditTypePill(
-                            text: auditFactorType.isEmpty
-                                ? AppStrings.checkInTitle
-                                : auditFactorType,
+                const SizedBox(height: 18),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: canCreateComments ? 78 : 42,
+                  ),
+                  child: Stack(
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(child: SizedBox.shrink()),
+                          ValueListenableBuilder<_PassSelectionViewState>(
+                            valueListenable: _viewStateNotifier,
+                            builder: (context, viewState, _) {
+                              final counts = _auditCountsFromBlocks(
+                                viewState.blocks,
+                              );
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _SelectionCounter(
+                                    color: canEditBlocks
+                                        ? AppColors.green1
+                                        : AppColors.green1.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                    count: counts['great'] ?? 0,
+                                    showDecrementControl:
+                                        widget.isOwner && !widget.isSelfAudit,
+                                    onTapCount: canEditBlocks
+                                        ? () => _incrementRating(
+                                            _PassBlockState.great,
+                                          )
+                                        : null,
+                                    onTapArrow: canEditBlocks
+                                        ? () => _decrementRating(
+                                            _PassBlockState.great,
+                                          )
+                                        : null,
+                                    canEditBlocks: canEditBlocks,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _SelectionCounter(
+                                    color: canEditBlocks
+                                        ? AppColors.orange1
+                                        : AppColors.orange1.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                    count: counts['almost_there'] ?? 0,
+                                    showDecrementControl:
+                                        widget.isOwner && !widget.isSelfAudit,
+                                    onTapCount: canEditBlocks
+                                        ? () => _incrementRating(
+                                            _PassBlockState.almostThere,
+                                          )
+                                        : null,
+                                    onTapArrow: canEditBlocks
+                                        ? () => _decrementRating(
+                                            _PassBlockState.almostThere,
+                                          )
+                                        : null,
+                                    canEditBlocks: canEditBlocks,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _SelectionCounter(
+                                    color: canEditBlocks
+                                        ? AppColors.red1
+                                        : AppColors.red1.withValues(alpha: 0.5),
+                                    count: counts['needs_improvement'] ?? 0,
+                                    showDecrementControl:
+                                        widget.isOwner && !widget.isSelfAudit,
+                                    onTapCount: canEditBlocks
+                                        ? () => _incrementRating(
+                                            _PassBlockState.needsImprovement,
+                                          )
+                                        : null,
+                                    onTapArrow: canEditBlocks
+                                        ? () => _decrementRating(
+                                            _PassBlockState.needsImprovement,
+                                          )
+                                        : null,
+                                    canEditBlocks: canEditBlocks,
+                                  ),
+                                ],
+                              );
+                            },
                           ),
+                          const Expanded(child: SizedBox.shrink()),
+                        ],
+                      ),
+                      Positioned.fill(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: isMediaCommentCreated
+                                    ? AppColors.green1
+                                    : AppColors.secondaryColor.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _isOpeningDetailsNotifier,
+                                builder: (context, isOpeningDetails, _) {
+                                  if (isOpeningDetails) {
+                                    return Padding(
+                                      padding: const EdgeInsets.all(7),
+                                      child: FastCircularProgressIndicator(),
+                                    );
+                                  }
+                                  return Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: isMediaCommentCreated
+                                        ? Colors.white
+                                        : AppColors.secondaryColor,
+                                    size: 16,
+                                  );
+                                },
+                              ),
+                            ),
+                            if (canCreateComments)
+                              _CommentIconButton(
+                                isEnabled: true,
+                                icon: Icons.camera_alt_outlined,
+                                onTap: _openCreateCommentDialog,
+                              ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1602,7 +1650,6 @@ class _CheckInDescriptionCardState extends State<_CheckInDescriptionCard> {
     final didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) {
         return DescriptionMediaCommentBottomSheet(
@@ -1678,6 +1725,32 @@ class _DescriptionAuditTypePill extends StatelessWidget {
   }
 }
 
+class _DescriptionMilestonePill extends StatelessWidget {
+  const _DescriptionMilestonePill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.hexe8f2ff,
+        border: Border.all(color: AppColors.purple1),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: AppTextView.body2(
+        text,
+        color: AppColors.purple1,
+        fontWeight: FontWeight.w600,
+        fontSize: 9,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
 class _SelectionCounter extends StatelessWidget {
   const _SelectionCounter({
     required this.color,
@@ -1702,7 +1775,7 @@ class _SelectionCounter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           onTap: hasReachedLimit ? null : onTapCount,
           child: Container(
             width: 42,
@@ -1710,7 +1783,7 @@ class _SelectionCounter extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: hasReachedLimit ? color.withValues(alpha: 0.5) : color,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: AppTextView.body2(
               '$count',
@@ -1723,14 +1796,14 @@ class _SelectionCounter extends StatelessWidget {
         if (showDecrementControl) ...[
           const SizedBox(height: 12),
           InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             onTap: onTapArrow,
             child: Container(
               width: 42,
               height: 24,
               decoration: BoxDecoration(
                 color: canEditBlocks ? AppColors.grey1 : AppColors.grey1.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 canEditBlocks ? Icons.keyboard_arrow_down_rounded : Icons.lock_rounded,
@@ -1760,13 +1833,13 @@ class _CommentIconButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           width: 30,
           height: 30,
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withValues(alpha: 0.6)),
           ),
           child: Icon(icon, color: color, size: 16),
@@ -1834,7 +1907,7 @@ class _DescriptionMediaTypeSelectionBottomSheetState
                       height: 4,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
@@ -1852,18 +1925,17 @@ class _DescriptionMediaTypeSelectionBottomSheetState
                         ? null
                         : () => _openChildSheet(widget.onCommentOnlySelected),
                   ),
-                  const SizedBox(height: 10),
-                  for (var index = 0; index < _availableTypes.length; index += 1) ...[
-                    _MediaTypeOption(
-                      title: _mediaTypeTitle(_availableTypes[index]),
-                      onTap: isOpeningChildSheet
-                          ? null
-                          : () => _openChildSheet(
-                              () => widget.onTypeSelected(_availableTypes[index]),
-                            ),
+                  ..._availableTypes.map(
+                    (type) => Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: _MediaTypeOption(
+                        title: _mediaTypeTitle(type),
+                        onTap: isOpeningChildSheet
+                            ? null
+                            : () => _openChildSheet(() => widget.onTypeSelected(type)),
+                      ),
                     ),
-                    if (index != _availableTypes.length - 1) const SizedBox(height: 10),
-                  ],
+                  ),
                   const SizedBox(height: 18),
                   AppButton(
                     text: AppStrings.done,

@@ -62,13 +62,8 @@ class _SeatAdditionDialogueState extends State<SeatAdditionDialogue> {
           canPop: !_controller.isSaving,
           child: Dialog(
             backgroundColor: AppColors.surfaceDark,
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 24,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
               child: SingleChildScrollView(
@@ -88,9 +83,7 @@ class _SeatAdditionDialogueState extends State<SeatAdditionDialogue> {
                           ),
                         ),
                         _SeatAdditionDialogCloseButton(
-                          onTap: _controller.isSaving
-                              ? null
-                              : () => Navigator.of(context).pop(),
+                          onTap: _controller.isSaving ? null : () => Navigator.of(context).pop(),
                         ),
                       ],
                     ),
@@ -122,9 +115,7 @@ class _SeatAdditionDialogueState extends State<SeatAdditionDialogue> {
                     ),
                     if (_controller.errorMessage != null) ...[
                       const SizedBox(height: 14),
-                      _SeatAdditionErrorCard(
-                        message: _controller.errorMessage!,
-                      ),
+                      _SeatAdditionErrorCard(message: _controller.errorMessage!),
                     ],
                     const SizedBox(height: 22),
                     Align(
@@ -165,9 +156,7 @@ class _SeatAdditionDialogueController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get canSave => !_isSaving && nameController.text.trim().isNotEmpty;
 
-  Future<bool> submit(
-    Future<void> Function(String descriptionName) onSave,
-  ) async {
+  Future<bool> submit(Future<void> Function(String descriptionName) onSave) async {
     final validationMessage = _validate();
     if (validationMessage != null) {
       _errorMessage = validationMessage;
@@ -235,9 +224,7 @@ class _SeatAdditionField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.28),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
       ),
       child: TextField(
         controller: controller.nameController,
@@ -275,11 +262,7 @@ class _SeatAdditionErrorCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.red1.withValues(alpha: 0.28)),
       ),
-      child: AppTextView.body2(
-        message,
-        color: AppColors.textPrimary,
-        height: 1.4,
-      ),
+      child: AppTextView.body2(message, color: AppColors.textPrimary, height: 1.4),
     );
   }
 }
@@ -296,9 +279,5 @@ class _SeatAdditionDialogCloseButton extends StatelessWidget {
 }
 
 int _countWords(String value) {
-  return value
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((word) => word.isNotEmpty)
-      .length;
+  return value.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
 }

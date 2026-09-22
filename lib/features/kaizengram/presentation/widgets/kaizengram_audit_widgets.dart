@@ -154,7 +154,7 @@ class KaizengramRatingSummaryBlock extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -213,7 +213,7 @@ class KaizengramAuditMediaListTile extends StatelessWidget {
                 alignment: Alignment.center,
                 children: <Widget>[
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     child: SizedBox(
                       width: 64,
                       height: 64,
@@ -327,7 +327,7 @@ class KaizengramStatusLine extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1.4),
           decoration: BoxDecoration(
             color: statusStyle.backgroundColor,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: statusStyle.borderColor, width: 1),
           ),
           child: AppTextView.body3(

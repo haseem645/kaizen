@@ -1,31 +1,17 @@
-const int trainingViewerCoreTabCount = 2;
+const int trainingViewerTabCount = 4;
 
-bool isTrainingViewerTabEnabled({
-  required bool isPubliclyAvailable,
-  required int tabIndex,
-  bool isChildOrganization = false,
-}) {
-  if (tabIndex < 0) {
-    return false;
-  }
+int maxTrainingTabIndex({required bool hasSelectedModule, required bool canManageTraining}) =>
+    !hasSelectedModule ? 0 : (canManageTraining ? trainingViewerTabCount - 1 : 1);
 
-  if (tabIndex < trainingViewerCoreTabCount) {
-    return true;
-  }
-
-  return isChildOrganization || !isPubliclyAvailable;
+/// Video and SOP remain available without permission to edit the lesson.
+bool isTrainingViewerTabEnabled({required bool canManageTraining, required int tabIndex}) {
+  return tabIndex >= 0 &&
+      tabIndex <=
+          maxTrainingTabIndex(hasSelectedModule: true, canManageTraining: canManageTraining);
 }
 
-int normalizeTrainingViewerTabIndex({
-  required bool isPubliclyAvailable,
-  required int tabIndex,
-  bool isChildOrganization = false,
-}) {
-  if (isTrainingViewerTabEnabled(
-    isPubliclyAvailable: isPubliclyAvailable,
-    tabIndex: tabIndex,
-    isChildOrganization: isChildOrganization,
-  )) {
+int normalizeTrainingViewerTabIndex({required bool canManageTraining, required int tabIndex}) {
+  if (isTrainingViewerTabEnabled(canManageTraining: canManageTraining, tabIndex: tabIndex)) {
     return tabIndex;
   }
 

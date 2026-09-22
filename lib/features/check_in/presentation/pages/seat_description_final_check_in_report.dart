@@ -371,7 +371,7 @@ class _ReportIdentityCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
       ),
       child: Column(
@@ -486,7 +486,7 @@ class _ConfidenceLevelCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
       ),
       child: Column(
@@ -617,7 +617,7 @@ class _DetailTextCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
       ),
       child: Column(
@@ -701,7 +701,7 @@ class _PerformanceTrendCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
       ),
       child: Column(
@@ -894,7 +894,7 @@ class _PerformanceTrendCard extends StatelessWidget {
               BarChartRodData(
                 toY: total,
                 width: usesQuarterLayout ? 24 : 12,
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(12),
                 color: total == 0 ? Colors.white12 : AppColors.green1,
                 rodStackItems: total == 0
                     ? const <BarChartRodStackItem>[]
@@ -1241,7 +1241,7 @@ class _TimeRangeDropdown extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
       ),
       child: DropdownButtonHideUnderline(
@@ -1290,7 +1290,7 @@ class _CommentsCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
       ),
       child: Column(
@@ -1359,7 +1359,7 @@ class _CommentsSearchBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark3,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.45)),
       ),
       child: Row(
@@ -1408,7 +1408,7 @@ class _CommentListTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onTap: comment.uuid.trim().isEmpty
             ? null
             : () => _openCommentsSheet(context),
@@ -1416,7 +1416,7 @@ class _CommentListTile extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark3,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.grey2.withValues(alpha: 0.45)),
           ),
           child: Row(
@@ -1499,7 +1499,7 @@ class _CommentMediaPreview extends StatelessWidget {
       mediaType: mediaType,
       width: 72,
       height: 72,
-      borderRadius: 6,
+      borderRadius: 12,
       placeholder: hasMedia
           ? const _CommentMediaLoadingPlaceholder()
           : const CheckInTextCommentPlaceholder(),
@@ -1522,7 +1522,7 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
             mediaType: 'image',
             width: 72,
             height: 72,
-            borderRadius: 6,
+            borderRadius: 12,
             placeholder: const _CommentMediaLoadingPlaceholder(),
             showVideoOverlay: false,
           ),
@@ -1552,7 +1552,7 @@ class _ScreenRecordingCommentPreview extends StatelessWidget {
       height: 72,
       decoration: BoxDecoration(
         color: AppColors.hex14182a,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
         child: Container(

@@ -48,7 +48,7 @@ class SeatProfileDescriptionsScreen extends StatelessWidget {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceDark,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,12 +147,12 @@ class _DescriptionCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _openDescriptionSheet(context),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
         child: Ink(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +204,7 @@ class _DescriptionCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppTextView.body2(
-                    AppStrings.seatProfileTrainings,
+                    AppStrings.training,
                     color: AppColors.secondaryColor,
                     fontWeight: FontWeight.w700,
                   ),

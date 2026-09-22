@@ -213,7 +213,7 @@ class _CheckInMediaCommentsBottomSheetState extends State<CheckInMediaCommentsBo
                     height: 4,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   Padding(
@@ -346,7 +346,7 @@ class _CheckInMediaCommentsBottomSheetState extends State<CheckInMediaCommentsBo
                         onPressed: () => Navigator.of(dialogContext).pop(false),
                         backgroundColor: AppColors.surfaceDark3,
                         textColor: AppColors.textPrimary,
-                        borderRadius: 8,
+                        borderRadius: 12,
                         minimumHeight: 42,
                       ),
                     ),
@@ -357,7 +357,7 @@ class _CheckInMediaCommentsBottomSheetState extends State<CheckInMediaCommentsBo
                         onPressed: () => Navigator.of(dialogContext).pop(true),
                         backgroundColor: AppColors.hexc62828,
                         textColor: Colors.white,
-                        borderRadius: 8,
+                        borderRadius: 12,
                         minimumHeight: 42,
                       ),
                     ),
@@ -923,7 +923,7 @@ class _SheetCachedImage extends StatelessWidget {
     final imageUrl = CustomFunctions.resolveImageUrl(mediaUrl);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         width: width,
         height: height,
@@ -1164,7 +1164,7 @@ class _SheetVideoPlayerState extends State<_SheetVideoPlayer> {
     final isBuffering = isReady && (controllerValue?.isBuffering ?? false);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         width: widget.width,
         height: widget.height,
@@ -1405,7 +1405,7 @@ class _CommentCardState extends State<_CommentCard> {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark3,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey2.withValues(alpha: 0.4)),
       ),
       child: Row(
@@ -1485,7 +1485,7 @@ class _RepliesList extends StatelessWidget {
             margin: const EdgeInsets.only(left: 6, right: 12, top: 4, bottom: 4),
             decoration: BoxDecoration(
               color: AppColors.grey2.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
           Expanded(
@@ -1515,7 +1515,7 @@ class _RepliesToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: AppTextView.body4(
@@ -1620,7 +1620,7 @@ class _ReplyAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(12),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -1675,7 +1675,7 @@ class _SendMessageBar extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: onCancelReply,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(12),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       child: AppTextView.body3(

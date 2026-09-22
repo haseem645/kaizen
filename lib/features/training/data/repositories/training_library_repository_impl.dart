@@ -15,6 +15,9 @@ class TrainingLibraryRepositoryImpl implements TrainingLibraryRepository {
     String searchType = 'category',
     String searchText = '',
     String? departmentId,
+    String? jobId,
+    String? jobCategoryId,
+    String? jobCategoryDescriptionId,
   }) {
     return _remoteDataSource.getTrainingLibraryModules(
       view: view,
@@ -23,6 +26,9 @@ class TrainingLibraryRepositoryImpl implements TrainingLibraryRepository {
       searchType: searchType,
       searchText: searchText,
       departmentId: departmentId,
+      jobId: jobId,
+      jobCategoryId: jobCategoryId,
+      jobCategoryDescriptionId: jobCategoryDescriptionId,
     );
   }
 }

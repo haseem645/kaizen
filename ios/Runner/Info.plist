@@ -8,6 +8,10 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>KaizenTeams</string>
+	<key>GIDClientID</key>
+	<string>273718420607-ome8m3n16fs468u05dbettnmts6n7om9.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>273718420607-q4dcl17i18nql3s6n7hr31o7m5rvsjkf.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -18,6 +22,14 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>kaizenteams</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.273718420607-ome8m3n16fs468u05dbettnmts6n7om9</string>
 			</array>
 		</dict>
 	</array>
