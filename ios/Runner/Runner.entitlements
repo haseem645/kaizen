@@ -6,7 +6,9 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>applinks:app.kaizenteams.ai</string>
 		<string>applinks:dev.kaizenteams.ai</string>
+		<string>applinks:api.kaizenteams.ai</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>

@@ -176,11 +176,6 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
-  Future<void> clearAuth() async {
-    await AppPreference.clearUserSession();
-    AppManager.instance.resetSessionState();
-  }
-
   String _resolveUserId(User? user) {
     return user?.userUuid?.trim() ?? user?.uuid?.trim() ?? '';
   }

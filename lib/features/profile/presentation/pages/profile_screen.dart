@@ -5,17 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
-import 'package:sparrowkaizen/core/widgets/app_confirmation_dialog.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/login/domain/entities/user.dart';
 import 'package:sparrowkaizen/features/profile/presentation/providers/profile_controller.dart';
-import 'package:sparrowkaizen/routes/app_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_full_screen.dart';
 import '../../../../core/widgets/app_text_view.dart';
 
+//
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -35,19 +34,24 @@ class _ProfileScreenView extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppFullScreen(
       backgroundColor: AppColors.mainBg,
-      child: Consumer<ProfileController>(
-        builder: (context, controller, _) {
-          if (controller.isLoading) {
-            return FastCircularProgressIndicator();
-          }
+      useSafeArea: false,
+      child: SafeArea(
+        top: true,
+        bottom: false,
+        child: Consumer<ProfileController>(
+          builder: (context, controller, _) {
+            if (controller.isLoading) {
+              return FastCircularProgressIndicator();
+            }
 
-          final user = controller.user;
-          if (user == null) {
-            return const _ProfileUnavailableState();
-          }
+            final user = controller.user;
+            if (user == null) {
+              return const _ProfileUnavailableState();
+            }
 
-          return _ProfileContent(controller: controller, user: user);
-        },
+            return _ProfileContent(controller: controller, user: user);
+          },
+        ),
       ),
     );
   }
@@ -83,9 +87,7 @@ class _ProfileContent extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: _ProfileHeaderBar(
-            onLogoutPressed: () => _showLogoutConfirmation(context),
-          ),
+          child: const _ProfileHeaderBar(),
         ),
         const SizedBox(height: 24),
         Expanded(
@@ -103,6 +105,7 @@ class _ProfileContent extends StatelessWidget {
                 user: user,
                 onEditDateOfBirth: () => _pickDateOfBirth(context, controller),
               ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -124,38 +127,6 @@ class _ProfileContent extends StatelessWidget {
         ),
       );
     }
-  }
-
-  Future<void> _showLogoutConfirmation(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AppConfirmationDialog(
-          title: 'Logout',
-          description: 'Are you sure you want to logout?',
-          onCancelCallback: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-          },
-          onConfirmCallback: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-            await _logout(context);
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    await context.read<ProfileController>().clearAuth();
-
-    if (!context.mounted) {
-      return;
-    }
-
-    Navigator.of(
-      context,
-      rootNavigator: true,
-    ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
   }
 
   Future<void> _pickDateOfBirth(
@@ -199,9 +170,7 @@ class _ProfileContent extends StatelessWidget {
 }
 
 class _ProfileHeaderBar extends StatelessWidget {
-  const _ProfileHeaderBar({required this.onLogoutPressed});
-
-  final VoidCallback onLogoutPressed;
+  const _ProfileHeaderBar();
 
   @override
   Widget build(BuildContext context) {
@@ -229,39 +198,7 @@ class _ProfileHeaderBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: PopupMenuButton<_ProfileMenuAction>(
-              color: AppColors.surfaceDark,
-              surfaceTintColor: AppColors.surfaceDark,
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: EdgeInsets.zero,
-              icon: const Icon(
-                Icons.more_vert,
-                color: AppColors.textPrimary,
-                size: 24,
-              ),
-              onSelected: (value) {
-                if (value == _ProfileMenuAction.logout) {
-                  onLogoutPressed();
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem<_ProfileMenuAction>(
-                  value: _ProfileMenuAction.logout,
-                  child: AppTextView.body2(
-                    'Logout',
-                    color: AppColors.red,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(width: 48, height: 48),
         ],
       ),
     );
@@ -470,8 +407,6 @@ class _ProfileInfoSection extends StatelessWidget {
   }
 }
 
-enum _ProfileMenuAction { logout }
-
 class _DateOfBirthDialogContent extends StatelessWidget {
   const _DateOfBirthDialogContent({
     required this.initialDate,
@@ -545,7 +480,7 @@ class _DateOfBirthDialogContent extends StatelessWidget {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text('Apply'),
@@ -610,7 +545,7 @@ class _ProfileDateSelectionChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.secondaryColor.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.secondaryColor),
       ),
       child: Column(
@@ -703,7 +638,7 @@ class _ProfileCalendar extends StatelessWidget {
             ),
             Expanded(
               child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 onTap: onHeaderTap,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -836,12 +771,12 @@ class _ProfileYearCell extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
                   ? AppColors.secondaryColor
@@ -909,12 +844,12 @@ class _ProfileCalendarDayCell extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: !isEnabled
                   ? AppColors.fieldBorder.withValues(alpha: 0.08)
@@ -1033,13 +968,13 @@ class _InfoCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

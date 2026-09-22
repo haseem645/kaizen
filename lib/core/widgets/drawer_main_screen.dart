@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../routes/app_router.dart' show AppRouter;
 import '../constants/app_colors.dart';
+import '../constants/app_strings.dart';
 import '../managers/app_manager.dart';
 import '../navigation/app_menu_type.dart';
+import '../utils/auth_controller.dart';
 import '../utils/custom_functions.dart';
+import 'app_confirmation_dialog.dart';
 import 'app_drawer.dart';
 import 'app_text_view.dart';
 
@@ -53,23 +56,30 @@ class DrawerMainScreen extends StatelessWidget {
 
   Widget _buildDrawer(BuildContext context) {
     return Consumer<AppManager>(
-      builder: (context, appManager, _) {
+      builder: (consumerContext, appManager, _) {
         final user = appManager.currentUser;
 
         return AppDrawer(
           name: CustomFunctions.resolveName(user),
+          currentOrganizationName: appManager.isRefreshingOrganizationContext
+              ? AppStrings.organizationsFetching
+              : appManager.currentOrganizationName,
+          isSandboxMode: appManager.usesParentApiEndpoints,
           selectedMenu: selectedMenu,
-          onHomeTap: () => _openHome(context),
           onProfileTap: () => _openProfile(context),
           onLearningTracksTap: () => _openLearningTracks(context),
           onComplianceTap: () => _openCompliance(context),
+          onLibraryTap: () => _openLibrary(context),
           onAuditsTap: () => _openAudit(context),
           onPerformanceSnapshotTap: () => _openPerformanceSnapshot(context),
           onSeatProfilesTap: () => _openSeatProfiles(context),
           onPaygradesTap: () => _openPaygrades(context),
+          onDepartmentsTap: () => _openDepartments(context),
           onKaizenGptTap: () => _openKaizenGpt(context),
           onSettingTap: () => _openSetting(context),
           onDrawerHeaderTap: () => _openProfile(context),
+          onOrganizationTap: () => appManager.openOrganizationsScreen(),
+          onLogoutTap: () => _showLogoutConfirmation(context),
           image: image ?? user?.image,
           imageUrl: imageUrl ?? user?.imageUrl,
         );
@@ -83,14 +93,6 @@ class DrawerMainScreen extends StatelessWidget {
     }
 
     AppRouter.pushNamed(context, AppRouter.profile);
-  }
-
-  void _openHome(BuildContext context) {
-    if (selectedMenu == AppMenuType.home) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.kaizengram);
   }
 
   void _openLearningTracks(BuildContext context) {
@@ -112,12 +114,23 @@ class DrawerMainScreen extends StatelessWidget {
     AppRouter.pushReplacementNamed<void, void>(context, AppRouter.compliance);
   }
 
+  void _openLibrary(BuildContext context) {
+    if (selectedMenu == AppMenuType.library) {
+      return;
+    }
+
+    AppRouter.pushReplacementNamed<void, void>(
+      context,
+      AppRouter.trainingLibrary,
+    );
+  }
+
   void _openAudit(BuildContext context) {
     if (selectedMenu == AppMenuType.audits) {
       return;
     }
 
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.audit);
+    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.checkIn);
   }
 
   void _openSeatProfiles(BuildContext context) {
@@ -147,6 +160,14 @@ class DrawerMainScreen extends StatelessWidget {
     AppRouter.pushReplacementNamed<void, void>(context, AppRouter.paygrades);
   }
 
+  void _openDepartments(BuildContext context) {
+    if (selectedMenu == AppMenuType.departments) {
+      return;
+    }
+
+    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.departments);
+  }
+
   void _openKaizenGpt(BuildContext context) {
     if (selectedMenu == AppMenuType.kaizenGpt) {
       return;
@@ -161,5 +182,24 @@ class DrawerMainScreen extends StatelessWidget {
     }
 
     AppRouter.pushNamed(context, AppRouter.onboarding);
+  }
+
+  Future<void> _showLogoutConfirmation(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AppConfirmationDialog(
+          title: AppStrings.authLogout,
+          description: AppStrings.authLogoutConfirmationDescription,
+          onCancelCallback: () async {
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+          },
+          onConfirmCallback: () async {
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+            await AuthController.logout();
+          },
+        );
+      },
+    );
   }
 }

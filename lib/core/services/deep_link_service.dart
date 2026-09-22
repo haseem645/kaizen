@@ -220,6 +220,12 @@ class DeepLinkService {
         .toList();
     final normalizedPath = uri.path.trim().toLowerCase();
 
+    // Accept reset links from the production web app. Google callbacks on
+    // this domain are handled separately by the active sign-in attempt.
+    if (host == 'app.kaizenteams.ai') {
+      return _resolvePasswordResetTarget(uri);
+    }
+
     const supportedHosts = <String>{'dev.kaizenteams.ai', 'api.kaizenteams.ai'};
 
     if (!supportedHosts.contains(host)) {
@@ -240,6 +246,11 @@ class DeepLinkService {
     final normalizedSegments = segments
         .map((segment) => segment.trim().toLowerCase())
         .toList(growable: false);
+
+    final passwordResetTarget = _resolvePasswordResetTarget(uri);
+    if (passwordResetTarget != null) {
+      return passwordResetTarget;
+    }
 
     if (normalizedSegments.length >= 3 &&
         normalizedSegments[0] == 'ltc' &&
@@ -267,6 +278,7 @@ class DeepLinkService {
     await AppPreference.clearTokens();
     await AppPreference.clearActiveCompany();
     await AppPreference.clearUser();
+    await AppPreference.clearSelectedOrganizationId();
     AppManager.instance.updateCurrentUser(null);
     await AppPreference.setOnboardingToken(rawToken);
     if (tokenType != null && tokenType.isNotEmpty) {
@@ -276,6 +288,49 @@ class DeepLinkService {
     }
 
     return const DeepLinkTarget.profile(clearStack: true);
+  }
+
+  DeepLinkTarget? _resolvePasswordResetTarget(Uri uri) {
+    final rawLink = uri.toString().trim();
+    if (rawLink.isEmpty) {
+      return null;
+    }
+
+    const passwordResetMarkers = <String>[
+      '/auth/password-reset/confirm',
+      '/auth/password-reset',
+    ];
+    final normalizedRawLink = rawLink.toLowerCase();
+
+    var hasMatchedPasswordResetMarker = false;
+    for (final marker in passwordResetMarkers) {
+      final markerIndex = normalizedRawLink.indexOf(marker);
+      if (markerIndex == -1) {
+        continue;
+      }
+
+      final markerEndIndex = markerIndex + marker.length;
+      if (markerEndIndex < normalizedRawLink.length) {
+        final nextCharacter = normalizedRawLink[markerEndIndex];
+        if (nextCharacter != '/' && nextCharacter != '?') {
+          continue;
+        }
+      }
+
+      hasMatchedPasswordResetMarker = true;
+      break;
+    }
+
+    if (!hasMatchedPasswordResetMarker) {
+      return null;
+    }
+
+    final token = uri.queryParameters['token']?.trim() ?? '';
+    if (token.isEmpty) {
+      return null;
+    }
+
+    return DeepLinkTarget.passwordResetConfirm(token: token);
   }
 
   Future<DeepLinkTarget?> _resolveOrganizationDeepLinkTarget(Uri uri) async {
@@ -357,7 +412,7 @@ class DeepLinkService {
       final companyDetails = await _appManagerRemoteDataSource
           .fetchCompanyDetails(accessToken: authToken);
       await AppPreference.saveActiveCompany(companyDetails);
-      AppManager.instance.saveBillingDetails(companyDetails.billing);
+      AppManager.instance.saveActiveCompany(companyDetails);
     } catch (_) {
       // Keep deep link processing resilient if company details cannot refresh.
     }
@@ -382,10 +437,7 @@ class DeepLinkService {
     }
 
     final didSwitchOrganization = await AppManager.instance
-        .setActiveOrganization(
-          organizationId,
-          resetNavigationStack: false,
-        );
+        .setActiveOrganization(organizationId, resetNavigationStack: false);
     if (!didSwitchOrganization) {
       return null;
     }
@@ -612,6 +664,14 @@ class DeepLinkTarget {
         arguments: OnboardingPasswordRouteArgs(
           profileImagePath: profileImagePath,
         ),
+        requiresAuthentication: false,
+      );
+
+  DeepLinkTarget.passwordResetConfirm({required String token, String? email})
+    : this._(
+        routeName: AppRouter.loginSetPassword,
+        arguments: LoginSetPasswordRouteArgs(email: email, token: token),
+        clearStack: true,
         requiresAuthentication: false,
       );
 

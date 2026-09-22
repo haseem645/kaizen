@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 
 import 'splash_background_effects.dart';
 
@@ -14,7 +15,11 @@ class SplashGradientBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF33364B), Color(0xFF2E3144), Color(0xFF292C3C)],
+          colors: [
+            AppColors.hex33364b,
+            AppColors.hex2e3144,
+            AppColors.hex292c3c,
+          ],
           stops: [0.0, 0.42, 1.0],
         ),
       ),

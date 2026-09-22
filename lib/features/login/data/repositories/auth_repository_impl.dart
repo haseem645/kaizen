@@ -1,14 +1,28 @@
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
 
 import '../../domain/entities/login_response.dart';
+import '../../domain/entities/google_authorization.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
+import '../datasources/google_authorization_data_source.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  const AuthRepositoryImpl(this._remoteDataSource);
+  AuthRepositoryImpl(this._remoteDataSource, {GoogleAuthorizationDataSource? googleAuthorization})
+    : _googleAuthorization = googleAuthorization ?? GoogleAuthorizationDataSource();
 
   final AuthRemoteDataSource _remoteDataSource;
+  final GoogleAuthorizationDataSource _googleAuthorization;
+
+  @override
+  Future<GoogleAuthorization?> authorizeGoogle() => _googleAuthorization.authorize();
+
+  @override
+  void cancelGoogleAuthorization() => _googleAuthorization.cancel();
+
+  @override
+  Future<LoginResponse> loginWithGoogle({required String code, required String redirectUri}) =>
+      _remoteDataSource.loginWithGoogle(code: code, redirectUri: redirectUri);
 
   @override
   Future<LoginResponse> login({required String email, required String password}) {

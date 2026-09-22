@@ -3,19 +3,21 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
+import '../../../../core/widgets/app_department_filter_strip.dart';
+import '../../../../core/widgets/app_department_selection_sheet.dart';
+import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../routes/app_router.dart';
 import '../../data/datasources/seat_profile_remote_data_source.dart';
-import '../../data/models/department_option.dart';
 import '../../data/repositories/seat_profile_repository_impl.dart';
 import '../../domain/entities/seat_profile.dart';
 import '../../domain/usecases/get_seat_profiles_usecase.dart';
 import '../../widgets/seat_profile_search_bar.dart';
 import '../providers/seat_profile_controller.dart';
-import 'seat_profile_filter_sheet.dart';
 
 class SeatProfileScreen extends StatelessWidget {
   const SeatProfileScreen({super.key});
@@ -24,20 +26,15 @@ class SeatProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<SeatProfileRemoteDataSource>(
-          create: (_) => createSeatProfileRemoteDataSource(),
-        ),
+        Provider<SeatProfileRemoteDataSource>(create: (_) => createSeatProfileRemoteDataSource()),
         ProxyProvider<SeatProfileRemoteDataSource, SeatProfileRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createSeatProfileRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createSeatProfileRepository(remoteDataSource),
         ),
         ProxyProvider<SeatProfileRepositoryImpl, GetSeatProfilesUseCase>(
-          update: (_, repository, __) =>
-              createGetSeatProfilesUseCase(repository),
+          update: (_, repository, __) => createGetSeatProfilesUseCase(repository),
         ),
         ChangeNotifierProvider<SeatProfileController>(
-          create: (context) =>
-              SeatProfileController(context.read<GetSeatProfilesUseCase>()),
+          create: (context) => SeatProfileController(context.read<GetSeatProfilesUseCase>()),
         ),
       ],
       child: const _SeatProfileScreenView(),
@@ -80,8 +77,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   }
 
   void _handleScroll() {
-    if (!_scrollController.hasClients ||
-        _scrollController.position.extentAfter > 360) {
+    if (!_scrollController.hasClients || _scrollController.position.extentAfter > 360) {
       return;
     }
 
@@ -91,6 +87,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SeatProfileController>();
+    final shouldShowCreateAction = !controller.isInitialLoading && !controller.isListLoading;
 
     return DrawerMainScreen(
       title: AppStrings.seatProfileTitle,
@@ -99,9 +96,17 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       child: SafeArea(
         top: false,
         bottom: false,
-        child: controller.isInitialLoading
-            ? FastCircularProgressIndicator()
-            : _buildContent(context, controller),
+        child: Column(
+          children: [
+            Expanded(
+              child: controller.isInitialLoading
+                  ? Center(child: FastCircularProgressIndicator())
+                  : _buildContent(context, controller),
+            ),
+            if (shouldShowCreateAction)
+              _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
+          ],
+        ),
       ),
     );
   }
@@ -110,7 +115,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     final items = controller.visibleItems;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 1),
       child: Column(
         children: [
           SeatProfileSearchBar(
@@ -119,9 +124,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
             onFilterTap: () => _openFilterSheet(context, controller),
             hintText: AppStrings.seatProfileSearchHint,
           ),
-          const SizedBox(height: 14),
-          _buildDepartmentStrip(controller),
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
           Expanded(
             child: RefreshIndicator(
               onRefresh: controller.refresh,
@@ -133,10 +136,7 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     );
   }
 
-  Widget _buildListArea(
-    SeatProfileController controller,
-    List<SeatProfile> items,
-  ) {
+  Widget _buildListArea(SeatProfileController controller, List<SeatProfile> items) {
     if (controller.isListLoading) {
       return ListView(
         controller: _scrollController,
@@ -180,81 +180,6 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
     );
   }
 
-  Widget _buildDepartmentStrip(SeatProfileController controller) {
-    final items = <DepartmentOption>[
-      const DepartmentOption(id: 'all', name: 'ALL'),
-      ...controller.departments.map(
-        (department) =>
-            DepartmentOption(id: department.id, name: department.name),
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // AppTextView.body2(
-        //   AppStrings.seatProfileDepartmentsTitle,
-        //   color: AppColors.textSecondary,
-        //   fontWeight: FontWeight.w600,
-        // ),
-        // const SizedBox(height: 10),
-        SizedBox(
-          height: 42,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: items.length,
-            separatorBuilder: (_, index) => index == 0
-                ? Row(
-                    children: [
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 1,
-                        height: 36,
-                        color: AppColors.fieldBorder.withValues(alpha: 0.4),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  )
-                : SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              final isSelected = controller.selectedDepartmentId == item.id;
-
-              return InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () => controller.selectDepartment(item.id),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.secondaryColor
-                        : AppColors.surfaceDark,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.secondaryColor
-                          : AppColors.fieldBorder.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Center(
-                    child: AppTextView.body3(
-                      item.name,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -285,31 +210,94 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          FilledButton(
-            onPressed: controller.refresh,
-            child: const Text('Retry'),
-          ),
+          FilledButton(onPressed: controller.refresh, child: const Text('Retry')),
         ],
       ),
     );
   }
 
-  Future<void> _openFilterSheet(
-    BuildContext context,
-    SeatProfileController controller,
-  ) async {
-    final selectedFilter = await showModalBottomSheet<SeatProfileFilter>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) =>
-          SeatProfileFilterSheet(selectedFilter: controller.selectedFilter),
-    );
-
-    if (selectedFilter == null) {
+  Future<void> _openCreateSeatProfile(BuildContext context) async {
+    if (!AppManager.instance.currentUserCanOpenSeatProfileCreateFlow) {
       return;
     }
 
-    controller.selectFilter(selectedFilter);
+    final didCreate = await AppRouter.pushNamed(context, AppRouter.seatProfileCreate);
+    if (didCreate != true || !mounted) {
+      return;
+    }
+
+    await _controller.refresh();
+  }
+
+  Future<void> _openFilterSheet(BuildContext context, SeatProfileController controller) async {
+    final departmentId = await showAppDepartmentSelectionSheet(
+      context,
+      items: <AppDepartmentFilterItem>[
+        const AppDepartmentFilterItem(id: 'all', name: AppStrings.categoryAll),
+        ...controller.departments.map(
+          (department) => AppDepartmentFilterItem(id: department.id, name: department.name),
+        ),
+      ],
+      selectedDepartmentId: controller.selectedDepartmentId,
+      safeAreaBottom: false,
+    );
+
+    if (departmentId == null || !mounted) {
+      return;
+    }
+
+    await controller.selectDepartment(departmentId);
+  }
+}
+
+class _SeatProfileCreateAction extends StatelessWidget {
+  const _SeatProfileCreateAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppManager.instance,
+      builder: (context, _) {
+        if (!AppManager.instance.currentUserCanOpenSeatProfileCreateFlow) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          height: 70,
+          decoration: BoxDecoration(
+            color: AppColors.mainBg,
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                spreadRadius: 20,
+                blurRadius: 20,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: double.infinity,
+              child: AppGradientActionButton(
+                label: AppStrings.seatProfileCreateAction,
+                icon: Icons.add_rounded,
+                iconSize: 16,
+                textSize: 14,
+                minHeight: 40,
+                borderRadius: 12,
+                iconSpacing: 8,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                onTap: onTap,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -330,13 +318,13 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
     final profile = widget.profile;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       onTap: () => setState(() => _isExpanded = !_isExpanded),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: AnimatedSize(
           duration: const Duration(milliseconds: 220),
@@ -389,7 +377,7 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
                     AppRouter.pushNamed(
                       context,
                       AppRouter.seatProfileDetail,
-                      arguments: SeatProfileDetailRouteArgs(seatId: profile.id),
+                      arguments: SeatProfileDetailRouteArgs(seatId: profile.resolvedDetailId),
                     );
                   },
                   borderRadius: BorderRadius.circular(999),
@@ -423,19 +411,14 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
 
     return Row(
       children: [
-        Expanded(
-          child: AppTextView.body2(label, color: AppColors.textSecondary),
-        ),
+        Expanded(child: AppTextView.body2(label, color: AppColors.textSecondary)),
         if (isStatus)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: (isPositive ? AppColors.lightGreen1 : AppColors.red1)
-                  .withValues(alpha: 0.14),
+              color: (isPositive ? AppColors.lightGreen1 : AppColors.red1).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: isPositive ? AppColors.lightGreen1 : AppColors.red1,
-              ),
+              border: Border.all(color: isPositive ? AppColors.lightGreen1 : AppColors.red1),
             ),
             child: AppTextView.body3(
               value,
@@ -465,7 +448,7 @@ class _CardForwardArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedRotation(
-      turns: isExpanded ? 0.25 : 0,
+      turns: isExpanded ? 0.5 : 0,
       duration: const Duration(milliseconds: 220),
       child: Container(
         width: 32,
@@ -473,14 +456,12 @@ class _CardForwardArrow extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.mainBg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.fieldBorder.withValues(alpha: 0.28),
-          ),
+          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
         ),
         child: const Icon(
-          Icons.arrow_forward_ios_rounded,
+          Icons.keyboard_arrow_down_rounded,
           color: AppColors.textSecondary,
-          size: 14,
+          size: 20,
         ),
       ),
     );

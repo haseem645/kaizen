@@ -30,7 +30,8 @@ class _KaizenGptView extends StatefulWidget {
   State<_KaizenGptView> createState() => _KaizenGptViewState();
 }
 
-class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProviderStateMixin {
+class _KaizenGptViewState extends State<_KaizenGptView>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _orbAnimationController;
   late final Animation<double> _orbScaleAnimation;
   late final Future<User?> _userFuture;
@@ -45,11 +46,17 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
     )..repeat();
     _orbScaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1, end: 1.06).chain(CurveTween(curve: Curves.easeOutCubic)),
+        tween: Tween<double>(
+          begin: 1,
+          end: 1.06,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 50,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.06, end: 1).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        tween: Tween<double>(
+          begin: 1.06,
+          end: 1,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
         weight: 50,
       ),
     ]).animate(_orbAnimationController);
@@ -65,7 +72,9 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
   Widget build(BuildContext context) {
     final controller = context.watch<KaizenGptController>();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.scrollToBottom());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => controller.scrollToBottom(),
+    );
 
     return DrawerMainScreen(
       title: '',
@@ -75,7 +84,11 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
   }
 
   Widget _buildBody(KaizenGptController controller) {
-    return SafeArea(top: false, bottom: false, child: _buildHomeView(controller));
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: _buildHomeView(controller),
+    );
   }
 
   Widget _buildHomeView(KaizenGptController controller) {
@@ -120,7 +133,9 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildStatusButton(
-                          icon: controller.isMicMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                          icon: controller.isMicMuted
+                              ? Icons.mic_off_rounded
+                              : Icons.mic_rounded,
                           isActive: controller.isMicMuted,
                           isBusy: controller.isMicToggleInProgress,
                           onTap: () => controller.toggleMic(context),
@@ -160,32 +175,32 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
         : AppColors.purple2.withValues(alpha: 0.10);
     final outerGradientColors = isListening
         ? <Color>[
-            const Color(0xFF79C99D).withValues(alpha: 0.12),
-            const Color(0xFF2E8F63).withValues(alpha: 0.16),
-            const Color(0xFF102C20).withValues(alpha: 0.56),
-            const Color(0xFF09080F),
+            AppColors.hex79c99d.withValues(alpha: 0.12),
+            AppColors.hex2e8f63.withValues(alpha: 0.16),
+            AppColors.hex102c20.withValues(alpha: 0.56),
+            AppColors.hex09080f,
           ]
         : <Color>[
-            const Color(0xFF7756DA).withValues(alpha: 0.10),
-            const Color(0xFF5F3CB8).withValues(alpha: 0.16),
-            const Color(0xFF251A45).withValues(alpha: 0.56),
-            const Color(0xFF09080F),
+            AppColors.hex7756da.withValues(alpha: 0.10),
+            AppColors.hex5f3cb8.withValues(alpha: 0.16),
+            AppColors.hex251a45.withValues(alpha: 0.56),
+            AppColors.hex09080f,
           ];
     final innerGradientColors = isListening
         ? <Color>[
-            const Color(0xFFB8F0CF).withValues(alpha: 0.90),
-            const Color(0xFF4FA978).withValues(alpha: 0.60),
-            const Color(0xFF173628).withValues(alpha: 0.54),
-            const Color(0xFF0E0C17),
+            AppColors.hexb8f0cf.withValues(alpha: 0.90),
+            AppColors.hex4fa978.withValues(alpha: 0.60),
+            AppColors.hex173628.withValues(alpha: 0.54),
+            AppColors.hex0e0c17,
           ]
         : <Color>[
-            const Color(0xFF9C78FF).withValues(alpha: 0.94),
-            const Color(0xFF6546CC).withValues(alpha: 0.64),
-            const Color(0xFF2C1F52).withValues(alpha: 0.52),
-            const Color(0xFF0E0C17),
+            AppColors.hex9c78ff.withValues(alpha: 0.94),
+            AppColors.hex6546cc.withValues(alpha: 0.64),
+            AppColors.hex2c1f52.withValues(alpha: 0.52),
+            AppColors.hex0e0c17,
           ];
     final coreGlowColor = isListening
-        ? const Color(0xFF4FA978).withValues(alpha: 0.18)
+        ? AppColors.hex4fa978.withValues(alpha: 0.18)
         : AppColors.secondaryColor.withValues(alpha: 0.22);
     final coreShadowColor = isListening
         ? AppColors.green1.withValues(alpha: 0.16)
@@ -213,7 +228,10 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
             AnimatedBuilder(
               animation: _orbScaleAnimation,
               builder: (context, child) {
-                return Transform.scale(scale: _orbScaleAnimation.value, child: child);
+                return Transform.scale(
+                  scale: _orbScaleAnimation.value,
+                  child: child,
+                );
               },
               child: Container(
                 width: 200,
@@ -221,7 +239,13 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: outerBorderColor, width: 1.8),
-                  boxShadow: [BoxShadow(color: outerShadowColor, blurRadius: 16, spreadRadius: 0)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: outerShadowColor,
+                      blurRadius: 16,
+                      spreadRadius: 0,
+                    ),
+                  ],
                   gradient: RadialGradient(
                     center: Alignment.center,
                     radius: 0.84,
@@ -236,7 +260,10 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
               height: 184,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.08), width: 1),
+                border: Border.all(
+                  color: AppColors.textPrimary.withValues(alpha: 0.08),
+                  width: 1,
+                ),
                 gradient: RadialGradient(
                   center: const Alignment(-0.05, -0.08),
                   radius: 0.80,
@@ -250,7 +277,13 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
               height: 136,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: coreShadowColor, blurRadius: 14, spreadRadius: 1)],
+                boxShadow: [
+                  BoxShadow(
+                    color: coreShadowColor,
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ],
                 gradient: RadialGradient(
                   colors: [coreGlowColor, Colors.transparent],
                   stops: const [0.0, 1.0],
@@ -275,7 +308,7 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
     required bool isBusy,
     required VoidCallback onTap,
   }) {
-    final accentColor = isActive ? const Color(0xFFFF633B) : AppColors.green1;
+    final accentColor = isActive ? AppColors.hexff633b : AppColors.green1;
     final effectiveOnTap = isBusy ? null : onTap;
 
     return SizedBox(
@@ -296,7 +329,9 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
                     height: 56,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: accentColor.withValues(alpha: 0.45)),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.45),
+                      ),
                       color: AppColors.surfaceDark.withValues(alpha: 0.8),
                       boxShadow: [
                         BoxShadow(
@@ -317,11 +352,13 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
                         height: 18,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFFF5B3E),
+                          color: AppColors.hexff5b3e,
                           border: Border.all(color: AppColors.mainBg, width: 3),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFF5B3E).withValues(alpha: 0.35),
+                              color: AppColors.hexff5b3e.withValues(
+                                alpha: 0.35,
+                              ),
                               blurRadius: 10,
                               spreadRadius: 2,
                             ),
@@ -352,17 +389,26 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
     return _buildTranscriptBox(text: transcript, baseStyle: baseStyle);
   }
 
-  Widget _buildTranscriptBox({required String text, required TextStyle baseStyle}) {
+  Widget _buildTranscriptBox({
+    required String text,
+    required TextStyle baseStyle,
+  }) {
     final maxTranscriptHeight = MediaQuery.sizeOf(context).height * 0.34;
 
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(maxWidth: 340, minHeight: 72, maxHeight: maxTranscriptHeight),
+      constraints: BoxConstraints(
+        maxWidth: 340,
+        minHeight: 72,
+        maxHeight: maxTranscriptHeight,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.26)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.26),
+        ),
       ),
       child: text.isEmpty
           ? AppTextView.body2(
@@ -374,7 +420,10 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
           : SingleChildScrollView(
               child: RichText(
                 textAlign: TextAlign.left,
-                text: TextSpan(style: baseStyle, children: _buildTranscriptSpans(text, baseStyle)),
+                text: TextSpan(
+                  style: baseStyle,
+                  children: _buildTranscriptSpans(text, baseStyle),
+                ),
               ),
             ),
     );
@@ -382,7 +431,9 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
 
   TextStyle _transcriptBaseStyle(String transcript) {
     return TextStyle(
-      color: AppColors.textPrimary.withValues(alpha: transcript.isEmpty ? 0.66 : 0.92),
+      color: AppColors.textPrimary.withValues(
+        alpha: transcript.isEmpty ? 0.66 : 0.92,
+      ),
       fontSize: 14,
       fontWeight: FontWeight.w500,
       height: 1.45,
@@ -399,7 +450,10 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
         spans.addAll([
           TextSpan(
             text: 'You: ',
-            style: baseStyle.copyWith(color: AppColors.purple2, fontWeight: FontWeight.w700),
+            style: baseStyle.copyWith(
+              color: AppColors.purple2,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           TextSpan(text: line.substring(5)),
         ]);
@@ -407,7 +461,10 @@ class _KaizenGptViewState extends State<_KaizenGptView> with SingleTickerProvide
         spans.addAll([
           TextSpan(
             text: 'AI: ',
-            style: baseStyle.copyWith(color: AppColors.green1, fontWeight: FontWeight.w700),
+            style: baseStyle.copyWith(
+              color: AppColors.green1,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           TextSpan(text: line.substring(4)),
         ]);

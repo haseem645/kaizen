@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/navigation/app_menu_type.dart';
+import '../../../../core/widgets/app_department_filter_strip.dart';
+import '../../../../core/widgets/app_department_selection_sheet.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../routes/app_router.dart';
-import '../../../seat_profile/data/models/department_option.dart';
 import '../../../seat_profile/widgets/seat_profile_search_bar.dart';
 import '../../data/datasources/paygrade_remote_data_source.dart';
 import '../../data/repositories/paygrade_repository_impl.dart';
@@ -108,19 +109,18 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
     final items = controller.items;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
         children: [
           SeatProfileSearchBar(
             controller: controller.searchController,
             onChanged: controller.updateSearchQuery,
             hintText: AppStrings.paygradesSearchHint,
+            onFilterTap: controller.departments.isEmpty
+                ? null
+                : () => _openDepartmentSheet(controller),
           ),
-          if (controller.departments.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            _buildDepartmentStrip(controller),
-          ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
           Expanded(
             child: RefreshIndicator(
               onRefresh: controller.refresh,
@@ -176,71 +176,30 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
     );
   }
 
-  Widget _buildDepartmentStrip(PaygradesController controller) {
-    final items = controller.isOwner
-        ? <DepartmentOption>[
-            const DepartmentOption(id: 'all', name: 'ALL'),
-            ...controller.departments.map(
-              (department) =>
-                  DepartmentOption(id: department.id, name: department.name),
-            ),
-          ]
-        : controller.departments
-              .map(
-                (department) =>
-                    DepartmentOption(id: department.id, name: department.name),
-              )
-              .toList(growable: false);
-    return SizedBox(
-      height: 42,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (_, index) => controller.isOwner && index == 0
-            ? Row(
-                children: [
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 1,
-                    height: 36,
-                    color: AppColors.fieldBorder.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              )
-            : const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          final isSelected = controller.selectedDepartmentId == item.id;
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: () => controller.selectDepartment(item.id),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.secondaryColor
-                    : AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.secondaryColor
-                      : AppColors.fieldBorder.withValues(alpha: 0.35),
-                ),
-              ),
-              child: Center(
-                child: AppTextView.body3(
-                  item.name,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          );
-        },
+  List<AppDepartmentFilterItem> _departmentFilterItems(
+    PaygradesController controller,
+  ) {
+    return <AppDepartmentFilterItem>[
+      if (controller.hasGlobalDepartmentAccess)
+        const AppDepartmentFilterItem(id: 'all', name: AppStrings.categoryAll),
+      ...controller.departments.map(
+        (department) =>
+            AppDepartmentFilterItem(id: department.id, name: department.name),
       ),
+    ];
+  }
+
+  Future<void> _openDepartmentSheet(PaygradesController controller) async {
+    final departmentId = await showAppDepartmentSelectionSheet(
+      context,
+      items: _departmentFilterItems(controller),
+      selectedDepartmentId: controller.selectedDepartmentId,
     );
+    if (departmentId == null || !mounted) {
+      return;
+    }
+
+    await controller.selectDepartment(departmentId);
   }
 
   Widget _buildEmptyState() {
@@ -300,13 +259,13 @@ class _PaygradeCardState extends State<_PaygradeCard> {
     final paygrade = widget.paygrade;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       onTap: () => setState(() => _isExpanded = !_isExpanded),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: AnimatedSize(
           duration: const Duration(milliseconds: 220),
@@ -444,7 +403,7 @@ class _CardForwardArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedRotation(
-      turns: isExpanded ? 0.25 : 0,
+      turns: isExpanded ? 0.5 : 0,
       duration: const Duration(milliseconds: 220),
       child: Container(
         width: 32,
@@ -457,9 +416,9 @@ class _CardForwardArrow extends StatelessWidget {
           ),
         ),
         child: const Icon(
-          Icons.arrow_forward_ios_rounded,
+          Icons.keyboard_arrow_down_rounded,
           color: AppColors.textSecondary,
-          size: 14,
+          size: 20,
         ),
       ),
     );

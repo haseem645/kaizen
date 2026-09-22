@@ -6,7 +6,8 @@
         "appID": "68BKHYST8L.com.kaizenteam",
         "paths": [
           "/verify_token/*",
-          "/ltc/assigned-track/*"
+          "/organization/*",
+          "/auth/*"
         ]
       }
     ]

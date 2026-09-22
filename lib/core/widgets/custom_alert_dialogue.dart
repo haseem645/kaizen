@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 
 import '../constants/app_colors.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 
 class CustomAlertDialog extends StatelessWidget {
   const CustomAlertDialog(this.title, this.description, {super.key});
@@ -22,7 +23,7 @@ class CustomAlertDialog extends StatelessWidget {
             margin: const EdgeInsets.only(top: 45), // Space for logo to overlap
             decoration: BoxDecoration(
               color: AppColors.mainBg, // Semi-transparent background
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.only(
               top: 20, // Extra padding for logo

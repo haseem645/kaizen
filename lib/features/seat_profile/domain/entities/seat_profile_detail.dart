@@ -1,15 +1,30 @@
+import 'department.dart';
+
 class SeatProfileDetail {
   const SeatProfileDetail({
     required this.id,
+    required this.actualId,
     required this.title,
-    required this.departmentName,
+    required this.department,
+    required this.paygradeUnit,
     required this.categories,
   });
 
   final String id;
+  final String actualId;
   final String title;
-  final String departmentName;
+  final Department? department;
+  final String paygradeUnit;
   final List<SeatProfileCategory> categories;
+
+  String get resolvedSeatId {
+    final resolvedActualId = actualId.trim();
+    if (resolvedActualId.isNotEmpty) {
+      return resolvedActualId;
+    }
+
+    return id.trim();
+  }
 }
 
 class SeatProfileCategory {
@@ -29,13 +44,26 @@ class SeatProfileCategory {
 class SeatProfileDescription {
   const SeatProfileDescription({
     required this.id,
+    required this.actualId,
     required this.name,
     required this.auditSpecifics,
+    required this.auditFactorType,
     required this.milestoneDays,
   });
 
   final String id;
+  final String actualId;
   final String name;
   final String auditSpecifics;
+  final String auditFactorType;
   final String milestoneDays;
+
+  String get resolvedDescriptionId {
+    final resolvedActualId = actualId.trim();
+    if (resolvedActualId.isNotEmpty) {
+      return resolvedActualId;
+    }
+
+    return id.trim();
+  }
 }

@@ -36,10 +36,12 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
 
       final controller = context.read<ComplianceQuizController>();
       _controller = controller;
-      controller.initialize(
-        trackAssignmentUuid: widget.trackAssignmentUuid,
-        trainingModuleUuid: widget.trainingModuleUuid,
-      );
+      if (!controller.isPreparingQuiz) {
+        controller.initialize(
+          trackAssignmentUuid: widget.trackAssignmentUuid,
+          trainingModuleUuid: widget.trainingModuleUuid,
+        );
+      }
       _syncQuizTimer(controller);
     });
   }
@@ -78,7 +80,10 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
 
     if (questions.isEmpty) {
       return const Center(
-        child: AppTextView.body('No quiz questions available.', color: AppColors.textSecondary),
+        child: AppTextView.body(
+          'No quiz questions available.',
+          color: AppColors.textSecondary,
+        ),
       );
     }
 
@@ -103,9 +108,14 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                 return _QuizQuestionCard(
                   number: index + 1,
                   question: question,
-                  selectedOptionUuid: controller.selectedOptionUuid(question.uuid),
+                  selectedOptionUuid: controller.selectedOptionUuid(
+                    question.uuid,
+                  ),
                   onOptionTap: (optionUuid) {
-                    controller.selectOption(questionUuid: question.uuid, optionUuid: optionUuid);
+                    controller.selectOption(
+                      questionUuid: question.uuid,
+                      optionUuid: optionUuid,
+                    );
                   },
                 );
               },
@@ -128,10 +138,14 @@ class _QuizTimerPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.green1.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.green1, width: 1.2),
       ),
-      child: AppTextView.body3(timeText, color: AppColors.green1, fontWeight: FontWeight.w700),
+      child: AppTextView.body3(
+        timeText,
+        color: AppColors.green1,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 }
@@ -155,7 +169,7 @@ class _QuizQuestionCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +196,19 @@ class _QuizQuestionCard extends StatelessWidget {
 }
 
 class _QuizOption extends StatelessWidget {
-  const _QuizOption({required this.text, required this.isSelected, required this.onTap});
+  const _QuizOption({
+    required this.text,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  static const double _singleLineTopSpacing = 4;
+  static const double _multiLineTopSpacing = 12;
+  static const double _singleLineTextHeight = 1.2;
+  static const double _multiLineTextHeight = 1.4;
+  static const double _indicatorSize = 18;
+  static const double _indicatorLeftPadding = 6;
+  static const double _indicatorRightPadding = 10;
 
   final String text;
   final bool isSelected;
@@ -190,45 +216,98 @@ class _QuizOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 12, left: 6, right: 10),
-            child: Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? AppColors.secondaryColor : AppColors.textPrimary,
-                  width: 2,
-                ),
-              ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.secondaryColor,
-                          shape: BoxShape.circle,
-                        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSingleLine = _isSingleLine(context, constraints.maxWidth);
+        final optionTopSpacing = isSingleLine
+            ? _singleLineTopSpacing
+            : _multiLineTopSpacing;
+        final optionTextHeight = isSingleLine
+            ? _singleLineTextHeight
+            : _multiLineTextHeight;
+
+        return Padding(
+          padding: EdgeInsets.only(top: optionTopSpacing),
+          child: GestureDetector(
+            onTap: onTap,
+            child: Row(
+              crossAxisAlignment: isSingleLine
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: _indicatorLeftPadding,
+                    right: _indicatorRightPadding,
+                  ),
+                  child: Container(
+                    width: _indicatorSize,
+                    height: _indicatorSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.secondaryColor
+                            : AppColors.textPrimary,
+                        width: 2,
                       ),
-                    )
-                  : null,
+                    ),
+                    child: isSelected
+                        ? Center(
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.secondaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+                Expanded(
+                  child: AppTextView.body3(
+                    text,
+                    color: AppColors.textPrimary,
+                    height: optionTextHeight,
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: AppTextView.body3(text, color: AppColors.textPrimary, height: 1.4),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  bool _isSingleLine(BuildContext context, double maxWidth) {
+    if (!maxWidth.isFinite) {
+      return false;
+    }
+
+    final textMaxWidth =
+        maxWidth -
+        _indicatorSize -
+        _indicatorLeftPadding -
+        _indicatorRightPadding;
+    if (textMaxWidth <= 0) {
+      return false;
+    }
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          height: _multiLineTextHeight,
+        ),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: textMaxWidth);
+
+    return textPainter.computeLineMetrics().length <= 1;
   }
 }

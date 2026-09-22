@@ -151,3 +151,4 @@ windows/flutter/ephemeral/
 # ------------------------------------------------------------
 .fvm/
 .melos_tool/
+.codex/runtime/

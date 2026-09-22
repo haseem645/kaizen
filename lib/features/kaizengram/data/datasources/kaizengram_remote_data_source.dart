@@ -1,37 +1,28 @@
+import '../../../../core/utils/custom_functions.dart';
 import '../../../compliance/data/datasources/compliance_remote_data_source.dart';
 import '../../../compliance/domain/entities/compliance_document.dart';
 import '../../../compliance/domain/entities/compliance_overview.dart';
 import '../../../compliance/domain/entities/learning_module_detail_track.dart';
-import '../../../../core/utils/custom_functions.dart';
 import '../../presentation/providers/kaizengram_controller.dart';
 
+//
 class KaizengramRemoteDataSource {
-  KaizengramRemoteDataSource({
-    ComplianceRemoteDataSource? complianceRemoteDataSource,
-  }) : _complianceRemoteDataSource =
-           complianceRemoteDataSource ?? ComplianceRemoteDataSource();
+  KaizengramRemoteDataSource({ComplianceRemoteDataSource? complianceRemoteDataSource})
+    : _complianceRemoteDataSource = complianceRemoteDataSource ?? ComplianceRemoteDataSource();
 
   final ComplianceRemoteDataSource _complianceRemoteDataSource;
 
-  Future<List<KaizengramFeedItem>> fetchKaizenFeed({
-    bool forceRefresh = false,
-  }) async {
+  Future<List<KaizengramFeedItem>> fetchKaizenFeed({bool forceRefresh = false}) async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      _complianceRemoteDataSource.getComplianceOverview(
-        forceRefresh: forceRefresh,
-      ),
-      _complianceRemoteDataSource.getComplianceDocuments(
-        forceRefresh: forceRefresh,
-      ),
+      _complianceRemoteDataSource.getComplianceOverview(forceRefresh: forceRefresh),
+      _complianceRemoteDataSource.getComplianceDocuments(forceRefresh: forceRefresh),
     ]);
 
     final overview = results[0] as ComplianceOverview;
     final documents = results[1] as List<ComplianceDocument>;
 
     final feed = <KaizengramFeedItem>[
-      ...overview.learningTracks
-          .where((track) => !track.isBreakPoint)
-          .map(_feedFromLearningTrack),
+      ...overview.learningTracks.where((track) => !track.isBreakPoint).map(_feedFromLearningTrack),
       ...documents.map(_feedFromDocument),
     ];
 
@@ -41,8 +32,7 @@ class KaizengramRemoteDataSource {
   KaizengramFeedItem _feedFromLearningTrack(LearningTrackModuleDetail track) {
     final videoUrl = _normalizedUrl(track.videoUrl);
     final thumbnailUrl =
-        _normalizedUrl(track.videoThumbnailLink) ??
-        _normalizedUrl(track.thumbnailLink);
+        _normalizedUrl(track.videoThumbnailLink) ?? _normalizedUrl(track.thumbnailLink);
     final dueBy = _buildDueByLabel(track.deadline);
     final deadlineDate = _buildDeadlineDate(track.deadline);
     final schedule = _formatSchedule(track.schedule);
@@ -55,7 +45,7 @@ class KaizengramRemoteDataSource {
                 : track.displayName),
       type: KaizengramFeedType.learningCompliance,
       title: _displayText(track.displayName, fallback: 'Learning Compliance'),
-      description: track.displayStatus,
+      description: '',
       status: track.displayStatus,
       seatProfile: _displayText(track.displayJob, fallback: 'No Job'),
       rawDeadline: _normalizedText(track.deadline),
@@ -86,9 +76,7 @@ class KaizengramRemoteDataSource {
       title: _displayText(document.title, fallback: 'Document Compliance'),
       description: descriptionParts.join(' • '),
       status: _documentStatusLabel(document),
-      seatProfile: document.seatProfiles.isEmpty
-          ? 'All Jobs'
-          : document.seatProfiles.join(', '),
+      seatProfile: document.seatProfiles.isEmpty ? 'All Jobs' : document.seatProfiles.join(', '),
       rawDeadline: null,
       dueBy: null,
       deadlineDate: null,
@@ -98,9 +86,7 @@ class KaizengramRemoteDataSource {
       feedImageUrl: isVideo ? thumbnailUrl : (thumbnailUrl ?? latestDocumentUrl),
       feedVideoUrl: isVideo ? latestDocumentUrl : null,
       subtitle: 'Document Compliance',
-      timestampLabel: document.updatedAt.trim().isEmpty
-          ? 'Recent'
-          : document.updatedAt.trim(),
+      timestampLabel: document.updatedAt.trim().isEmpty ? 'Recent' : document.updatedAt.trim(),
     );
   }
 

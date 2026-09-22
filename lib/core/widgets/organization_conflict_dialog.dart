@@ -25,7 +25,7 @@ class OrganizationConflictDialog extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
                 decoration: BoxDecoration(
                   color: AppColors.mainBg,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.purple2, width: 1.2),
                   boxShadow: [
                     BoxShadow(
@@ -49,9 +49,11 @@ class OrganizationConflictDialog extends StatelessWidget {
                       width: 120,
                       child: AppButton(
                         text: "Ok",
-                        borderRadius: 8,
+                        borderRadius: 12,
                         onPressed: () {
-                          context.read<AppManager>().openOrganizationsScreen();
+                          context.read<AppManager>().openOrganizationsScreen(
+                            openedForConflict: true,
+                          );
                         },
                       ),
                     ),

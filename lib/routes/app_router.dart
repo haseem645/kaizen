@@ -1,33 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/next_quiz_video_screen.dart';
 
-import '../features/audit/domain/entities/audit_member_status.dart';
-import '../features/audit/domain/entities/audit_profile.dart';
-import '../features/audit/presentation/pages/audit_detail_screen.dart';
-import '../features/audit/presentation/pages/audit_report.dart';
-import '../features/audit/presentation/pages/audit_screen.dart';
-import '../features/audit/presentation/pages/performance_report_screen.dart';
-import '../features/audit/presentation/pages/performance_snapshot_screen.dart';
-import '../features/audit/presentation/pages/single_audit_details_screen.dart';
+import '../core/preference/app_preference.dart';
+import '../features/auth/presentation/pages/forgot_password_screen.dart';
+import '../features/auth/presentation/pages/set_password_screen.dart'
+    as auth_reset;
+import '../features/check_in/domain/entities/audit_member_status.dart';
+import '../features/check_in/domain/entities/audit_profile.dart';
+import '../features/check_in/presentation/pages/check_in_details_screen.dart';
+import '../features/check_in/presentation/pages/check_in_report.dart';
+import '../features/check_in/presentation/pages/check_in_screen.dart';
+import '../features/check_in/presentation/pages/performance_report_screen.dart';
+import '../features/check_in/presentation/pages/performance_snapshot_screen.dart';
+import '../features/check_in/presentation/pages/check_in_descriptions_list_screen.dart';
 import '../features/compliance/domain/entities/compliance_tab_type.dart';
 import '../features/compliance/domain/entities/learning_module_detail_track.dart';
 import '../features/compliance/presentation/pages/compliance_screen.dart';
 import '../features/compliance/presentation/pages/compliance_tracks_screen.dart';
 import '../features/compliance/presentation/pages/training/compliance_training_screen.dart';
+import '../features/departments/presentation/pages/departments_screen.dart';
 import '../features/kaizen_gpt/presentation/pages/kaizen_gpt.dart';
 import '../features/kaizengram/presentation/pages/kaizengram_screen.dart';
 import '../features/login/presentation/pages/login_screen.dart';
-import '../features/onboarding/presentation/pages/set_password_screen.dart';
+import '../features/onboarding/presentation/pages/set_password_screen.dart'
+    as onboarding_flow;
 import '../features/onboarding/presentation/pages/set_profile_image_screen.dart';
 import '../features/organizations/presentation/pages/organizations_screen.dart';
 import '../features/paygrades/presentation/pages/paygrade_detail_screen.dart';
 import '../features/paygrades/presentation/pages/paygrades_screen.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
+import '../features/seat_profile/domain/entities/department.dart';
 import '../features/seat_profile/domain/entities/seat_profile_detail.dart';
+import '../features/seat_profile/presentation/models/seat_profile_form_initial_data.dart';
+import '../features/seat_profile/presentation/pages/seat_profile_create_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_descriptions_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
 import '../features/splash/presentation/pages/splash_screen.dart';
+import '../features/training/presentation/pages/setup_training_screen.dart';
+import '../features/training/presentation/pages/training_library_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -37,30 +48,43 @@ class AppRouter {
 
   static const String splash = '/';
   static const String login = '/login';
+  static const String forgotPassword = '/login/forgot-password';
+  static const String loginSetPassword = '/login/set-password';
   static const String onboarding = '/onboarding';
   static const String onboardingPassword = '/onboarding/password';
   static const String learningTracks = '/learning-tracks';
   static const String compliance = '/compliance';
-  static const String audit = '/audit';
+  static const String checkIn = '/check-in';
   static const String performanceSnapshot = '/performance-snapshot';
   static const String reports = '/reports';
   static const String seatProfiles = '/seat-profiles';
+  static const String seatProfileCreate = '/seat-profiles/create';
   static const String paygrades = '/paygrades';
+  static const String departments = '/departments';
   static const String paygradeDetail = '/paygrades/detail';
   static const String organizations = '/organizations';
   static const String seatProfileDetail = '/seat-profiles/detail';
   static const String seatProfileDescriptions = '/seat-profiles/descriptions';
+  static const String seatProfileTrainingSetup =
+      '/seat-profiles/training-setup';
+  static const String trainingLibrary = '/training/library';
   static const String kaizenGpt = '/kaizen-gpt';
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
-  static const String auditDetails = '/audit-details';
-  static const String singleAuditDetails = '/audit-details/single';
-  static const String auditReport = '/audit-report';
+  static const String checkInDetails = '/check-in-details';
+  static const String checkInDescriptionsList = '/check-in-details/single';
+  static const String checkInReport = '/check-in-report';
   static const String complianceDetail = '/compliance/detail';
   static const String complianceTracks = '/compliance/tracks';
   static const String complianceTraining = '/compliance/training';
   static const String complianceNextVideoQuiz =
       '/compliance/training/next-quiz-video';
+
+  static String get defaultAuthenticatedRouteName {
+    return AppPreference.getUseParentApiEndpoints()
+        ? trainingLibrary
+        : compliance;
+  }
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -74,6 +98,23 @@ class AppRouter {
           settings: settings,
           builder: (_) => const LoginScreen(),
         );
+      case forgotPassword:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => ForgotPasswordScreen(
+            initialEmail: args is LoginSetPasswordRouteArgs ? args.email : null,
+          ),
+        );
+      case loginSetPassword:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => auth_reset.SetPasswordScreen(
+            initialEmail: args is LoginSetPasswordRouteArgs ? args.email : null,
+            initialToken: args is LoginSetPasswordRouteArgs ? args.token : null,
+          ),
+        );
       case onboarding:
         return _buildRoute(
           settings: settings,
@@ -83,7 +124,7 @@ class AppRouter {
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => SetPasswordScreen(
+          builder: (_) => onboarding_flow.SetPasswordScreen(
             initialProfileImagePath: args is OnboardingPasswordRouteArgs
                 ? args.profileImagePath
                 : null,
@@ -104,10 +145,10 @@ class AppRouter {
           builder: (_) =>
               const ComplianceScreen(module: ComplianceTabType.document),
         );
-      case audit:
+      case checkIn:
         return _buildRoute(
           settings: settings,
-          builder: (_) => const AuditScreen(),
+          builder: (_) => const CheckInScreen(),
         );
       case performanceSnapshot:
         return _buildRoute(
@@ -150,10 +191,32 @@ class AppRouter {
           settings: settings,
           builder: (_) => const SeatProfileScreen(),
         );
+      case seatProfileCreate:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => SeatProfileCreateScreen(
+            initialData: args is SeatProfileCreateRouteArgs && args.isEditMode
+                ? SeatProfileFormInitialData(
+                    seatId: args.seatId ?? '',
+                    actualId: args.actualId,
+                    name: args.initialName ?? '',
+                    department: args.initialDepartment,
+                    paygradeUnit: args.initialPaygradeUnit,
+                    initialCategory: args.initialCategory,
+                  )
+                : null,
+          ),
+        );
       case paygrades:
         return _buildRoute(
           settings: settings,
           builder: (_) => const PaygradesScreen(),
+        );
+      case departments:
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => const DepartmentsScreen(),
         );
       case organizations:
         return _buildRoute(
@@ -191,6 +254,27 @@ class AppRouter {
                   ),
           ),
         );
+      case seatProfileTrainingSetup:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => SetupTrainingScreen(
+            initialSeatProfileId: args is SeatProfileTrainingSetupRouteArgs
+                ? args.initialSeatProfileId
+                : null,
+            initialCategoryId: args is SeatProfileTrainingSetupRouteArgs
+                ? args.initialCategoryId
+                : null,
+            initialDescriptionId: args is SeatProfileTrainingSetupRouteArgs
+                ? args.initialDescriptionId
+                : null,
+          ),
+        );
+      case trainingLibrary:
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => const TrainingLibraryScreen(),
+        );
       case kaizenGpt:
         return _buildRoute(
           settings: settings,
@@ -203,38 +287,58 @@ class AppRouter {
         );
       case profile:
         return _buildRoute(settings: settings, builder: (_) => ProfileScreen());
-      case auditDetails:
+      case checkInDetails:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => AuditDetailsScreen(
-            profileJobId: args is AuditDetailsRouteArgs
+          builder: (_) => CheckInDetailsScreen(
+            profileJobId: args is CheckInDetailsRouteArgs
                 ? args.profileJobId
                 : '',
+            year: args is CheckInDetailsRouteArgs ? args.year : null,
+            quarter: args is CheckInDetailsRouteArgs ? args.quarter : null,
+            selectedProfileUuid: args is CheckInDetailsRouteArgs
+                ? args.selectedProfileUuid
+                : null,
           ),
         );
-      case singleAuditDetails:
+      case checkInDescriptionsList:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => SingleAuditDetailsScreen(
-            quarterlyAuditId: args is SingleAuditDetailsRouteArgs
+          builder: (_) => CheckInDescriptionsListScreen(
+            quarterlyAuditId: args is CheckInDescriptionsListRouteArgs
                 ? args.quarterlyAuditId
                 : '',
-            date: args is SingleAuditDetailsRouteArgs ? args.date : '',
-            lastAuditDate: args is SingleAuditDetailsRouteArgs
+            date: args is CheckInDescriptionsListRouteArgs ? args.date : '',
+            lastAuditDate: args is CheckInDescriptionsListRouteArgs
                 ? args.lastAuditDate
                 : '',
+            year: args is CheckInDescriptionsListRouteArgs ? args.year : null,
+            quarter: args is CheckInDescriptionsListRouteArgs
+                ? args.quarter
+                : null,
+            requireDescriptionSelection:
+                args is CheckInDescriptionsListRouteArgs
+                ? args.requireDescriptionSelection
+                : false,
+            isSelfAudit: args is CheckInDescriptionsListRouteArgs
+                ? args.isSelfAudit
+                : false,
           ),
         );
-      case auditReport:
+      case checkInReport:
         final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => AuditReportScreen(
-            profileJobId: args is AuditReportRouteArgs ? args.profileJobId : '',
-            initialYear: args is AuditReportRouteArgs ? args.initialYear : null,
-            initialQuarter: args is AuditReportRouteArgs
+          builder: (_) => CheckInReportScreen(
+            profileJobId: args is CheckInReportRouteArgs
+                ? args.profileJobId
+                : '',
+            initialYear: args is CheckInReportRouteArgs
+                ? args.initialYear
+                : null,
+            initialQuarter: args is CheckInReportRouteArgs
                 ? args.initialQuarter
                 : null,
           ),
@@ -324,10 +428,18 @@ class ComplianceTracksRouteArgs {
   final String title;
 }
 
-class AuditDetailsRouteArgs {
-  const AuditDetailsRouteArgs({required this.profileJobId});
+class CheckInDetailsRouteArgs {
+  const CheckInDetailsRouteArgs({
+    required this.profileJobId,
+    this.year,
+    this.quarter,
+    this.selectedProfileUuid,
+  });
 
   final String profileJobId;
+  final int? year;
+  final int? quarter;
+  final String? selectedProfileUuid;
 }
 
 class SeatProfileDetailRouteArgs {
@@ -336,10 +448,51 @@ class SeatProfileDetailRouteArgs {
   final String seatId;
 }
 
+class SeatProfileCreateRouteArgs {
+  const SeatProfileCreateRouteArgs({
+    this.seatId,
+    this.actualId,
+    this.initialName,
+    this.initialDepartment,
+    this.initialPaygradeUnit,
+    this.initialCategory,
+  });
+
+  const SeatProfileCreateRouteArgs.edit({
+    required this.seatId,
+    this.actualId,
+    required this.initialName,
+    this.initialDepartment,
+    this.initialPaygradeUnit,
+    this.initialCategory,
+  });
+
+  final String? seatId;
+  final String? actualId;
+  final String? initialName;
+  final Department? initialDepartment;
+  final String? initialPaygradeUnit;
+  final SeatProfileCategory? initialCategory;
+
+  bool get isEditMode => (seatId?.trim().isNotEmpty ?? false);
+}
+
 class SeatProfileDescriptionsRouteArgs {
   const SeatProfileDescriptionsRouteArgs({required this.category});
 
   final SeatProfileCategory category;
+}
+
+class SeatProfileTrainingSetupRouteArgs {
+  const SeatProfileTrainingSetupRouteArgs({
+    this.initialSeatProfileId,
+    this.initialCategoryId,
+    this.initialDescriptionId,
+  });
+
+  final String? initialSeatProfileId;
+  final String? initialCategoryId;
+  final String? initialDescriptionId;
 }
 
 class PaygradeDetailRouteArgs {
@@ -348,20 +501,28 @@ class PaygradeDetailRouteArgs {
   final String paygradeId;
 }
 
-class SingleAuditDetailsRouteArgs {
-  const SingleAuditDetailsRouteArgs({
+class CheckInDescriptionsListRouteArgs {
+  const CheckInDescriptionsListRouteArgs({
     required this.quarterlyAuditId,
     required this.date,
     required this.lastAuditDate,
+    this.year,
+    this.quarter,
+    this.requireDescriptionSelection = false,
+    this.isSelfAudit = false,
   });
 
   final String quarterlyAuditId;
   final String date;
   final String lastAuditDate;
+  final int? year;
+  final int? quarter;
+  final bool requireDescriptionSelection;
+  final bool isSelfAudit;
 }
 
-class AuditReportRouteArgs {
-  const AuditReportRouteArgs({
+class CheckInReportRouteArgs {
+  const CheckInReportRouteArgs({
     required this.profileJobId,
     this.initialYear,
     this.initialQuarter,
@@ -397,4 +558,11 @@ class OnboardingPasswordRouteArgs {
 
   final String? profileImagePath;
   final String? email;
+}
+
+class LoginSetPasswordRouteArgs {
+  const LoginSetPasswordRouteArgs({this.email, this.token});
+
+  final String? email;
+  final String? token;
 }

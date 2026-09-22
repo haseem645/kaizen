@@ -14,7 +14,7 @@ import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_text_view.dart';
 import '../../../../../core/widgets/fast_circular_progress.dart';
-import '../../../../audit/presentation/widgets/upgrade_plan_dialog.dart';
+import '../../../../check_in/presentation/widgets/upgrade_plan_dialog.dart';
 import '../../../domain/entities/compliance_document.dart';
 import '../../../domain/usecases/upload_compliance_document_usecase.dart';
 import 'compliance_document_full_screen_image.dart';
@@ -127,7 +127,7 @@ class _ComplianceDocumentUploadSheetState extends State<ComplianceDocumentUpload
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           decoration: const BoxDecoration(
             color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -350,7 +350,7 @@ class _ComplianceDocumentUploadSheetState extends State<ComplianceDocumentUpload
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceDark,
-                          borderRadius: BorderRadius.circular(5),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: AppTextView.body(
                           _rejectionReason!,
@@ -463,7 +463,7 @@ class _UploadDropZone extends StatelessWidget {
           ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -549,7 +549,7 @@ class _UploadOptionTile extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: AppColors.secondaryColor.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: AppColors.textPrimary, size: 22),
               ),
@@ -744,15 +744,15 @@ class _ExpiryDateField extends StatelessWidget {
         hintStyle: const TextStyle(color: AppColors.grey1, fontSize: 15),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.grey1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.grey1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.grey1),
         ),
       ),

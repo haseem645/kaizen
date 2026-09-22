@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
-import 'package:sparrowkaizen/features/audit/presentation/widgets/upgrade_plan_dialog.dart';
+import 'package:sparrowkaizen/features/check_in/presentation/widgets/upgrade_plan_dialog.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/certificate_screen.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/quiz_result_dialogue.dart';
 
@@ -85,8 +85,10 @@ class _ComplianceTrainingScreenState extends State<ComplianceTrainingScreen> {
           update: (_, repository, __) => createSubmitComplianceQuizUseCase(repository),
         ),
         ChangeNotifierProvider<ComplianceTrainingController>(
-          create: (context) =>
-              ComplianceTrainingController(context.read<GetComplianceTrackItemDetailUseCase>()),
+          create: (context) => ComplianceTrainingController(
+            context.read<GetComplianceTrackItemDetailUseCase>(),
+            context.read<GetComplianceTracksUseCase>(),
+          ),
         ),
         ChangeNotifierProvider<ComplianceQuizController>(
           create: (context) => ComplianceQuizController(
@@ -127,11 +129,9 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
   var _isHandlingQuizTabChange = false;
   var _isIgnoringTabSelection = false;
   var _isCompletingQuizSubmit = false;
-  var _isLoadingFreshTracks = true;
-  var _moduleCount = 0;
   ComplianceCertificate? _pendingCertificate;
   late String _currentItemUuid;
-  LearningTrackModuleDetail? _currentTrack;
+  LearningTrackModuleDetail? get _currentTrack => _controller.currentTrack;
 
   @override
   void initState() {
@@ -154,76 +154,25 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
   }
 
   Future<void> _loadTrainingContent() async {
-    setState(() {
-      _isLoadingFreshTracks = true;
-    });
-
-    final tracks = await _loadFreshTracks();
-    if (!mounted) {
-      return;
-    }
-
-    LearningTrackModuleDetail? currentTrack;
-    for (final track in tracks) {
-      if (track.trainingModuleItemId == _currentItemUuid) {
-        currentTrack = track;
-        break;
-      }
-    }
-    setState(() {
-      _currentTrack = currentTrack;
-      _moduleCount = tracks.where((track) => !track.isBreakPoint).length;
-    });
-
-    if (currentTrack == null) {
-      setState(() {
-        _isLoadingFreshTracks = false;
-      });
-      return;
-    }
-
-    await _controller.initialize(
+    final didLoad = await _controller.initialize(
       trackAssignmentUuid: widget.trackAssignmentUuid,
       itemUuid: _currentItemUuid,
     );
 
-    if (!mounted) {
+    if (!mounted || !didLoad) {
       return;
     }
 
     final detail = _controller.detail;
     final trainingModuleUuid = detail?.trainingModuleUuid.trim();
     if (trainingModuleUuid == null || trainingModuleUuid.isEmpty) {
-      setState(() {
-        _isLoadingFreshTracks = false;
-      });
       return;
     }
 
-    await _quizController.initialize(
+    await _quizController.prepareQuiz(
       trackAssignmentUuid: widget.trackAssignmentUuid,
       trainingModuleUuid: trainingModuleUuid,
     );
-    await _quizController.getQuizResult(
-      trackAssignmentUuid: widget.trackAssignmentUuid,
-      trainingModuleUuid: trainingModuleUuid,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isLoadingFreshTracks = false;
-    });
-  }
-
-  Future<List<LearningTrackModuleDetail>> _loadFreshTracks() async {
-    try {
-      return await _getComplianceTracksUseCase(trackAssignmentUuid: widget.trackAssignmentUuid);
-    } catch (_) {
-      return const <LearningTrackModuleDetail>[];
-    }
   }
 
   @override
@@ -447,6 +396,13 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
     required bool fromTabNavigation,
     int? fallbackTabIndex,
   }) async {
+    await _quizController.waitForPreparation();
+    if (!mounted ||
+        _controller.detail?.trainingModuleUuid.trim() != trainingModuleUuid ||
+        (fromTabNavigation && _tabController.index != 2)) {
+      return;
+    }
+
     final passedQuizResult = _quizController.quizResult?.isPassed == true
         ? _quizController.quizResult
         : null;
@@ -715,7 +671,6 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
     }
 
     setState(() {
-      _currentTrack = nextTrack;
       _currentItemUuid = nextItemUuid;
     });
     _selectTab(0);
@@ -839,6 +794,7 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
     final isLoading = context.watch<ComplianceTrainingController>().isLoading;
     final quizController = context.watch<ComplianceQuizController>();
     final isSubmittingQuiz =
+        quizController.isPreparingQuiz ||
         quizController.isSubmittingQuiz ||
         quizController.isLoadingQuizResult ||
         _isCompletingQuizSubmit;
@@ -861,7 +817,7 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
           elevation: 0,
           leading: AppBackButton(onPressed: _handleBackPressed),
         ),
-        body: _isLoadingFreshTracks || isLoading
+        body: isLoading
             ? FastCircularProgressIndicator()
             : learningTrack == null
             ? Center(
@@ -885,9 +841,9 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _TrainingOverviewCard(
-                        track: learningTrack,
                         detail: detail,
-                        moduleCount: _moduleCount,
+                        currentModuleNumber: _controller.currentModuleNumber,
+                        moduleCount: _controller.moduleCount,
                       ),
                       const SizedBox(height: 6),
                       _TrainingTabs(controller: _tabController),
@@ -910,7 +866,7 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
                   ),
                 ),
               ),
-        bottomNavigationBar: learningTrack == null || _isLoadingFreshTracks || isLoading
+        bottomNavigationBar: learningTrack == null || isLoading
             ? null
             : _BottomActions(
                 onTrackModulesPressed: _handleTrackModulesPressed,
@@ -920,7 +876,9 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
                 takeQuizLabel: _selectedTabIndex == 2
                     ? AppStrings.trainingSubmitQuiz
                     : AppStrings.trainingTakeQuiz,
-                isTakeQuizLoading: _selectedTabIndex == 2 && isSubmittingQuiz,
+                isTakeQuizLoading:
+                    (_selectedTabIndex != 0 && quizController.isPreparingQuiz) ||
+                    (_selectedTabIndex == 2 && isSubmittingQuiz),
               ),
       ),
     );
@@ -929,13 +887,13 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
 
 class _TrainingOverviewCard extends StatelessWidget {
   const _TrainingOverviewCard({
-    required this.track,
     required this.detail,
+    required this.currentModuleNumber,
     required this.moduleCount,
   });
 
-  final LearningTrackModuleDetail track;
   final ComplianceTrackItemDetail detail;
+  final int currentModuleNumber;
   final int moduleCount;
 
   @override
@@ -944,7 +902,7 @@ class _TrainingOverviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -957,7 +915,7 @@ class _TrainingOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           AppTextView.body(
-            'Video ${detail.position} of $moduleCount',
+            AppStrings.trainingVideoPositionLabel(currentModuleNumber, moduleCount),
             color: AppColors.textSecondary,
             fontSize: 14,
           ),
@@ -1074,7 +1032,7 @@ class _BottomActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 1, 20, 0),
       child: SafeArea(
         top: false,
         child: Row(

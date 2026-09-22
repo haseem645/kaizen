@@ -261,7 +261,9 @@ class _QuizResultDialogState extends State<QuizResultDialog> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppColors.surfaceDark,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: const AppTextView.body1(
             'Review Quiz',
             color: AppColors.textPrimary,

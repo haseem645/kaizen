@@ -7,7 +7,8 @@ abstract class PaygradeRepository {
     required int page,
     int pageSize = 10,
     String? departmentId,
-    String title = '',
+    String name = '',
+    String? title,
   });
 
   Future<List<Department>> getDepartments({required bool isOwner});
@@ -15,4 +16,29 @@ abstract class PaygradeRepository {
     required String paygradeId,
     required String type,
   });
+
+  Future<void> generatePaygrades({
+    required String actualId,
+    required int numPaygrades,
+  });
+
+  Future<PaygradeEntry> createPaygrade({
+    required String jobId,
+    required String type,
+    required String level,
+    required String title,
+    required String description,
+    required String promotionRequirement,
+    required int position,
+    required bool fromSandbox,
+  });
+
+  Future<void> updatePaygrade({
+    required String paygradeId,
+    required String title,
+    required String description,
+    required String promotionRequirement,
+  });
+
+  Future<void> deletePaygrade(String paygradeId);
 }
