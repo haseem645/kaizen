@@ -420,6 +420,8 @@ class TrainingLessonTitleField extends StatelessWidget {
         child: InkWell(
           onTap: isReadOnly ? null : onTap,
           borderRadius: BorderRadius.circular(16),
+          splashFactory: NoSplash.splashFactory,
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
           child: Ink(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

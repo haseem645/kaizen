@@ -115,10 +115,7 @@ class _TrainingTextEditSheetState extends State<_TrainingTextEditSheet> {
         final isSaving = _isSavingNotifier.value;
 
         return Padding(
-          padding: EdgeInsets.only(
-            top: 16,
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
+          padding: const EdgeInsets.only(top: 16),
           child: Align(
             alignment: Alignment.bottomCenter,
             heightFactor: 1,
@@ -129,163 +126,148 @@ class _TrainingTextEditSheetState extends State<_TrainingTextEditSheet> {
                 color: AppColors.mainBg,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  10,
-                  20,
-                  12 + MediaQuery.paddingOf(context).bottom,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 38,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppTextView.body1(
-                            widget.sheetTitle,
-                            color: AppColors.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    10,
+                    20,
+                    12 + MediaQuery.paddingOf(context).bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                        _DialogCloseButton(
-                          onTap: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    AppTextView.body3(
-                      widget.sheetDescription,
-                      color: AppColors.textSecondary,
-                      height: 1.45,
-                    ),
-                    const SizedBox(height: 18),
-                    AppTextView.body3(
-                      widget.fieldLabel,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      cursorColor: Colors.white,
-                      cursorHeight: 15,
-                      minLines: widget.minLines,
-                      maxLines: widget.maxLines,
-                      textInputAction: widget.textInputAction,
-                      keyboardType: widget.maxLines > 1
-                          ? TextInputType.multiline
-                          : TextInputType.text,
-                      textCapitalization: TextCapitalization.sentences,
-                      onSubmitted: widget.maxLines == 1
-                          ? (_) => _submit()
-                          : null,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppTextView.body1(
+                              widget.sheetTitle,
+                              color: AppColors.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          _DialogCloseButton(
+                            onTap: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      AppTextView.body3(
+                        widget.sheetDescription,
+                        color: AppColors.textSecondary,
                         height: 1.45,
                       ),
-                      decoration: InputDecoration(
-                        hintText: widget.hintText,
-                        hintStyle: TextStyle(
-                          color: AppColors.textSecondary.withValues(
-                            alpha: 0.74,
-                          ),
+                      const SizedBox(height: 18),
+                      AppTextView.body3(
+                        widget.fieldLabel,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        cursorColor: Colors.white,
+                        cursorHeight: 15,
+                        minLines: widget.minLines,
+                        maxLines: widget.maxLines,
+                        textInputAction: widget.textInputAction,
+                        keyboardType: widget.maxLines > 1
+                            ? TextInputType.multiline
+                            : TextInputType.text,
+                        textCapitalization: TextCapitalization.sentences,
+                        onSubmitted: widget.maxLines == 1
+                            ? (_) => _submit()
+                            : null,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           height: 1.45,
                         ),
-                        filled: true,
-                        fillColor: AppColors.surfaceDark2.withValues(
-                          alpha: 0.42,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: BorderSide(
-                            color: AppColors.fieldBorder.withValues(
-                              alpha: 0.16,
+                        decoration: InputDecoration(
+                          hintText: widget.hintText,
+                          hintStyle: TextStyle(
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.74,
                             ),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            height: 1.45,
                           ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: BorderSide(
-                            color: AppColors.fieldBorder.withValues(
-                              alpha: 0.16,
-                            ),
+                          filled: true,
+                          fillColor: AppColors.surfaceDark2.withValues(
+                            alpha: 0.42,
                           ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: const BorderSide(
-                            color: AppColors.secondaryColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
                           ),
-                        ),
-                      ),
-                    ),
-                    if (_errorTextNotifier.value != null) ...[
-                      const SizedBox(height: 12),
-                      _DialogErrorMessageCard(
-                        message: _errorTextNotifier.value!,
-                      ),
-                    ],
-                    const SizedBox(height: 22),
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        IgnorePointer(
-                          ignoring: isSaving,
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: AppGradientActionButton(
-                              label: widget.saveButtonLabel,
-                              icon: widget.saveIcon,
-                              onTap: isSaving
-                                  ? () {}
-                                  : _canSave
-                                  ? _submit
-                                  : null,
-                              minHeight: 52,
-                              borderRadius: 16,
-                              textSize: 15,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(
+                              color: AppColors.fieldBorder.withValues(
+                                alpha: 0.16,
                               ),
                             ),
                           ),
-                        ),
-                        if (isSaving)
-                          SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: FastCircularProgressIndicator(
-                              width: 14,
-                              height: 14,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(
+                              color: AppColors.fieldBorder.withValues(
+                                alpha: 0.16,
+                              ),
                             ),
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: AppColors.secondaryColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_errorTextNotifier.value != null) ...[
+                        const SizedBox(height: 12),
+                        _DialogErrorMessageCard(
+                          message: _errorTextNotifier.value!,
+                        ),
                       ],
-                    ),
-                  ],
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        width: double.infinity,
+                        child: AppGradientActionButton(
+                          label: widget.saveButtonLabel,
+                          icon: widget.saveIcon,
+                          isLoading: isSaving,
+                          onTap: _canSave ? _submit : null,
+                          minHeight: 52,
+                          borderRadius: 16,
+                          textSize: 15,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

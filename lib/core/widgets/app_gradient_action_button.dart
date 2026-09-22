@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import 'app_text_view.dart';
+import 'fast_circular_progress.dart';
 
 class AppGradientActionButton extends StatelessWidget {
   const AppGradientActionButton({
@@ -9,6 +10,7 @@ class AppGradientActionButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.isLoading = false,
     this.iconSize = 18,
     this.textSize = 15,
     this.fontWeight = FontWeight.w600,
@@ -16,7 +18,10 @@ class AppGradientActionButton extends StatelessWidget {
     this.borderRadius = 24,
     this.minHeight = 48,
     this.iconSpacing = 10,
-    this.gradientColors = const <Color>[AppColors.purple1, AppColors.secondaryColor],
+    this.gradientColors = const <Color>[
+      AppColors.purple1,
+      AppColors.secondaryColor,
+    ],
     this.borderColor,
     this.boxShadows,
   });
@@ -24,6 +29,7 @@ class AppGradientActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isLoading;
   final double iconSize;
   final double textSize;
   final FontWeight fontWeight;
@@ -37,9 +43,10 @@ class AppGradientActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isEnabled = onTap != null;
+    final isEnabled = onTap != null || isLoading;
     final resolvedBorderRadius = BorderRadius.circular(borderRadius);
-    final resolvedBorderColor = borderColor ?? AppColors.lightPurple1.withValues(alpha: 0.35);
+    final resolvedBorderColor =
+        borderColor ?? AppColors.lightPurple1.withValues(alpha: 0.35);
     final resolvedBoxShadows =
         boxShadows ??
         (isEnabled
@@ -65,7 +72,7 @@ class AppGradientActionButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: resolvedBorderRadius,
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: minHeight),
             child: Ink(
@@ -80,22 +87,28 @@ class AppGradientActionButton extends StatelessWidget {
                 border: Border.all(color: resolvedBorderColor),
                 boxShadow: resolvedBoxShadows,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(icon, color: AppColors.textPrimary, size: iconSize),
-                  SizedBox(width: iconSpacing),
-                  AppTextView.body(
-                    label,
-                    color: AppColors.textPrimary,
-                    fontWeight: fontWeight,
-                    fontSize: textSize,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+              child: isLoading
+                  ? const FastCircularProgressIndicator(width: 18, height: 18)
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(
+                          icon,
+                          color: AppColors.textPrimary,
+                          size: iconSize,
+                        ),
+                        SizedBox(width: iconSpacing),
+                        AppTextView.body(
+                          label,
+                          color: AppColors.textPrimary,
+                          fontWeight: fontWeight,
+                          fontSize: textSize,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
             ),
           ),
         ),

@@ -51,6 +51,7 @@ class TrainingLibraryController extends ChangeNotifier {
 
   bool _isInitialLoading = false;
   bool _isRefreshing = false;
+  bool _isPreservingListDuringRefresh = false;
   bool _isViewSyncing = false;
   bool _isLoadingMore = false;
   bool _hasNextPage = true;
@@ -80,6 +81,7 @@ class TrainingLibraryController extends ChangeNotifier {
   _LibrarySelectionField? _applyingSelectionField;
   String? _applyingSelectionId;
   List<TrainingLibraryModule>? _itemsBeforeSelection;
+  List<TrainingLibraryModule>? _itemsDuringPositionPreservingRefresh;
   String? _selectionErrorMessage;
 
   bool get canCreateTraining => _canCreateTraining?.call() ?? false;
@@ -136,7 +138,7 @@ class TrainingLibraryController extends ChangeNotifier {
       ),
     );
     if (!_isDisposed && canManageTraining) {
-      await refresh();
+      await refresh(preservePosition: true);
     }
   }
 
@@ -201,7 +203,9 @@ class TrainingLibraryController extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get isInlineLoading =>
       _applyingSelectionField == _LibrarySelectionField.filterTag ||
-      (!isApplyingSelection && (_isRefreshing || _isViewSyncing));
+      (!isApplyingSelection &&
+          ((_isRefreshing && !_isPreservingListDuringRefresh) ||
+              _isViewSyncing));
   bool get isApplyingSelection => _applyingSelectionField != null;
   bool get canApplySelection =>
       !isApplyingSelection &&
@@ -362,6 +366,9 @@ class TrainingLibraryController extends ChangeNotifier {
   List<TrainingLibraryModule> get visibleItems {
     if (_itemsBeforeSelection != null) {
       return _itemsBeforeSelection!;
+    }
+    if (_itemsDuringPositionPreservingRefresh != null) {
+      return _itemsDuringPositionPreservingRefresh!;
     }
     return List.unmodifiable(_filteredItems);
   }
@@ -533,22 +540,41 @@ class TrainingLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool preservePosition = false}) async {
     if (_isInitialLoading || _isRefreshing) {
       return;
     }
 
+    final loadedPages = _currentPage;
+    _isPreservingListDuringRefresh = preservePosition && _items.isNotEmpty;
+    final previousItems = _items;
+    final previousDepartments = _departments;
+    final previousHasNextPage = _hasNextPage;
+    if (_isPreservingListDuringRefresh) {
+      _itemsDuringPositionPreservingRefresh = visibleItems;
+    }
     _isRefreshing = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _reloadModules();
+      await _reloadModules(
+        keepExistingItems: _isPreservingListDuringRefresh,
+        minimumPageCount: _isPreservingListDuringRefresh ? loadedPages : 1,
+      );
     } catch (error) {
       _errorMessage = error.toString();
+      if (_isPreservingListDuringRefresh) {
+        _items = previousItems;
+        _departments = previousDepartments;
+        _currentPage = loadedPages;
+        _hasNextPage = previousHasNextPage;
+      }
     }
 
     _isRefreshing = false;
+    _isPreservingListDuringRefresh = false;
+    _itemsDuringPositionPreservingRefresh = null;
     notifyListeners();
     _flushPendingSearchRefresh();
   }
@@ -652,14 +678,20 @@ class TrainingLibraryController extends ChangeNotifier {
     }
   }
 
-  Future<void> _reloadModules() async {
+  Future<void> _reloadModules({
+    bool keepExistingItems = false,
+    int minimumPageCount = 1,
+  }) async {
     _currentPage = 0;
     _hasNextPage = true;
-    if (!isApplyingSelection) {
+    if (!isApplyingSelection && !keepExistingItems) {
       _items = const <TrainingLibraryModule>[];
     }
     // Keep department choices visible until the replacement page arrives.
     await _loadPage(1, replace: true);
+    while (_currentPage < minimumPageCount && _hasNextPage && !_isDisposed) {
+      await _loadPage(_currentPage + 1);
+    }
     await _loadUntilFiltersHaveVisibleItems();
   }
 

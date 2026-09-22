@@ -69,12 +69,14 @@ class EditTrainingScreen extends StatelessWidget {
     required this.trainingRoute,
     this.initialModuleId,
     this.canManageTraining,
+    this.startNewLessonWhenEmpty = false,
     this.useNonBlockingVideoUpload = false,
   });
 
   final SeatDescriptionTrainingRoute trainingRoute;
   final String? initialModuleId;
   final bool? canManageTraining;
+  final bool startNewLessonWhenEmpty;
   final bool useNonBlockingVideoUpload;
 
   @override
@@ -95,6 +97,7 @@ class EditTrainingScreen extends StatelessWidget {
                   trainingRoute: trainingRoute,
                   initialModuleId: initialModuleId,
                   canManageTraining: canManageTraining,
+                  startNewLessonWhenEmpty: startNewLessonWhenEmpty,
                   useNonBlockingVideoUpload: useNonBlockingVideoUpload,
                 ),
               ),
@@ -145,6 +148,7 @@ class EditTrainingSection extends StatelessWidget {
     required this.trainingRoute,
     this.initialModuleId,
     this.canManageTraining,
+    this.startNewLessonWhenEmpty = false,
     this.isEmbedded = false,
     this.skipResumeSessionRefreshOnMediaPicker = false,
     this.showOnlyApiErrorSnackBars = false,
@@ -154,6 +158,7 @@ class EditTrainingSection extends StatelessWidget {
   final SeatDescriptionTrainingRoute trainingRoute;
   final String? initialModuleId;
   final bool? canManageTraining;
+  final bool startNewLessonWhenEmpty;
   final bool isEmbedded;
   final bool skipResumeSessionRefreshOnMediaPicker;
   final bool showOnlyApiErrorSnackBars;
@@ -187,12 +192,14 @@ class EditTrainingSection extends StatelessWidget {
                 jobId: trainingRoute.job,
                 descriptionId: trainingRoute.description,
                 initialModuleId: resolvedInitialModuleId,
+                startNewLessonWhenEmpty: startNewLessonWhenEmpty,
               ),
         ),
       ],
       child: _EditTrainingSectionView(
         initialModuleId: resolvedInitialModuleId,
         trainingDescriptionId: trainingRoute.description,
+        startNewLessonWhenEmpty: startNewLessonWhenEmpty,
         isEmbedded: isEmbedded,
         skipResumeSessionRefreshOnMediaPicker: skipResumeSessionRefreshOnMediaPicker,
         showOnlyApiErrorSnackBars: showOnlyApiErrorSnackBars,
@@ -206,6 +213,7 @@ class _EditTrainingSectionView extends StatefulWidget {
   const _EditTrainingSectionView({
     required this.initialModuleId,
     required this.trainingDescriptionId,
+    required this.startNewLessonWhenEmpty,
     required this.isEmbedded,
     required this.skipResumeSessionRefreshOnMediaPicker,
     required this.showOnlyApiErrorSnackBars,
@@ -214,6 +222,7 @@ class _EditTrainingSectionView extends StatefulWidget {
 
   final String? initialModuleId;
   final String trainingDescriptionId;
+  final bool startNewLessonWhenEmpty;
   final bool isEmbedded;
   final bool skipResumeSessionRefreshOnMediaPicker;
   final bool showOnlyApiErrorSnackBars;
@@ -315,10 +324,17 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
+    final exitsEmptyCreateDraft =
+        widget.startNewLessonWhenEmpty && controller.modules.isEmpty;
     return PopScope<Object?>(
-      canPop: !controller.isCreatingNewLessonDraft,
+      canPop:
+          !controller.isCreatingModule &&
+          (exitsEmptyCreateDraft || !controller.isCreatingNewLessonDraft),
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop || !controller.isCreatingNewLessonDraft || controller.isCreatingModule) {
+        if (didPop ||
+            exitsEmptyCreateDraft ||
+            !controller.isCreatingNewLessonDraft ||
+            controller.isCreatingModule) {
           return;
         }
 

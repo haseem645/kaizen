@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
+import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/entities/seat_profile_detail.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/repositories/seat_profile_repository.dart';
 import 'package:sparrowkaizen/features/seat_profile/domain/usecases/get_seat_profiles_usecase.dart';
@@ -18,6 +19,7 @@ import 'package:sparrowkaizen/features/training/presentation/widgets/training_li
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_filter_tags.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_department_filter_strip.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_module_card.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_result_area.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_search_bar.dart';
 
 void main() {
@@ -125,6 +127,20 @@ void main() {
         find.descendant(of: tags, matching: find.byIcon(Icons.close_outlined)),
         findsNWidgets(3),
       );
+      final seatTag = find.byTooltip(
+        AppStrings.trainingLibraryRemoveFilter(_seatLabel),
+      );
+      final categoryTag = find.byTooltip(
+        AppStrings.trainingLibraryRemoveFilter(_categoryLabel),
+      );
+      final descriptionTag = find.byTooltip(
+        AppStrings.trainingLibraryRemoveFilter(_descriptionLabel),
+      );
+      expect(tester.getTopLeft(seatTag).dy, tester.getTopLeft(categoryTag).dy);
+      expect(
+        tester.getTopLeft(descriptionTag).dy,
+        greaterThan(tester.getTopLeft(seatTag).dy),
+      );
       for (final label in [_descriptionLabel, _categoryLabel, _seatLabel]) {
         expect(
           find.descendant(of: tags, matching: find.textContaining(label)),
@@ -230,6 +246,63 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final viewMode in TrainingLibraryViewMode.values) {
+    testWidgets(
+      'the ${viewMode.name} listing shows a footer while loading more',
+      (tester) async {
+        repository.response = Future.value(
+          TrainingLibraryPage(items: controller.items, hasNextPage: true),
+        );
+        if (viewMode == TrainingLibraryViewMode.grid) {
+          await controller.changeViewMode(viewMode);
+        } else {
+          await controller.refresh();
+        }
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 360,
+                height: 500,
+                child: ListenableBuilder(
+                  listenable: controller,
+                  builder: (context, _) => TrainingLibraryResultArea(
+                    controller: controller,
+                    items: controller.visibleItems,
+                    scrollController: controller.scrollController,
+                    onModuleTap: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final nextPage = Completer<TrainingLibraryPage>();
+        repository.response = nextPage.future;
+        final loading = controller.loadNextPage();
+        await tester.pump();
+
+        final footer = find.byType(FastCircularProgressIndicator);
+        expect(footer, findsOneWidget);
+        expect(
+          tester.getTopLeft(footer).dy,
+          greaterThan(
+            tester.getBottomLeft(find.byType(TrainingLibraryModuleCard)).dy,
+          ),
+        );
+
+        nextPage.complete(
+          TrainingLibraryPage(items: controller.items, hasNextPage: false),
+        );
+        await loading;
+        await tester.pump();
+        expect(footer, findsNothing);
+      },
+    );
+  }
 }
 
 const _seatLabel = 'Administration and financial operations controller';

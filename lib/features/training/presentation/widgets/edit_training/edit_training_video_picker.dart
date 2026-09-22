@@ -351,7 +351,7 @@ class _TrainingVideoGalleryPickerSheetState
                                 ),
                             itemCount:
                                 _galleryState.videos.length +
-                                1 +
+                                2 +
                                 (_isGalleryAccessLimited ? 1 : 0),
                             itemBuilder: (context, index) {
                               if (index == 0) {
@@ -362,14 +362,22 @@ class _TrainingVideoGalleryPickerSheetState
                                 );
                               }
 
-                              if (_isGalleryAccessLimited && index == 1) {
+                              if (index == 1) {
+                                return _TrainingVideoOpenGalleryTile(
+                                  onTap: () => Navigator.of(context).pop(
+                                    const _TrainingVideoPickerSelection.systemGallery(),
+                                  ),
+                                );
+                              }
+
+                              if (_isGalleryAccessLimited && index == 2) {
                                 return _TrainingVideoManageAccessTile(
                                   onTap: _presentLimitedVideoAccessPicker,
                                 );
                               }
 
                               final assetIndex =
-                                  index - (_isGalleryAccessLimited ? 2 : 1);
+                                  index - (_isGalleryAccessLimited ? 3 : 2);
                               final asset = _galleryState.videos[assetIndex];
                               return _TrainingVideoGalleryTile(
                                 asset: asset,
@@ -463,7 +471,7 @@ class _TrainingVideoSystemPickerSheet extends StatelessWidget {
               const SizedBox(height: 12),
               _TrainingVideoSystemPickerOptionTile(
                 icon: Icons.video_library_outlined,
-                title: AppStrings.trainingUploadVideo,
+                title: AppStrings.trainingOpenGallery,
                 subtitle: AppStrings.trainingUploadVideoHint,
                 onTap: () => Navigator.of(
                   context,

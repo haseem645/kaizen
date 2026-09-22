@@ -138,6 +138,9 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
             : SingleChildScrollView(
                 key: PageStorageKey<int>(index),
                 primary: false,
+                keyboardDismissBehavior: index == 0
+                    ? ScrollViewKeyboardDismissBehavior.onDrag
+                    : ScrollViewKeyboardDismissBehavior.manual,
                 padding: const EdgeInsets.only(bottom: 12),
                 physics: const BouncingScrollPhysics(),
                 child: page,
