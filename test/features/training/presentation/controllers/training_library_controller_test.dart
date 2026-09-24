@@ -853,7 +853,7 @@ SeatProfileDescription _description(String id) => SeatProfileDescription(
   milestoneDays: '',
 );
 
-class _LibraryRepository implements TrainingLibraryRepository {
+class _LibraryRepository extends Fake implements TrainingLibraryRepository {
   int requests = 0;
   final List<int> requestedPages = [];
   final List<

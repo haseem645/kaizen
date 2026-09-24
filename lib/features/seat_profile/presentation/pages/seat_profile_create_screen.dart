@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
-import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_ai_generate_button.dart';
+import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
@@ -32,12 +32,9 @@ class SeatProfileCreateScreen extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        Provider<SeatProfileRemoteDataSource>(
-          create: (_) => createSeatProfileRemoteDataSource(),
-        ),
+        Provider<SeatProfileRemoteDataSource>(create: (_) => createSeatProfileRemoteDataSource()),
         ProxyProvider<SeatProfileRemoteDataSource, SeatProfileRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              SeatProfileRepositoryImpl(remoteDataSource),
+          update: (_, remoteDataSource, __) => SeatProfileRepositoryImpl(remoteDataSource),
         ),
         ProxyProvider<SeatProfileRepositoryImpl, GetSeatProfilesUseCase>(
           update: (_, repository, __) => GetSeatProfilesUseCase(repository),
@@ -46,10 +43,8 @@ class SeatProfileCreateScreen extends StatelessWidget {
           create: (context) => SeatProfileCreateController(
             context.read<GetSeatProfilesUseCase>(),
             initialData: initialData,
-            canManageDepartment: (department) =>
-                AppManager.instance.canCurrentUserManageSeatProfileDepartment(
-                  departmentId: department.id,
-                ),
+            canManageDepartment: (department) => AppManager.instance
+                .canCurrentUserManageSeatProfileDepartment(departmentId: department.id),
           )..initialize(),
         ),
       ],
@@ -138,30 +133,22 @@ class _SeatProfileCreateScreenView extends StatelessWidget {
         body: SafeArea(
           top: false,
           bottom: false,
-          child:
-              controller.isLoadingDepartments && controller.departments.isEmpty
+          child: controller.isLoadingDepartments && controller.departments.isEmpty
               ? Center(child: FastCircularProgressIndicator())
               : _SeatProfileCreateContent(
                   controller: controller,
-                  onCompleteFlowToDetails: () =>
-                      _openSeatProfileDetails(context, controller),
+                  onCompleteFlowToDetails: () => _openSeatProfileDetails(context, controller),
                 ),
         ),
       ),
     );
   }
 
-  void _handleBackTap(
-    BuildContext context,
-    SeatProfileCreateController controller,
-  ) {
+  void _handleBackTap(BuildContext context, SeatProfileCreateController controller) {
     Navigator.of(context).pop(controller.didCompleteFlow);
   }
 
-  void _openSeatProfileDetails(
-    BuildContext context,
-    SeatProfileCreateController controller,
-  ) {
+  void _openSeatProfileDetails(BuildContext context, SeatProfileCreateController controller) {
     final seatId = controller.detailTargetSeatId;
     if (seatId.isEmpty) {
       Navigator.of(context).pop(true);
@@ -264,9 +251,7 @@ class _SeatProfileCreateContent extends StatelessWidget {
             onPressed: controller.canSubmit
                 ? () async {
                     final didSubmit = await controller.submit();
-                    if (!context.mounted ||
-                        !didSubmit ||
-                        !controller.isEditMode) {
+                    if (!context.mounted || !didSubmit || !controller.isEditMode) {
                       return;
                     }
 
@@ -387,11 +372,7 @@ class _SeatProfileDropdownField<T> extends StatelessWidget {
             color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
             size: compact ? 20 : 24,
           ),
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
           disabledHint: selectedLabel == null
               ? null
               : Text(
@@ -406,10 +387,7 @@ class _SeatProfileDropdownField<T> extends StatelessWidget {
           hint: Text(
             hintText,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.textSecondary.withValues(alpha: 0.85),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85), fontSize: 14),
           ),
           items: items,
           onChanged: enabled ? onChanged : null,
@@ -420,11 +398,7 @@ class _SeatProfileDropdownField<T> extends StatelessWidget {
 }
 
 class _SeatProfileFieldShell extends StatelessWidget {
-  const _SeatProfileFieldShell({
-    required this.label,
-    required this.child,
-    this.compact = false,
-  });
+  const _SeatProfileFieldShell({required this.label, required this.child, this.compact = false});
 
   final String label;
   final Widget child;
@@ -442,24 +416,15 @@ class _SeatProfileFieldShell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextView.body2(
-            label,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
+          AppTextView.body2(label, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
           SizedBox(height: compact ? 6 : 10),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: compact ? 6 : 14,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: compact ? 6 : 14),
             decoration: BoxDecoration(
               color: AppColors.mainBg,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.fieldBorder.withValues(alpha: 0.7),
-              ),
+              border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.7)),
             ),
             child: child,
           ),
@@ -481,9 +446,7 @@ class _CreateMessageCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.secondaryColor.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.18)),
       ),
       child: AppTextView.body2(message, color: AppColors.textSecondary),
     );
@@ -507,9 +470,7 @@ class _CreatedSeatProfileSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.secondaryColor.withValues(alpha: 0.16),
-        ),
+        border: Border.all(color: AppColors.secondaryColor.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,9 +552,7 @@ class _PostCreateDescriptionActions extends StatelessWidget {
       children: [
         _SeatProfileDottedActionButton(
           label: AppStrings.seatProfileAddOrUpdateSeatCategoryAction,
-          onTap: isEnabled
-              ? () => _showManageSeatCategoriesDialog(context)
-              : null,
+          onTap: isEnabled ? () => _showManageSeatCategoriesDialog(context) : null,
         ),
         const SizedBox(height: 12),
         AppAiGenerateButton(
@@ -602,9 +561,7 @@ class _PostCreateDescriptionActions extends StatelessWidget {
           textSize: 15,
           fontWeight: FontWeight.w700,
           label: AppStrings.seatProfileGenerateWithAiAction,
-          onTap: isEnabled
-              ? () => _showGenerateSeatContentDialog(context)
-              : null,
+          onTap: isEnabled ? () => _showGenerateSeatContentDialog(context) : null,
         ),
       ],
     );
@@ -644,10 +601,7 @@ class _PostCreateDescriptionActions extends StatelessWidget {
 }
 
 class _SeatProfileDottedActionButton extends StatelessWidget {
-  const _SeatProfileDottedActionButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _SeatProfileDottedActionButton({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback? onTap;
@@ -663,10 +617,7 @@ class _SeatProfileDottedActionButton extends StatelessWidget {
     return Opacity(
       opacity: isEnabled ? 1 : 0.58,
       child: CustomPaint(
-        painter: _SeatProfileDottedRoundedBorderPainter(
-          color: borderColor,
-          radius: 14,
-        ),
+        painter: _SeatProfileDottedRoundedBorderPainter(color: borderColor, radius: 14),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -682,9 +633,7 @@ class _SeatProfileDottedActionButton extends StatelessWidget {
               child: Center(
                 child: AppTextView.body(
                   label,
-                  color: isEnabled
-                      ? AppColors.secondaryColor
-                      : AppColors.textSecondary,
+                  color: isEnabled ? AppColors.secondaryColor : AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
                   textAlign: TextAlign.center,
@@ -704,12 +653,10 @@ class _ManageSeatCategoriesDialog extends StatefulWidget {
   final SeatProfileCreateController controller;
 
   @override
-  State<_ManageSeatCategoriesDialog> createState() =>
-      _ManageSeatCategoriesDialogState();
+  State<_ManageSeatCategoriesDialog> createState() => _ManageSeatCategoriesDialogState();
 }
 
-class _ManageSeatCategoriesDialogState
-    extends State<_ManageSeatCategoriesDialog> {
+class _ManageSeatCategoriesDialogState extends State<_ManageSeatCategoriesDialog> {
   late final _ManageSeatCategoriesDialogController _formController;
 
   @override
@@ -754,9 +701,7 @@ class _ManageSeatCategoriesDialogState
     _formController.setSaving(true);
 
     try {
-      await widget.controller.saveSeatCategoryDrafts(
-        _formController.buildDrafts(),
-      );
+      await widget.controller.saveSeatCategoryDrafts(_formController.buildDrafts());
       if (!mounted) {
         return;
       }
@@ -786,8 +731,7 @@ class _ManageSeatCategoriesDialogState
       context: context,
       builder: (_) => AppConfirmationDialog(
         title: AppStrings.seatProfileCategoriesSaveConfirmationTitle,
-        description:
-            AppStrings.seatProfileCategoriesSaveConfirmationDescription,
+        description: AppStrings.seatProfileCategoriesSaveConfirmationDescription,
         onCancelCallback: () async => Navigator.of(context).pop(false),
         onConfirmCallback: () async => Navigator.of(context).pop(true),
         confirmText: AppStrings.seatProfileSaveAction,
@@ -812,13 +756,8 @@ class _ManageSeatCategoriesDialogState
         canPop: !_formController.isSaving,
         child: Dialog(
           backgroundColor: AppColors.surfaceDark,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 720,
@@ -867,9 +806,7 @@ class _ManageSeatCategoriesDialogState
                           child: LinearProgressIndicator(
                             minHeight: 6,
                             color: AppColors.secondaryColor,
-                            backgroundColor: AppColors.fieldBorder.withValues(
-                              alpha: 0.18,
-                            ),
+                            backgroundColor: AppColors.fieldBorder.withValues(alpha: 0.18),
                           ),
                         ),
                       ],
@@ -882,8 +819,7 @@ class _ManageSeatCategoriesDialogState
                       else ...[
                         _ManageSeatCategoriesIntroSection(
                           isCompact: isCompact,
-                          remainingImportance:
-                              _formController.remainingImportance,
+                          remainingImportance: _formController.remainingImportance,
                         ),
                         SizedBox(height: isCompact ? 20 : 28),
                         _SeatCategoryHeaderRow(
@@ -915,9 +851,7 @@ class _ManageSeatCategoriesDialogState
                         _SeatCategoryActionFooter(
                           isCompact: isCompact,
                           totalImportance: _formController.totalImportance,
-                          onAddTap: _formController.isSaving
-                              ? null
-                              : _formController.addRow,
+                          onAddTap: _formController.isSaving ? null : _formController.addRow,
                         ),
                         SizedBox(height: isCompact ? 14 : 18),
                         AppTextView.body2(
@@ -932,9 +866,7 @@ class _ManageSeatCategoriesDialogState
                         ],
                         SizedBox(height: isCompact ? 18 : 22),
                         Align(
-                          alignment: isCompact
-                              ? Alignment.center
-                              : Alignment.centerRight,
+                          alignment: isCompact ? Alignment.center : Alignment.centerRight,
                           child: SizedBox(
                             width: isCompact ? double.infinity : 180,
                             child: AppAiGenerateButton(
@@ -971,10 +903,8 @@ class _ManageSeatCategoriesDialogController extends ChangeNotifier {
   bool get isSaving => _isSaving;
   String? get message => _message;
 
-  double get totalImportance => rows.fold<double>(
-    0,
-    (total, row) => total + _parseWeightPercent(row.weightController.text),
-  );
+  double get totalImportance =>
+      rows.fold<double>(0, (total, row) => total + _parseWeightPercent(row.weightController.text));
 
   double get remainingImportance => 100 - totalImportance;
   bool get requiresTotalConfirmation => remainingImportance > 0.001;
@@ -1114,10 +1044,8 @@ class _SeatCategoryRowController {
     String weightPercent = '',
     required VoidCallback onChanged,
   }) : _onChanged = onChanged {
-    nameController = TextEditingController(text: title)
-      ..addListener(_handleChanged);
-    weightController = TextEditingController(text: weightPercent)
-      ..addListener(_handleChanged);
+    nameController = TextEditingController(text: title)..addListener(_handleChanged);
+    weightController = TextEditingController(text: weightPercent)..addListener(_handleChanged);
   }
 
   final String? uuid;
@@ -1140,10 +1068,7 @@ class _SeatCategoryRowController {
 }
 
 class _CategoryRemainingCard extends StatelessWidget {
-  const _CategoryRemainingCard({
-    required this.remainingImportance,
-    required this.isCompact,
-  });
+  const _CategoryRemainingCard({required this.remainingImportance, required this.isCompact});
 
   final double remainingImportance;
   final bool isCompact;
@@ -1154,10 +1079,7 @@ class _CategoryRemainingCard extends StatelessWidget {
 
     return Container(
       width: isCompact ? double.infinity : 220,
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 14 : 18,
-        vertical: isCompact ? 14 : 18,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 14 : 18, vertical: isCompact ? 14 : 18),
       decoration: BoxDecoration(
         color: isBalanced ? AppColors.secondaryColor : AppColors.red1,
         borderRadius: BorderRadius.circular(isCompact ? 18 : 24),
@@ -1211,9 +1133,7 @@ class _SeatCategoryInputRow extends StatelessWidget {
             controller: rowController.nameController,
             hintText: AppStrings.seatProfileCategoryNameColumn,
             isCompact: isCompact,
-            inputFormatters: <TextInputFormatter>[
-              LengthLimitingTextInputFormatter(25),
-            ],
+            inputFormatters: <TextInputFormatter>[LengthLimitingTextInputFormatter(25)],
           ),
         ),
         SizedBox(width: isCompact ? 8 : 12),
@@ -1274,9 +1194,7 @@ class _DialogInputField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.32),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.32)),
       ),
       child: Center(
         child: TextField(
@@ -1334,9 +1252,7 @@ class _DialogDottedActionButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(isCompact ? 16 : 18),
             child: Ink(
               height: isCompact ? 56 : 64,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(isCompact ? 16 : 18),
-              ),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16 : 18)),
               child: Center(
                 child: AppTextView.body1(
                   label,
@@ -1370,9 +1286,7 @@ class _ManageSeatCategoriesIntroSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(isCompact ? 16 : 20),
-        border: Border.all(
-          color: AppColors.fieldBorder.withValues(alpha: 0.14),
-        ),
+        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.14)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1400,10 +1314,7 @@ class _ManageSeatCategoriesIntroSection extends StatelessWidget {
         children: [
           infoCard,
           const SizedBox(height: 12),
-          _CategoryRemainingCard(
-            remainingImportance: remainingImportance,
-            isCompact: true,
-          ),
+          _CategoryRemainingCard(remainingImportance: remainingImportance, isCompact: true),
         ],
       );
     }
@@ -1413,10 +1324,7 @@ class _ManageSeatCategoriesIntroSection extends StatelessWidget {
       children: [
         Expanded(child: infoCard),
         const SizedBox(width: 16),
-        _CategoryRemainingCard(
-          remainingImportance: remainingImportance,
-          isCompact: false,
-        ),
+        _CategoryRemainingCard(remainingImportance: remainingImportance, isCompact: false),
       ],
     );
   }
@@ -1508,11 +1416,7 @@ class _SeatCategoryActionFooter extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        AppTextView.body1(
-          totalLabel,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
+        AppTextView.body1(totalLabel, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
       ],
     );
   }
@@ -1531,11 +1435,7 @@ String _formatSeatProfilePercent(double value) {
 }
 
 int _countWords(String value) {
-  return value
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((word) => word.isNotEmpty)
-      .length;
+  return value.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
 }
 
 class _GenerateSeatContentDialog extends StatelessWidget {
@@ -1592,9 +1492,7 @@ class _GenerateSeatContentDialog extends StatelessWidget {
                 _SeatContentGenerationOptionsCard(controller: controller),
                 if (controller.seatContentGenerationErrorMessage != null) ...[
                   const SizedBox(height: 14),
-                  _CreateMessageCard(
-                    message: controller.seatContentGenerationErrorMessage!,
-                  ),
+                  _CreateMessageCard(message: controller.seatContentGenerationErrorMessage!),
                 ],
                 const SizedBox(height: 22),
                 Center(
@@ -1728,10 +1626,7 @@ class _SeatContentOptionChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 4,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1741,9 +1636,7 @@ class _SeatContentOptionChip extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected
-                        ? AppColors.secondaryColor
-                        : AppColors.lightPurple1,
+                    color: isSelected ? AppColors.secondaryColor : AppColors.lightPurple1,
                     width: 2,
                   ),
                 ),
@@ -1805,12 +1698,7 @@ class _SeatContentDialogDivider extends StatelessWidget {
     return Row(
       children: [
         const _SeatContentDialogDividerDot(),
-        Expanded(
-          child: Container(
-            height: 1,
-            color: AppColors.fieldBorder.withValues(alpha: 0.34),
-          ),
-        ),
+        Expanded(child: Container(height: 1, color: AppColors.fieldBorder.withValues(alpha: 0.34))),
         const _SeatContentDialogDividerDot(),
       ],
     );
@@ -1826,19 +1714,13 @@ class _SeatContentDialogDividerDot extends StatelessWidget {
       width: 10,
       height: 10,
       margin: const EdgeInsets.symmetric(horizontal: 2),
-      decoration: const BoxDecoration(
-        color: AppColors.hex51597a,
-        shape: BoxShape.circle,
-      ),
+      decoration: const BoxDecoration(color: AppColors.hex51597a, shape: BoxShape.circle),
     );
   }
 }
 
 class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
-  const _SeatProfileDottedRoundedBorderPainter({
-    required this.color,
-    required this.radius,
-  });
+  const _SeatProfileDottedRoundedBorderPainter({required this.color, required this.radius});
 
   final Color color;
   final double radius;
@@ -1851,9 +1733,7 @@ class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
       ..strokeWidth = 1.2;
 
     final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
-      );
+      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)));
 
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
@@ -1866,9 +1746,7 @@ class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(
-    covariant _SeatProfileDottedRoundedBorderPainter oldDelegate,
-  ) {
+  bool shouldRepaint(covariant _SeatProfileDottedRoundedBorderPainter oldDelegate) {
     return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }

@@ -111,6 +111,8 @@ class AppStrings {
   static const String homeKaizengram = 'Kaizengram';
   static const String homeAi = 'AI';
   static const String homeLearningTracks = 'Learning Tracks';
+  static const String bottomNavPerformance = 'Performance';
+  static const String bottomNavLtc = 'LTC';
   static const String homeCompliance = 'Compliance';
   static const String homeLibrary = 'Library';
   static const String weeklyCheckIns = 'Weekly Check-Ins';
@@ -121,6 +123,33 @@ class AppStrings {
   static const String homeKaizenGpt = 'KaizenGPT';
   static const String homeSetting = 'Setting';
   static const String seatProfileTitle = 'Seat Profile';
+  static const String shareAction = 'Share';
+  static const String sharePublicLinkTitle = 'Public Link';
+  static const String shareCreateLinkAction = 'Create Link';
+  static const String shareRevokeLinkAction = 'Revoke Link';
+  static const String shareCopyLinkAction = 'Copy link';
+  static const String shareLinkCopied = 'Link copied';
+  static const String shareLoadingLink = 'Checking public link…';
+  static const String shareLoadLinkFailed = 'Unable to load the public link. Please try again.';
+  static const String shareCreateLinkFailed = 'Unable to create the public link. Please try again.';
+  static const String shareRevokeLinkFailed = 'Unable to revoke the public link. Please try again.';
+  static const String shareCopyLinkFailed = 'Unable to copy the link. Please try again.';
+  static const String shareSeatProfileContent = 'this seat profile';
+  static const String sharePaygradesContent = 'these paygrades';
+  static const String shareLessonsContent = 'these lessons';
+  static const String shareLessonsTitle = 'Share Lessons';
+  static const String shareLessonsDescription =
+      'Choose which modules anyone with the public link can view.';
+  static const String shareLessonsSelectAll = 'Select all';
+  static const String shareLessonsSelectAtLeastOne = 'Select at least one lesson to create a link.';
+  static String shareLessonsSelectedCount(int selected, int total) =>
+      '$selected of $total selected';
+  static String sharePublicLinkDescription(String contentLabel) =>
+      'Anyone with this link can view $contentLabel. '
+      'Editing controls and internal organization data are never shared.';
+  static String shareCreateLinkDescription(String contentLabel) =>
+      'Create a public link so anyone can view $contentLabel. '
+      'Editing controls and internal organization data are never shared.';
   static const String seatProfileCreateTitle = 'Create Seat Profile';
   static const String seatProfileEditTitle = 'Edit Seat Profile';
   static const String seatProfileCreateAction = 'Create';
@@ -221,6 +250,11 @@ class AppStrings {
   static const String seatProfileCategoriesLoadFailed = 'Unable to load seat categories right now.';
   static const String paygradesTitle = 'Paygrades';
   static const String paygradesDetailsTitle = 'Paygrade Details';
+  static const String paygradesAvailableYes = 'Yes';
+  static const String paygradesAvailableNo = 'No';
+  static const String sharedPaygradesUnableToLoad = 'Unable to load these shared paygrades.';
+  static String paygradesRateForUnit(String unit) =>
+      unit.trim().isEmpty ? 'Pay Rate' : 'Pay Rate (${unit.trim().toUpperCase()})';
   static const String paygradesSearchHint = 'Search Paygrades';
   static const String paygradesNoItemsFound = 'No paygrades found.';
   static const String paygradesNoDetailItemsFound = 'No paygrades found for this tab.';
@@ -343,6 +377,7 @@ class AppStrings {
   static const String seatProfileNoItemsFound = 'No seat profiles found.';
   static const String seatProfileNoCategoriesFound = 'No categories found.';
   static const String seatProfileNoDescriptionsFound = 'No descriptions found.';
+  static const String sharedSeatProfileUnableToLoad = 'Unable to load this shared seat profile.';
   static String seatProfileLoadedDescriptionsForCategory(String categoryTitle) =>
       'Descriptions from $categoryTitle';
   static const String seatProfileFilterTitle = 'Filter';
@@ -656,6 +691,13 @@ class AppStrings {
   static const String trainingEditAction = 'Edit Assignment';
   static const String trainingSubmitQuiz = 'Submit Quiz';
   static const String trainingNoModulesAvailable = 'No training modules available.';
+  static const String trainingSharedLessonUnavailable = 'Unable to load this shared lesson.';
+  static const String sharedLmsUnableToLoad = 'Unable to load this shared LMS.';
+  static const String sharedLmsNoLessons = 'No shared lessons available.';
+  static const String sharedLmsUntitledLesson = 'Untitled Lesson';
+  static const String sharedLmsSeatLabel = 'SEAT';
+  static const String sharedLmsCategoryLabel = 'CATEGORY';
+  static const String sharedLmsDescriptionLabel = 'DESCRIPTION';
   static const String trainingLibraryTitle = 'LMS';
   static const String trainingLibrarySearchLesson = 'Search Lesson';
   static const String trainingLibrarySelectLesson = 'Select Lesson';

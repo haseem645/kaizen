@@ -12,6 +12,7 @@ import '../../../../core/network/api_error.dart';
 import '../../../../core/services/file_uploader.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/seat_description_training.dart';
+import '../../domain/entities/shared_lesson_content.dart';
 import '../../../check_in/domain/repositories/audit_repository.dart';
 import '../models/view_training_tab_access.dart';
 
@@ -884,8 +885,11 @@ class TrainingModuleController extends ChangeNotifier {
     this._auditRepository, {
     FileUploader? fileUploader,
     bool canManageTraining = false,
+    Future<SharedLessonContent> Function(String publicId)?
+    sharedLessonDetailLoader,
   }) : _fileUploader = fileUploader ?? const FileUploader(),
-       _canManageTraining = canManageTraining {
+       _canManageTraining = canManageTraining,
+       _sharedLessonDetailLoader = sharedLessonDetailLoader {
     newLessonTitleController.addListener(_handleNewLessonTitleChanged);
     moduleTitleController.addListener(_handleModuleTitleChanged);
     summaryController.addListener(_handleSummaryChanged);
@@ -904,8 +908,11 @@ class TrainingModuleController extends ChangeNotifier {
   static String generateClientUuid() => _uuidGenerator.v1();
 
   final AuditRepository _auditRepository;
+  final Future<SharedLessonContent> Function(String publicId)?
+  _sharedLessonDetailLoader;
   final FileUploader _fileUploader;
   final bool _canManageTraining;
+  bool _isDisposed = false;
   final TextEditingController newLessonTitleController =
       TextEditingController();
   final TextEditingController moduleTitleController = TextEditingController();
@@ -1070,11 +1077,10 @@ class TrainingModuleController extends ChangeNotifier {
       _selectedModuleDetail?.trainingVideo?.transcript?.trim().isNotEmpty ??
       false;
   // A generated summary can arrive before the cached video transcript updates.
-  bool get hasSelectedModuleSummary =>
-      CustomFunctions.stripHtmlTags(
-        _selectedModuleDetail?.description,
-        emptyText: '',
-      ).isNotEmpty;
+  bool get hasSelectedModuleSummary => CustomFunctions.stripHtmlTags(
+    _selectedModuleDetail?.description,
+    emptyText: '',
+  ).isNotEmpty;
 
   bool get canUploadSelectedModuleVideo =>
       _canManageTraining &&
@@ -1289,6 +1295,48 @@ class TrainingModuleController extends ChangeNotifier {
     }
   }
 
+  Future<void> initializeSharedLesson(String lessonId) async {
+    final resolvedLessonId = lessonId.trim();
+    if (resolvedLessonId.isEmpty) {
+      _errorMessage = AppStrings.trainingSharedLessonUnavailable;
+      notifyListeners();
+      return;
+    }
+
+    _jobId = '';
+    _descriptionId = '';
+    _isCreatingNewLessonDraft = false;
+    _moduleIdBeforeNewLessonDraft = null;
+    _moduleLocalVideoPaths.clear();
+    _modules = const <SeatDescriptionTrainingModule>[];
+    _selectedModuleId = resolvedLessonId;
+    _selectedModuleDetail = null;
+    _errorMessage = null;
+    _resetSelectedModuleExtras();
+    _resetEditors();
+    newLessonTitleController.clear();
+    await _loadSelectedModuleDetail();
+    if (_isDisposed) return;
+
+    final detail = _selectedModuleDetail;
+    if (detail == null) {
+      _errorMessage = AppStrings.trainingSharedLessonUnavailable;
+      notifyListeners();
+      return;
+    }
+
+    _modules = <SeatDescriptionTrainingModule>[
+      SeatDescriptionTrainingModule(
+        uuid: resolvedLessonId,
+        actualId: detail.actualId,
+        title: detail.title,
+        thumbnailLink: detail.previewThumbnailLink,
+        isPubliclyAvailable: detail.isPubliclyAvailable,
+      ),
+    ];
+    notifyListeners();
+  }
+
   Future<void> selectModule(String moduleId) async {
     final resolvedModuleId = moduleId.trim();
     if (resolvedModuleId.isEmpty) {
@@ -1419,7 +1467,9 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<void> refreshDocumentForSelectedModule() async {
-    if (_selectedModuleId.isEmpty || _isDocumentLoading) {
+    if (_selectedModuleId.isEmpty ||
+        _isDocumentLoading ||
+        _sharedLessonDetailLoader != null) {
       return;
     }
 
@@ -1462,7 +1512,9 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<void> refreshAssignmentForSelectedModule() async {
-    if (_selectedModuleId.isEmpty || _isAssignmentLoading) {
+    if (_selectedModuleId.isEmpty ||
+        _isAssignmentLoading ||
+        _sharedLessonDetailLoader != null) {
       return;
     }
 
@@ -1523,7 +1575,9 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<void> refreshQuestionsForSelectedModule() async {
-    if (_selectedModuleId.isEmpty || _isQuestionsLoading) {
+    if (_selectedModuleId.isEmpty ||
+        _isQuestionsLoading ||
+        _sharedLessonDetailLoader != null) {
       return;
     }
 
@@ -2505,8 +2559,22 @@ class TrainingModuleController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _selectedModuleDetail = await _auditRepository
-          .getSeatDescriptionTrainingModuleDetail(moduleId: _selectedModuleId);
+      if (_sharedLessonDetailLoader != null) {
+        final sharedLesson = await _sharedLessonDetailLoader(_selectedModuleId);
+        if (_isDisposed) return;
+        _selectedModuleDetail = sharedLesson.module;
+        _selectedModuleDocument = sharedLesson.document;
+        _selectedModuleAssignment = sharedLesson.assignment;
+        _hasResolvedAssignment = true;
+        _syncDocumentEditorText();
+      } else {
+        final detail = await _auditRepository
+            .getSeatDescriptionTrainingModuleDetail(
+              moduleId: _selectedModuleId,
+            );
+        if (_isDisposed) return;
+        _selectedModuleDetail = detail;
+      }
       if (_selectedModuleDetail?.trainingVideo == null) {
         _moduleLocalVideoPaths.remove(_selectedModuleId.trim());
       }
@@ -2517,8 +2585,12 @@ class TrainingModuleController extends ChangeNotifier {
         _selectedModuleDetail?.questions ??
             const <SeatDescriptionTrainingQuestion>[],
       );
+      if (_sharedLessonDetailLoader != null) {
+        _hasResolvedQuestions = true;
+      }
       _syncSelectedModuleSummaryFromDetail();
     } catch (error) {
+      if (_isDisposed) return;
       _errorMessage = error.toString();
     }
 
@@ -3205,6 +3277,7 @@ class TrainingModuleController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _documentRequestVersion += 1;
     _summaryEditorVersion += 1;
     newLessonTitleController.removeListener(_handleNewLessonTitleChanged);

@@ -5,12 +5,15 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
+import '../../../../core/preference/app_preference.dart';
 import '../../../../core/widgets/app_ai_generate_button.dart';
+import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../../../routes/app_router.dart';
 import '../../../training/domain/entities/seat_description_training_route.dart';
 import '../../../training/presentation/pages/edit_training_screen.dart';
 import '../../data/datasources/seat_profile_remote_data_source.dart';
@@ -21,11 +24,17 @@ import '../providers/seat_profile_detail_controller.dart';
 import 'seat_profile_description_sheet.dart';
 import 'seat_profile_generate_content_sheet.dart';
 import 'seat_profile_manage_categories_sheet.dart';
+import 'seat_profile_share_dialogue.dart';
 
 class SeatProfileDetailScreen extends StatelessWidget {
-  const SeatProfileDetailScreen({super.key, required this.seatId});
+  const SeatProfileDetailScreen({
+    super.key,
+    required this.seatId,
+    this.getSeatProfilesUseCase,
+  });
 
   final String seatId;
+  final GetSeatProfilesUseCase? getSeatProfilesUseCase;
 
   @override
   Widget build(BuildContext context) {
@@ -44,17 +53,31 @@ class SeatProfileDetailScreen extends StatelessWidget {
         ),
         ChangeNotifierProvider<SeatProfileDetailController>(
           create: (context) => SeatProfileDetailController(
-            context.read<GetSeatProfilesUseCase>(),
+            getSeatProfilesUseCase ?? context.read<GetSeatProfilesUseCase>(),
           )..initialize(seatId),
         ),
       ],
-      child: const _SeatProfileDetailScreenView(),
+      child: const SeatProfileDetailView(),
     );
   }
 }
 
-class _SeatProfileDetailScreenView extends StatelessWidget {
-  const _SeatProfileDetailScreenView();
+class SeatProfileDetailView extends StatelessWidget {
+  const SeatProfileDetailView({super.key, this.isShared = false});
+
+  final bool isShared;
+
+  void _goBack(BuildContext context) {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    final destination = AppPreference.getAuthToken().trim().isEmpty
+        ? AppRouter.login
+        : AppRouter.defaultAuthenticatedRouteName;
+    navigator.pushReplacementNamed(destination);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +91,8 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () =>
+              isShared ? _goBack(context) : Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
         title: const AppTextView.title1(
@@ -86,7 +110,8 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
           child: ListenableBuilder(
             listenable: AppManager.instance,
             builder: (context, _) {
-              final canManageContent = _canManageSeatProfile(detail);
+              final canManageContent =
+                  !isShared && _canManageSeatProfile(detail);
 
               return Column(
                 children: [
@@ -104,22 +129,35 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
                     Expanded(
                       child: ListView(
                         children: [
-                          _buildSeatSummary(detail),
-                          const SizedBox(height: 18),
-                          _DetailActionRow(
-                            controller: controller,
-                            canManageContent: canManageContent,
-                            onUpdateCategory: () =>
-                                _showManageSeatCategoriesDialog(
-                                  context,
-                                  controller,
-                                ),
-                            onGenerate: () => _showGenerateSeatContentSheet(
-                              context,
-                              controller,
-                            ),
+                          _buildSeatSummary(
+                            detail,
+                            onShare:
+                                !isShared &&
+                                    (controller.shareController?.canManage ??
+                                        false)
+                                ? () => showSeatProfileShareDialogue(
+                                    context,
+                                    controller.shareController!,
+                                  )
+                                : null,
                           ),
                           const SizedBox(height: 18),
+                          if (!isShared) ...[
+                            _DetailActionRow(
+                              controller: controller,
+                              canManageContent: canManageContent,
+                              onUpdateCategory: () =>
+                                  _showManageSeatCategoriesDialog(
+                                    context,
+                                    controller,
+                                  ),
+                              onGenerate: () => _showGenerateSeatContentSheet(
+                                context,
+                                controller,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                          ],
                           if (detail.categories.isEmpty)
                             _buildMessage(
                               AppStrings.seatProfileNoCategoriesFound,
@@ -131,6 +169,7 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
                                 child: _CategoryCard(
                                   controller: controller,
                                   canManageContent: canManageContent,
+                                  isShared: isShared,
                                   seatProfileId: detail.id,
                                   seatProfileResolvedId: detail.resolvedSeatId,
                                   category: category,
@@ -280,7 +319,7 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
     );
   }
 
-  Widget _buildSeatSummary(SeatProfileDetail detail) {
+  Widget _buildSeatSummary(SeatProfileDetail detail, {VoidCallback? onShare}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -290,10 +329,34 @@ class _SeatProfileDetailScreenView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextView.body1(
-            detail.title,
-            color: AppColors.secondaryColor,
-            fontWeight: FontWeight.w700,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppTextView.body1(
+                  detail.title,
+                  color: AppColors.secondaryColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (onShare != null) ...[
+                const SizedBox(width: 12),
+                SizedBox.square(
+                  dimension: 35,
+                  child: AppGradientActionButton(
+                    label: AppStrings.shareAction,
+                    icon: Icons.share_outlined,
+                    iconOnly: true,
+                    iconSize: 24,
+                    minHeight: 40,
+                    borderRadius: 12,
+                    boxShadows: const <BoxShadow>[],
+                    padding: EdgeInsets.zero,
+                    onTap: onShare,
+                  ),
+                ),
+              ],
+            ],
           ),
           if ((detail.department?.name ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -434,6 +497,7 @@ class _CategoryCard extends StatelessWidget {
   const _CategoryCard({
     required this.controller,
     required this.canManageContent,
+    required this.isShared,
     required this.seatProfileId,
     required this.seatProfileResolvedId,
     required this.category,
@@ -444,6 +508,7 @@ class _CategoryCard extends StatelessWidget {
 
   final SeatProfileDetailController controller;
   final bool canManageContent;
+  final bool isShared;
   final String seatProfileId;
   final String seatProfileResolvedId;
   final SeatProfileCategory category;
@@ -525,6 +590,7 @@ class _CategoryCard extends StatelessWidget {
                     child: _InlineDescriptionCard(
                       controller: controller,
                       canManageContent: canManageContent,
+                      isShared: isShared,
                       seatProfileId: seatProfileId,
                       seatProfileResolvedId: seatProfileResolvedId,
                       categoryId: category.id,
@@ -560,6 +626,7 @@ class _InlineDescriptionCard extends StatelessWidget {
   const _InlineDescriptionCard({
     required this.controller,
     required this.canManageContent,
+    required this.isShared,
     required this.seatProfileId,
     required this.seatProfileResolvedId,
     required this.categoryId,
@@ -570,6 +637,7 @@ class _InlineDescriptionCard extends StatelessWidget {
 
   final SeatProfileDetailController controller;
   final bool canManageContent;
+  final bool isShared;
   final String seatProfileId;
   final String seatProfileResolvedId;
   final String categoryId;
@@ -625,12 +693,14 @@ class _InlineDescriptionCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6),
-                  AppTextView.body3(
-                    seatProfileDescriptionMilestoneLabel(
-                      description.milestoneDays,
+                  Expanded(
+                    child: AppTextView.body3(
+                      seatProfileDescriptionMilestoneLabel(
+                        description.milestoneDays,
+                      ),
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
                   ),
                 ],
               ),
@@ -642,12 +712,14 @@ class _InlineDescriptionCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6),
-                  AppTextView.body3(
-                    seatProfileDescriptionCheckInTypeLabel(
-                      description.auditFactorType,
+                  Expanded(
+                    child: AppTextView.body3(
+                      seatProfileDescriptionCheckInTypeLabel(
+                        description.auditFactorType,
+                      ),
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
                   ),
                 ],
               ),
@@ -663,15 +735,17 @@ class _InlineDescriptionCard extends StatelessWidget {
                     ? null
                     : () => _showAuditSpecificsDialog(context),
               ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: _ViewTrainingTextButton(
-                  onTap: isDeleting
-                      ? null
-                      : () => _openTrainingModules(context),
+              if (!isShared) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _ViewTrainingTextButton(
+                    onTap: isDeleting
+                        ? null
+                        : () => _openTrainingModules(context),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

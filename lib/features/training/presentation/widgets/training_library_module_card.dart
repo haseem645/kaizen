@@ -16,14 +16,32 @@ class TrainingLibraryModuleCard extends StatelessWidget {
     required this.module,
     required this.onTap,
     this.onLongPress,
-  });
+  }) : sharedTitle = null,
+       sharedThumbnailLink = null;
 
-  final TrainingLibraryModule module;
+  const TrainingLibraryModuleCard.shared({
+    super.key,
+    required this.sharedTitle,
+    required this.sharedThumbnailLink,
+    required this.onTap,
+  }) : module = null,
+       onLongPress = null;
+
+  final TrainingLibraryModule? module;
+  final String? sharedTitle;
+  final String? sharedThumbnailLink;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
+    final module = this.module;
+    final resolvedSharedTitle = sharedTitle?.trim() ?? '';
+    final title = module == null
+        ? (resolvedSharedTitle.isEmpty
+              ? AppStrings.sharedLmsUntitledLesson
+              : resolvedSharedTitle)
+        : TrainingLibraryController.displayModuleTitle(module);
     return LayoutBuilder(
       builder: (context, constraints) {
         return Material(
@@ -33,7 +51,9 @@ class TrainingLibraryModuleCard extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                child: _ModuleThumbnail(thumbnailLink: module.thumbnailLink),
+                child: _ModuleThumbnail(
+                  thumbnailLink: module?.thumbnailLink ?? sharedThumbnailLink,
+                ),
               ),
               Positioned.fill(
                 child: DecoratedBox(
@@ -64,10 +84,12 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ModuleSeatLabel(seatTitle: module.seat.title),
-                      const SizedBox(height: 3),
+                      if (module != null) ...[
+                        _ModuleSeatLabel(seatTitle: module.seat.title),
+                        const SizedBox(height: 3),
+                      ],
                       AppTextView.body1(
-                        TrainingLibraryController.displayModuleTitle(module),
+                        title,
                         color: AppColors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -75,13 +97,17 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      AppTextView.body2(
-                        TrainingLibraryController.displayModuleDuration(module),
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                      ),
+                      if (module != null) ...[
+                        const SizedBox(height: 4),
+                        AppTextView.body2(
+                          TrainingLibraryController.displayModuleDuration(
+                            module,
+                          ),
+                          color: AppColors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -94,9 +120,7 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                     onLongPress: onLongPress,
                     child: Semantics(
                       button: true,
-                      label: TrainingLibraryController.displayModuleTitle(
-                        module,
-                      ),
+                      label: title,
                       hint: onLongPress == null
                           ? null
                           : AppStrings.trainingLibraryLessonActionsHint,

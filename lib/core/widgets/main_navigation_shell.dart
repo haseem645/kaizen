@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../managers/app_manager.dart';
+import '../navigation/main_navigation_controller.dart';
+import 'app_bottom_nav_bar.dart';
+
+class MainNavigationShell extends StatelessWidget {
+  const MainNavigationShell({super.key, required this.controller});
+
+  final MainNavigationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<MainNavigationController>.value(
+      value: controller,
+      child: const _MainNavigationView(),
+    );
+  }
+}
+
+class _MainNavigationView extends StatelessWidget {
+  const _MainNavigationView();
+
+  @override
+  Widget build(BuildContext context) {
+    final navigation = context.watch<MainNavigationController>();
+    final isSandboxMode = context.select<AppManager, bool>(
+      (manager) => manager.usesParentApiEndpoints,
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      body: _MainNavigationPages(navigation: navigation),
+      bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
+          ? null
+          : AppBottomNavBar(
+              selectedMenu: navigation.selectedMenu,
+              isSandboxMode: isSandboxMode,
+              onSelected: (menu) {
+                // Dismiss the active page's drawer before retaining it offstage.
+                if (ModalRoute.of(context)?.willHandlePopInternally ?? false) {
+                  Navigator.of(context).pop();
+                }
+                navigation.selectMenu(menu);
+              },
+            ),
+    );
+  }
+}
+
+/// Visited pages keep their providers and scroll state; inactive tickers pause.
+class _MainNavigationPages extends StatelessWidget {
+  const _MainNavigationPages({required this.navigation});
+
+  final MainNavigationController navigation;
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: navigation.selectedIndex,
+      children: navigation.destinations.map((destination) {
+        final isSelected = destination.menu == navigation.selectedMenu;
+        return TickerMode(
+          key: ValueKey((navigation.pageGeneration, destination.menu)),
+          enabled: isSelected,
+          child: ExcludeFocus(
+            excluding: !isSelected,
+            child: navigation.hasVisited(destination.menu)
+                ? Builder(builder: destination.builder)
+                : const SizedBox.shrink(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}

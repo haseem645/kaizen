@@ -7,7 +7,7 @@ import '../../../../core/managers/app_manager.dart';
 import '../../../../core/navigation/app_menu_type.dart';
 import '../../../../core/widgets/app_department_filter_strip.dart';
 import '../../../../core/widgets/app_department_selection_sheet.dart';
-import '../../../../core/widgets/app_gradient_action_button.dart';
+import '../../../../core/widgets/app_bar_create_action.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/drawer_main_screen.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
@@ -93,20 +93,16 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       title: AppStrings.seatProfileTitle,
       selectedMenu: AppMenuType.seatProfiles,
       centerTitle: true,
+      appBarActions: [
+        if (shouldShowCreateAction)
+          _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
+      ],
       child: SafeArea(
         top: false,
         bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: controller.isInitialLoading
-                  ? Center(child: FastCircularProgressIndicator())
-                  : _buildContent(context, controller),
-            ),
-            if (shouldShowCreateAction)
-              _SeatProfileCreateAction(onTap: () => _openCreateSeatProfile(context)),
-          ],
-        ),
+        child: controller.isInitialLoading
+            ? Center(child: FastCircularProgressIndicator())
+            : _buildContent(context, controller),
       ),
     );
   }
@@ -264,38 +260,7 @@ class _SeatProfileCreateAction extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        return Container(
-          height: 70,
-          decoration: BoxDecoration(
-            color: AppColors.mainBg,
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                spreadRadius: 20,
-                blurRadius: 20,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: double.infinity,
-              child: AppGradientActionButton(
-                label: AppStrings.seatProfileCreateAction,
-                icon: Icons.add_rounded,
-                iconSize: 16,
-                textSize: 14,
-                minHeight: 40,
-                borderRadius: 12,
-                iconSpacing: 8,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                onTap: onTap,
-              ),
-            ),
-          ),
-        );
+        return AppBarCreateAction(label: AppStrings.seatProfileCreateAction, onTap: onTap);
       },
     );
   }

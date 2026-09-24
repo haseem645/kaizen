@@ -24,9 +24,13 @@ import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../check_in/data/datasources/audit_remote_data_source.dart';
 import '../../../check_in/data/repositories/audit_repository_impl.dart';
 import '../../../compliance/presentation/widgets/compliance_video_player.dart';
+import '../../data/datasources/training_library_remote_data_source.dart';
+import '../../data/repositories/training_library_repository_impl.dart';
 import '../../domain/entities/seat_description_training.dart';
 import '../../domain/entities/seat_description_training_route.dart';
+import '../../domain/repositories/training_library_repository.dart';
 import '../controllers/training_module_controller.dart';
+import '../controllers/training_share_controller.dart';
 import '../controllers/training_question_form_controller.dart';
 import '../controllers/training_quiz_question_editor_controller.dart';
 import '../controllers/training_tab_navigation_controller.dart';
@@ -34,6 +38,7 @@ import '../controllers/training_video_capture_bridge.dart';
 import '../controllers/training_video_upload_controller.dart';
 import '../widgets/training_assignment_layout.dart';
 import '../widgets/training_option_delete_dialog.dart';
+import '../widgets/training_share_action.dart';
 import '../widgets/training_swipe_delete_action.dart';
 import '../widgets/training_tab_view.dart';
 
@@ -81,28 +86,47 @@ class EditTrainingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.mainBg,
-      resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
-            const SizedBox(height: 18),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: EditTrainingSection(
-                  trainingRoute: trainingRoute,
-                  initialModuleId: initialModuleId,
-                  canManageTraining: canManageTraining,
-                  startNewLessonWhenEmpty: startNewLessonWhenEmpty,
-                  useNonBlockingVideoUpload: useNonBlockingVideoUpload,
+    return MultiProvider(
+      providers: [
+        Provider<TrainingLibraryRepository>(
+          create: (_) => createTrainingLibraryRepository(createTrainingLibraryRemoteDataSource()),
+        ),
+        ChangeNotifierProvider<TrainingShareController>(
+          lazy: false,
+          create: (context) => TrainingShareController(
+            context.read<TrainingLibraryRepository>(),
+            seatProfileId: trainingRoute.job,
+            descriptionId: trainingRoute.description,
+          )..loadLink(),
+        ),
+      ],
+      child: EditTrainingSection(
+        trainingRoute: trainingRoute,
+        initialModuleId: initialModuleId,
+        canManageTraining: canManageTraining,
+        startNewLessonWhenEmpty: startNewLessonWhenEmpty,
+        useNonBlockingVideoUpload: useNonBlockingVideoUpload,
+        builder: (context, section) => Scaffold(
+          backgroundColor: AppColors.mainBg,
+          resizeToAvoidBottomInset: false,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+                  child: _buildHeader(context),
                 ),
-              ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: section,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -110,7 +134,7 @@ class EditTrainingScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return SizedBox(
-      height: 32,
+      height: 35,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -136,6 +160,7 @@ class EditTrainingScreen extends StatelessWidget {
             fontSize: 20,
             fontWeight: FontWeight.w500,
           ),
+          Align(alignment: Alignment.centerRight, child: const TrainingShareAction()),
         ],
       ),
     );
@@ -153,6 +178,7 @@ class EditTrainingSection extends StatelessWidget {
     this.skipResumeSessionRefreshOnMediaPicker = false,
     this.showOnlyApiErrorSnackBars = false,
     this.useNonBlockingVideoUpload = false,
+    this.builder,
   });
 
   final SeatDescriptionTrainingRoute trainingRoute;
@@ -163,6 +189,9 @@ class EditTrainingSection extends StatelessWidget {
   final bool skipResumeSessionRefreshOnMediaPicker;
   final bool showOnlyApiErrorSnackBars;
   final bool useNonBlockingVideoUpload;
+
+  /// Builds the surrounding screen within the section's controller scope.
+  final Widget Function(BuildContext context, Widget section)? builder;
 
   @override
   Widget build(BuildContext context) {
@@ -196,14 +225,19 @@ class EditTrainingSection extends StatelessWidget {
               ),
         ),
       ],
-      child: _EditTrainingSectionView(
-        initialModuleId: resolvedInitialModuleId,
-        trainingDescriptionId: trainingRoute.description,
-        startNewLessonWhenEmpty: startNewLessonWhenEmpty,
-        isEmbedded: isEmbedded,
-        skipResumeSessionRefreshOnMediaPicker: skipResumeSessionRefreshOnMediaPicker,
-        showOnlyApiErrorSnackBars: showOnlyApiErrorSnackBars,
-        useNonBlockingVideoUpload: useNonBlockingVideoUpload,
+      child: Builder(
+        builder: (context) {
+          final section = _EditTrainingSectionView(
+            initialModuleId: resolvedInitialModuleId,
+            trainingDescriptionId: trainingRoute.description,
+            startNewLessonWhenEmpty: startNewLessonWhenEmpty,
+            isEmbedded: isEmbedded,
+            skipResumeSessionRefreshOnMediaPicker: skipResumeSessionRefreshOnMediaPicker,
+            showOnlyApiErrorSnackBars: showOnlyApiErrorSnackBars,
+            useNonBlockingVideoUpload: useNonBlockingVideoUpload,
+          );
+          return builder?.call(context, section) ?? section;
+        },
       ),
     );
   }
@@ -324,8 +358,7 @@ class _EditTrainingSectionViewState extends State<_EditTrainingSectionView> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TrainingModuleController>();
-    final exitsEmptyCreateDraft =
-        widget.startNewLessonWhenEmpty && controller.modules.isEmpty;
+    final exitsEmptyCreateDraft = widget.startNewLessonWhenEmpty && controller.modules.isEmpty;
     return PopScope<Object?>(
       canPop:
           !controller.isCreatingModule &&

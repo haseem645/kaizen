@@ -6,8 +6,10 @@ import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
 import '../managers/app_manager.dart';
 import '../navigation/app_menu_type.dart';
+import '../navigation/main_navigation_controller.dart';
 import '../utils/auth_controller.dart';
 import '../utils/custom_functions.dart';
+import 'app_bottom_nav_bar.dart';
 import 'app_confirmation_dialog.dart';
 import 'app_drawer.dart';
 import 'app_text_view.dart';
@@ -34,8 +36,12 @@ class DrawerMainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasNavigationShell =
+        context.read<MainNavigationController?>() != null;
+
     return Scaffold(
       backgroundColor: AppColors.mainBg,
+      extendBody: true,
       appBar: AppBar(
         backgroundColor: AppColors.mainBg,
         foregroundColor: AppColors.textPrimary,
@@ -51,6 +57,10 @@ class DrawerMainScreen extends StatelessWidget {
       ),
       drawer: _buildDrawer(context),
       body: child,
+      bottomNavigationBar:
+          hasNavigationShell || MediaQuery.viewInsetsOf(context).bottom > 0
+          ? null
+          : _buildBottomNavigation(context),
     );
   }
 
@@ -67,11 +77,7 @@ class DrawerMainScreen extends StatelessWidget {
           isSandboxMode: appManager.usesParentApiEndpoints,
           selectedMenu: selectedMenu,
           onProfileTap: () => _openProfile(context),
-          onLearningTracksTap: () => _openLearningTracks(context),
           onComplianceTap: () => _openCompliance(context),
-          onLibraryTap: () => _openLibrary(context),
-          onAuditsTap: () => _openAudit(context),
-          onPerformanceSnapshotTap: () => _openPerformanceSnapshot(context),
           onSeatProfilesTap: () => _openSeatProfiles(context),
           onPaygradesTap: () => _openPaygrades(context),
           onDepartmentsTap: () => _openDepartments(context),
@@ -95,85 +101,65 @@ class DrawerMainScreen extends StatelessWidget {
     AppRouter.pushNamed(context, AppRouter.profile);
   }
 
-  void _openLearningTracks(BuildContext context) {
-    if (selectedMenu == AppMenuType.learningTracks) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(
-      context,
-      AppRouter.learningTracks,
+  Widget _buildBottomNavigation(BuildContext context) {
+    return Consumer<AppManager>(
+      builder: (_, appManager, _) => AppBottomNavBar(
+        selectedMenu: selectedMenu,
+        isSandboxMode: appManager.usesParentApiEndpoints,
+        onSelected: (menu) => _openBottomTab(context, menu),
+      ),
     );
   }
 
-  void _openCompliance(BuildContext context) {
-    if (selectedMenu == AppMenuType.compliance) {
+  void _openBottomTab(BuildContext context, AppMenuType menu) {
+    if (selectedMenu == menu) {
       return;
     }
 
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.compliance);
-  }
-
-  void _openLibrary(BuildContext context) {
-    if (selectedMenu == AppMenuType.library) {
-      return;
+    final routeName = switch (menu) {
+      AppMenuType.library => AppRouter.trainingLibrary,
+      AppMenuType.audits => AppRouter.checkIn,
+      AppMenuType.performanceSnapshot => AppRouter.performanceSnapshot,
+      AppMenuType.learningTracks => AppRouter.learningTracks,
+      _ => null,
+    };
+    if (routeName != null) {
+      _openMainMenu(context, menu, routeName);
     }
-
-    AppRouter.pushReplacementNamed<void, void>(
-      context,
-      AppRouter.trainingLibrary,
-    );
-  }
-
-  void _openAudit(BuildContext context) {
-    if (selectedMenu == AppMenuType.audits) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.checkIn);
   }
 
   void _openSeatProfiles(BuildContext context) {
-    if (selectedMenu == AppMenuType.seatProfiles) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.seatProfiles);
+    _openMainMenu(context, AppMenuType.seatProfiles, AppRouter.seatProfiles);
   }
 
-  void _openPerformanceSnapshot(BuildContext context) {
-    if (selectedMenu == AppMenuType.performanceSnapshot) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(
-      context,
-      AppRouter.performanceSnapshot,
-    );
+  void _openCompliance(BuildContext context) {
+    _openMainMenu(context, AppMenuType.compliance, AppRouter.compliance);
   }
 
   void _openPaygrades(BuildContext context) {
-    if (selectedMenu == AppMenuType.paygrades) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.paygrades);
+    _openMainMenu(context, AppMenuType.paygrades, AppRouter.paygrades);
   }
 
   void _openDepartments(BuildContext context) {
-    if (selectedMenu == AppMenuType.departments) {
-      return;
-    }
-
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.departments);
+    _openMainMenu(context, AppMenuType.departments, AppRouter.departments);
   }
 
   void _openKaizenGpt(BuildContext context) {
-    if (selectedMenu == AppMenuType.kaizenGpt) {
+    _openMainMenu(context, AppMenuType.kaizenGpt, AppRouter.kaizenGpt);
+  }
+
+  void _openMainMenu(BuildContext context, AppMenuType menu, String routeName) {
+    if (selectedMenu == menu) {
       return;
     }
 
-    AppRouter.pushReplacementNamed<void, void>(context, AppRouter.kaizenGpt);
+    final navigation = context.read<MainNavigationController?>();
+    if (navigation != null) {
+      navigation.selectMenu(menu);
+      return;
+    }
+
+    AppRouter.pushReplacementNamed<void, void>(context, routeName);
   }
 
   void _openSetting(BuildContext context) {

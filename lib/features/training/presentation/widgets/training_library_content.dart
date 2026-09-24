@@ -34,26 +34,21 @@ class TrainingLibraryContent extends StatelessWidget {
       title: AppStrings.trainingLibraryTitle,
       selectedMenu: AppMenuType.library,
       centerTitle: true,
+      appBarActions: [
+        if (!controller.isShowingFullscreenLoading && controller.canCreateTraining)
+          TrainingLibraryCreateAction(onTap: () => controller.openCreateFlow(onOpen: onCreate)),
+      ],
       child: SafeArea(
         top: false,
         bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: controller.isShowingFullscreenLoading
-                  ? Center(child: FastCircularProgressIndicator(width: 24, height: 24))
-                  : _TrainingLibraryFiltersAndResults(
-                      controller: controller,
-                      onModuleTap: (module) =>
-                          controller.openLesson(module, openDetails: onOpenLesson),
-                      onSelectSeat: onSelectSeat,
-                      onModuleActions: onModuleActions,
-                    ),
-            ),
-            if (!controller.isShowingFullscreenLoading && controller.canCreateTraining)
-              TrainingLibraryCreateAction(onTap: () => controller.openCreateFlow(onOpen: onCreate)),
-          ],
-        ),
+        child: controller.isShowingFullscreenLoading
+            ? Center(child: FastCircularProgressIndicator(width: 24, height: 24))
+            : _TrainingLibraryFiltersAndResults(
+                controller: controller,
+                onModuleTap: (module) => controller.openLesson(module, openDetails: onOpenLesson),
+                onSelectSeat: onSelectSeat,
+                onModuleActions: onModuleActions,
+              ),
       ),
     );
   }

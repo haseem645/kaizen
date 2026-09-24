@@ -10,6 +10,47 @@ import 'package:sparrowkaizen/features/login/domain/entities/user_hierarchy_memb
 import 'package:sparrowkaizen/features/organizations/domain/entities/organization.dart';
 
 void main() {
+  group('AppPermissionUtils.canManagePublicLinks', () {
+    test('requires the explicit owner flag regardless of role names', () {
+      for (final isOwner in <bool?>[null, false, true]) {
+        for (final role in [
+          'owner',
+          'csuite',
+          'c_suite',
+          'dept_lead',
+          'team_lead',
+          'team_member',
+        ]) {
+          expect(
+            AppPermissionUtils.canManagePublicLinks(
+              user: User(isOwner: isOwner, roles: [role]),
+              currentOrganization: _organization('parent'),
+            ),
+            isOwner == true,
+            reason: '$role with isOwner=$isOwner',
+          );
+        }
+      }
+      expect(
+        AppPermissionUtils.canManagePublicLinks(
+          user: null,
+          currentOrganization: null,
+        ),
+        isFalse,
+      );
+    });
+
+    test('keeps child organisations read-only even for explicit owners', () {
+      expect(
+        AppPermissionUtils.canManagePublicLinks(
+          user: User(isOwner: true, roles: ['owner']),
+          currentOrganization: _organization('child'),
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('AppPermissionUtils.canAccessScopedCreateEntry', () {
     test('allows owner accounts to open scoped create flows', () {
       final canAccess = AppPermissionUtils.canAccessScopedCreateEntry(

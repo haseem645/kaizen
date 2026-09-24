@@ -102,6 +102,12 @@ class AppManager extends ChangeNotifier {
         currentOrganization: currentOrganization,
       );
 
+  bool get currentUserCanManagePublicLinks =>
+      AppPermissionUtils.canManagePublicLinks(
+        user: _currentUser,
+        currentOrganization: currentOrganization,
+      );
+
   bool canCurrentUserManageSeatProfileDepartment({
     required String departmentId,
   }) {

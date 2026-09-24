@@ -10,6 +10,7 @@ class AppGradientActionButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.iconOnly = false,
     this.isLoading = false,
     this.iconSize = 18,
     this.textSize = 15,
@@ -29,6 +30,7 @@ class AppGradientActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool iconOnly;
   final bool isLoading;
   final double iconSize;
   final double textSize;
@@ -66,7 +68,7 @@ class AppGradientActionButton extends StatelessWidget {
               ]
             : const <BoxShadow>[]);
 
-    return Opacity(
+    final button = Opacity(
       opacity: isEnabled ? 1 : 0.58,
       child: Material(
         color: Colors.transparent,
@@ -98,15 +100,19 @@ class AppGradientActionButton extends StatelessWidget {
                           color: AppColors.textPrimary,
                           size: iconSize,
                         ),
-                        SizedBox(width: iconSpacing),
-                        AppTextView.body(
-                          label,
-                          color: AppColors.textPrimary,
-                          fontWeight: fontWeight,
-                          fontSize: textSize,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        if (!iconOnly) ...[
+                          SizedBox(width: iconSpacing),
+                          Flexible(
+                            child: AppTextView.body(
+                              label,
+                              color: AppColors.textPrimary,
+                              fontWeight: fontWeight,
+                              fontSize: textSize,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
             ),
@@ -114,5 +120,12 @@ class AppGradientActionButton extends StatelessWidget {
         ),
       ),
     );
+
+    return iconOnly
+        ? Tooltip(
+            message: label,
+            child: Semantics(button: true, child: button),
+          )
+        : button;
   }
 }

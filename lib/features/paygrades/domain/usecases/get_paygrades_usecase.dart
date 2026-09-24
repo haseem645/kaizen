@@ -1,12 +1,25 @@
 import '../../../seat_profile/domain/entities/department.dart';
 import '../entities/paygrade_detail.dart';
 import '../entities/paygrade_page.dart';
+import '../entities/shared_paygrades_content.dart';
 import '../repositories/paygrade_repository.dart';
 
 class GetPaygradesUseCase {
   const GetPaygradesUseCase(this._repository);
 
   final PaygradeRepository _repository;
+
+  Future<String?> getPaygradesPublicLink(String jobId) {
+    return _repository.getPaygradesPublicLink(jobId);
+  }
+
+  Future<String> createPaygradesPublicLink(String jobId) {
+    return _repository.createPaygradesPublicLink(jobId);
+  }
+
+  Future<void> deletePaygradesPublicLink(String jobId) {
+    return _repository.deletePaygradesPublicLink(jobId);
+  }
 
   Future<PaygradePage> call({
     required int page,
@@ -33,6 +46,10 @@ class GetPaygradesUseCase {
     required String type,
   }) {
     return _repository.getPaygradeDetail(paygradeId: paygradeId, type: type);
+  }
+
+  Future<SharedPaygradesContent> getSharedPaygrades(String publicId) {
+    return _repository.getSharedPaygrades(publicId);
   }
 
   Future<void> generatePaygrades({

@@ -12,6 +12,21 @@ class SeatProfileRepositoryImpl implements SeatProfileRepository {
   final SeatProfileRemoteDataSource _remoteDataSource;
 
   @override
+  Future<String?> getSeatProfilePublicLink(String seatId) {
+    return _remoteDataSource.getSeatProfilePublicLink(seatId);
+  }
+
+  @override
+  Future<String> createSeatProfilePublicLink(String seatId) {
+    return _remoteDataSource.createSeatProfilePublicLink(seatId);
+  }
+
+  @override
+  Future<void> deleteSeatProfilePublicLink(String seatId) {
+    return _remoteDataSource.deleteSeatProfilePublicLink(seatId);
+  }
+
+  @override
   Future<SeatProfilePage> getSeatProfiles({
     required int page,
     int pageSize = 10,
@@ -29,6 +44,11 @@ class SeatProfileRepositoryImpl implements SeatProfileRepository {
   @override
   Future<SeatProfileDetail> getSeatProfileDetail(String seatId) {
     return _remoteDataSource.getSeatProfileDetail(seatId);
+  }
+
+  @override
+  Future<SeatProfileDetail> getSharedSeatProfileDetail(String publicId) {
+    return _remoteDataSource.getSharedSeatProfileDetail(publicId);
   }
 
   @override

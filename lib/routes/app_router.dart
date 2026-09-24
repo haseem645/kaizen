@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/next_quiz_video_screen.dart';
 
-import '../core/preference/app_preference.dart';
+import '../core/managers/app_manager.dart';
+import '../core/navigation/app_menu_type.dart';
+import '../core/navigation/main_navigation_controller.dart';
+import '../core/navigation/main_navigation_route.dart';
 import '../features/auth/presentation/pages/forgot_password_screen.dart';
 import '../features/auth/presentation/pages/set_password_screen.dart'
     as auth_reset;
@@ -27,7 +30,10 @@ import '../features/onboarding/presentation/pages/set_password_screen.dart'
 import '../features/onboarding/presentation/pages/set_profile_image_screen.dart';
 import '../features/organizations/presentation/pages/organizations_screen.dart';
 import '../features/paygrades/presentation/pages/paygrade_detail_screen.dart';
+import '../features/paygrades/presentation/pages/shared_paygrades_screen.dart';
+import '../features/paygrades/presentation/pages/shared_paygrades_details_screen.dart';
 import '../features/paygrades/presentation/pages/paygrades_screen.dart';
+import '../features/paygrades/presentation/providers/paygrade_detail_controller.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
 import '../features/seat_profile/domain/entities/department.dart';
 import '../features/seat_profile/domain/entities/seat_profile_detail.dart';
@@ -36,8 +42,11 @@ import '../features/seat_profile/presentation/pages/seat_profile_create_screen.d
 import '../features/seat_profile/presentation/pages/seat_profile_descriptions_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
+import '../features/seat_profile/presentation/pages/shared_seat_profile_screen.dart';
 import '../features/splash/presentation/pages/splash_screen.dart';
 import '../features/training/presentation/pages/setup_training_screen.dart';
+import '../features/training/presentation/pages/shared_lms_screen.dart';
+import '../features/training/presentation/pages/shared_lesson_details_screen.dart';
 import '../features/training/presentation/pages/training_library_screen.dart';
 
 class AppRouter {
@@ -62,12 +71,17 @@ class AppRouter {
   static const String paygrades = '/paygrades';
   static const String departments = '/departments';
   static const String paygradeDetail = '/paygrades/detail';
+  static const String sharedPaygrades = '/paygrades/shared';
+  static const String sharedPaygradesDetails = '/paygrades/shared/details';
   static const String organizations = '/organizations';
   static const String seatProfileDetail = '/seat-profiles/detail';
+  static const String sharedSeatProfile = '/seat-profiles/shared';
   static const String seatProfileDescriptions = '/seat-profiles/descriptions';
   static const String seatProfileTrainingSetup =
       '/seat-profiles/training-setup';
   static const String trainingLibrary = '/training/library';
+  static const String sharedLms = '/training/shared-lms';
+  static const String sharedLessonDetails = '/training/shared-lesson-details';
   static const String kaizenGpt = '/kaizen-gpt';
   static const String kaizengram = '/kaizengram';
   static const String profile = '/profile';
@@ -80,13 +94,87 @@ class AppRouter {
   static const String complianceNextVideoQuiz =
       '/compliance/training/next-quiz-video';
 
-  static String get defaultAuthenticatedRouteName {
-    return AppPreference.getUseParentApiEndpoints()
-        ? trainingLibrary
-        : compliance;
+  static String get defaultAuthenticatedRouteName => trainingLibrary;
+
+  static final _mainDestinations = <MainNavigationDestination>[
+    MainNavigationDestination(
+      menu: AppMenuType.library,
+      routeName: trainingLibrary,
+      builder: (_) => const TrainingLibraryScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.audits,
+      routeName: checkIn,
+      builder: (_) => const CheckInScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.performanceSnapshot,
+      routeName: performanceSnapshot,
+      builder: (_) => const PerformanceSnapshotScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.learningTracks,
+      routeName: learningTracks,
+      builder: (_) =>
+          const ComplianceScreen(module: ComplianceTabType.learningTrack),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.compliance,
+      routeName: compliance,
+      builder: (_) =>
+          const ComplianceScreen(module: ComplianceTabType.document),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.seatProfiles,
+      routeName: seatProfiles,
+      builder: (_) => const SeatProfileScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.paygrades,
+      routeName: paygrades,
+      builder: (_) => const PaygradesScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.departments,
+      routeName: departments,
+      builder: (_) => const DepartmentsScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.kaizenGpt,
+      routeName: kaizenGpt,
+      builder: (_) => const KaizenGptScreen(),
+    ),
+    MainNavigationDestination(
+      menu: AppMenuType.home,
+      routeName: kaizengram,
+      builder: (_) => const KaizenGramScreen(),
+    ),
+  ];
+
+  static bool _canSelectMainMenu(AppMenuType menu) {
+    return !AppManager.instance.usesParentApiEndpoints ||
+        const {
+          AppMenuType.library,
+          AppMenuType.seatProfiles,
+          AppMenuType.paygrades,
+          AppMenuType.departments,
+        }.contains(menu);
   }
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    final mainDestination = _mainDestinations
+        .where((destination) => destination.routeName == settings.name)
+        .firstOrNull;
+    if (mainDestination != null) {
+      return MainNavigationRoute(
+        settings: settings,
+        destinations: _mainDestinations,
+        initialMenu: mainDestination.menu,
+        canSelectMenu: _canSelectMainMenu,
+        onRouteNameChanged: AppManager.instance.updateCurrentRouteName,
+      );
+    }
+
     switch (settings.name) {
       case splash:
         return _buildRoute(
@@ -133,28 +221,6 @@ class AppRouter {
                 : null,
           ),
         );
-      case learningTracks:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) =>
-              const ComplianceScreen(module: ComplianceTabType.learningTrack),
-        );
-      case compliance:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) =>
-              const ComplianceScreen(module: ComplianceTabType.document),
-        );
-      case checkIn:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) => const CheckInScreen(),
-        );
-      case performanceSnapshot:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) => const PerformanceSnapshotScreen(),
-        );
       case reports:
         final args = settings.arguments;
         return _buildRoute(
@@ -186,11 +252,6 @@ class AppRouter {
                 : false,
           ),
         );
-      case seatProfiles:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) => const SeatProfileScreen(),
-        );
       case seatProfileCreate:
         final args = settings.arguments;
         return _buildRoute(
@@ -208,20 +269,26 @@ class AppRouter {
                 : null,
           ),
         );
-      case paygrades:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) => const PaygradesScreen(),
-        );
-      case departments:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) => const DepartmentsScreen(),
-        );
       case organizations:
         return _buildRoute(
           settings: settings,
           builder: (_) => const OrganizationsScreen(),
+        );
+      case sharedPaygrades:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => SharedPaygradesScreen(
+            publicId: args is SharedPaygradesRouteArgs ? args.publicId : '',
+          ),
+        );
+      case sharedPaygradesDetails:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => args is SharedPaygradesDetailsRouteArgs
+              ? SharedPaygradesDetailsScreen(controller: args.controller)
+              : const SharedPaygradesScreen(publicId: ''),
         );
       case paygradeDetail:
         final args = settings.arguments;
@@ -237,6 +304,14 @@ class AppRouter {
           settings: settings,
           builder: (_) => SeatProfileDetailScreen(
             seatId: args is SeatProfileDetailRouteArgs ? args.seatId : '',
+          ),
+        );
+      case sharedSeatProfile:
+        final args = settings.arguments;
+        return _buildRoute(
+          settings: settings,
+          builder: (_) => SharedSeatProfileScreen(
+            publicId: args is SharedSeatProfileRouteArgs ? args.publicId : '',
           ),
         );
       case seatProfileDescriptions:
@@ -270,20 +345,24 @@ class AppRouter {
                 : null,
           ),
         );
-      case trainingLibrary:
+      case sharedLms:
+        final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => const TrainingLibraryScreen(),
+          builder: (_) => SharedLmsScreen(
+            publicId: args is SharedLmsRouteArgs ? args.publicId : '',
+          ),
         );
-      case kaizenGpt:
+      case sharedLessonDetails:
+        final args = settings.arguments;
         return _buildRoute(
           settings: settings,
-          builder: (_) => const KaizenGptScreen(),
-        );
-      case kaizengram:
-        return _buildRoute(
-          settings: settings,
-          builder: (_) => const KaizenGramScreen(),
+          builder: (_) => SharedLessonDetailsScreen(
+            sharedContentId: args is SharedLessonDetailsRouteArgs
+                ? args.sharedContentId
+                : '',
+            publicId: args is SharedLessonDetailsRouteArgs ? args.publicId : '',
+          ),
         );
       case profile:
         return _buildRoute(settings: settings, builder: (_) => ProfileScreen());
@@ -426,6 +505,49 @@ class ComplianceTracksRouteArgs {
 
   final String trackAssignmentUuid;
   final String title;
+}
+
+class SharedLmsRouteArgs {
+  const SharedLmsRouteArgs({required this.publicId});
+
+  final String publicId;
+
+  @override
+  String toString() => publicId;
+}
+
+class SharedPaygradesRouteArgs {
+  const SharedPaygradesRouteArgs({required this.publicId});
+
+  final String publicId;
+
+  @override
+  String toString() => publicId;
+}
+
+class SharedPaygradesDetailsRouteArgs {
+  const SharedPaygradesDetailsRouteArgs({required this.controller});
+
+  final PaygradeDetailController controller;
+}
+
+class SharedSeatProfileRouteArgs {
+  const SharedSeatProfileRouteArgs({required this.publicId});
+
+  final String publicId;
+
+  @override
+  String toString() => publicId;
+}
+
+class SharedLessonDetailsRouteArgs {
+  const SharedLessonDetailsRouteArgs({
+    required this.sharedContentId,
+    required this.publicId,
+  });
+
+  final String sharedContentId;
+  final String publicId;
 }
 
 class CheckInDetailsRouteArgs {

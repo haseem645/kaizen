@@ -10,23 +10,92 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
+import '../../../../routes/app_router.dart';
 import '../../../check_in/data/datasources/audit_remote_data_source.dart';
 import '../../../check_in/data/repositories/audit_repository_impl.dart';
+import '../../../check_in/domain/repositories/audit_repository.dart';
+import '../../data/datasources/shared_lms_remote_data_source.dart';
+import '../../data/datasources/training_library_remote_data_source.dart';
+import '../../data/repositories/shared_lms_repository_impl.dart';
+import '../../data/repositories/training_library_repository_impl.dart';
 import '../../domain/entities/seat_description_training.dart';
 import '../../domain/entities/seat_description_training_route.dart';
+import '../../domain/repositories/shared_lms_repository.dart';
+import '../../domain/repositories/training_library_repository.dart';
 import '../controllers/training_module_controller.dart';
+import '../controllers/training_share_controller.dart';
 import '../controllers/training_tab_navigation_controller.dart';
 import '../models/view_training_tab_access.dart';
 import '../widgets/training_assignment_layout.dart';
 import '../widgets/training_tab_view.dart';
+import '../widgets/training_share_action.dart';
 import 'edit_training_screen.dart';
 
 part '../widgets/view_training/view_training_content.dart';
 
-class ViewTrainingScreen extends StatelessWidget {
-  const ViewTrainingScreen({super.key, required this.trainingRoute});
+class SharedLessonDetailsScreen extends StatelessWidget {
+  const SharedLessonDetailsScreen({
+    super.key,
+    required this.sharedContentId,
+    required this.publicId,
+    this.sharedLmsRepository,
+  });
+
+  final String sharedContentId;
+  final String publicId;
+  final SharedLmsRepository? sharedLmsRepository;
+
+  @override
+  Widget build(BuildContext context) => _LessonViewerScope.shared(
+    sharedContentId: sharedContentId,
+    sharedLessonId: publicId,
+    sharedLmsRepository: sharedLmsRepository,
+  );
+}
+
+class TrainingLessonViewerScreen extends StatelessWidget {
+  const TrainingLessonViewerScreen({
+    super.key,
+    required this.trainingRoute,
+    this.auditRepository,
+    this.trainingLibraryRepository,
+  });
 
   final SeatDescriptionTrainingRoute trainingRoute;
+  final AuditRepository? auditRepository;
+  final TrainingLibraryRepository? trainingLibraryRepository;
+
+  @override
+  Widget build(BuildContext context) => _LessonViewerScope.training(
+    trainingRoute: trainingRoute,
+    auditRepository: auditRepository,
+    trainingLibraryRepository: trainingLibraryRepository,
+  );
+}
+
+class _LessonViewerScope extends StatelessWidget {
+  const _LessonViewerScope.training({
+    required this.trainingRoute,
+    required this.auditRepository,
+    required this.trainingLibraryRepository,
+  }) : sharedContentId = null,
+       sharedLessonId = null,
+       sharedLmsRepository = null;
+
+  const _LessonViewerScope.shared({
+    required this.sharedContentId,
+    required this.sharedLessonId,
+    required this.sharedLmsRepository,
+  }) : trainingRoute = null,
+       auditRepository = null,
+       trainingLibraryRepository = null;
+
+  final SeatDescriptionTrainingRoute? trainingRoute;
+  final String? sharedContentId;
+  final String? sharedLessonId;
+  final SharedLmsRepository? sharedLmsRepository;
+  final AuditRepository? auditRepository;
+  final TrainingLibraryRepository? trainingLibraryRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -34,37 +103,101 @@ class ViewTrainingScreen extends StatelessWidget {
       providers: [
         Provider<AuditRemoteDataSource>(create: (_) => AuditRemoteDataSource()),
         ProxyProvider<AuditRemoteDataSource, AuditRepositoryImpl>(
-          update: (_, remoteDataSource, __) => AuditRepositoryImpl(remoteDataSource),
+          update: (_, remoteDataSource, __) =>
+              AuditRepositoryImpl(remoteDataSource),
+        ),
+        if (trainingRoute != null)
+          Provider<TrainingLibraryRepository>(
+            create: (_) =>
+                trainingLibraryRepository ??
+                createTrainingLibraryRepository(
+                  createTrainingLibraryRemoteDataSource(),
+                ),
+          ),
+        if (trainingRoute != null)
+          ChangeNotifierProvider<TrainingShareController>(
+            lazy: false,
+            create: (context) => TrainingShareController(
+              context.read<TrainingLibraryRepository>(),
+              seatProfileId: trainingRoute!.job,
+              descriptionId: trainingRoute!.description,
+            )..loadLink(),
+          ),
+        Provider<SharedLmsRemoteDataSource>(
+          create: (_) => SharedLmsRemoteDataSource(),
+        ),
+        ProxyProvider<SharedLmsRemoteDataSource, SharedLmsRepositoryImpl>(
+          update: (_, remoteDataSource, __) =>
+              SharedLmsRepositoryImpl(remoteDataSource),
         ),
         ChangeNotifierProvider<TrainingModuleController>(
-          create: (context) =>
-              TrainingModuleController(
-                context.read<AuditRepositoryImpl>(),
-                canManageTraining: false,
-              )..initialize(
-                jobId: trainingRoute.job,
-                descriptionId: trainingRoute.description,
-                initialModuleId: trainingRoute.initialModuleId,
-              ),
+          create: (context) {
+            final lessonId = sharedLessonId;
+            final sharedId = sharedContentId?.trim() ?? '';
+            final sharedRepository =
+                lessonId != null &&
+                    lessonId.trim().isNotEmpty &&
+                    sharedId.isNotEmpty
+                ? (sharedLmsRepository ??
+                      context.read<SharedLmsRepositoryImpl>())
+                : null;
+            final controller = TrainingModuleController(
+              auditRepository ?? context.read<AuditRepositoryImpl>(),
+              canManageTraining: false,
+              sharedLessonDetailLoader: sharedRepository == null
+                  ? null
+                  : (publicId) =>
+                        sharedRepository.getSharedLesson(sharedId, publicId),
+            );
+            if (lessonId != null) {
+              unawaited(
+                controller.initializeSharedLesson(
+                  sharedId.isNotEmpty ? lessonId : '',
+                ),
+              );
+            } else {
+              final route = trainingRoute;
+              if (route == null) {
+                unawaited(controller.initializeSharedLesson(''));
+              } else {
+                unawaited(
+                  controller.initialize(
+                    jobId: route.job,
+                    descriptionId: route.description,
+                    initialModuleId: route.initialModuleId,
+                  ),
+                );
+              }
+            }
+            return controller;
+          },
         ),
       ],
-      child: _ViewTrainingScreenView(seatProfileId: trainingRoute.job),
+      child: _LessonViewerView(
+        seatProfileId: trainingRoute?.job ?? '',
+        isSharedLesson: sharedLessonId != null,
+      ),
     );
   }
 }
 
-class _ViewTrainingScreenView extends StatefulWidget {
-  const _ViewTrainingScreenView({required this.seatProfileId});
+class _LessonViewerView extends StatefulWidget {
+  const _LessonViewerView({
+    required this.seatProfileId,
+    required this.isSharedLesson,
+  });
 
   final String seatProfileId;
+  final bool isSharedLesson;
 
   @override
-  State<_ViewTrainingScreenView> createState() => _ViewTrainingScreenViewState();
+  State<_LessonViewerView> createState() => _LessonViewerViewState();
 }
 
-class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
+class _LessonViewerViewState extends State<_LessonViewerView> {
   late final TrainingModuleController _trainingController;
-  final TrainingTabNavigationController _navigation = TrainingTabNavigationController();
+  final TrainingTabNavigationController _navigation =
+      TrainingTabNavigationController();
   int _lastHandledTabIndex = 0;
 
   @override
@@ -85,19 +218,23 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     super.dispose();
   }
 
-  bool get _canManageTraining => AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
-    seatProfileId: widget.seatProfileId,
-  );
+  bool get _canManageTraining =>
+      !widget.isSharedLesson &&
+      AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+        seatProfileId: widget.seatProfileId,
+      );
+
+  bool get _canOpenAllTabs => widget.isSharedLesson || _canManageTraining;
 
   int get _maxTabIndex => maxTrainingTabIndex(
     hasSelectedModule: _trainingController.canAccessSelectedModuleExtras,
-    canManageTraining: _canManageTraining,
+    canManageTraining: _canOpenAllTabs,
   );
 
   int _coerceSelectedTab() {
     final index = _trainingController.canAccessSelectedModuleExtras
         ? normalizeTrainingViewerTabIndex(
-            canManageTraining: _canManageTraining,
+            canManageTraining: _canOpenAllTabs,
             tabIndex: _navigation.selectedIndex,
           )
         : 0;
@@ -158,7 +295,10 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
             : SafeArea(
                 top: false,
                 minimum: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-                child: TrainingTabs(navigation: _navigation, maxTabIndex: _maxTabIndex),
+                child: TrainingTabs(
+                  navigation: _navigation,
+                  maxTabIndex: _maxTabIndex,
+                ),
               ),
       ),
     );
@@ -170,7 +310,8 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     }
     if (controller.modules.isEmpty) {
       return _CenteredMessage(
-        message: controller.errorMessage ?? AppStrings.trainingNoModulesAvailable,
+        message:
+            controller.errorMessage ?? AppStrings.trainingNoModulesAvailable,
       );
     }
 
@@ -182,8 +323,9 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
           unawaited(_syncSelectedTabData(index));
         }
       },
-      pagePaddingBuilder: (index) =>
-          index == 2 ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 8),
+      pagePaddingBuilder: (index) => index == 2
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 8),
       pageBuilder: (context, index) => _buildTabPage(controller, index),
     );
   }
@@ -191,7 +333,9 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
   Widget _buildTabPage(TrainingModuleController controller, int index) {
     final content = _buildTabContent(controller, index);
     final showsEmptyQuiz =
-        index == 2 && !controller.isQuestionsLoading && controller.selectedModuleQuestions.isEmpty;
+        index == 2 &&
+        !controller.isQuestionsLoading &&
+        controller.selectedModuleQuestions.isEmpty;
     if (index == 1 || index == 3 || showsEmptyQuiz) return content;
     final showsLoading =
         (controller.isLoading && controller.selectedModuleDetail == null) ||
@@ -222,12 +366,15 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
 
   Widget _buildTabContent(TrainingModuleController controller, int index) {
     if (index == 1) {
-      final detailError = controller.selectedModuleDetail == null ? controller.errorMessage : null;
+      final detailError = controller.selectedModuleDetail == null
+          ? controller.errorMessage
+          : null;
       return TrainingReadOnlySopTab(
         isLoading:
             controller.isLoading ||
             controller.isDocumentLoading ||
-            (!controller.hasResolvedSelectedModuleDocument && detailError == null),
+            (!controller.hasResolvedSelectedModuleDocument &&
+                detailError == null),
         errorMessage: controller.documentErrorMessage ?? detailError,
         document: controller.selectedModuleDocument,
       );
@@ -236,7 +383,8 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
     if (controller.isLoading && controller.selectedModuleDetail == null) {
       return const Center(child: FastCircularProgressIndicator());
     }
-    if (controller.errorMessage != null && controller.selectedModuleDetail == null) {
+    if (controller.errorMessage != null &&
+        controller.selectedModuleDetail == null) {
       return _ContentMessage(message: controller.errorMessage!);
     }
 
@@ -259,7 +407,7 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
 
   Widget _buildHeader(BuildContext context) {
     return SizedBox(
-      height: 32,
+      height: 35,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -267,14 +415,26 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
             alignment: Alignment.centerLeft,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () {
+                final navigator = Navigator.of(context);
+                if (navigator.canPop()) {
+                  navigator.pop();
+                } else if (widget.isSharedLesson) {
+                  navigator.pushReplacementNamed(
+                    AppRouter.defaultAuthenticatedRouteName,
+                  );
+                }
+              },
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: SvgPicture.asset(
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
                   width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -285,6 +445,11 @@ class _ViewTrainingScreenViewState extends State<_ViewTrainingScreenView> {
             fontSize: 20,
             fontWeight: FontWeight.w500,
           ),
+          if (!widget.isSharedLesson)
+            const Align(
+              alignment: Alignment.centerRight,
+              child: TrainingShareAction(),
+            ),
         ],
       ),
     );
