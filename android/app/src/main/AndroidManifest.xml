@@ -147,6 +147,10 @@
                     android:scheme="https"
                     android:host="api.kaizenteams.ai"
                     android:pathPrefix="/verify_token/" />
+                <data
+                    android:scheme="https"
+                    android:host="app.kaizenteams.ai"
+                    android:pathPrefix="/verify_token/" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
@@ -159,6 +163,10 @@
                 <data
                     android:scheme="https"
                     android:host="api.kaizenteams.ai"
+                    android:pathPrefix="/organization/" />
+                <data
+                    android:scheme="https"
+                    android:host="app.kaizenteams.ai"
                     android:pathPrefix="/organization/" />
             </intent-filter>
             <intent-filter android:autoVerify="true">

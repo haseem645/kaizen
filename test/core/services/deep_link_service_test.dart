@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +32,7 @@ void main() {
   });
 
   tearDown(() async {
+    service.takePendingAuthenticatedTarget();
     await service.dispose();
     messenger.setMockMethodCallHandler(messages, null);
     messenger.setMockMethodCallHandler(events, null);
@@ -110,6 +113,97 @@ void main() {
       'initial-token',
     );
   });
+
+  for (final host in [
+    'app.kaizenteams.ai',
+    'dev.kaizenteams.ai',
+    'api.kaizenteams.ai',
+  ]) {
+    test(
+      '$host verification link opens onboarding with its original token',
+      () async {
+        final payload = base64Url.encode(
+          utf8.encode(jsonEncode({'token_type': 'invitation'})),
+        );
+        final token = 'Header.$payload.Signature';
+        await AppPreference.setAuthToken('previous-session');
+        initialLink = 'https://$host/verify_token/$token/';
+        await service.initialize();
+
+        final target = await service.consumeStartupTarget(
+          timeout: Duration.zero,
+        );
+        expect(target?.routeName, AppRouter.onboarding);
+        expect(target?.clearStack, isTrue);
+        expect(target?.requiresAuthentication, isFalse);
+        expect(AppPreference.getOnboardingToken(), token);
+        expect(AppPreference.getOnboardingTokenType(), 'invitation');
+        expect(AppPreference.getAuthToken(), isEmpty);
+      },
+    );
+
+    test(
+      '$host organization link preserves its destination until login',
+      () async {
+        initialLink =
+            'https://$host/organization/Org-ID/ltc/assigned-track/Track-ID/';
+        await service.initialize();
+
+        expect(
+          await service.consumeStartupTarget(timeout: Duration.zero),
+          isNull,
+        );
+        final target = service.takePendingAuthenticatedTarget();
+        expect(target?.routeName, AppRouter.complianceTracks);
+        expect(target?.requiresAuthentication, isTrue);
+        expect(target?.organizationId, 'Org-ID');
+        expect(
+          (target?.arguments as ComplianceTracksRouteArgs?)
+              ?.trackAssignmentUuid,
+          'Track-ID',
+        );
+      },
+    );
+
+    test(
+      '$host Google callback cannot be interpreted as a password reset',
+      () async {
+        initialLink =
+            'https://$host/auth/google/callback'
+            '?code=google-code&state=google-state&token=unrelated'
+            '&next=/auth/password-reset/confirm';
+        await service.initialize();
+
+        expect(
+          await service.consumeStartupTarget(timeout: Duration.zero),
+          isNull,
+        );
+        expect(service.hasPendingAuthenticatedTarget, isFalse);
+      },
+    );
+  }
+
+  test(
+    'untrusted verification and organization links do not change the session',
+    () async {
+      await AppPreference.setAuthToken('existing-session');
+      for (final path in [
+        '/verify_token/untrusted-token/',
+        '/organization/Org-ID/ltc/assigned-track/Track-ID/',
+      ]) {
+        initialLink = 'https://example.com$path';
+        await service.initialize();
+        expect(
+          await service.consumeStartupTarget(timeout: Duration.zero),
+          isNull,
+        );
+        expect(service.hasPendingAuthenticatedTarget, isFalse);
+        expect(AppPreference.getAuthToken(), 'existing-session');
+        expect(AppPreference.getOnboardingToken(), isEmpty);
+        await service.dispose();
+      }
+    },
+  );
 
   for (final host in [
     'app.kaizenteams.ai',

@@ -224,8 +224,12 @@ class DeepLinkService {
         .toList();
     final normalizedPath = uri.path.trim().toLowerCase();
 
-    const supportedHosts = <String>{'dev.kaizenteams.ai', 'api.kaizenteams.ai'};
-    if (host != 'app.kaizenteams.ai' && !supportedHosts.contains(host)) {
+    const supportedHosts = <String>{
+      'app.kaizenteams.ai',
+      'dev.kaizenteams.ai',
+      'api.kaizenteams.ai',
+    };
+    if (!supportedHosts.contains(host)) {
       return null;
     }
 
@@ -244,10 +248,9 @@ class DeepLinkService {
       return sharedSeatProfileTarget;
     }
 
-    // Accept reset links from the production web app. Google callbacks on
-    // this domain are handled separately by the active sign-in attempt.
-    if (host == 'app.kaizenteams.ai') {
-      return _resolvePasswordResetTarget(uri);
+    // Google callbacks belong to the active sign-in attempt on either host.
+    if (normalizedPath == '/auth/google/callback') {
+      return null;
     }
 
     if (normalizedPath.contains('/organization')) {
