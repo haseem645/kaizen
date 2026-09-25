@@ -121,17 +121,9 @@ class _DarkSelectionPill extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
+        color: AppColors.purple2,
         borderRadius: BorderRadius.circular(24),
         border: Border(top: edge, left: edge, right: edge),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.textPrimary.withValues(alpha: 0.2),
-            AppColors.secondaryColor.withValues(alpha: 0.15),
-            AppColors.textPrimary.withValues(alpha: 0.065),
-          ],
-        ),
       ),
     );
   }
@@ -147,8 +139,6 @@ class _DarkNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = item.onTap == null
         ? AppColors.textSecondary.withValues(alpha: 0.45)
-        : item.isSelected
-        ? AppColors.lightPurple1
         : AppColors.textPrimary;
 
     return Semantics(
