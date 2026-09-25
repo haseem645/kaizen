@@ -4,6 +4,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
 import 'app_gradient_action_button.dart';
 import 'app_overlay_close_button.dart';
+import 'app_dialog_style.dart';
 import 'app_text_view.dart';
 import 'fast_circular_progress.dart';
 
@@ -56,9 +57,7 @@ class ShareDialogue extends StatelessWidget {
               colors: [AppColors.cardBg, AppColors.hex111317],
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.lightPurple1.withValues(alpha: 0.18),
-            ),
+            border: AppDialogStyle.border,
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -78,7 +77,7 @@ class ShareDialogue extends StatelessWidget {
                     ),
                     if (onClose != null) ...[
                       const SizedBox(width: 12),
-                      AppOverlayCloseButton(onTap: onClose),
+                      AppOverlayCloseButton(onTap: isWorking ? null : onClose),
                     ],
                   ],
                 ),
@@ -216,13 +215,18 @@ class _RevokeLinkAction extends StatelessWidget {
         foregroundColor: AppColors.red1,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       ),
-      icon: isWorking
-          ? const FastCircularProgressIndicator(
-              width: 18,
-              height: 18,
-              color: AppColors.red1,
-            )
-          : const Icon(Icons.link_off_rounded, size: 22),
+      icon: SizedBox.square(
+        dimension: 22,
+        child: Center(
+          child: isWorking
+              ? const FastCircularProgressIndicator(
+                  width: 14,
+                  height: 14,
+                  color: AppColors.red1,
+                )
+              : const Icon(Icons.link_off_rounded, size: 22),
+        ),
+      ),
       label: const AppTextView.body(
         AppStrings.shareRevokeLinkAction,
         color: AppColors.red1,

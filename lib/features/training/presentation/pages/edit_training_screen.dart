@@ -19,6 +19,7 @@ import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../check_in/data/datasources/audit_remote_data_source.dart';
@@ -134,34 +135,31 @@ class EditTrainingScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return SizedBox(
-      height: 35,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => Navigator.of(context).maybePop(),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: SvgPicture.asset(
-                  '${AppStrings.imagePath}back.svg',
-                  height: 24,
-                  width: 24,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                ),
-              ),
+      height: MediaQuery.textScalerOf(context).scale(35),
+      child: NavigationToolbar(
+        centerMiddle: true,
+        leading: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: SvgPicture.asset(
+              '${AppStrings.imagePath}back.svg',
+              height: 24,
+              width: 24,
+              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
             ),
           ),
-          const AppTextView.body(
-            AppStrings.training,
-            color: AppColors.secondaryColor,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-          Align(alignment: Alignment.centerRight, child: const TrainingShareAction()),
-        ],
+        ),
+        middle: const AppTextView.body(
+          AppStrings.training,
+          color: AppColors.secondaryColor,
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const TrainingShareAction(),
       ),
     );
   }

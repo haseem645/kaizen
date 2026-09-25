@@ -18,6 +18,7 @@ Future<void> showPaygradeShareDialogue(
         link: controller.link,
         isLoading: controller.isLoading,
         isWorking: controller.isWorking,
+        onClose: () => Navigator.of(dialogContext).pop(),
         errorMessage: controller.errorMessage,
         onRetry:
             !controller.hasLoaded &&

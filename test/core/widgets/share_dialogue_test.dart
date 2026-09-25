@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/widgets/app_gradient_action_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/core/widgets/share_dialogue.dart';
 
@@ -71,18 +72,35 @@ void main() {
     tester,
   ) async {
     var actions = 0;
+    var closes = 0;
+    await tester.pumpWidget(
+      _app(
+        ShareDialogue(
+          contentLabel: AppStrings.shareLessonsContent,
+          onCreateLink: () => actions++,
+          onClose: () => closes++,
+        ),
+      ),
+    );
+    final createButton = find.byType(AppGradientActionButton);
+    final createButtonSize = tester.getSize(createButton);
     await tester.pumpWidget(
       _app(
         ShareDialogue(
           contentLabel: AppStrings.shareLessonsContent,
           isWorking: true,
           onCreateLink: () => actions++,
+          onClose: () => closes++,
         ),
       ),
     );
     expect(find.byType(FastCircularProgressIndicator), findsOneWidget);
-    await tester.tap(find.byType(AppGradientActionButton));
+    expect(tester.getSize(createButton), createButtonSize);
+    expect(find.byType(AppOverlayCloseButton), findsOneWidget);
+    await tester.tap(createButton);
+    await tester.tap(find.byType(AppOverlayCloseButton));
     expect(actions, 0);
+    expect(closes, 0);
 
     await tester.pumpWidget(
       _app(
@@ -92,6 +110,7 @@ void main() {
           isWorking: true,
           onRevokeLink: () => actions++,
           onCopyLink: () => actions++,
+          onClose: () => closes++,
         ),
       ),
     );
@@ -99,6 +118,17 @@ void main() {
     await tester.tap(find.text(AppStrings.shareRevokeLinkAction));
     await tester.tap(find.byTooltip(AppStrings.shareCopyLinkAction));
     expect(actions, 0);
+    expect(find.byType(AppOverlayCloseButton), findsOneWidget);
+    await tester.pumpWidget(
+      _app(
+        ShareDialogue(
+          contentLabel: AppStrings.shareLessonsContent,
+          onClose: () => closes++,
+        ),
+      ),
+    );
+    await tester.tap(find.byType(AppOverlayCloseButton));
+    expect(closes, 1);
   });
 
   testWidgets('both states fit a small phone with larger text', (tester) async {

@@ -11,6 +11,7 @@ import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_gradient_action_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../core/widgets/share_dialogue.dart';
@@ -59,9 +60,7 @@ class TrainingShareDialogue extends StatelessWidget {
               isWorking: controller.isWorking,
               errorMessage: controller.errorMessage,
               onRevokeLink: controller.canRevoke ? controller.revokeLink : null,
-              onClose: controller.isWorking
-                  ? null
-                  : () => Navigator.of(context).pop(),
+              onClose: () => Navigator.of(context).pop(),
               onRetry:
                   !controller.hasLoaded &&
                       !controller.isLoading &&
@@ -104,9 +103,7 @@ class TrainingShareDialogue extends StatelessWidget {
                   colors: [AppColors.cardBg, AppColors.hex111317],
                 ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.fieldBorder.withValues(alpha: 0.18),
-                ),
+                border: AppDialogStyle.border,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

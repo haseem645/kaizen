@@ -10,6 +10,7 @@ import 'package:signature/signature.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../compliance/presentation/pages/document/full_screen_doc.dart';
@@ -172,7 +173,7 @@ class _CoreValueDialogContent extends StatelessWidget {
 
     return Dialog(
       backgroundColor: AppColors.surfaceDark,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: AppDialogStyle.shape(radius: 16),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 430,
@@ -309,7 +310,7 @@ class _TimeRangeDialogContentState extends State<_TimeRangeDialogContent> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: AppColors.surfaceDark,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: AppDialogStyle.shape(radius: 16),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: _dialogStep == _TimeRangeDialogStep.options
@@ -721,9 +722,7 @@ class _SignatureDialogContentState extends State<_SignatureDialogContent> {
       child: Center(
         child: Dialog(
           backgroundColor: AppColors.surfaceDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: AppDialogStyle.shape(radius: 16),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             child: Column(

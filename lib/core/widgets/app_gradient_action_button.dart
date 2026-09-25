@@ -89,9 +89,16 @@ class AppGradientActionButton extends StatelessWidget {
                 border: Border.all(color: resolvedBorderColor),
                 boxShadow: resolvedBoxShadows,
               ),
-              child: isLoading
-                  ? const FastCircularProgressIndicator(width: 18, height: 18)
-                  : Row(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // The label keeps sizing the button while the loader is shown.
+                  Visibility(
+                    visible: !isLoading,
+                    maintainState: true,
+                    maintainAnimation: true,
+                    maintainSize: true,
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
@@ -115,6 +122,21 @@ class AppGradientActionButton extends StatelessWidget {
                         ],
                       ],
                     ),
+                  ),
+                  if (isLoading)
+                    const Positioned.fill(
+                      child: Center(
+                        child: SizedBox.square(
+                          dimension: 18,
+                          child: FastCircularProgressIndicator(
+                            width: 18,
+                            height: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

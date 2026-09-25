@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/custom_functions.dart';
@@ -31,9 +32,11 @@ class TrainingLibraryController extends ChangeNotifier {
     bool Function()? canCreateTraining,
     AuditRepository? auditRepository,
     bool Function(String seatProfileId)? canManageSeatTraining,
+    ValueChanged<bool>? onNavigationBarsVisibilityChanged,
   }) : _getSeatProfilesUseCase = getSeatProfilesUseCase,
        _canCreateTraining = canCreateTraining,
        _auditRepository = auditRepository,
+       _onNavigationBarsVisibilityChanged = onNavigationBarsVisibilityChanged,
        _canManageSeatTraining = canManageSeatTraining {
     scrollController.addListener(_handleScroll);
   }
@@ -43,6 +46,13 @@ class TrainingLibraryController extends ChangeNotifier {
   final bool Function()? _canCreateTraining;
   final AuditRepository? _auditRepository;
   final bool Function(String seatProfileId)? _canManageSeatTraining;
+  final ValueChanged<bool>? _onNavigationBarsVisibilityChanged;
+  bool _navigationBarsVisible = true;
+  double _previousScrollOffset = 0;
+  double _scrollTravel = 0;
+  static const double _navigationScrollThreshold = 12;
+
+  bool get navigationBarsVisible => _navigationBarsVisible;
   bool _isShowingModuleActions = false;
   final ScrollController scrollController = ScrollController();
   bool _isDisposed = false;
@@ -191,10 +201,55 @@ class TrainingLibraryController extends ChangeNotifier {
   }
 
   void _handleScroll() {
-    if (scrollController.hasClients &&
-        scrollController.position.extentAfter <= 360) {
+    if (!scrollController.hasClients) {
+      return;
+    }
+    _updateNavigationBarsForScroll();
+    if (scrollController.position.extentAfter <= 360) {
       unawaited(loadNextPage());
     }
+  }
+
+  void _updateNavigationBarsForScroll() {
+    final position = scrollController.position;
+    final offset = position.pixels;
+    final delta = offset - _previousScrollOffset;
+    _previousScrollOffset = offset;
+
+    if (offset <= position.minScrollExtent ||
+        position.maxScrollExtent <= position.minScrollExtent) {
+      _scrollTravel = 0;
+      _setNavigationBarsVisible(true);
+      return;
+    }
+    // Ignore programmatic jumps, layout corrections, and overscroll rebound.
+    final direction = position.userScrollDirection;
+    if (position.outOfRange ||
+        direction == ScrollDirection.idle ||
+        (direction == ScrollDirection.reverse && delta < 0) ||
+        (direction == ScrollDirection.forward && delta > 0)) {
+      _scrollTravel = 0;
+      return;
+    }
+    if (delta == 0) {
+      return;
+    }
+    _scrollTravel = _scrollTravel.sign == delta.sign
+        ? _scrollTravel + delta
+        : delta;
+    if (_scrollTravel.abs() >= _navigationScrollThreshold) {
+      _setNavigationBarsVisible(delta < 0);
+      _scrollTravel = 0;
+    }
+  }
+
+  void _setNavigationBarsVisible(bool visible) {
+    if (_navigationBarsVisible == visible) {
+      return;
+    }
+    _navigationBarsVisible = visible;
+    _onNavigationBarsVisibilityChanged?.call(visible);
+    notifyListeners();
   }
 
   bool get isInitialLoading => _isInitialLoading;
@@ -682,6 +737,10 @@ class TrainingLibraryController extends ChangeNotifier {
     bool keepExistingItems = false,
     int minimumPageCount = 1,
   }) async {
+    if (!keepExistingItems) {
+      _scrollTravel = 0;
+      _setNavigationBarsVisible(true);
+    }
     _currentPage = 0;
     _hasNextPage = true;
     if (!isApplyingSelection && !keepExistingItems) {

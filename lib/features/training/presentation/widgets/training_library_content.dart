@@ -34,18 +34,25 @@ class TrainingLibraryContent extends StatelessWidget {
       title: AppStrings.trainingLibraryTitle,
       selectedMenu: AppMenuType.library,
       centerTitle: true,
+      navigationBarsVisible: controller.navigationBarsVisible,
       appBarActions: [
-        if (!controller.isShowingFullscreenLoading && controller.canCreateTraining)
-          TrainingLibraryCreateAction(onTap: () => controller.openCreateFlow(onOpen: onCreate)),
+        if (!controller.isShowingFullscreenLoading &&
+            controller.canCreateTraining)
+          TrainingLibraryCreateAction(
+            onTap: () => controller.openCreateFlow(onOpen: onCreate),
+          ),
       ],
       child: SafeArea(
         top: false,
         bottom: false,
         child: controller.isShowingFullscreenLoading
-            ? Center(child: FastCircularProgressIndicator(width: 24, height: 24))
+            ? Center(
+                child: FastCircularProgressIndicator(width: 24, height: 24),
+              )
             : _TrainingLibraryFiltersAndResults(
                 controller: controller,
-                onModuleTap: (module) => controller.openLesson(module, openDetails: onOpenLesson),
+                onModuleTap: (module) =>
+                    controller.openLesson(module, openDetails: onOpenLesson),
                 onSelectSeat: onSelectSeat,
                 onModuleActions: onModuleActions,
               ),
@@ -76,7 +83,10 @@ class _TrainingLibraryFiltersAndResults extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TrainingLibrarySearchBar(controller: controller, onSelectSeat: onSelectSeat),
+          TrainingLibrarySearchBar(
+            controller: controller,
+            onSelectSeat: onSelectSeat,
+          ),
           if (controller.appliedFilterTags.isNotEmpty) ...[
             const SizedBox(height: 12),
             TrainingLibraryFilterTags(controller: controller),

@@ -11,11 +11,13 @@ class AppBottomNavBar extends StatelessWidget {
     required this.selectedMenu,
     required this.onSelected,
     this.isSandboxMode = false,
+    this.isVisible = true,
   });
 
   final AppMenuType? selectedMenu;
   final ValueChanged<AppMenuType> onSelected;
   final bool isSandboxMode;
+  final bool isVisible;
 
   static const _destinations = [
     (
@@ -47,7 +49,20 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Swap the design function here to try another style with the same tabs.
-    return circularDarkNavBar(items: _items);
+    return IgnorePointer(
+      ignoring: !isVisible,
+      child: ExcludeSemantics(
+        excluding: !isVisible,
+        child: AnimatedSlide(
+          offset: isVisible ? Offset.zero : const Offset(0, 1),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: circularDarkNavBar(items: _items),
+        ),
+      ),
+    );
   }
 
   List<AppBottomNavItem> get _items => _destinations.map((destination) {

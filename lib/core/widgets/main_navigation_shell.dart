@@ -36,6 +36,7 @@ class _MainNavigationView extends StatelessWidget {
       bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
           ? null
           : AppBottomNavBar(
+              isVisible: navigation.isBottomNavigationVisible,
               selectedMenu: navigation.selectedMenu,
               isSandboxMode: isSandboxMode,
               onSelected: (menu) {

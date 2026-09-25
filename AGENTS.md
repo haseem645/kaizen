@@ -58,6 +58,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 - Prefer immutable widget inputs and `const` constructors where practical.
 - Keep widget trees readable by extracting focused private widgets when a build method becomes too dense, but avoid creating unnecessary abstraction for tiny one-off UI fragments.
 - For async UI actions, handle loading and failure states in the widget or provider that owns the interaction.
+- Buttons must keep the same width and height while loading. Preserve the label/icon layout and overlay a bounded loader, or reserve an identical icon slot in both states; do not let a loading indicator determine the button's size.
 - Always use `FastCircularProgressIndicator()` from `lib/core/widgets/fast_circular_progress.dart` whenever a progress bar or loading indicator is needed in the project. Reuse its sizing and color options instead of adding direct `CircularProgressIndicator`, `LinearProgressIndicator`, or custom spinner implementations. This includes placeholder loaders inside SOP and Assignment description cards while content is loading or its initial state is being resolved.
 - Dispose owned controllers and notifiers such as `TextEditingController`, `ScrollController`, `PageController`, `TabController`, `AnimationController`, `VideoPlayerController`, and `ValueNotifier`.
 - Use existing status/color conventions from `lib/core/constants/app_colors.dart` unless the task requires a new design rule.
@@ -86,6 +87,7 @@ Most features follow `data`, `domain`, and `presentation` layers, but Codex shou
 - Keep the AI quiz generation sheet's Replace Existing Questions toggle above the final divider and connected to the existing replacement flag when updating its design.
 - Keep training quiz lists compact on mobile: use 16 logical pixels for the section heading, 14 for questions, 12 for answers and action labels, 12 for card padding, and 10–12 for gaps. Preserve system text scaling rather than enlarging the base sizes to match screenshot pixels.
 - Preserve the established visual system unless the task explicitly asks for a redesign.
+- Use `AppDialogStyle` for dialog outlines: a 0.5-pixel purple stroke at 40% opacity. Apply it to the visible dialog surface, preserve its existing corner radius, and avoid duplicate borders on transparent dialog wrappers.
 - On new or changed screens, maintain mobile-first layout behavior and avoid overflow.
 - Reuse existing spacing, typography, icon, and bottom-sheet patterns where possible instead of inventing a parallel style.
 - If media, uploads, comments, or sheets already exist elsewhere in the app, mirror those interaction patterns before creating a new one.

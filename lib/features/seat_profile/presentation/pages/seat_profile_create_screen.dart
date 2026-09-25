@@ -9,6 +9,7 @@ import '../../../../core/widgets/app_ai_generate_button.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../routes/app_router.dart';
@@ -757,7 +758,7 @@ class _ManageSeatCategoriesDialogState extends State<_ManageSeatCategoriesDialog
         child: Dialog(
           backgroundColor: AppColors.surfaceDark,
           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: AppDialogStyle.shape(radius: 28),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 720,
@@ -1450,7 +1451,7 @@ class _GenerateSeatContentDialog extends StatelessWidget {
       child: Dialog(
         backgroundColor: AppColors.surfaceDark,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        shape: AppDialogStyle.shape(radius: 28),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: SingleChildScrollView(

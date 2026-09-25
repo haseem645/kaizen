@@ -10,9 +10,10 @@ import '../../../../routes/app_router.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_ai_generate_button.dart';
-import '../../../../core/widgets/app_gradient_action_button.dart';
+import '../../../../core/widgets/app_share_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_swipe_reveal_action.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../data/datasources/paygrade_remote_data_source.dart';
@@ -251,20 +252,7 @@ class PaygradeDetailView extends StatelessWidget {
               ),
               if (onShare != null) ...[
                 const SizedBox(width: 12),
-                SizedBox.square(
-                  dimension: 35,
-                  child: AppGradientActionButton(
-                    label: AppStrings.shareAction,
-                    icon: Icons.share_outlined,
-                    iconOnly: true,
-                    iconSize: 24,
-                    minHeight: 40,
-                    borderRadius: 12,
-                    boxShadows: const <BoxShadow>[],
-                    padding: EdgeInsets.zero,
-                    onTap: onShare,
-                  ),
-                ),
+                AppShareButton(onTap: onShare),
               ],
             ],
           ),
@@ -811,7 +799,7 @@ class _PaygradeExpandedTextDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: AppColors.surfaceDark,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: AppDialogStyle.shape(radius: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620, maxHeight: 520),
         child: Padding(

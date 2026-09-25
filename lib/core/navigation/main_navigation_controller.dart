@@ -31,6 +31,7 @@ class MainNavigationController extends ChangeNotifier {
   final List<MainNavigationDestination> destinations;
   final bool Function(AppMenuType)? _canSelectMenu;
   final Set<AppMenuType> _visitedMenus;
+  final Set<AppMenuType> _menusWithHiddenNavigation = {};
   AppMenuType _selectedMenu;
   int _pageGeneration = 0;
 
@@ -40,11 +41,23 @@ class MainNavigationController extends ChangeNotifier {
     (destination) => destination.menu == _selectedMenu,
   );
   String get selectedRouteName => destinations[selectedIndex].routeName;
+  bool get isBottomNavigationVisible =>
+      !_menusWithHiddenNavigation.contains(_selectedMenu);
+
+  void setNavigationBarsVisible(AppMenuType menu, bool visible) {
+    final changed = visible
+        ? _menusWithHiddenNavigation.remove(menu)
+        : _menusWithHiddenNavigation.add(menu);
+    if (changed && menu == _selectedMenu) {
+      notifyListeners();
+    }
+  }
 
   bool hasVisited(AppMenuType menu) => _visitedMenus.contains(menu);
 
   /// Discards pages when the account or organization changes.
   void resetPages() {
+    _menusWithHiddenNavigation.clear();
     _selectedMenu = destinations.first.menu;
     _visitedMenus
       ..clear()

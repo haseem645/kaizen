@@ -9,6 +9,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_gradient_action_button.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/domain/repositories/audit_repository.dart';
 import 'package:sparrowkaizen/features/login/domain/entities/user.dart';
@@ -310,8 +311,11 @@ void main() {
     await tester.pumpWidget(_dialogApp(repository));
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
+    final createButton = find.byType(AppGradientActionButton);
+    final createButtonSize = tester.getSize(createButton);
     await tester.tap(find.text(AppStrings.shareCreateLinkAction));
     await tester.pump();
+    expect(tester.getSize(createButton), createButtonSize);
     expect(find.byType(FastCircularProgressIndicator), findsOneWidget);
     expect(
       tester
