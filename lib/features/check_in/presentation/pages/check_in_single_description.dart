@@ -10,6 +10,7 @@ import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/utils/custom_functions.dart';
 import 'package:sparrowkaizen/core/widgets/app_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
+import 'package:sparrowkaizen/core/widgets/app_dialog_style.dart';
 import 'package:sparrowkaizen/core/widgets/app_text_view.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/check_in/domain/entities/audit_description_audit.dart';
@@ -1533,7 +1534,7 @@ class _CreateTextCommentDialogState extends State<_CreateTextCommentDialog> {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
+              border: AppDialogStyle.border,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
