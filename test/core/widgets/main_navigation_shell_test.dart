@@ -8,6 +8,7 @@ import 'package:sparrowkaizen/core/navigation/app_menu_type.dart';
 import 'package:sparrowkaizen/core/navigation/main_navigation_controller.dart';
 import 'package:sparrowkaizen/core/navigation/main_navigation_route.dart';
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
+import 'package:sparrowkaizen/core/widgets/app_back_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_bottom_nav_bar.dart';
 import 'package:sparrowkaizen/core/widgets/drawer_main_screen.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
@@ -21,6 +22,10 @@ const _menus = {
   AppMenuType.learningTracks: AppRouter.learningTracks,
   AppMenuType.compliance: AppRouter.compliance,
   AppMenuType.seatProfiles: AppRouter.seatProfiles,
+  AppMenuType.paygrades: AppRouter.paygrades,
+  AppMenuType.departments: AppRouter.departments,
+  AppMenuType.kaizenGpt: AppRouter.kaizenGpt,
+  AppMenuType.home: AppRouter.kaizengram,
 };
 const _detailsRoute = '/test/details';
 
@@ -91,39 +96,99 @@ void main() {
   );
 
   testWidgets(
-    'drawer pages share the shell and details return to the selected tab',
+    'drawer pages hide the bottom bar and Back preserves the previous tab',
     (tester) async {
       final harness = _NavigationHarness();
       await tester.pumpWidget(harness.build());
       await tester.pumpAndSettle();
       final bar = tester.element(find.byType(AppBottomNavBar));
-
-      await tester.tap(find.byTooltip('Open navigation menu'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.homeCompliance));
-      await tester.pumpAndSettle();
-      expect(harness.routes.single.settings.name, AppRouter.compliance);
-      expect(AppManager.instance.currentRouteName, AppRouter.compliance);
-      expect(tester.element(find.byType(AppBottomNavBar)), same(bar));
-
       await tester.tap(_tab(AppStrings.checkInTitle));
       await tester.pumpAndSettle();
       final checkIn = tester.state<_ProbePageState>(find.byType(_ProbePage));
-      await tester.tap(find.text('Open details'));
+      await tester.enterText(find.byType(TextField), 'saved search');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.drag(find.byType(ListView), const Offset(0, -400));
       await tester.pumpAndSettle();
-      expect(find.text('Details'), findsOneWidget);
-      expect(find.byType(AppBottomNavBar), findsNothing);
-      expect(AppManager.instance.currentRouteName, _detailsRoute);
+      final scrollOffset = checkIn.scrollController.offset;
 
-      harness.navigatorKey.currentState!.pop();
+      for (final destination in [
+        (AppStrings.homeCompliance, AppRouter.compliance),
+        (AppStrings.homeSeatProfiles, AppRouter.seatProfiles),
+        (AppStrings.homePaygrades, AppRouter.paygrades),
+        (AppStrings.homeDepartments, AppRouter.departments),
+      ]) {
+        await tester.tap(find.byTooltip('Open navigation menu'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(destination.$1));
+        await tester.pumpAndSettle();
+        expect(AppManager.instance.currentRouteName, destination.$2);
+        expect(harness.routes.single.settings.name, AppRouter.checkIn);
+        expect(find.byType(AppBottomNavBar), findsNothing);
+        expect(find.byType(AppBackButton), findsOneWidget);
+        expect(find.byTooltip('Open navigation menu'), findsNothing);
+        expect(harness.navigatorKey.currentState!.canPop(), isTrue);
+
+        final drawerPage = tester.state<_ProbePageState>(
+          find.byType(_ProbePage),
+        );
+        await tester.tap(find.text('Open details'));
+        await tester.pumpAndSettle();
+        expect(find.text('Details'), findsOneWidget);
+        expect(find.byType(AppBottomNavBar), findsNothing);
+        expect(AppManager.instance.currentRouteName, _detailsRoute);
+        await harness.navigatorKey.currentState!.maybePop();
+        await tester.pumpAndSettle();
+        expect(
+          tester.state<_ProbePageState>(find.byType(_ProbePage)),
+          same(drawerPage),
+        );
+        expect(AppManager.instance.currentRouteName, destination.$2);
+        expect(find.byType(AppBottomNavBar), findsNothing);
+
+        await tester.tap(find.byType(AppBackButton));
+        await tester.pumpAndSettle();
+        expect(tester.element(find.byType(AppBottomNavBar)), same(bar));
+        expect(
+          tester.state<_ProbePageState>(find.byType(_ProbePage)),
+          same(checkIn),
+        );
+        expect(checkIn.searchController.text, 'saved search');
+        expect(checkIn.scrollController.offset, scrollOffset);
+        expect(AppManager.instance.currentRouteName, AppRouter.checkIn);
+        expect(harness.navigatorKey.currentState!.canPop(), isFalse);
+      }
+      expect(harness.loads[AppMenuType.audits], 1);
+      expect(tester.takeException(), isNull);
+      await harness.dispose(tester);
+    },
+  );
+
+  testWidgets(
+    'sandbox drawer pages support system Back without changing tabs',
+    (tester) async {
+      AppManager.instance.updateCurrentUser(User(uuid: 'owner', isOwner: true));
+      final harness = _NavigationHarness();
+      await tester.pumpWidget(harness.build());
       await tester.pumpAndSettle();
-      expect(tester.element(find.byType(AppBottomNavBar)), same(bar));
-      expect(
-        tester.state<_ProbePageState>(find.byType(_ProbePage)),
-        same(checkIn),
-      );
-      expect(AppManager.instance.currentRouteName, AppRouter.checkIn);
-      expect(harness.navigatorKey.currentState!.canPop(), isFalse);
+      for (final label in [
+        AppStrings.homeSeatProfiles,
+        AppStrings.homePaygrades,
+        AppStrings.homeDepartments,
+      ]) {
+        await tester.tap(find.byTooltip('Open navigation menu'));
+        await tester.pumpAndSettle();
+        expect(find.text(AppStrings.homeCompliance), findsNothing);
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+        expect(find.byType(AppBottomNavBar), findsNothing);
+        expect(find.byType(AppBackButton), findsOneWidget);
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(find.byType(AppBottomNavBar), findsOneWidget);
+        expect(AppManager.instance.currentRouteName, AppRouter.trainingLibrary);
+        expect(harness.navigatorKey.currentState!.canPop(), isFalse);
+      }
+      expect(harness.loads[AppMenuType.library], 1);
       expect(tester.takeException(), isNull);
       await harness.dispose(tester);
     },
@@ -209,12 +274,15 @@ void main() {
   });
 
   test('main named routes enter the shell at their requested destination', () {
-    for (final entry in _menus.entries) {
+    for (final entry in _menus.entries.where(
+      (entry) => entry.key.isBottomNavigationTab,
+    )) {
       final route = AppRouter.onGenerateRoute(RouteSettings(name: entry.value));
       expect(route, isA<MainNavigationRoute>());
       final navigation = (route as MainNavigationRoute).navigationController;
       expect(navigation.selectedMenu, entry.key);
       expect(route.settings.name, entry.value);
+      expect(navigation.destinations.length, 4);
       expect(
         navigation.destinations
             .where((item) => navigation.hasVisited(item.menu))
@@ -222,6 +290,17 @@ void main() {
         1,
       );
       route.dispose();
+    }
+  });
+
+  test('drawer named routes open standalone pages outside the main shell', () {
+    for (final entry in _menus.entries.where(
+      (entry) => !entry.key.isBottomNavigationTab,
+    )) {
+      final route = AppRouter.onGenerateRoute(RouteSettings(name: entry.value));
+      expect(route, isA<MaterialPageRoute<dynamic>>());
+      expect(route, isNot(isA<MainNavigationRoute>()));
+      expect(route.settings.name, entry.value);
     }
   });
 
@@ -242,13 +321,16 @@ void main() {
         AppMenuType.performanceSnapshot,
         AppMenuType.compliance,
         AppMenuType.profile,
+        AppMenuType.seatProfiles,
+        AppMenuType.paygrades,
+        AppMenuType.departments,
+        AppMenuType.kaizenGpt,
+        AppMenuType.home,
       ]) {
         navigation.selectMenu(menu);
         expect(navigation.selectedMenu, AppMenuType.library);
         expect(navigation.hasVisited(menu), isFalse);
       }
-      navigation.selectMenu(AppMenuType.seatProfiles);
-      expect(navigation.selectedMenu, AppMenuType.seatProfiles);
       route.dispose();
     },
   );
@@ -274,6 +356,7 @@ class _NavigationHarness {
           .firstWhere((entry) => entry.value == settings.name)
           .key,
       destinations: _menus.entries
+          .where((entry) => entry.key.isBottomNavigationTab)
           .map(
             (entry) => MainNavigationDestination(
               menu: entry.key,
@@ -288,6 +371,25 @@ class _NavigationHarness {
     return route;
   }
 
+  Route<dynamic> _route(RouteSettings settings) {
+    if (settings.name == _detailsRoute) {
+      return MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) => const Scaffold(body: Text('Details')),
+      );
+    }
+    final menu = _menus.entries
+        .firstWhere((entry) => entry.value == settings.name)
+        .key;
+    if (menu.isBottomNavigationTab) {
+      return _mainRoute(settings);
+    }
+    return MaterialPageRoute<void>(
+      settings: settings,
+      builder: (_) => _ProbePage(menu: menu, harness: this),
+    );
+  }
+
   Widget build() => ChangeNotifierProvider<AppManager>.value(
     value: AppManager.instance,
     child: MaterialApp(
@@ -296,12 +398,7 @@ class _NavigationHarness {
       onGenerateInitialRoutes: (_) => [
         _mainRoute(const RouteSettings(name: AppRouter.trainingLibrary)),
       ],
-      onGenerateRoute: (settings) => settings.name == _detailsRoute
-          ? MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const Scaffold(body: Text('Details')),
-            )
-          : _mainRoute(settings),
+      onGenerateRoute: _route,
     ),
   );
 

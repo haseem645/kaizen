@@ -96,7 +96,7 @@ class AppRouter {
 
   static String get defaultAuthenticatedRouteName => trainingLibrary;
 
-  static final _mainDestinations = <MainNavigationDestination>[
+  static final _navigationDestinations = <MainNavigationDestination>[
     MainNavigationDestination(
       menu: AppMenuType.library,
       routeName: trainingLibrary,
@@ -151,25 +151,27 @@ class AppRouter {
     ),
   ];
 
+  static final _mainDestinations = _navigationDestinations
+      .where((destination) => destination.menu.isBottomNavigationTab)
+      .toList(growable: false);
+
   static bool _canSelectMainMenu(AppMenuType menu) {
     return !AppManager.instance.usesParentApiEndpoints ||
-        const {
-          AppMenuType.library,
-          AppMenuType.seatProfiles,
-          AppMenuType.paygrades,
-          AppMenuType.departments,
-        }.contains(menu);
+        menu == AppMenuType.library;
   }
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    final mainDestination = _mainDestinations
+    final destination = _navigationDestinations
         .where((destination) => destination.routeName == settings.name)
         .firstOrNull;
-    if (mainDestination != null) {
+    if (destination != null) {
+      if (!destination.menu.isBottomNavigationTab) {
+        return _buildRoute(settings: settings, builder: destination.builder);
+      }
       return MainNavigationRoute(
         settings: settings,
         destinations: _mainDestinations,
-        initialMenu: mainDestination.menu,
+        initialMenu: destination.menu,
         canSelectMenu: _canSelectMainMenu,
         onRouteNameChanged: AppManager.instance.updateCurrentRouteName,
       );

@@ -6,6 +6,7 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/managers/app_manager.dart';
 import 'package:sparrowkaizen/core/navigation/app_menu_type.dart';
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
+import 'package:sparrowkaizen/core/widgets/app_back_button.dart';
 import 'package:sparrowkaizen/core/widgets/app_bottom_nav_bar.dart';
 import 'package:sparrowkaizen/core/widgets/app_drawer.dart';
 import 'package:sparrowkaizen/core/widgets/drawer_main_screen.dart';
@@ -23,7 +24,7 @@ void main() {
   });
 
   testWidgets(
-    'tabs replace the main route and remain reachable from drawer pages',
+    'standalone main tabs replace routes while drawer pages push with Back',
     (tester) async {
       final semantics = tester.ensureSemantics();
       final navigatorKey = GlobalKey<NavigatorState>();
@@ -120,23 +121,56 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(visitedRoutes.last, AppRouter.compliance);
-      expect(navigatorKey.currentState!.canPop(), isFalse);
+      expect(navigatorKey.currentState!.canPop(), isTrue);
       expect(_tab(AppStrings.homeCompliance), findsNothing);
+      expect(find.byType(AppBottomNavBar), findsNothing);
+      expect(find.byTooltip('Open navigation menu'), findsNothing);
+      await tester.tap(find.byType(AppBackButton));
+      await tester.pumpAndSettle();
       expect(find.byType(AppBottomNavBar), findsOneWidget);
       await tester.tap(find.byTooltip('Open navigation menu'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.homeSeatProfiles));
       await tester.pumpAndSettle();
       expect(visitedRoutes.last, AppRouter.seatProfiles);
-      expect(find.byType(AppBottomNavBar), findsOneWidget);
-      await tester.tap(_tab(AppStrings.trainingLibraryTitle));
+      expect(find.byType(AppBottomNavBar), findsNothing);
+      await tester.tap(find.byType(AppBackButton));
       await tester.pumpAndSettle();
-      expect(visitedRoutes.last, AppRouter.trainingLibrary);
+      expect(find.byType(AppBottomNavBar), findsOneWidget);
       expect(navigatorKey.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
       semantics.dispose();
     },
   );
+
+  testWidgets('a drawer page opened as the root returns to LMS with Back', (
+    tester,
+  ) async {
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppManager>.value(
+        value: AppManager.instance,
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          home: _screen(AppMenuType.seatProfiles),
+          onGenerateRoute: (settings) {
+            expect(settings.name, AppRouter.trainingLibrary);
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => _screen(AppMenuType.library),
+            );
+          },
+        ),
+      ),
+    );
+    expect(find.byType(AppBottomNavBar), findsNothing);
+    await tester.tap(find.byType(AppBackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppBottomNavBar), findsOneWidget);
+    expect(find.byType(AppBackButton), findsNothing);
+    expect(navigatorKey.currentState!.canPop(), isFalse);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('sandbox keeps all labels visible and only enables LMS', (
     tester,
