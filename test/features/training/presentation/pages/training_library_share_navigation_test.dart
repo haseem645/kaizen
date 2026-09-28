@@ -12,9 +12,11 @@ import 'package:sparrowkaizen/core/network/api_endpoints.dart';
 import 'package:sparrowkaizen/core/preference/app_preference.dart';
 import 'package:sparrowkaizen/core/widgets/app_overlay_close_button.dart';
 import 'package:sparrowkaizen/features/login/domain/entities/user.dart';
+import 'package:sparrowkaizen/features/training/presentation/controllers/training_module_controller.dart';
 import 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 import 'package:sparrowkaizen/features/training/presentation/pages/training_library_screen.dart';
 import 'package:sparrowkaizen/features/training/presentation/widgets/training_library_module_card.dart';
+import 'package:sparrowkaizen/features/training/presentation/widgets/training_share_action.dart';
 
 import '../../fixtures/training_library_fixtures.dart';
 
@@ -63,8 +65,20 @@ void main() {
             'is_publicly_available': false,
           },
         );
-      } else if (endpoint == ApiEndPoints.trainingModuleDetail('lesson-1')) {
-        response = {'uuid': 'lesson-1', 'title': 'Opened lesson'};
+      } else if ([0, 1, 2].any(
+        (index) =>
+            endpoint == ApiEndPoints.trainingModuleDetail('lesson-$index'),
+      )) {
+        final lessonId = request.url.path
+            .split('/')
+            .where((part) => part.isNotEmpty)
+            .last;
+        response = {
+          'uuid': lessonId,
+          'title': lessonId == 'lesson-1'
+              ? 'Opened lesson'
+              : 'Lesson ${lessonId.split('-').last}',
+        };
       } else if (endpoint == ApiEndPoints.lmsPublicLink('description-id')) {
         if (request.method == 'GET') {
           response = existingLink ?? {'active': false};
@@ -119,12 +133,56 @@ void main() {
         hasLength(1),
       );
       expect(find.byTooltip(AppStrings.shareAction), findsOneWidget);
+      expect(find.text(AppStrings.shareAction), findsNothing);
+      final trainingController = tester
+          .element(find.byType(TrainingShareAction))
+          .read<TrainingModuleController>();
+      final allLessons = find.byTooltip(AppStrings.trainingAllLessons);
+      final newLesson = find.byTooltip(AppStrings.trainingNewLesson);
+      expect(
+        tester.getTopLeft(allLessons).dx,
+        lessThan(tester.getTopLeft(newLesson).dx),
+      );
       expect(
         tester.getTopLeft(find.byIcon(Icons.share_outlined)).dx,
         greaterThan(
           tester.getTopRight(find.text(AppStrings.training).first).dx,
         ),
       );
+      await tester.tap(allLessons);
+      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.trainingAllLessons), findsOneWidget);
+      final addNewLesson = find.text(AppStrings.trainingAddNewLesson);
+      expect(addNewLesson, findsOneWidget);
+      expect(
+        tester.getTopLeft(addNewLesson).dy,
+        lessThan(tester.getTopLeft(find.text('Lesson 0')).dy),
+      );
+      await tester.tap(addNewLesson);
+      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.trainingAllLessons), findsNothing);
+      expect(trainingController.isCreatingNewLessonDraft, isTrue);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(trainingController.isCreatingNewLessonDraft, isFalse);
+      expect(trainingController.selectedModuleId, 'lesson-1');
+
+      await tester.tap(allLessons);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lesson 2'));
+      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.trainingAllLessons), findsNothing);
+      expect(find.text('Lesson 2'), findsOneWidget);
+
+      await tester.tap(newLesson);
+      await tester.pumpAndSettle();
+      expect(trainingController.isCreatingNewLessonDraft, isTrue);
+      expect(find.byType(TextField), findsWidgets);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(trainingController.isCreatingNewLessonDraft, isFalse);
+      expect(trainingController.selectedModuleId, 'lesson-2');
+
       await tester.tap(find.byTooltip(AppStrings.shareAction));
       await tester.pumpAndSettle();
       expect(find.text('3 of 3 selected'), findsOneWidget);

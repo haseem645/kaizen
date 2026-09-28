@@ -3,16 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../routes/app_router.dart' show AppRouter;
 import '../constants/app_colors.dart';
-import '../constants/app_strings.dart';
 import '../managers/app_manager.dart';
 import '../navigation/app_menu_type.dart';
 import '../navigation/main_navigation_controller.dart';
-import '../utils/auth_controller.dart';
-import '../utils/custom_functions.dart';
 import 'app_back_button.dart';
 import 'app_bottom_nav_bar.dart';
-import 'app_confirmation_dialog.dart';
-import 'app_drawer.dart';
+import 'app_navigation_drawer.dart';
 import 'app_text_view.dart';
 
 class DrawerMainScreen extends StatelessWidget {
@@ -64,7 +60,13 @@ class DrawerMainScreen extends StatelessWidget {
       backgroundColor: AppColors.mainBg,
       extendBody: true,
       appBar: _buildAppBar(context, appBarVisibility),
-      drawer: _isBottomNavigationTab ? _buildDrawer(context) : null,
+      drawer: _isBottomNavigationTab && !hasNavigationShell
+          ? AppNavigationDrawer(
+              selectedMenu: selectedMenu,
+              image: image,
+              imageUrl: imageUrl,
+            )
+          : null,
       body: child,
       bottomNavigationBar:
           !_isBottomNavigationTab ||
@@ -76,6 +78,8 @@ class DrawerMainScreen extends StatelessWidget {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, double? visibility) {
+    final hasNavigationShell =
+        context.read<MainNavigationController?>() != null;
     final appBar = AppBar(
       primary: visibility == null,
       backgroundColor: AppColors.mainBg,
@@ -86,7 +90,11 @@ class DrawerMainScreen extends StatelessWidget {
       surfaceTintColor: visibility == null ? null : Colors.transparent,
       centerTitle: centerTitle,
       leading: _isBottomNavigationTab
-          ? null
+          ? hasNavigationShell
+                ? DrawerButton(
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  )
+                : null
           : AppBackButton(onPressed: () => _goBack(context)),
       title: AppTextView.title1(
         title,
@@ -125,43 +133,6 @@ class DrawerMainScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawer(BuildContext context) {
-    return Consumer<AppManager>(
-      builder: (consumerContext, appManager, _) {
-        final user = appManager.currentUser;
-
-        return AppDrawer(
-          name: CustomFunctions.resolveName(user),
-          currentOrganizationName: appManager.isRefreshingOrganizationContext
-              ? AppStrings.organizationsFetching
-              : appManager.currentOrganizationName,
-          isSandboxMode: appManager.usesParentApiEndpoints,
-          selectedMenu: selectedMenu,
-          onProfileTap: () => _openProfile(context),
-          onComplianceTap: () => _openCompliance(context),
-          onSeatProfilesTap: () => _openSeatProfiles(context),
-          onPaygradesTap: () => _openPaygrades(context),
-          onDepartmentsTap: () => _openDepartments(context),
-          onKaizenGptTap: () => _openKaizenGpt(context),
-          onSettingTap: () => _openSetting(context),
-          onDrawerHeaderTap: () => _openProfile(context),
-          onOrganizationTap: () => appManager.openOrganizationsScreen(),
-          onLogoutTap: () => _showLogoutConfirmation(context),
-          image: image ?? user?.image,
-          imageUrl: imageUrl ?? user?.imageUrl,
-        );
-      },
-    );
-  }
-
-  void _openProfile(BuildContext context) {
-    if (selectedMenu == AppMenuType.profile) {
-      return;
-    }
-
-    AppRouter.pushNamed(context, AppRouter.profile);
-  }
-
   Widget _buildBottomNavigation(BuildContext context) {
     return Consumer<AppManager>(
       builder: (_, appManager, _) => AppBottomNavBar(
@@ -188,26 +159,6 @@ class DrawerMainScreen extends StatelessWidget {
     if (routeName != null) {
       _openMainMenu(context, menu, routeName);
     }
-  }
-
-  void _openSeatProfiles(BuildContext context) {
-    _openMainMenu(context, AppMenuType.seatProfiles, AppRouter.seatProfiles);
-  }
-
-  void _openCompliance(BuildContext context) {
-    _openMainMenu(context, AppMenuType.compliance, AppRouter.compliance);
-  }
-
-  void _openPaygrades(BuildContext context) {
-    _openMainMenu(context, AppMenuType.paygrades, AppRouter.paygrades);
-  }
-
-  void _openDepartments(BuildContext context) {
-    _openMainMenu(context, AppMenuType.departments, AppRouter.departments);
-  }
-
-  void _openKaizenGpt(BuildContext context) {
-    _openMainMenu(context, AppMenuType.kaizenGpt, AppRouter.kaizenGpt);
   }
 
   void _openMainMenu(BuildContext context, AppMenuType menu, String routeName) {
@@ -238,33 +189,6 @@ class DrawerMainScreen extends StatelessWidget {
     AppRouter.pushReplacementNamed<void, void>(
       context,
       AppRouter.defaultAuthenticatedRouteName,
-    );
-  }
-
-  void _openSetting(BuildContext context) {
-    if (selectedMenu == AppMenuType.setting) {
-      return;
-    }
-
-    AppRouter.pushNamed(context, AppRouter.onboarding);
-  }
-
-  Future<void> _showLogoutConfirmation(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AppConfirmationDialog(
-          title: AppStrings.authLogout,
-          description: AppStrings.authLogoutConfirmationDescription,
-          onCancelCallback: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-          },
-          onConfirmCallback: () async {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-            await AuthController.logout();
-          },
-        );
-      },
     );
   }
 }

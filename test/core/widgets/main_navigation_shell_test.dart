@@ -227,25 +227,52 @@ void main() {
     await harness.dispose(tester);
   });
 
-  testWidgets('switching tabs closes an open drawer', (tester) async {
-    final harness = _NavigationHarness();
-    await tester.pumpWidget(harness.build());
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Open navigation menu'));
-    await tester.pumpAndSettle();
-    expect(harness.navigatorKey.currentState!.canPop(), isTrue);
+  testWidgets(
+    'drawer covers the bottom bar and scrim taps do not switch tabs',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final harness = _NavigationHarness();
+      await tester.pumpWidget(harness.build());
+      await tester.pumpAndSettle();
+      final bar = tester.element(find.byType(AppBottomNavBar));
+      final lastTabCenter = tester.getCenter(_tab(AppStrings.bottomNavLtc));
+      await tester.tap(find.byTooltip('Open navigation menu'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(_tab(AppStrings.bottomNavLtc).hitTestable(), findsNothing);
+      await tester.pumpAndSettle();
+      expect(harness.navigatorKey.currentState!.canPop(), isTrue);
+      expect(_tab(AppStrings.trainingLibraryTitle).hitTestable(), findsNothing);
+      expect(tester.getBottomRight(find.byType(Drawer)).dy, 844);
+      expect(
+        tester.getTopRight(find.byType(Drawer)).dx,
+        lessThan(lastTabCenter.dx),
+      );
+      expect(tester.element(find.byType(AppBottomNavBar)), same(bar));
 
-    await tester.tap(_tab(AppStrings.checkInTitle));
-    await tester.pumpAndSettle();
-    expect(harness.routes.single.settings.name, AppRouter.checkIn);
-    expect(harness.navigatorKey.currentState!.canPop(), isFalse);
+      await tester.tapAt(lastTabCenter);
+      await tester.pumpAndSettle();
+      expect(harness.routes.single.settings.name, AppRouter.trainingLibrary);
+      expect(harness.navigatorKey.currentState!.canPop(), isFalse);
+      expect(_tab(AppStrings.bottomNavLtc).hitTestable(), findsOneWidget);
 
-    await tester.tap(_tab(AppStrings.trainingLibraryTitle));
-    await tester.pumpAndSettle();
-    expect(find.byType(Drawer), findsNothing);
-    expect(tester.takeException(), isNull);
-    await harness.dispose(tester);
-  });
+      await tester.tap(_tab(AppStrings.bottomNavLtc));
+      await tester.pumpAndSettle();
+      expect(harness.routes.single.settings.name, AppRouter.learningTracks);
+      await tester.tap(find.byTooltip('Open navigation menu'));
+      await tester.pumpAndSettle();
+      await harness.navigatorKey.currentState!.maybePop();
+      await tester.pumpAndSettle();
+      expect(find.byType(Drawer), findsNothing);
+      expect(harness.routes.single.settings.name, AppRouter.learningTracks);
+      expect(tester.element(find.byType(AppBottomNavBar)), same(bar));
+      expect(tester.takeException(), isNull);
+      await harness.dispose(tester);
+    },
+  );
 
   testWidgets('resetting the root route releases all retained pages', (
     tester,

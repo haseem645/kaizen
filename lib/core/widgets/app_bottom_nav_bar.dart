@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:sparrowkaizen/core/widgets/liquid_glass_nav_bar.dart';
 
 import '../constants/app_strings.dart';
 import '../navigation/app_bottom_nav_item.dart';
 import '../navigation/app_menu_type.dart';
-import 'circular_dark_nav_bar.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
@@ -59,7 +59,7 @@ class AppBottomNavBar extends StatelessWidget {
               ? Duration.zero
               : const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          child: circularDarkNavBar(items: _items),
+          child: liquidGlassNavBar(items: _items),
         ),
       ),
     );
