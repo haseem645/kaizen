@@ -98,6 +98,13 @@ class GetPaygradesUseCase {
     );
   }
 
+  Future<void> updatePayRate({
+    required String paygradeId,
+    required String payRate,
+  }) {
+    return _repository.updatePayRate(paygradeId: paygradeId, payRate: payRate);
+  }
+
   Future<void> deletePaygrade(String paygradeId) {
     return _repository.deletePaygrade(paygradeId);
   }

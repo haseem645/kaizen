@@ -47,5 +47,10 @@ abstract class PaygradeRepository {
     required String promotionRequirement,
   });
 
+  Future<void> updatePayRate({
+    required String paygradeId,
+    required String payRate,
+  });
+
   Future<void> deletePaygrade(String paygradeId);
 }

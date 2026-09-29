@@ -113,6 +113,17 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
   }
 
   @override
+  Future<void> updatePayRate({
+    required String paygradeId,
+    required String payRate,
+  }) {
+    return _remoteDataSource.updatePayRate(
+      paygradeId: paygradeId,
+      payRate: payRate,
+    );
+  }
+
+  @override
   Future<void> deletePaygrade(String paygradeId) {
     return _remoteDataSource.deletePaygrade(paygradeId);
   }

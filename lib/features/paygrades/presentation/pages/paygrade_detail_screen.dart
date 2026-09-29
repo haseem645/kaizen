@@ -23,6 +23,7 @@ import '../../domain/usecases/get_paygrades_usecase.dart';
 import '../providers/paygrade_detail_controller.dart';
 import 'paygrade_entry_sheet.dart';
 import 'paygrade_generate_sheet.dart';
+import 'paygrade_pay_rate_dialog.dart';
 import 'paygrade_share_dialogue.dart';
 
 class PaygradeDetailScreen extends StatelessWidget {
@@ -146,9 +147,8 @@ class PaygradeDetailView extends StatelessWidget {
           AppAiGenerateButton(
             label: AppStrings.paygradesGenerateWithAiAction,
             expand: true,
-            minHeight: 48,
-            textSize: 15,
-            fontWeight: FontWeight.w700,
+            minHeight: 44,
+            showOutline: true,
             isLoading: controller.isGeneratingPaygrades,
             onTap: controller.isGeneratingPaygrades
                 ? null
@@ -173,6 +173,14 @@ class PaygradeDetailView extends StatelessWidget {
               alwaysExpanded: isSharedContent,
               showPayRate: !isSharedContent && controller.includesPayRates,
               payRateLabel: controller.payRateLabel,
+              onPayRateTap: canManageContent && controller.canEditPayRate(entry)
+                  ? (title) => showPaygradePayRateDialog(
+                      context,
+                      controller: controller,
+                      entry: entry,
+                      title: title,
+                    )
+                  : null,
               onEditTap: canManageContent
                   ? () => _openPaygradeSheet(context, controller, entry)
                   : null,
@@ -237,37 +245,34 @@ class PaygradeDetailView extends StatelessWidget {
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppTextView.body1(
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextView.body1(
                   detail.title,
                   color: AppColors.secondaryColor,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-              if (onShare != null) ...[
-                const SizedBox(width: 12),
-                AppShareButton(onTap: onShare),
+                if (detail.department.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  AppTextView.body2(
+                    detail.department,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ],
               ],
-            ],
-          ),
-          if (detail.department.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            AppTextView.body2(
-              detail.department,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
             ),
+          ),
+          if (onShare != null) ...[
+            const SizedBox(width: 12),
+            AppShareButton(onTap: onShare),
           ],
-          // if (detail.paygradeUnit.isNotEmpty) ...[
-          //   const SizedBox(height: 12),
-          //   _buildSummaryRow(AppStrings.paygradesUnit, detail.paygradeUnit),
-          // ],
         ],
       ),
     );
@@ -496,6 +501,7 @@ class _PaygradeEntryCard extends StatefulWidget {
     this.alwaysExpanded = false,
     this.onEditTap,
     this.onDeleteTap,
+    this.onPayRateTap,
   });
 
   final PaygradeEntry entry;
@@ -507,6 +513,7 @@ class _PaygradeEntryCard extends StatefulWidget {
   final bool alwaysExpanded;
   final VoidCallback? onEditTap;
   final VoidCallback? onDeleteTap;
+  final ValueChanged<String>? onPayRateTap;
 
   @override
   State<_PaygradeEntryCard> createState() => _PaygradeEntryCardState();
@@ -534,6 +541,7 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
     final entry = widget.entry;
     final cleanedTitle = _cleanPaygradeTitle(entry.title);
     final paygradePrefix = _buildPaygradePrefix(cleanedTitle, widget.rowNumber);
+    final cardTitle = '$paygradePrefix: $cleanedTitle';
     final card = InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: widget.alwaysExpanded
@@ -556,7 +564,7 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
                 children: [
                   Expanded(
                     child: AppTextView.body1(
-                      '$paygradePrefix: $cleanedTitle',
+                      cardTitle,
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
@@ -569,7 +577,19 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
               ),
               if (widget.showPayRate) ...[
                 const SizedBox(height: 14),
-                _buildRow(widget.payRateLabel, entry.payRate),
+                InkWell(
+                  onTap: widget.onPayRateTap == null
+                      ? null
+                      : () => widget.onPayRateTap!(cardTitle),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: _buildRow(
+                      widget.payRateLabel,
+                      AppStrings.paygradesHourlyRate(entry.payRate),
+                    ),
+                  ),
+                ),
               ],
               if (isExpanded) ...[
                 const SizedBox(height: 10),

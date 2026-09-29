@@ -199,6 +199,18 @@ class PaygradeRemoteDataSource {
     );
   }
 
+  Future<void> updatePayRate({
+    required String paygradeId,
+    required String payRate,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.patch,
+      endpoint: ApiEndPoints.payGradeItem(paygradeId),
+      parameters: <String, dynamic>{'uuid': paygradeId, 'pay_rate': payRate},
+      decoder: (_) {},
+    );
+  }
+
   Future<void> deletePaygrade(String paygradeId) {
     return _apiCallExecutor.processApi<void>(
       apiCallType: ApiCallType.delete,
