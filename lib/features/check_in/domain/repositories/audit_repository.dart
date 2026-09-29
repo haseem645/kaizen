@@ -196,6 +196,10 @@ abstract class AuditRepository {
     required String moduleId,
   });
 
+  Future<void> generateSeatDescriptionTrainingModuleAssignment({
+    required String moduleId,
+  });
+
   Future<String?> generateSeatDescriptionTrainingModuleSummary({
     required String moduleId,
   });
@@ -226,7 +230,7 @@ abstract class AuditRepository {
   Future<void> updateSeatDescriptionTrainingModuleAssignment({
     required String moduleId,
     String? assignmentId,
-    required String title,
+    String? title,
     required String instructions,
   });
 

@@ -415,6 +415,15 @@ class AuditRepositoryImpl implements AuditRepository {
   }
 
   @override
+  Future<void> generateSeatDescriptionTrainingModuleAssignment({
+    required String moduleId,
+  }) {
+    return _remoteDataSource.generateSeatDescriptionTrainingModuleAssignment(
+      moduleId: moduleId,
+    );
+  }
+
+  @override
   Future<String?> generateSeatDescriptionTrainingModuleSummary({
     required String moduleId,
   }) {
@@ -477,7 +486,7 @@ class AuditRepositoryImpl implements AuditRepository {
   Future<void> updateSeatDescriptionTrainingModuleAssignment({
     required String moduleId,
     String? assignmentId,
-    required String title,
+    String? title,
     required String instructions,
   }) {
     return _remoteDataSource.updateSeatDescriptionTrainingModuleAssignment(

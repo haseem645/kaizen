@@ -932,6 +932,17 @@ class AuditRemoteDataSource {
     );
   }
 
+  Future<void> generateSeatDescriptionTrainingModuleAssignment({
+    required String moduleId,
+  }) {
+    return _apiCallExecutor.processApi<void>(
+      apiCallType: ApiCallType.put,
+      endpoint: ApiEndPoints.generateTrainingModuleAssignment(moduleId),
+      authToken: AppPreference.getAuthToken(),
+      decoder: (_) {},
+    );
+  }
+
   Future<String?> generateSeatDescriptionTrainingModuleSummary({
     required String moduleId,
   }) {
@@ -1032,7 +1043,7 @@ class AuditRemoteDataSource {
   Future<void> updateSeatDescriptionTrainingModuleAssignment({
     required String moduleId,
     String? assignmentId,
-    required String title,
+    String? title,
     required String instructions,
   }) {
     final resolvedAssignmentId = assignmentId?.trim() ?? '';
@@ -1044,7 +1055,10 @@ class AuditRemoteDataSource {
           ? ApiEndPoints.trainingAssignment(resolvedAssignmentId)
           : ApiEndPoints.addTrainingModuleAssignment(moduleId),
       authToken: AppPreference.getAuthToken(),
-      parameters: {'title': title.trim(), 'instructions': instructions.trim()},
+      parameters: {
+        if (title != null) 'title': title.trim(),
+        'instructions': instructions.trim(),
+      },
       decoder: (_) {},
     );
   }
