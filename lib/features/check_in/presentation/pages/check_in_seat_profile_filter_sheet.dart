@@ -19,6 +19,7 @@ class CheckInSeatProfileFilterSheet extends StatefulWidget {
     this.title = AppStrings.auditSeatProfile,
     this.searchHint = AppStrings.auditSearchSeatProfile,
     this.compactSpacing = false,
+    this.rowSpacing,
     this.showCloseHeader = false,
     this.centerTitle = false,
   });
@@ -30,14 +31,17 @@ class CheckInSeatProfileFilterSheet extends StatefulWidget {
   final String title;
   final String searchHint;
   final bool compactSpacing;
+  final double? rowSpacing;
   final bool showCloseHeader;
   final bool centerTitle;
 
   @override
-  State<CheckInSeatProfileFilterSheet> createState() => _CheckInSeatProfileFilterSheetState();
+  State<CheckInSeatProfileFilterSheet> createState() =>
+      _CheckInSeatProfileFilterSheetState();
 }
 
-class _CheckInSeatProfileFilterSheetState extends State<CheckInSeatProfileFilterSheet> {
+class _CheckInSeatProfileFilterSheetState
+    extends State<CheckInSeatProfileFilterSheet> {
   String? _selectedValue;
   late final TextEditingController _searchController;
   String _searchQuery = '';
@@ -45,7 +49,9 @@ class _CheckInSeatProfileFilterSheetState extends State<CheckInSeatProfileFilter
   @override
   void initState() {
     super.initState();
-    _selectedValue = widget.showAllOption ? (widget.initialValue ?? '') : widget.initialValue;
+    _selectedValue = widget.showAllOption
+        ? (widget.initialValue ?? '')
+        : widget.initialValue;
     _searchController = TextEditingController();
   }
 
@@ -58,13 +64,16 @@ class _CheckInSeatProfileFilterSheetState extends State<CheckInSeatProfileFilter
   @override
   Widget build(BuildContext context) {
     final spacingScale = widget.compactSpacing ? 0.5 : 1.0;
+    final rowSpacing = widget.rowSpacing ?? 18 * spacingScale;
     final filteredOptions = widget.options
         .where((option) {
           if (_searchQuery.trim().isEmpty) {
             return true;
           }
 
-          return option.toLowerCase().contains(_searchQuery.trim().toLowerCase());
+          return option.toLowerCase().contains(
+            _searchQuery.trim().toLowerCase(),
+          );
         })
         .toList(growable: false);
 
@@ -128,7 +137,7 @@ class _CheckInSeatProfileFilterSheetState extends State<CheckInSeatProfileFilter
                           children: [
                             if (widget.showAllOption)
                               Padding(
-                                padding: EdgeInsets.only(bottom: 18 * spacingScale),
+                                padding: EdgeInsets.only(bottom: rowSpacing),
                                 child: AppSeatSelectionTile(
                                   title: widget.allOptionLabel,
                                   isSelected: _selectedValue == '',
@@ -141,7 +150,7 @@ class _CheckInSeatProfileFilterSheetState extends State<CheckInSeatProfileFilter
                               ),
                             ...filteredOptions.map(
                               (option) => Padding(
-                                padding: EdgeInsets.only(bottom: 18 * spacingScale),
+                                padding: EdgeInsets.only(bottom: rowSpacing),
                                 child: AppSeatSelectionTile(
                                   title: option,
                                   isSelected: _selectedValue == option,
@@ -162,7 +171,8 @@ class _CheckInSeatProfileFilterSheetState extends State<CheckInSeatProfileFilter
                     SizedBox(height: 22 * spacingScale),
                     AppButton(
                       text: AppStrings.done,
-                      onPressed: (!widget.showAllOption && _selectedValue == null)
+                      onPressed:
+                          (!widget.showAllOption && _selectedValue == null)
                           ? null
                           : () => Navigator.of(context).pop(_selectedValue),
                     ),
@@ -196,7 +206,9 @@ class _SeatProfileSearchBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mainBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.75)),
+        border: Border.all(
+          color: AppColors.fieldBorder.withValues(alpha: 0.75),
+        ),
       ),
       child: TextField(
         controller: controller,
@@ -206,7 +218,10 @@ class _SeatProfileSearchBar extends StatelessWidget {
         cursorColor: AppColors.textPrimary,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          hintStyle: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 16,
+          ),
           border: InputBorder.none,
         ),
       ),
@@ -226,7 +241,11 @@ class _SelectionHeader extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: onBack,
-          child: SvgPicture.asset('${AppStrings.imagePath}back.svg', width: 24, height: 24),
+          child: SvgPicture.asset(
+            '${AppStrings.imagePath}back.svg',
+            width: 24,
+            height: 24,
+          ),
         ),
         Expanded(
           child: AppTextView.title(
