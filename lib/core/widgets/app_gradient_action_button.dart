@@ -15,6 +15,7 @@ class AppGradientActionButton extends StatelessWidget {
     this.iconSize = 18,
     this.textSize = 15,
     this.fontWeight = FontWeight.w600,
+    this.foregroundColor = AppColors.textPrimary,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
     this.borderRadius = 24,
     this.minHeight = 48,
@@ -35,6 +36,7 @@ class AppGradientActionButton extends StatelessWidget {
   final double iconSize;
   final double textSize;
   final FontWeight fontWeight;
+  final Color foregroundColor;
   final EdgeInsetsGeometry padding;
   final double borderRadius;
   final double minHeight;
@@ -102,17 +104,13 @@ class AppGradientActionButton extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        Icon(
-                          icon,
-                          color: AppColors.textPrimary,
-                          size: iconSize,
-                        ),
+                        Icon(icon, color: foregroundColor, size: iconSize),
                         if (!iconOnly) ...[
                           SizedBox(width: iconSpacing),
                           Flexible(
                             child: AppTextView.body(
                               label,
-                              color: AppColors.textPrimary,
+                              color: foregroundColor,
                               fontWeight: fontWeight,
                               fontSize: textSize,
                               maxLines: 1,
