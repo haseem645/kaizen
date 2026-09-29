@@ -81,11 +81,6 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
     }
 
     if (_controller.shouldHandleUserNavigation() && user != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: AppTextView.body2(AppStrings.welcomeBackUser(user.displayName))),
-        );
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) {
           return;
