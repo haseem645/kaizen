@@ -199,6 +199,10 @@ class ApiEndPoints {
     return 'training_modules/$moduleId/generate_sop/';
   }
 
+  static String generateTrainingModuleAssignment(String moduleId) {
+    return 'training_modules/$moduleId/generate_assignment/';
+  }
+
   static String generateTrainingModuleSummary(String moduleId) {
     return 'training_modules/$moduleId/generate_summary/';
   }
