@@ -164,6 +164,7 @@ class _PerformanceSnapshotView extends StatelessWidget {
           initialValue: controller.selectedJobTitle,
           showAllOption: true,
           compactSpacing: true,
+          rowSpacing: 0,
           showCloseHeader: true,
           centerTitle: true,
           title: AppStrings.performanceSnapshotJob,
