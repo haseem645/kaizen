@@ -106,6 +106,8 @@ void main() {
         roles: const <String>['team_member'],
       ),
       'owner role': User(roles: const <String>['owner']),
+      'sandbox access': User(hasSandboxAccess: true),
+      'owner with sandbox access': User(isOwner: true, hasSandboxAccess: true),
       'csuite': User(roles: const <String>['csuite']),
       'c_suite alias': User(roles: const <String>['c_suite']),
       for (final role in <String>['dept_lead', 'team_lead'])
@@ -162,6 +164,133 @@ void main() {
 
       expect(AppPermissionUtils.canAccessSandbox(owner), isTrue);
       expect(AppPermissionUtils.canAccessAuditTeamMembers(owner), isTrue);
+    });
+  });
+
+  group('sandbox training permissions', () {
+    for (final type in ['parent', 'sandbox', 'child', ' ChIlD ']) {
+      for (final hasSandboxAccess in <bool?>[null, false, true]) {
+        test('sandbox access $hasSandboxAccess in $type organisations', () {
+          final user = User(
+            isOwner: false,
+            roles: const ['team_member'],
+            hasSandboxAccess: hasSandboxAccess,
+          );
+          final organization = _organization(type);
+          final canViewQuizAndAssignment = hasSandboxAccess == true;
+          expect(
+            AppPermissionUtils.canManageAnyTrainingModules(
+              user: user,
+              currentOrganization: organization,
+            ),
+            isFalse,
+          );
+          for (final seatProfileId in ['seat-1', '']) {
+            expect(
+              AppPermissionUtils.canManageTrainingForSeatProfile(
+                user: user,
+                currentOrganization: organization,
+                seatProfileId: seatProfileId,
+              ),
+              isFalse,
+            );
+            expect(
+              AppPermissionUtils.canViewTrainingQuizAndAssignment(
+                user: user,
+                currentOrganization: organization,
+                seatProfileId: seatProfileId,
+              ),
+              canViewQuizAndAssignment,
+            );
+          }
+          expect(
+            AppPermissionUtils.canManagePublicLinks(
+              user: user,
+              currentOrganization: organization,
+            ),
+            isFalse,
+          );
+          expect(
+            AppPermissionUtils.canManagePaygrades(
+              user: user,
+              currentOrganization: organization,
+            ),
+            isFalse,
+          );
+        });
+      }
+    }
+
+    test('owner access does not require the sandbox flag', () {
+      for (final type in ['parent', 'sandbox', 'child']) {
+        for (final hasSandboxAccess in <bool?>[null, false, true]) {
+          final user = User(
+            isOwner: true,
+            roles: const ['team_member'],
+            hasSandboxAccess: hasSandboxAccess,
+          );
+          expect(
+            AppPermissionUtils.canManageAnyTrainingModules(
+              user: user,
+              currentOrganization: _organization(type),
+            ),
+            type != 'child',
+          );
+          expect(
+            AppPermissionUtils.canManageTrainingForSeatProfile(
+              user: user,
+              currentOrganization: _organization(type),
+              seatProfileId: '',
+            ),
+            type != 'child',
+          );
+          expect(
+            AppPermissionUtils.canViewTrainingQuizAndAssignment(
+              user: user,
+              currentOrganization: _organization(type),
+              seatProfileId: '',
+            ),
+            hasSandboxAccess == true || type != 'child',
+          );
+        }
+      }
+    });
+
+    test('sandbox tab access preserves department lead editing scope', () {
+      for (final hasSandboxAccess in [false, true]) {
+        final user = User(
+          roles: const ['dept_lead'],
+          hasSandboxAccess: hasSandboxAccess,
+          hierarchyMemberships: const [
+            UserHierarchyMembership(
+              nodeUuid: 'node',
+              role: 'dept_lead',
+              manageableSeatProfileIds: ['managed-seat'],
+            ),
+          ],
+        );
+        for (final type in ['parent', 'child']) {
+          for (final seat in ['managed-seat', 'other-seat']) {
+            final canEdit = type != 'child' && seat == 'managed-seat';
+            expect(
+              AppPermissionUtils.canManageTrainingForSeatProfile(
+                user: user,
+                currentOrganization: _organization(type),
+                seatProfileId: seat,
+              ),
+              canEdit,
+            );
+            expect(
+              AppPermissionUtils.canViewTrainingQuizAndAssignment(
+                user: user,
+                currentOrganization: _organization(type),
+                seatProfileId: seat,
+              ),
+              hasSandboxAccess || canEdit,
+            );
+          }
+        }
+      }
     });
   });
 

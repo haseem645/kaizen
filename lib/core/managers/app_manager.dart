@@ -130,6 +130,16 @@ class AppManager extends ChangeNotifier {
     );
   }
 
+  bool canCurrentUserViewTrainingQuizAndAssignment({
+    required String seatProfileId,
+  }) {
+    return AppPermissionUtils.canViewTrainingQuizAndAssignment(
+      user: _currentUser,
+      currentOrganization: currentOrganization,
+      seatProfileId: seatProfileId,
+    );
+  }
+
   bool get usesParentApiEndpoints {
     final selectedOrganizationId = _selectedOrganizationId;
     if (selectedOrganizationId != null) {

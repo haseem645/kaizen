@@ -238,6 +238,20 @@ class AppPermissionUtils {
     return false;
   }
 
+  static bool canViewTrainingQuizAndAssignment({
+    required User? user,
+    required Organization? currentOrganization,
+    required String seatProfileId,
+  }) {
+    // Sandbox grants viewing even in child organisations, never editing.
+    return user?.hasSandboxAccess == true ||
+        canManageTrainingForSeatProfile(
+          user: user,
+          currentOrganization: currentOrganization,
+          seatProfileId: seatProfileId,
+        );
+  }
+
   static bool canManagePaygrades({
     required User? user,
     required Organization? currentOrganization,
