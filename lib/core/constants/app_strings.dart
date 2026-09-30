@@ -261,6 +261,11 @@ class AppStrings {
   static const String paygradesDepartment = 'Department';
   static const String paygradesUnit = 'Unit';
   static const String paygradesRate = 'Pay Rate (HR)';
+  static String paygradesHourlyRate(String value) =>
+      '${value.trim().isEmpty ? paygradesUnavailableDisplay : value.trim()}/hr';
+  static const String paygradesPayRateInputLabel = 'Enter Payrate / hr';
+  static const String paygradesPayRateInvalid = 'Enter a valid, non-negative pay rate.';
+  static const String paygradesPayRateSaveFailed = 'Unable to save the pay rate. Please try again.';
   static const String paygradesUnavailableDisplay = '..';
   static const String paygradesLevel = 'Level';
   static const String paygradesDescription = 'Paygrade Specifics';
@@ -519,6 +524,12 @@ class AppStrings {
   static const String trainingAssignmentTab = 'Assignment';
   static const String trainingNoAssignmentAvailable = 'No assignment available.';
   static const String trainingCreateAssignment = 'Create Assignment';
+  static const String trainingGenerateAssignment = 'Generate Assignment';
+  static const String trainingGenerateAssignmentDialogTitle = 'Generate Assignment with AI';
+  static const String trainingGenerateAssignmentDialogDescription =
+      'AI will create assignment instructions for this training module.';
+  static const String trainingGenerateAssignmentAlertDescription =
+      'This will replace the existing assignment instructions with AI-generated content.';
   static const String trainingEditAssignment = 'Edit';
   static const String trainingGenerateQuiz = 'Generate Quiz';
   static const String trainingCreateQuiz = 'Create Quiz';
@@ -581,7 +592,7 @@ class AppStrings {
   static const String trainingDeleteModuleTitle = 'Delete Module';
   static const String trainingDeleteModuleAction = 'Delete';
   static const String trainingModuleDeletedSuccess = 'Module deleted successfully.';
-  static const String trainingLessonTitle = 'Title';
+  static const String trainingLessonTitle = 'Lesson Title';
   static const String trainingLessonTitleHint = 'Enter lesson title';
   static const String trainingLessonCreatedSuccess = 'Lesson created successfully.';
   static const String trainingUntitledLesson = 'Untitled Lesson';
@@ -740,6 +751,8 @@ class AppStrings {
   static const String trainingLibraryNoLessonsFound =
       'No training modules found in this library item.';
   static const String trainingLibraryRetry = 'Retry';
+  static const String trainingLibraryUnableToLoadMore =
+      'Unable to load more lessons. Please retry.';
   static const String trainingLibraryNotAvailable = 'Not available';
   static const String trainingLibraryUntitledModule = 'Untitled Module';
   static const String trainingLibraryShowGrid = 'Show grid';
