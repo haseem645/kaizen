@@ -166,12 +166,10 @@ class TrainingLibraryDetailController extends ChangeNotifier {
       return;
     }
     final didDelete = await confirmDelete(lesson);
-    if (_isDisposed || didDelete == null) {
+    if (_isDisposed || didDelete != false) {
       return;
     }
-    final message = didDelete
-        ? AppStrings.trainingModuleDeletedSuccess
-        : _errorMessage;
+    final message = _errorMessage;
     if (message != null) {
       showMessage(message);
     }

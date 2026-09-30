@@ -14,6 +14,7 @@ import '../../domain/entities/training_library_module.dart';
 import '../../domain/usecases/get_training_library_modules_usecase.dart';
 import '../models/training_library_filter_tag.dart';
 import 'training_library_detail_controller.dart';
+import 'training_library_thumbnail_controller.dart';
 
 enum TrainingLibraryViewMode { grid, list }
 
@@ -56,7 +57,12 @@ class TrainingLibraryController extends ChangeNotifier {
   bool _isShowingModuleActions = false;
   final ScrollController scrollController = ScrollController();
   bool _isDisposed = false;
-  static const int _pageSize = 10;
+  static const int _pageSize = 25;
+  static const int _prefetchRemainingItems = 9;
+  final TrainingLibraryThumbnailController thumbnailCache =
+      TrainingLibraryThumbnailController();
+  int _listingVersion = 0;
+  String? _loadMoreErrorMessage;
   static const Duration _searchDebounceDuration = Duration(milliseconds: 400);
 
   bool _isInitialLoading = false;
@@ -117,9 +123,12 @@ class TrainingLibraryController extends ChangeNotifier {
   static String displayModuleLessonCount(TrainingLibraryModule module) =>
       AppStrings.trainingLibraryVideosCount(module.lessonsCount);
 
-  static String displayModuleDuration(TrainingLibraryModule module) {
-    final duration = CustomFunctions.formatDuration(module.totalDuration);
-    return module.totalDuration < 3600
+  static String displayModuleDuration(TrainingLibraryModule module) =>
+      displayDuration(module.totalDuration);
+
+  static String displayDuration(int seconds) {
+    final duration = CustomFunctions.formatDuration(seconds);
+    return seconds < 3600
         ? AppStrings.trainingLibraryMinutesDuration(duration)
         : duration;
   }
@@ -205,7 +214,24 @@ class TrainingLibraryController extends ChangeNotifier {
       return;
     }
     _updateNavigationBarsForScroll();
-    if (scrollController.position.extentAfter <= 360) {
+  }
+
+  void preloadThumbnails(List<TrainingLibraryModule> modules) {
+    if (_isDisposed) return;
+    thumbnailCache.preload(
+      modules
+          .map(
+            (module) => CustomFunctions.resolveImageUrl(module.thumbnailLink),
+          )
+          .whereType<String>(),
+    );
+  }
+
+  void onItemVisible(String moduleId) {
+    if (_isDisposed || _loadMoreErrorMessage != null) return;
+    final visible = visibleItems;
+    final index = visible.indexWhere((module) => module.id == moduleId);
+    if (index >= 0 && visible.length - index - 1 <= _prefetchRemainingItems) {
       unawaited(loadNextPage());
     }
   }
@@ -256,6 +282,7 @@ class TrainingLibraryController extends ChangeNotifier {
   bool get isRefreshing => _isRefreshing;
   bool get isViewSyncing => _isViewSyncing;
   bool get isLoadingMore => _isLoadingMore;
+  String? get loadMoreErrorMessage => _loadMoreErrorMessage;
   bool get isInlineLoading =>
       _applyingSelectionField == _LibrarySelectionField.filterTag ||
       (!isApplyingSelection &&
@@ -713,7 +740,8 @@ class TrainingLibraryController extends ChangeNotifier {
   }
 
   Future<void> loadNextPage() async {
-    if (_isInitialLoading ||
+    if (_isDisposed ||
+        _isInitialLoading ||
         _isRefreshing ||
         _isViewSyncing ||
         _isLoadingMore ||
@@ -722,14 +750,22 @@ class TrainingLibraryController extends ChangeNotifier {
     }
 
     _isLoadingMore = true;
+    _loadMoreErrorMessage = null;
+    final version = _listingVersion;
     notifyListeners();
 
     try {
       await _loadPage(_currentPage + 1);
+    } catch (_) {
+      if (!_isDisposed && version == _listingVersion) {
+        _loadMoreErrorMessage = AppStrings.trainingLibraryUnableToLoadMore;
+      }
     } finally {
-      _isLoadingMore = false;
-      notifyListeners();
-      _flushPendingSearchRefresh();
+      if (!_isDisposed && version == _listingVersion) {
+        _isLoadingMore = false;
+        notifyListeners();
+        _flushPendingSearchRefresh();
+      }
     }
   }
 
@@ -737,6 +773,9 @@ class TrainingLibraryController extends ChangeNotifier {
     bool keepExistingItems = false,
     int minimumPageCount = 1,
   }) async {
+    _listingVersion++;
+    _isLoadingMore = false;
+    _loadMoreErrorMessage = null;
     if (!keepExistingItems) {
       _scrollTravel = 0;
       _setNavigationBarsVisible(true);
@@ -755,6 +794,7 @@ class TrainingLibraryController extends ChangeNotifier {
   }
 
   Future<void> _loadPage(int page, {bool replace = false}) async {
+    final version = _listingVersion;
     final response = await _getTrainingLibraryModulesUseCase(
       view: _viewMode.name,
       page: page,
@@ -766,6 +806,8 @@ class TrainingLibraryController extends ChangeNotifier {
       jobCategoryId: _selectedCategory?.id,
       jobCategoryDescriptionId: _selectedDescription?.id,
     );
+
+    if (_isDisposed || version != _listingVersion) return;
 
     final seenIds = replace
         ? <String>{}
@@ -898,6 +940,7 @@ class TrainingLibraryController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    thumbnailCache.dispose();
     scrollController
       ..removeListener(_handleScroll)
       ..dispose();

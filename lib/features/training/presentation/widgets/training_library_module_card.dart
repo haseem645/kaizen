@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -7,6 +6,7 @@ import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../domain/entities/training_library_module.dart';
 import '../controllers/training_library_controller.dart';
+import '../controllers/training_library_thumbnail_controller.dart';
 
 /// Keeps the thumbnail behind the content while allowing larger text to grow
 /// the list card beyond its minimum image height.
@@ -17,19 +17,22 @@ class TrainingLibraryModuleCard extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
   }) : sharedTitle = null,
-       sharedThumbnailLink = null;
+       sharedThumbnailLink = null,
+       sharedDuration = 0;
 
   const TrainingLibraryModuleCard.shared({
     super.key,
     required this.sharedTitle,
     required this.sharedThumbnailLink,
     required this.onTap,
+    this.sharedDuration = 0,
   }) : module = null,
        onLongPress = null;
 
   final TrainingLibraryModule? module;
   final String? sharedTitle;
   final String? sharedThumbnailLink;
+  final int sharedDuration;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -97,17 +100,15 @@ class TrainingLibraryModuleCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (module != null) ...[
-                        const SizedBox(height: 4),
-                        AppTextView.body2(
-                          TrainingLibraryController.displayModuleDuration(
-                            module,
-                          ),
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
+                      const SizedBox(height: 4),
+                      AppTextView.body2(
+                        TrainingLibraryController.displayDuration(
+                          module?.totalDuration ?? sharedDuration,
                         ),
-                      ],
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ],
                   ),
                 ),
@@ -177,11 +178,13 @@ class _ModuleThumbnail extends StatelessWidget {
 
     return imageUrl == null
         ? const _ImagePlaceholder()
-        : CachedNetworkImage(
-            imageUrl: imageUrl,
+        : Image(
+            image: TrainingLibraryThumbnailController.imageProvider(imageUrl),
             fit: BoxFit.contain,
-            placeholder: (_, __) => const _ImagePlaceholder(),
-            errorWidget: (_, __, ___) => const _ImagePlaceholder(),
+            gaplessPlayback: true,
+            frameBuilder: (_, child, frame, _) =>
+                frame == null ? const _ImagePlaceholder() : child,
+            errorBuilder: (_, __, ___) => const _ImagePlaceholder(),
           );
   }
 }
