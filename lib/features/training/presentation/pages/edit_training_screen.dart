@@ -232,6 +232,10 @@ class EditTrainingSection extends StatelessWidget {
               TrainingModuleController(
                 context.read<AuditRepositoryImpl>(),
                 canManageTraining: resolvedCanManageTraining,
+                canViewQuizAndAssignment: AppManager.instance
+                    .canCurrentUserViewTrainingQuizAndAssignment(
+                      seatProfileId: trainingRoute.job,
+                    ),
               )..initialize(
                 jobId: trainingRoute.job,
                 descriptionId: trainingRoute.description,
