@@ -9,12 +9,14 @@ class AppBarGradientAction extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.endPadding = 16,
+    this.compact = false,
   });
 
   final String label;
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final double endPadding;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -22,14 +24,14 @@ class AppBarGradientAction extends StatelessWidget {
       padding: EdgeInsetsDirectional.only(end: endPadding),
       child: Center(
         child: SizedBox.square(
-          dimension: 35,
+          dimension: compact ? 30 : 35,
           child: AppGradientActionButton(
             label: label,
             icon: icon,
             iconOnly: true,
-            iconSize: 24,
-            minHeight: 40,
-            borderRadius: 12,
+            iconSize: compact ? 20 : 24,
+            minHeight: compact ? 30 : 35,
+            borderRadius: compact ? 10 : 12,
             boxShadows: const <BoxShadow>[],
             padding: EdgeInsets.zero,
             onTap: onTap,
