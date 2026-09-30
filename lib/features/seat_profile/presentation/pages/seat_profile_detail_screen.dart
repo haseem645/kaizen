@@ -7,11 +7,11 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
 import '../../../../core/preference/app_preference.dart';
 import '../../../../core/widgets/app_ai_generate_button.dart';
-import '../../../../core/widgets/app_share_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
-import '../../../../core/widgets/app_dialog_style.dart';
+import '../../../../core/widgets/app_share_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../routes/app_router.dart';
@@ -28,11 +28,7 @@ import 'seat_profile_manage_categories_sheet.dart';
 import 'seat_profile_share_dialogue.dart';
 
 class SeatProfileDetailScreen extends StatelessWidget {
-  const SeatProfileDetailScreen({
-    super.key,
-    required this.seatId,
-    this.getSeatProfilesUseCase,
-  });
+  const SeatProfileDetailScreen({super.key, required this.seatId, this.getSeatProfilesUseCase});
 
   final String seatId;
   final GetSeatProfilesUseCase? getSeatProfilesUseCase;
@@ -41,16 +37,12 @@ class SeatProfileDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<SeatProfileRemoteDataSource>(
-          create: (_) => createSeatProfileRemoteDataSource(),
-        ),
+        Provider<SeatProfileRemoteDataSource>(create: (_) => createSeatProfileRemoteDataSource()),
         ProxyProvider<SeatProfileRemoteDataSource, SeatProfileRepositoryImpl>(
-          update: (_, remoteDataSource, __) =>
-              createSeatProfileDetailRepository(remoteDataSource),
+          update: (_, remoteDataSource, __) => createSeatProfileDetailRepository(remoteDataSource),
         ),
         ProxyProvider<SeatProfileRepositoryImpl, GetSeatProfilesUseCase>(
-          update: (_, repository, __) =>
-              createGetSeatProfileDetailUseCase(repository),
+          update: (_, repository, __) => createGetSeatProfileDetailUseCase(repository),
         ),
         ChangeNotifierProvider<SeatProfileDetailController>(
           create: (context) => SeatProfileDetailController(
@@ -92,8 +84,7 @@ class SeatProfileDetailView extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         leading: IconButton(
-          onPressed: () =>
-              isShared ? _goBack(context) : Navigator.of(context).pop(),
+          onPressed: () => isShared ? _goBack(context) : Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
         title: const AppTextView.title1(
@@ -111,31 +102,23 @@ class SeatProfileDetailView extends StatelessWidget {
           child: ListenableBuilder(
             listenable: AppManager.instance,
             builder: (context, _) {
-              final canManageContent =
-                  !isShared && _canManageSeatProfile(detail);
+              final canManageContent = !isShared && _canManageSeatProfile(detail);
 
               return Column(
                 children: [
                   if (controller.isLoading)
-                    Expanded(
-                      child: Center(child: FastCircularProgressIndicator()),
-                    )
+                    Expanded(child: Center(child: FastCircularProgressIndicator()))
                   else if (controller.errorMessage != null)
                     Expanded(child: _buildMessage(controller.errorMessage!))
                   else if (detail == null)
-                    Expanded(
-                      child: _buildMessage(AppStrings.loginSomethingWentWrong),
-                    )
+                    Expanded(child: _buildMessage(AppStrings.loginSomethingWentWrong))
                   else
                     Expanded(
                       child: ListView(
                         children: [
                           _buildSeatSummary(
                             detail,
-                            onShare:
-                                !isShared &&
-                                    (controller.shareController?.canManage ??
-                                        false)
+                            onShare: !isShared && (controller.shareController?.canManage ?? false)
                                 ? () => showSeatProfileShareDialogue(
                                     context,
                                     controller.shareController!,
@@ -148,21 +131,13 @@ class SeatProfileDetailView extends StatelessWidget {
                               controller: controller,
                               canManageContent: canManageContent,
                               onUpdateCategory: () =>
-                                  _showManageSeatCategoriesDialog(
-                                    context,
-                                    controller,
-                                  ),
-                              onGenerate: () => _showGenerateSeatContentSheet(
-                                context,
-                                controller,
-                              ),
+                                  _showManageSeatCategoriesDialog(context, controller),
+                              onGenerate: () => _showGenerateSeatContentSheet(context, controller),
                             ),
                             const SizedBox(height: 18),
                           ],
                           if (detail.categories.isEmpty)
-                            _buildMessage(
-                              AppStrings.seatProfileNoCategoriesFound,
-                            )
+                            _buildMessage(AppStrings.seatProfileNoCategoriesFound)
                           else
                             ...detail.categories.map(
                               (category) => Padding(
@@ -175,11 +150,7 @@ class SeatProfileDetailView extends StatelessWidget {
                                   seatProfileResolvedId: detail.resolvedSeatId,
                                   category: category,
                                   onOpenDescription: (description) =>
-                                      _showSeatDescriptionSheet(
-                                        context,
-                                        controller,
-                                        description,
-                                      ),
+                                      _showSeatDescriptionSheet(context, controller, description),
                                   onDeleteDescription: (description) =>
                                       _showDeleteDescriptionDialog(
                                         context,
@@ -187,11 +158,7 @@ class SeatProfileDetailView extends StatelessWidget {
                                         description,
                                       ),
                                   onAddDescription: () =>
-                                      _showSeatAdditionSheet(
-                                        context,
-                                        controller,
-                                        category,
-                                      ),
+                                      _showSeatAdditionSheet(context, controller, category),
                                 ),
                               ),
                             ),
@@ -238,8 +205,7 @@ class SeatProfileDetailView extends StatelessWidget {
     controller.clearSeatContentGenerationError();
 
     final hasExistingCategories =
-        controller.detail?.categories.isNotEmpty == true ||
-        controller.categoryDrafts.isNotEmpty;
+        controller.detail?.categories.isNotEmpty == true || controller.categoryDrafts.isNotEmpty;
 
     await showSeatProfileGenerateContentSheet(
       context,
@@ -313,10 +279,8 @@ class SeatProfileDetailView extends StatelessWidget {
 
     await showDialog<bool>(
       context: context,
-      builder: (_) => _DeleteSeatDescriptionDialog(
-        controller: controller,
-        description: description,
-      ),
+      builder: (_) =>
+          _DeleteSeatDescriptionDialog(controller: controller, description: description),
     );
   }
 
@@ -327,33 +291,31 @@ class SeatProfileDetailView extends StatelessWidget {
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppTextView.body1(
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextView.body1(
                   detail.title,
                   color: AppColors.secondaryColor,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-              if (onShare != null) ...[
-                const SizedBox(width: 12),
-                AppShareButton(onTap: onShare),
+                if ((detail.department?.name ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  AppTextView.body2(
+                    detail.department!.name,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ],
               ],
-            ],
-          ),
-          if ((detail.department?.name ?? '').isNotEmpty) ...[
-            const SizedBox(height: 8),
-            AppTextView.body2(
-              detail.department!.name,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
             ),
-          ],
+          ),
+          if (onShare != null) ...[const SizedBox(width: 12), AppShareButton(onTap: onShare)],
         ],
       ),
     );
@@ -361,11 +323,7 @@ class SeatProfileDetailView extends StatelessWidget {
 
   Widget _buildMessage(String message) {
     return Center(
-      child: AppTextView.body(
-        message,
-        color: AppColors.textSecondary,
-        textAlign: TextAlign.center,
-      ),
+      child: AppTextView.body(message, color: AppColors.textSecondary, textAlign: TextAlign.center),
     );
   }
 
@@ -410,15 +368,12 @@ class _DetailActionRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: AppAiGenerateButton(
-            expand: true,
-            minHeight: 48,
-            textSize: 15,
-            fontWeight: FontWeight.w700,
             label: AppStrings.seatProfileGenerateAction,
+            expand: true,
+            minHeight: 40,
+            showOutline: true,
             isLoading: controller.isGeneratingSeatContent,
-            onTap: isEnabled && controller.canGenerateSeatContent
-                ? onGenerate
-                : null,
+            onTap: isEnabled && controller.canGenerateSeatContent ? onGenerate : null,
           ),
         ),
       ],
@@ -427,10 +382,7 @@ class _DetailActionRow extends StatelessWidget {
 }
 
 class _SeatProfileDottedActionButton extends StatelessWidget {
-  const _SeatProfileDottedActionButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _SeatProfileDottedActionButton({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback? onTap;
@@ -446,10 +398,7 @@ class _SeatProfileDottedActionButton extends StatelessWidget {
     return Opacity(
       opacity: isEnabled ? 1 : 0.58,
       child: CustomPaint(
-        painter: _SeatProfileDottedRoundedBorderPainter(
-          color: borderColor,
-          radius: 14,
-        ),
+        painter: _SeatProfileDottedRoundedBorderPainter(color: borderColor, radius: 14),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -465,9 +414,7 @@ class _SeatProfileDottedActionButton extends StatelessWidget {
               child: Center(
                 child: AppTextView.body(
                   label,
-                  color: isEnabled
-                      ? AppColors.secondaryColor
-                      : AppColors.textSecondary,
+                  color: isEnabled ? AppColors.secondaryColor : AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
                   textAlign: TextAlign.center,
@@ -526,10 +473,7 @@ class _CategoryCard extends StatelessWidget {
                 Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => controller.setCategoryExpanded(
-                      category.id,
-                      !isExpanded,
-                    ),
+                    onTap: () => controller.setCategoryExpanded(category.id, !isExpanded),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Column(
@@ -559,8 +503,7 @@ class _CategoryCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 _CategoryToggleBadge(
                   isExpanded: isExpanded,
-                  onTap: () =>
-                      controller.setCategoryExpanded(category.id, !isExpanded),
+                  onTap: () => controller.setCategoryExpanded(category.id, !isExpanded),
                 ),
               ],
             ),
@@ -584,8 +527,7 @@ class _CategoryCard extends StatelessWidget {
                       categoryId: category.id,
                       description: description,
                       onOpenDescription: () => onOpenDescription(description),
-                      onDeleteDescription: () =>
-                          onDeleteDescription(description),
+                      onDeleteDescription: () => onDeleteDescription(description),
                     ),
                   ),
                 ),
@@ -647,9 +589,7 @@ class _InlineDescriptionCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.mainBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.fieldBorder.withValues(alpha: 0.28),
-            ),
+            border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -683,9 +623,7 @@ class _InlineDescriptionCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: AppTextView.body3(
-                      seatProfileDescriptionMilestoneLabel(
-                        description.milestoneDays,
-                      ),
+                      seatProfileDescriptionMilestoneLabel(description.milestoneDays),
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
@@ -702,9 +640,7 @@ class _InlineDescriptionCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: AppTextView.body3(
-                      seatProfileDescriptionCheckInTypeLabel(
-                        description.auditFactorType,
-                      ),
+                      seatProfileDescriptionCheckInTypeLabel(description.auditFactorType),
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
@@ -719,18 +655,14 @@ class _InlineDescriptionCard extends StatelessWidget {
               const SizedBox(height: 6),
               _ExpandableDescriptionText(
                 description: description.auditSpecifics,
-                onSeeAllTap: isDeleting
-                    ? null
-                    : () => _showAuditSpecificsDialog(context),
+                onSeeAllTap: isDeleting ? null : () => _showAuditSpecificsDialog(context),
               ),
               if (!isShared) ...[
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
                   child: _ViewTrainingTextButton(
-                    onTap: isDeleting
-                        ? null
-                        : () => _openTrainingModules(context),
+                    onTap: isDeleting ? null : () => _openTrainingModules(context),
                   ),
                 ),
               ],
@@ -750,11 +682,10 @@ class _InlineDescriptionCard extends StatelessWidget {
             category: categoryId,
             description: description.id,
           ),
-          canManageTraining: AppManager.instance
-              .canCurrentUserManageTrainingForSeatProfile(
-                seatProfileId: seatProfileId,
-                additionalSeatProfileIds: <String>[seatProfileResolvedId],
-              ),
+          canManageTraining: AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+            seatProfileId: seatProfileId,
+            additionalSeatProfileIds: <String>[seatProfileResolvedId],
+          ),
           useNonBlockingVideoUpload: true,
         ),
       ),
@@ -764,17 +695,13 @@ class _InlineDescriptionCard extends StatelessWidget {
   Future<void> _showAuditSpecificsDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
-      builder: (_) =>
-          _AuditSpecificsDialog(description: description.auditSpecifics),
+      builder: (_) => _AuditSpecificsDialog(description: description.auditSpecifics),
     );
   }
 }
 
 class _DeleteSeatDescriptionDialog extends StatelessWidget {
-  const _DeleteSeatDescriptionDialog({
-    required this.controller,
-    required this.description,
-  });
+  const _DeleteSeatDescriptionDialog({required this.controller, required this.description});
 
   final SeatProfileDetailController controller;
   final SeatProfileDescription description;
@@ -786,9 +713,7 @@ class _DeleteSeatDescriptionDialog extends StatelessWidget {
       builder: (context, _) {
         return AppConfirmationDialog(
           title: AppStrings.seatProfileDeleteDescriptionTitle,
-          description: AppStrings.seatProfileDeleteDescriptionDescription(
-            description.name,
-          ),
+          description: AppStrings.seatProfileDeleteDescriptionDescription(description.name),
           confirmText: AppStrings.seatProfileDeleteDescriptionAction,
           cancelText: AppStrings.actionCancel,
           isConfirmLoading: controller.isDeletingDescription(description),
@@ -798,9 +723,7 @@ class _DeleteSeatDescriptionDialog extends StatelessWidget {
             }
           },
           onConfirmCallback: () async {
-            final didDelete = await controller.deleteSeatDescription(
-              description,
-            );
+            final didDelete = await controller.deleteSeatDescription(description);
             if (!context.mounted) {
               return;
             }
@@ -814,10 +737,7 @@ class _DeleteSeatDescriptionDialog extends StatelessWidget {
 }
 
 class _DeleteDescriptionIconButton extends StatelessWidget {
-  const _DeleteDescriptionIconButton({
-    required this.isDeleting,
-    required this.onTap,
-  });
+  const _DeleteDescriptionIconButton({required this.isDeleting, required this.onTap});
 
   final bool isDeleting;
   final VoidCallback? onTap;
@@ -844,10 +764,7 @@ class _DeleteDescriptionIconButton extends StatelessWidget {
                     '${AppStrings.imagePath}delete.svg',
                     width: 18,
                     height: 18,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.red1,
-                      BlendMode.srcIn,
-                    ),
+                    colorFilter: const ColorFilter.mode(AppColors.red1, BlendMode.srcIn),
                   ),
           ),
         ),
@@ -873,14 +790,10 @@ class _CategoryToggleBadge extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.mainBg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.fieldBorder.withValues(alpha: 0.28),
-          ),
+          border: Border.all(color: AppColors.fieldBorder.withValues(alpha: 0.28)),
         ),
         child: Icon(
-          isExpanded
-              ? Icons.keyboard_arrow_down_rounded
-              : Icons.arrow_forward_ios_rounded,
+          isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.arrow_forward_ios_rounded,
           color: AppColors.textSecondary,
           size: isExpanded ? 20 : 14,
         ),
@@ -905,9 +818,7 @@ class _ViewTrainingTextButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
           child: AppTextView.body4(
             AppStrings.seatProfileViewTrainings,
-            color: onTap == null
-                ? AppColors.textSecondary
-                : AppColors.secondaryColor,
+            color: onTap == null ? AppColors.textSecondary : AppColors.secondaryColor,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -917,10 +828,7 @@ class _ViewTrainingTextButton extends StatelessWidget {
 }
 
 class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
-  const _SeatProfileDottedRoundedBorderPainter({
-    required this.color,
-    required this.radius,
-  });
+  const _SeatProfileDottedRoundedBorderPainter({required this.color, required this.radius});
 
   final Color color;
   final double radius;
@@ -934,12 +842,7 @@ class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
 
     final inset = paint.strokeWidth / 2;
     final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        inset,
-        inset,
-        size.width - (inset * 2),
-        size.height - (inset * 2),
-      ),
+      Rect.fromLTWH(inset, inset, size.width - (inset * 2), size.height - (inset * 2)),
       Radius.circular(radius > inset ? radius - inset : radius),
     );
     const dashWidth = 5.0;
@@ -957,18 +860,13 @@ class _SeatProfileDottedRoundedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(
-    covariant _SeatProfileDottedRoundedBorderPainter oldDelegate,
-  ) {
+  bool shouldRepaint(covariant _SeatProfileDottedRoundedBorderPainter oldDelegate) {
     return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }
 
 class _ExpandableDescriptionText extends StatelessWidget {
-  const _ExpandableDescriptionText({
-    required this.description,
-    this.onSeeAllTap,
-  });
+  const _ExpandableDescriptionText({required this.description, this.onSeeAllTap});
 
   final String description;
   final VoidCallback? onSeeAllTap;
@@ -995,22 +893,14 @@ class _ExpandableDescriptionText extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              description,
-              style: textStyle,
-              maxLines: 7,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(description, style: textStyle, maxLines: 7, overflow: TextOverflow.ellipsis),
             if (hasOverflow) ...[
               const SizedBox(height: 8),
               InkWell(
                 onTap: onSeeAllTap,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 2,
-                    vertical: 2,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                   child: Text(
                     AppStrings.seeAllAction,
                     style: TextStyle(
@@ -1060,9 +950,7 @@ class _AuditSpecificsDialog extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  _AuditSpecificsDialogCloseButton(
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
+                  _AuditSpecificsDialogCloseButton(onTap: () => Navigator.of(context).pop()),
                 ],
               ),
               const SizedBox(height: 18),

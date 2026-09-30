@@ -218,23 +218,21 @@ class _LessonViewerViewState extends State<_LessonViewerView> {
     super.dispose();
   }
 
-  bool get _canManageTraining =>
-      !widget.isSharedLesson &&
-      AppManager.instance.canCurrentUserManageTrainingForSeatProfile(
+  bool get _canViewQuizAndAssignment =>
+      widget.isSharedLesson ||
+      AppManager.instance.canCurrentUserViewTrainingQuizAndAssignment(
         seatProfileId: widget.seatProfileId,
       );
 
-  bool get _canOpenAllTabs => widget.isSharedLesson || _canManageTraining;
-
   int get _maxTabIndex => maxTrainingTabIndex(
     hasSelectedModule: _trainingController.canAccessSelectedModuleExtras,
-    canManageTraining: _canOpenAllTabs,
+    canViewQuizAndAssignment: _canViewQuizAndAssignment,
   );
 
   int _coerceSelectedTab() {
     final index = _trainingController.canAccessSelectedModuleExtras
         ? normalizeTrainingViewerTabIndex(
-            canManageTraining: _canOpenAllTabs,
+            canViewQuizAndAssignment: _canViewQuizAndAssignment,
             tabIndex: _navigation.selectedIndex,
           )
         : 0;
@@ -294,6 +292,7 @@ class _LessonViewerViewState extends State<_LessonViewerView> {
             ? null
             : SafeArea(
                 top: false,
+                bottom: false,
                 minimum: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                 child: TrainingTabs(
                   navigation: _navigation,

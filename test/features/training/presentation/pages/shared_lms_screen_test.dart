@@ -39,6 +39,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Shared lesson'), findsOneWidget);
+    expect(find.text('11:46 min'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('11:46 min')).dy,
+      greaterThan(tester.getBottomLeft(find.text('Shared lesson')).dy),
+    );
     expect(tester.takeException(), isNull);
   });
 }
@@ -56,6 +61,7 @@ class _SharedLmsRepository extends Fake implements SharedLmsRepository {
           publicId: 'lesson-public-id',
           title: 'Shared lesson',
           thumbnailUrl: null,
+          duration: 706,
         ),
       ],
     );

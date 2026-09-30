@@ -43,6 +43,7 @@ class SharedLmsLessonModel extends SharedLmsLesson {
     required super.publicId,
     required super.title,
     required super.thumbnailUrl,
+    super.duration,
   });
 
   factory SharedLmsLessonModel.fromApiJson(Map<String, dynamic> json) {
@@ -51,8 +52,15 @@ class SharedLmsLessonModel extends SharedLmsLesson {
       publicId: _readString(json['public_id']),
       title: _readString(json['title']),
       thumbnailUrl: thumbnailUrl.isEmpty ? null : thumbnailUrl,
+      duration: _readDuration(json['duration']),
     );
   }
 }
 
 String _readString(Object? value) => value?.toString().trim() ?? '';
+
+int _readDuration(Object? value) {
+  final seconds = value is num ? value : num.tryParse(_readString(value));
+  if (seconds == null || !seconds.isFinite || seconds < 0) return 0;
+  return seconds.round();
+}

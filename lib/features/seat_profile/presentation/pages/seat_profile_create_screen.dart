@@ -8,8 +8,8 @@ import '../../../../core/managers/app_manager.dart';
 import '../../../../core/widgets/app_ai_generate_button.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
-import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_dialog_style.dart';
+import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../../../routes/app_router.dart';
@@ -558,7 +558,7 @@ class _PostCreateDescriptionActions extends StatelessWidget {
         const SizedBox(height: 12),
         AppAiGenerateButton(
           expand: true,
-          minHeight: 48,
+          minHeight: 40,
           textSize: 15,
           fontWeight: FontWeight.w700,
           label: AppStrings.seatProfileGenerateWithAiAction,

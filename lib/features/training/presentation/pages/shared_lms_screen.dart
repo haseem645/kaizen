@@ -324,6 +324,7 @@ class _SharedLmsLessonGrid extends StatelessWidget {
             return TrainingLibraryModuleCard.shared(
               sharedTitle: lesson.title,
               sharedThumbnailLink: lesson.thumbnailUrl,
+              sharedDuration: lesson.duration,
               onTap: () => Navigator.of(context).pushNamed(
                 AppRouter.sharedLessonDetails,
                 arguments: SharedLessonDetailsRouteArgs(

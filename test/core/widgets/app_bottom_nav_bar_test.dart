@@ -200,46 +200,53 @@ void main() {
     expect(selections, [AppMenuType.library]);
   });
 
-  testWidgets('narrow screens support large text and the bottom system inset', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(320, 740);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    AppMenuType? selected;
-    await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(2),
-            padding: const EdgeInsets.only(bottom: 34),
-            viewPadding: const EdgeInsets.only(bottom: 34),
+  testWidgets(
+    'narrow screens keep training margins with large text and system insets',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 740);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      AppMenuType? selected;
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(2),
+              padding: const EdgeInsets.only(bottom: 34),
+              viewPadding: const EdgeInsets.only(bottom: 34),
+            ),
+            child: child!,
           ),
-          child: child!,
-        ),
-        home: Scaffold(
-          body: const SizedBox.expand(key: ValueKey('content')),
-          bottomNavigationBar: AppBottomNavBar(
-            selectedMenu: AppMenuType.library,
-            onSelected: (menu) => selected = menu,
+          home: Scaffold(
+            body: const SizedBox.expand(key: ValueKey('content')),
+            bottomNavigationBar: AppBottomNavBar(
+              selectedMenu: AppMenuType.library,
+              onSelected: (menu) => selected = menu,
+            ),
           ),
         ),
-      ),
-    );
-    expect(tester.takeException(), isNull);
-    final bar = find.byType(AppBottomNavBar);
-    expect(
-      tester.getBottomLeft(find.byKey(const ValueKey('content'))).dy,
-      lessThanOrEqualTo(tester.getTopLeft(bar).dy),
-    );
-    expect(
-      tester.getBottomLeft(_tab(AppStrings.bottomNavPerformance)).dy,
-      lessThanOrEqualTo(706),
-    );
-    await tester.tap(_tab(AppStrings.bottomNavPerformance));
-    expect(selected, AppMenuType.performanceSnapshot);
-  });
+      );
+      expect(tester.takeException(), isNull);
+      final bar = find.byType(AppBottomNavBar);
+      expect(
+        tester.getBottomLeft(find.byKey(const ValueKey('content'))).dy,
+        lessThanOrEqualTo(tester.getTopLeft(bar).dy),
+      );
+      final surfaceBounds = tester.getRect(
+        find.descendant(of: bar, matching: find.byType(ClipRRect)),
+      );
+      expect(surfaceBounds.left, 16);
+      expect(surfaceBounds.right, 320 - 16);
+      expect(surfaceBounds.bottom, 740 - 14);
+      expect(
+        tester.getBottomLeft(_tab(AppStrings.bottomNavPerformance)).dy,
+        lessThan(surfaceBounds.bottom),
+      );
+      await tester.tap(_tab(AppStrings.bottomNavPerformance));
+      expect(selected, AppMenuType.performanceSnapshot);
+    },
+  );
 }
 
 Widget _screen(AppMenuType menu) => DrawerMainScreen(

@@ -4,10 +4,17 @@ import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/seat_description_training.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/shared_lesson_content.dart';
 import 'package:sparrowkaizen/features/training/domain/repositories/shared_lms_repository.dart';
+import 'package:sparrowkaizen/features/training/presentation/pages/edit_training_screen.dart';
 import 'package:sparrowkaizen/features/training/presentation/pages/shared_lesson_details_screen.dart';
 
 void main() {
   testWidgets('shared lesson shows all four read-only tabs', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: 34);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
     await tester.pumpWidget(
       MaterialApp(
         home: SharedLessonDetailsScreen(
@@ -23,22 +30,49 @@ void main() {
     expect(find.text(AppStrings.trainingNoVideoAvailable), findsOneWidget);
     expect(tester.takeException(), isNull);
 
+    void expectNavigationSelection(String label) {
+      final navigation = find.byType(TrainingTabs);
+      final highlight = find.descendant(
+        of: navigation,
+        matching: find.byType(FractionallySizedBox),
+      );
+      final selectedLabel = find.descendant(
+        of: navigation,
+        matching: find.text(label),
+      );
+      expect(
+        tester.getCenter(highlight).dx,
+        closeTo(tester.getCenter(selectedLabel).dx, 0.1),
+      );
+    }
+
+    expectNavigationSelection(AppStrings.trainingVideoTab);
+
     await tester.tap(find.text(AppStrings.trainingSopTab).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Shared SOP'), findsOneWidget);
+    expectNavigationSelection(AppStrings.trainingSopTab);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text(AppStrings.trainingQuizTab).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Shared question?'), findsOneWidget);
+    expectNavigationSelection(AppStrings.trainingQuizTab);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text(AppStrings.trainingAssignmentTab).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Shared assignment'), findsOneWidget);
+    expectNavigationSelection(AppStrings.trainingAssignmentTab);
+    expect(tester.getRect(find.byType(TrainingTabs)).bottom, 844 - 14);
+
+    await tester.fling(find.byType(PageView), const Offset(320, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(find.text('Shared question?'), findsOneWidget);
+    expectNavigationSelection(AppStrings.trainingQuizTab);
     expect(tester.takeException(), isNull);
   });
 

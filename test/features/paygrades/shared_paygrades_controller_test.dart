@@ -86,6 +86,11 @@ void main() {
         promotionRequirement: '',
       );
       expect(await controller.deletePaygrade(entry), isFalse);
+      expect(controller.canEditPayRate(entry), isFalse);
+      await expectLater(
+        controller.updatePayRate(entry: entry, payRate: '10'),
+        throwsStateError,
+      );
       // Unimplemented write methods on the fake throw if a guard is bypassed.
       expect(controller.detail!.payGrades.first.title, 'A1');
       expect(controller.detail!.payGrades, hasLength(3));

@@ -17,9 +17,11 @@ class SharedLmsLesson {
     required this.publicId,
     required this.title,
     required this.thumbnailUrl,
+    this.duration = 0,
   });
 
   final String publicId;
   final String title;
   final String? thumbnailUrl;
+  final int duration;
 }
