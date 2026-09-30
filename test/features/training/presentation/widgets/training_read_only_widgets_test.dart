@@ -48,12 +48,12 @@ void main() {
     });
   }
 
-  testWidgets('Quiz and Assignment look disabled and reject taps and swipes without edit access', (
+  testWidgets('Quiz and Assignment look disabled and reject taps and swipes without viewing access', (
     tester,
   ) async {
     final navigation = TrainingTabNavigationController();
     addTearDown(navigation.dispose);
-    final maxTabIndex = maxTrainingTabIndex(hasSelectedModule: true, canManageTraining: false);
+    final maxTabIndex = maxTrainingTabIndex(hasSelectedModule: true, canViewQuizAndAssignment: false);
     await mount(
       tester,
       Column(

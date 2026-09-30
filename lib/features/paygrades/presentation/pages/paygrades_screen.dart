@@ -16,6 +16,7 @@ import '../../data/repositories/paygrade_repository_impl.dart';
 import '../../domain/entities/paygrade.dart';
 import '../../domain/usecases/get_paygrades_usecase.dart';
 import '../providers/paygrades_controller.dart';
+import '../widgets/paygrade_listing_card.dart';
 
 class PaygradesScreen extends StatelessWidget {
   const PaygradesScreen({super.key});
@@ -164,10 +165,21 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
-        for (var index = 0; index < items.length; index++) ...[
-          _PaygradeCard(paygrade: items[index]),
-          if (index != items.length - 1) const SizedBox(height: 16),
-        ],
+        ...items.asMap().entries.map(
+          (item) => Padding(
+            padding: EdgeInsets.only(
+              bottom: item.key == items.length - 1 ? 0 : 16,
+            ),
+            child: PaygradeListingCard(
+              paygrade: item.value,
+              onDetailsTap: () => AppRouter.pushNamed(
+                context,
+                AppRouter.paygradeDetail,
+                arguments: PaygradeDetailRouteArgs(paygradeId: item.value.id),
+              ),
+            ),
+          ),
+        ),
         if (controller.isLoadingMore) ...[
           const SizedBox(height: 18),
           Center(child: FastCircularProgressIndicator()),
@@ -237,189 +249,6 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
             child: const Text('Retry'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PaygradeCard extends StatefulWidget {
-  const _PaygradeCard({required this.paygrade});
-
-  final Paygrade paygrade;
-
-  @override
-  State<_PaygradeCard> createState() => _PaygradeCardState();
-}
-
-class _PaygradeCardState extends State<_PaygradeCard> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final paygrade = widget.paygrade;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () => setState(() => _isExpanded = !_isExpanded),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOut,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: AppTextView.body1(
-                      paygrade.seatName,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _CardForwardArrow(isExpanded: _isExpanded),
-                ],
-              ),
-              if (_isExpanded) ...[
-                const SizedBox(height: 14),
-                _buildDepartmentRow(
-                  AppStrings.paygradesDepartment,
-                  paygrade.department,
-                ),
-                const SizedBox(height: 10),
-                _buildStatRow(
-                  AppStrings.paygradesPrimaryPaygrade,
-                  paygrade.hasPrimaryPaygrade ? 'Yes' : 'No',
-                  isStatus: true,
-                ),
-                const SizedBox(height: 10),
-                _buildStatRow(
-                  AppStrings.paygradesAncillaryPaygrade,
-                  paygrade.hasAncillaryPaygrade ? 'Yes' : 'No',
-                  isStatus: true,
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () {
-                    AppRouter.pushNamed(
-                      context,
-                      AppRouter.paygradeDetail,
-                      arguments: PaygradeDetailRouteArgs(
-                        paygradeId: paygrade.id,
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(999),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppTextView.body2(
-                        AppStrings.paygradesDetailsTitle,
-                        color: AppColors.secondaryColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: AppColors.secondaryColor,
-                        size: 14,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDepartmentRow(String label, String value) {
-    return Row(
-      children: [
-        AppTextView.body2(label, color: AppColors.textSecondary),
-        Spacer(),
-        AppTextView.body2(
-          value,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatRow(String label, String value, {required bool isStatus}) {
-    final isPositive = value == 'Yes';
-
-    return Row(
-      children: [
-        Expanded(
-          child: AppTextView.body2(label, color: AppColors.textSecondary),
-        ),
-        if (isStatus)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: (isPositive ? AppColors.lightGreen1 : AppColors.red1)
-                  .withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: isPositive ? AppColors.lightGreen1 : AppColors.red1,
-              ),
-            ),
-            child: AppTextView.body3(
-              value,
-              color: isPositive ? AppColors.lightGreen1 : AppColors.red1,
-              fontWeight: FontWeight.w700,
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(right: 17),
-            child: AppTextView.body2(
-              value,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _CardForwardArrow extends StatelessWidget {
-  const _CardForwardArrow({required this.isExpanded});
-
-  final bool isExpanded;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedRotation(
-      turns: isExpanded ? 0.5 : 0,
-      duration: const Duration(milliseconds: 220),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: AppColors.mainBg,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.fieldBorder.withValues(alpha: 0.28),
-          ),
-        ),
-        child: const Icon(
-          Icons.keyboard_arrow_down_rounded,
-          color: AppColors.textSecondary,
-          size: 20,
-        ),
       ),
     );
   }

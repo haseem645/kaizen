@@ -15,6 +15,7 @@ import '../../../../core/preference/app_preference.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../compliance/presentation/pages/document/full_screen_doc.dart';
 import '../../../compliance/presentation/pages/training/compliance_full_screen_video_view.dart';
@@ -318,7 +319,7 @@ class _CheckInMediaCommentsBottomSheetState extends State<CheckInMediaCommentsBo
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.grey2.withValues(alpha: 0.55)),
+              border: AppDialogStyle.border,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

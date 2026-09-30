@@ -11,7 +11,7 @@ import '../controllers/training_library_detail_controller.dart';
 import '../widgets/training_library_detail_view.dart';
 import '../widgets/training_library_lesson_actions.dart';
 import '../widgets/training_library_lesson_selection_sheet.dart';
-import 'view_training_screen.dart';
+import 'shared_lesson_details_screen.dart';
 
 class TrainingLibraryDetailScreen extends StatefulWidget {
   const TrainingLibraryDetailScreen({super.key, required this.module, required this.view});
@@ -60,13 +60,13 @@ class _TrainingLibraryDetailScreenState extends State<TrainingLibraryDetailScree
         onSelectLesson: () => controller.selectLesson(
           select: (lessons) => showTrainingLibraryLessonSelectionSheet(context, lessons: lessons),
           openViewer: (route) => Navigator.of(context).push<void>(
-            MaterialPageRoute<void>(builder: (_) => ViewTrainingScreen(trainingRoute: route)),
+            MaterialPageRoute<void>(builder: (_) => TrainingLessonViewerScreen(trainingRoute: route)),
           ),
         ),
         onLessonTap: (lesson) => controller.openLessonViewer(
           lesson,
           openViewer: (route) => Navigator.of(context).push<void>(
-            MaterialPageRoute<void>(builder: (_) => ViewTrainingScreen(trainingRoute: route)),
+            MaterialPageRoute<void>(builder: (_) => TrainingLessonViewerScreen(trainingRoute: route)),
           ),
         ),
         onLessonActions: (lesson) =>

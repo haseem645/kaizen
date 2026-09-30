@@ -58,6 +58,9 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   bool _isPreparingPlayback = false;
   bool _isScrubbing = false;
   double? _scrubPositionMillis;
+  final ValueNotifier<bool> _showPlaybackControls = ValueNotifier<bool>(true);
+  Timer? _hidePlaybackControlsTimer;
+  bool _wasPlaybackActive = false;
 
   @override
   void initState() {
@@ -89,6 +92,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   @override
   void dispose() {
     _disposeController();
+    _showPlaybackControls.dispose();
     super.dispose();
   }
 
@@ -181,12 +185,46 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   void _notifyPlaybackPosition() {
     final controller = _controller;
     if (controller != null && controller.value.isInitialized) {
+      _syncPlaybackControls();
       widget.onPositionChanged?.call(controller.value.position);
+    }
+  }
+
+  bool get _isPlaybackActive {
+    final value = _controller?.value;
+    return value != null &&
+        value.isInitialized &&
+        value.isPlaying &&
+        !value.isCompleted &&
+        !value.hasError &&
+        (value.duration <= Duration.zero || value.position < value.duration);
+  }
+
+  void _syncPlaybackControls() {
+    final isPlaying = _isPlaybackActive;
+    if (!isPlaying || !_wasPlaybackActive) {
+      _hidePlaybackControlsTimer?.cancel();
+      _showPlaybackControls.value = !isPlaying;
+    }
+    _wasPlaybackActive = isPlaying;
+  }
+
+  void _revealPlaybackControls() {
+    _hidePlaybackControlsTimer?.cancel();
+    _showPlaybackControls.value = true;
+    if (_isPlaybackActive && !_isScrubbing) {
+      _hidePlaybackControlsTimer = Timer(const Duration(seconds: 3), () {
+        _showPlaybackControls.value = !_isPlaybackActive;
+      });
     }
   }
 
   void _disposeController() {
     _initializationGeneration++;
+    _hidePlaybackControlsTimer?.cancel();
+    _hidePlaybackControlsTimer = null;
+    _wasPlaybackActive = false;
+    _showPlaybackControls.value = true;
 
     final controller = _controller;
     _controller = null;
@@ -290,6 +328,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
       return;
     }
 
+    _revealPlaybackControls();
     final position = controller.value.position;
     final duration = controller.value.duration;
     final nextPosition = position + offset;
@@ -521,15 +560,19 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     return Stack(
       fit: StackFit.expand,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.10),
-                Colors.black.withValues(alpha: 0.45),
-              ],
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _revealPlaybackControls,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.10),
+                  Colors.black.withValues(alpha: 0.45),
+                ],
+              ),
             ),
           ),
         ),
@@ -587,29 +630,31 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
           right: 20,
           top: 0,
           bottom: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CircleIconButton(
-                icon: Icons.replay_10_rounded,
-                onTap: isReady
-                    ? () => _seekBy(const Duration(seconds: -10))
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              _PlayButton(
-                isLoading: isLoading,
-                isPlaying: controllerValue?.isPlaying ?? false,
-                onTap: initializationError != null ? null : _togglePlayback,
-              ),
-              const SizedBox(width: 8),
-              _CircleIconButton(
-                icon: Icons.forward_10_rounded,
-                onTap: isReady
-                    ? () => _seekBy(const Duration(seconds: 10))
-                    : null,
-              ),
-            ],
+          child: _buildPlaybackControlsVisibility(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _CircleIconButton(
+                  icon: Icons.replay_10_rounded,
+                  onTap: isReady
+                      ? () => _seekBy(const Duration(seconds: -10))
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                _PlayButton(
+                  isLoading: isLoading,
+                  isPlaying: controllerValue?.isPlaying ?? false,
+                  onTap: initializationError != null ? null : _togglePlayback,
+                ),
+                const SizedBox(width: 8),
+                _CircleIconButton(
+                  icon: Icons.forward_10_rounded,
+                  onTap: isReady
+                      ? () => _seekBy(const Duration(seconds: 10))
+                      : null,
+                ),
+              ],
+            ),
           ),
         ),
         if (widget.showSeekBar)
@@ -617,26 +662,41 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildSeekBar(controller, controllerValue),
+            child: _buildPlaybackControlsVisibility(
+              child: _buildSeekBar(controller, controllerValue),
+            ),
           ),
         if (widget.showTitle)
           Positioned(
             left: 20,
             bottom: 35,
-            child: AppTextView.body1(
-              widget.title,
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+            child: _buildPlaybackControlsVisibility(
+              child: AppTextView.body1(
+                widget.title,
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         if (widget.showDuration)
           Positioned(
             right: 23,
             bottom: 35,
-            child: _buildDurationRow(controllerValue),
+            child: _buildPlaybackControlsVisibility(
+              child: _buildDurationRow(controllerValue),
+            ),
           ),
       ],
+    );
+  }
+
+  Widget _buildPlaybackControlsVisibility({required Widget child}) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _showPlaybackControls,
+      builder: (context, showControls, child) =>
+          showControls ? child! : const SizedBox.shrink(),
+      child: child,
     );
   }
 
@@ -683,6 +743,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
                   _isScrubbing = true;
                   _scrubPositionMillis = value;
                 });
+                _revealPlaybackControls();
               },
         onChanged: controller == null || controllerValue?.isInitialized != true
             ? null
@@ -699,6 +760,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
                   _isScrubbing = false;
                   _scrubPositionMillis = null;
                 });
+                _revealPlaybackControls();
                 await controller.seekTo(Duration(milliseconds: value.round()));
               },
       ),

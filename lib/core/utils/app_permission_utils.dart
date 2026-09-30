@@ -38,6 +38,16 @@ class AppPermissionUtils {
     return !isChildOrganization(currentOrganization);
   }
 
+  static bool canManagePublicLinks({
+    required User? user,
+    required Organization? currentOrganization,
+  }) {
+    return canModifyCurrentOrganizationContent(
+          currentOrganization: currentOrganization,
+        ) &&
+        user?.isOwner == true;
+  }
+
   static bool canAccessScopedCreateEntry(
     User? user, {
     required Organization? currentOrganization,
@@ -226,6 +236,20 @@ class AppPermissionUtils {
     }
 
     return false;
+  }
+
+  static bool canViewTrainingQuizAndAssignment({
+    required User? user,
+    required Organization? currentOrganization,
+    required String seatProfileId,
+  }) {
+    // Sandbox grants viewing even in child organisations, never editing.
+    return user?.hasSandboxAccess == true ||
+        canManageTrainingForSeatProfile(
+          user: user,
+          currentOrganization: currentOrganization,
+          seatProfileId: seatProfileId,
+        );
   }
 
   static bool canManagePaygrades({

@@ -5,6 +5,10 @@ import '../entities/seat_profile_detail.dart';
 import '../entities/seat_profile_page.dart';
 
 abstract class SeatProfileRepository {
+  Future<String?> getSeatProfilePublicLink(String seatId);
+  Future<String> createSeatProfilePublicLink(String seatId);
+  Future<void> deleteSeatProfilePublicLink(String seatId);
+
   Future<SeatProfilePage> getSeatProfiles({
     required int page,
     int pageSize = 10,
@@ -12,6 +16,7 @@ abstract class SeatProfileRepository {
     String title = '',
   });
   Future<SeatProfileDetail> getSeatProfileDetail(String seatId);
+  Future<SeatProfileDetail> getSharedSeatProfileDetail(String publicId);
   Future<List<Department>> getDepartments();
   Future<SeatProfileCreationResult> createSeatProfile({
     required Department department,

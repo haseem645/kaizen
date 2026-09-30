@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/widgets/fast_circular_progress.dart';
 import 'package:sparrowkaizen/features/training/domain/entities/seat_description_training.dart';
-import 'package:sparrowkaizen/features/training/presentation/pages/view_training_screen.dart';
+import 'package:sparrowkaizen/features/training/presentation/pages/shared_lesson_details_screen.dart';
 
 void main() {
   testWidgets('the SOP heading and white panel keep their bounds across every response state', (

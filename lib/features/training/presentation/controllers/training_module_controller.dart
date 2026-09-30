@@ -12,6 +12,7 @@ import '../../../../core/network/api_error.dart';
 import '../../../../core/services/file_uploader.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../domain/entities/seat_description_training.dart';
+import '../../domain/entities/shared_lesson_content.dart';
 import '../../../check_in/domain/repositories/audit_repository.dart';
 import '../models/view_training_tab_access.dart';
 
@@ -884,8 +885,14 @@ class TrainingModuleController extends ChangeNotifier {
     this._auditRepository, {
     FileUploader? fileUploader,
     bool canManageTraining = false,
+    bool canViewQuizAndAssignment = false,
+    Future<SharedLessonContent> Function(String publicId)?
+    sharedLessonDetailLoader,
   }) : _fileUploader = fileUploader ?? const FileUploader(),
-       _canManageTraining = canManageTraining {
+       _canManageTraining = canManageTraining,
+       _canViewQuizAndAssignment =
+           canManageTraining || canViewQuizAndAssignment,
+       _sharedLessonDetailLoader = sharedLessonDetailLoader {
     newLessonTitleController.addListener(_handleNewLessonTitleChanged);
     moduleTitleController.addListener(_handleModuleTitleChanged);
     summaryController.addListener(_handleSummaryChanged);
@@ -904,8 +911,12 @@ class TrainingModuleController extends ChangeNotifier {
   static String generateClientUuid() => _uuidGenerator.v1();
 
   final AuditRepository _auditRepository;
+  final Future<SharedLessonContent> Function(String publicId)?
+  _sharedLessonDetailLoader;
   final FileUploader _fileUploader;
   final bool _canManageTraining;
+  final bool _canViewQuizAndAssignment;
+  bool _isDisposed = false;
   final TextEditingController newLessonTitleController =
       TextEditingController();
   final TextEditingController moduleTitleController = TextEditingController();
@@ -952,6 +963,7 @@ class TrainingModuleController extends ChangeNotifier {
   bool _replaceExistingQuestions = true;
   bool _isGeneratingQuiz = false;
   bool _isGeneratingSop = false;
+  bool _isGeneratingAssignment = false;
   bool _isAddingQuestion = false;
   bool _isEditingSummary = false;
   bool _isSavingModuleTitle = false;
@@ -962,6 +974,7 @@ class TrainingModuleController extends ChangeNotifier {
   bool _isSyncingModuleTitleController = false;
   bool _isSyncingSummaryController = false;
   bool _isSyncingDocumentController = false;
+  bool _isSyncingAssignmentController = false;
   String? _savingQuestionId;
   String? _deletingQuestionId;
   String? _deletingQuestionOptionKey;
@@ -976,15 +989,21 @@ class TrainingModuleController extends ChangeNotifier {
   String _lastSavedDocumentHtml = '';
   String _lastSavedAssignmentTitle = '';
   String _lastSavedAssignmentHtml = '';
+  String _lastObservedAssignmentTitle = '';
+  String _lastObservedAssignmentHtml = '';
+  int _assignmentDraftVersion = 0;
+  int _assignmentEditorVersion = 0;
   Timer? _moduleTitleAutoSaveDebounce;
   Timer? _summaryAutoSaveDebounce;
   Timer? _documentAutoSaveDebounce;
+  Timer? _assignmentAutoSaveDebounce;
 
   bool get isLoading => _isLoading;
   bool get isDocumentLoading => _isDocumentLoading;
   bool get hasResolvedSelectedModuleDocument =>
       _selectedModuleDocument != null || _documentErrorMessage != null;
   bool get isAssignmentLoading => _isAssignmentLoading;
+  bool get isGeneratingAssignment => _isGeneratingAssignment;
   bool get isQuestionsLoading => _isQuestionsLoading;
   bool get isCreatingNewLessonDraft => _isCreatingNewLessonDraft;
   bool get isCreatingModule => _isCreatingModule;
@@ -1053,7 +1072,7 @@ class TrainingModuleController extends ChangeNotifier {
       !_isCreatingNewLessonDraft && hasSelectedModule;
   int get maxAccessibleTabIndex => maxTrainingTabIndex(
     hasSelectedModule: canAccessSelectedModuleExtras,
-    canManageTraining: canManageTraining,
+    canViewQuizAndAssignment: _canViewQuizAndAssignment,
   );
   bool get hasSelectedModuleVideo {
     final video = _selectedModuleDetail?.trainingVideo;
@@ -1070,11 +1089,10 @@ class TrainingModuleController extends ChangeNotifier {
       _selectedModuleDetail?.trainingVideo?.transcript?.trim().isNotEmpty ??
       false;
   // A generated summary can arrive before the cached video transcript updates.
-  bool get hasSelectedModuleSummary =>
-      CustomFunctions.stripHtmlTags(
-        _selectedModuleDetail?.description,
-        emptyText: '',
-      ).isNotEmpty;
+  bool get hasSelectedModuleSummary => CustomFunctions.stripHtmlTags(
+    _selectedModuleDetail?.description,
+    emptyText: '',
+  ).isNotEmpty;
 
   bool get canUploadSelectedModuleVideo =>
       _canManageTraining &&
@@ -1109,11 +1127,22 @@ class TrainingModuleController extends ChangeNotifier {
       _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
   bool get canEditSelectedModuleAssignment =>
       _canManageTraining && hasSelectedModule && !_isCreatingNewLessonDraft;
+  bool get canGenerateAssignmentForSelectedModule =>
+      _canManageTraining &&
+      hasSelectedModule &&
+      !_isGeneratingAssignment &&
+      !_isAssignmentLoading;
   bool get hasAssignmentDraftContent =>
       assignmentTitleController.text.trim().isNotEmpty ||
       assignmentDescriptionController.text.trim().isNotEmpty;
   bool get hasAssignmentTitle =>
       assignmentTitleController.text.trim().isNotEmpty;
+  // Existing assignments may have no title; editing their instructions does
+  // not require sending or changing the title in a partial update.
+  bool get _hasValidAssignmentDraftTitle =>
+      hasAssignmentTitle ||
+      (hasPersistedSelectedModuleAssignment &&
+          _lastSavedAssignmentTitle.isEmpty);
   bool get hasAssignmentChanges =>
       assignmentTitleController.text.trim() != _lastSavedAssignmentTitle ||
       assignmentDescriptionController.toHtml().trim() !=
@@ -1123,7 +1152,7 @@ class TrainingModuleController extends ChangeNotifier {
       _hasResolvedAssignment &&
       !_isAssignmentLoading &&
       !_isSavingAssignment &&
-      hasAssignmentTitle;
+      _hasValidAssignmentDraftTitle;
   bool get hasSelectedModuleDocumentText {
     final text = _selectedModuleDocument?.text?.trim();
     return text != null && text.isNotEmpty;
@@ -1133,6 +1162,11 @@ class TrainingModuleController extends ChangeNotifier {
       _selectedModuleAssignment?.hasContent ??
       _selectedModuleDetail?.hasAssignmentContent ??
       false;
+  String? get selectedModuleAssignmentInstructions =>
+      _selectedModuleAssignment?.instructions ??
+      _selectedModuleDetail?.assignmentInstructions;
+  bool get hasSelectedModuleAssignmentInstructions =>
+      assignmentDescriptionController.text.trim().isNotEmpty;
   bool get hasResolvedSelectedModuleAssignment => _hasResolvedAssignment;
   bool get hasPersistedSelectedModuleAssignment =>
       _selectedModuleAssignment?.uuid.trim().isNotEmpty ?? false;
@@ -1289,6 +1323,48 @@ class TrainingModuleController extends ChangeNotifier {
     }
   }
 
+  Future<void> initializeSharedLesson(String lessonId) async {
+    final resolvedLessonId = lessonId.trim();
+    if (resolvedLessonId.isEmpty) {
+      _errorMessage = AppStrings.trainingSharedLessonUnavailable;
+      notifyListeners();
+      return;
+    }
+
+    _jobId = '';
+    _descriptionId = '';
+    _isCreatingNewLessonDraft = false;
+    _moduleIdBeforeNewLessonDraft = null;
+    _moduleLocalVideoPaths.clear();
+    _modules = const <SeatDescriptionTrainingModule>[];
+    _selectedModuleId = resolvedLessonId;
+    _selectedModuleDetail = null;
+    _errorMessage = null;
+    _resetSelectedModuleExtras();
+    _resetEditors();
+    newLessonTitleController.clear();
+    await _loadSelectedModuleDetail();
+    if (_isDisposed) return;
+
+    final detail = _selectedModuleDetail;
+    if (detail == null) {
+      _errorMessage = AppStrings.trainingSharedLessonUnavailable;
+      notifyListeners();
+      return;
+    }
+
+    _modules = <SeatDescriptionTrainingModule>[
+      SeatDescriptionTrainingModule(
+        uuid: resolvedLessonId,
+        actualId: detail.actualId,
+        title: detail.title,
+        thumbnailLink: detail.previewThumbnailLink,
+        isPubliclyAvailable: detail.isPubliclyAvailable,
+      ),
+    ];
+    notifyListeners();
+  }
+
   Future<void> selectModule(String moduleId) async {
     final resolvedModuleId = moduleId.trim();
     if (resolvedModuleId.isEmpty) {
@@ -1419,7 +1495,9 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<void> refreshDocumentForSelectedModule() async {
-    if (_selectedModuleId.isEmpty || _isDocumentLoading) {
+    if (_selectedModuleId.isEmpty ||
+        _isDocumentLoading ||
+        _sharedLessonDetailLoader != null) {
       return;
     }
 
@@ -1462,7 +1540,9 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<void> refreshAssignmentForSelectedModule() async {
-    if (_selectedModuleId.isEmpty || _isAssignmentLoading) {
+    if (_selectedModuleId.isEmpty ||
+        _isAssignmentLoading ||
+        _sharedLessonDetailLoader != null) {
       return;
     }
 
@@ -1523,7 +1603,9 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<void> refreshQuestionsForSelectedModule() async {
-    if (_selectedModuleId.isEmpty || _isQuestionsLoading) {
+    if (_selectedModuleId.isEmpty ||
+        _isQuestionsLoading ||
+        _sharedLessonDetailLoader != null) {
       return;
     }
 
@@ -1732,6 +1814,31 @@ class TrainingModuleController extends ChangeNotifier {
     }
   }
 
+  Future<bool> generateAssignmentForSelectedModule() async {
+    if (!canGenerateAssignmentForSelectedModule) {
+      return false;
+    }
+
+    final moduleId = _selectedModuleId;
+    _isGeneratingAssignment = true;
+    _assignmentErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _auditRepository.generateSeatDescriptionTrainingModuleAssignment(
+        moduleId: moduleId,
+      );
+      await refreshAssignmentForSelectedModule();
+      return true;
+    } catch (error) {
+      _assignmentErrorMessage = error.toString();
+      return false;
+    } finally {
+      _isGeneratingAssignment = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> _saveSelectedModuleTitleForSelectedModule() async {
     final resolvedModuleId = _selectedModuleUpdateId;
     final title = moduleTitleController.text.trim();
@@ -1889,7 +1996,6 @@ class TrainingModuleController extends ChangeNotifier {
         isPubliclyAvailable,
         notifyListenersAfterUpdate: false,
       );
-      _emitSummarySnackBar(AppStrings.trainingModuleDetailsSavedSuccess);
       return true;
     } catch (error) {
       _emitSummarySnackBar(error.toString());
@@ -1988,6 +2094,8 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<bool> saveAssignmentForSelectedModule() async {
+    if (_isDisposed) return false;
+    _assignmentAutoSaveDebounce?.cancel();
     final resolvedModuleId = _selectedModuleId.trim();
     final title = assignmentTitleController.text.trim();
     if (!canEditSelectedModuleAssignment ||
@@ -1998,7 +2106,7 @@ class TrainingModuleController extends ChangeNotifier {
       return false;
     }
 
-    if (title.isEmpty) {
+    if (!_hasValidAssignmentDraftTitle) {
       _emitSummarySnackBar(AppStrings.trainingAssignmentTitleRequired);
       return false;
     }
@@ -2007,30 +2115,74 @@ class TrainingModuleController extends ChangeNotifier {
       return true;
     }
 
+    final draftVersion = _assignmentDraftVersion;
+    final editorVersion = _assignmentEditorVersion;
+    final instructions = assignmentDescriptionController.toHtml().trim();
+    final assignmentId = _selectedModuleAssignment?.uuid.trim() ?? '';
     _isSavingAssignment = true;
     _assignmentErrorMessage = null;
     notifyListeners();
 
     try {
-      final instructions = assignmentDescriptionController.toHtml().trim();
-      final assignmentId = _selectedModuleAssignment?.uuid.trim();
       await _auditRepository.updateSeatDescriptionTrainingModuleAssignment(
         moduleId: resolvedModuleId,
-        assignmentId: assignmentId?.isNotEmpty == true ? assignmentId : null,
-        title: title,
+        assignmentId: assignmentId.isNotEmpty ? assignmentId : null,
+        title: assignmentId.isEmpty || title != _lastSavedAssignmentTitle
+            ? title
+            : null,
         instructions: instructions,
       );
-      await refreshAssignmentForSelectedModule();
-      _hasResolvedAssignment = true;
-      _emitSummarySnackBar(AppStrings.trainingAssignmentSavedSuccess);
+      if (editorVersion != _assignmentEditorVersion) return true;
+      if (_selectedModuleId == resolvedModuleId) {
+        if (assignmentId.isEmpty) {
+          final persistedAssignment = await _auditRepository
+              .getSeatDescriptionTrainingModuleAssignment(
+                moduleId: resolvedModuleId,
+              );
+          if (editorVersion != _assignmentEditorVersion) return true;
+          _selectedModuleAssignment = persistedAssignment;
+          _applySelectedModuleAssignment(
+            title: persistedAssignment.title,
+            instructions: persistedAssignment.instructions,
+            notifyListenersAfterUpdate: false,
+          );
+          _lastSavedAssignmentTitle =
+              persistedAssignment.title?.trim() ?? title;
+          _lastSavedAssignmentHtml =
+              persistedAssignment.instructions?.trim() ?? instructions;
+        } else {
+          _applySelectedModuleAssignment(
+            title: title,
+            instructions: instructions,
+            notifyListenersAfterUpdate: false,
+          );
+          _lastSavedAssignmentTitle = title;
+          _lastSavedAssignmentHtml = instructions;
+        }
+        _hasResolvedAssignment = true;
+
+        // PATCH already saved this draft; reloading it would move the cursor.
+        if (assignmentId.isEmpty &&
+            assignmentTitleController.text.trim() == title &&
+            assignmentDescriptionController.toHtml().trim() == instructions) {
+          _syncAssignmentEditorText();
+        }
+      }
       return true;
     } catch (error) {
-      _assignmentErrorMessage = error.toString();
-      _emitSummarySnackBar(error.toString());
+      if (editorVersion == _assignmentEditorVersion) {
+        _assignmentErrorMessage = error.toString();
+        _emitSummarySnackBar(error.toString());
+      }
       return false;
     } finally {
-      _isSavingAssignment = false;
-      notifyListeners();
+      if (editorVersion == _assignmentEditorVersion) {
+        _isSavingAssignment = false;
+        notifyListeners();
+        if (_assignmentDraftVersion != draftVersion) {
+          _scheduleAssignmentAutoSaveIfNeeded();
+        }
+      }
     }
   }
 
@@ -2505,8 +2657,22 @@ class TrainingModuleController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _selectedModuleDetail = await _auditRepository
-          .getSeatDescriptionTrainingModuleDetail(moduleId: _selectedModuleId);
+      if (_sharedLessonDetailLoader != null) {
+        final sharedLesson = await _sharedLessonDetailLoader(_selectedModuleId);
+        if (_isDisposed) return;
+        _selectedModuleDetail = sharedLesson.module;
+        _selectedModuleDocument = sharedLesson.document;
+        _selectedModuleAssignment = sharedLesson.assignment;
+        _hasResolvedAssignment = true;
+        _syncDocumentEditorText();
+      } else {
+        final detail = await _auditRepository
+            .getSeatDescriptionTrainingModuleDetail(
+              moduleId: _selectedModuleId,
+            );
+        if (_isDisposed) return;
+        _selectedModuleDetail = detail;
+      }
       if (_selectedModuleDetail?.trainingVideo == null) {
         _moduleLocalVideoPaths.remove(_selectedModuleId.trim());
       }
@@ -2517,8 +2683,12 @@ class TrainingModuleController extends ChangeNotifier {
         _selectedModuleDetail?.questions ??
             const <SeatDescriptionTrainingQuestion>[],
       );
+      if (_sharedLessonDetailLoader != null) {
+        _hasResolvedQuestions = true;
+      }
       _syncSelectedModuleSummaryFromDetail();
     } catch (error) {
+      if (_isDisposed) return;
       _errorMessage = error.toString();
     }
 
@@ -3004,6 +3174,19 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   void _handleAssignmentDraftChanged() {
+    final title = assignmentTitleController.text.trim();
+    final html = assignmentDescriptionController.toHtml().trim();
+    final hasContentChanged =
+        title != _lastObservedAssignmentTitle ||
+        html != _lastObservedAssignmentHtml;
+    _lastObservedAssignmentTitle = title;
+    _lastObservedAssignmentHtml = html;
+    // Selection and composing updates must not delay a pending content save.
+    if (!_isSyncingAssignmentController && hasContentChanged) {
+      _assignmentDraftVersion += 1;
+      _scheduleAssignmentAutoSaveIfNeeded();
+    }
+
     final hasTitle = hasAssignmentTitle;
     if (_lastAssignmentDraftHasTitle == hasTitle) {
       return;
@@ -3029,9 +3212,11 @@ class TrainingModuleController extends ChangeNotifier {
 
   void _resetEditors() {
     _summaryEditorVersion += 1;
+    _assignmentEditorVersion += 1;
     _moduleTitleAutoSaveDebounce?.cancel();
     _summaryAutoSaveDebounce?.cancel();
     _documentAutoSaveDebounce?.cancel();
+    _assignmentAutoSaveDebounce?.cancel();
     _isEditingSummary = false;
     _isSavingModuleTitle = false;
     _isSavingSummary = false;
@@ -3049,11 +3234,13 @@ class TrainingModuleController extends ChangeNotifier {
     _isSyncingSummaryController = true;
     summaryController.clear();
     _isSyncingSummaryController = false;
+    _isSyncingAssignmentController = true;
     assignmentTitleController.clear();
     _isSyncingDocumentController = true;
     documentController.clear();
     _isSyncingDocumentController = false;
     assignmentDescriptionController.clear();
+    _isSyncingAssignmentController = false;
   }
 
   void _resetSelectedModuleExtras() {
@@ -3141,6 +3328,7 @@ class TrainingModuleController extends ChangeNotifier {
     final assignmentInstructions = selectedAssignment != null
         ? selectedAssignment.instructions?.trim() ?? ''
         : _selectedModuleDetail?.assignmentInstructions?.trim() ?? '';
+    _isSyncingAssignmentController = true;
     assignmentTitleController.value = assignmentTitleController.value.copyWith(
       text: assignmentTitle,
       selection: TextSelection.collapsed(offset: assignmentTitle.length),
@@ -3149,6 +3337,7 @@ class TrainingModuleController extends ChangeNotifier {
     assignmentDescriptionController.loadFromHtml(assignmentInstructions);
     _lastSavedAssignmentTitle = assignmentTitleController.text.trim();
     _lastSavedAssignmentHtml = assignmentDescriptionController.toHtml().trim();
+    _isSyncingAssignmentController = false;
   }
 
   void _scheduleModuleTitleAutoSaveIfNeeded() {
@@ -3203,10 +3392,33 @@ class TrainingModuleController extends ChangeNotifier {
     });
   }
 
+  void _scheduleAssignmentAutoSaveIfNeeded() {
+    if (_isDisposed ||
+        _isSyncingAssignmentController ||
+        !canEditSelectedModuleAssignment ||
+        !_hasResolvedAssignment ||
+        _isAssignmentLoading ||
+        _isSavingAssignment) {
+      return;
+    }
+
+    if (!_hasValidAssignmentDraftTitle || !hasAssignmentChanges) {
+      _assignmentAutoSaveDebounce?.cancel();
+      return;
+    }
+
+    _assignmentAutoSaveDebounce?.cancel();
+    _assignmentAutoSaveDebounce = Timer(const Duration(milliseconds: 400), () {
+      unawaited(saveAssignmentForSelectedModule());
+    });
+  }
+
   @override
   void dispose() {
+    _isDisposed = true;
     _documentRequestVersion += 1;
     _summaryEditorVersion += 1;
+    _assignmentEditorVersion += 1;
     newLessonTitleController.removeListener(_handleNewLessonTitleChanged);
     moduleTitleController.removeListener(_handleModuleTitleChanged);
     summaryController.removeListener(_handleSummaryChanged);
@@ -3218,6 +3430,7 @@ class TrainingModuleController extends ChangeNotifier {
     _moduleTitleAutoSaveDebounce?.cancel();
     _summaryAutoSaveDebounce?.cancel();
     _documentAutoSaveDebounce?.cancel();
+    _assignmentAutoSaveDebounce?.cancel();
     newLessonTitleController.dispose();
     moduleTitleController.dispose();
     summaryController.dispose();

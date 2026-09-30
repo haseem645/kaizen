@@ -1,4 +1,4 @@
-part of 'package:sparrowkaizen/features/training/presentation/pages/view_training_screen.dart';
+part of 'package:sparrowkaizen/features/training/presentation/pages/shared_lesson_details_screen.dart';
 
 class TrainingReadOnlySopTab extends StatelessWidget {
   const TrainingReadOnlySopTab({

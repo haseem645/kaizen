@@ -12,6 +12,7 @@ import 'package:sparrowkaizen/features/profile/presentation/providers/profile_co
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/widgets/app_full_screen.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 
 //
@@ -430,9 +431,7 @@ class _DateOfBirthDialogContent extends StatelessWidget {
         builder: (context, controller, _) {
           return Dialog(
             backgroundColor: AppColors.surfaceDark,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape: AppDialogStyle.shape(radius: 16),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Column(

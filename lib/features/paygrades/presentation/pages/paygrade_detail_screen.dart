@@ -5,11 +5,15 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/managers/app_manager.dart';
+import '../../../../core/preference/app_preference.dart';
+import '../../../../routes/app_router.dart';
 import '../../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../../core/widgets/app_dot_divider.dart';
 import '../../../../core/widgets/app_ai_generate_button.dart';
+import '../../../../core/widgets/app_share_button.dart';
 import '../../../../core/widgets/app_overlay_close_button.dart';
 import '../../../../core/widgets/app_swipe_reveal_action.dart';
+import '../../../../core/widgets/app_dialog_style.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../../data/datasources/paygrade_remote_data_source.dart';
@@ -19,11 +23,18 @@ import '../../domain/usecases/get_paygrades_usecase.dart';
 import '../providers/paygrade_detail_controller.dart';
 import 'paygrade_entry_sheet.dart';
 import 'paygrade_generate_sheet.dart';
+import 'paygrade_pay_rate_dialog.dart';
+import 'paygrade_share_dialogue.dart';
 
 class PaygradeDetailScreen extends StatelessWidget {
-  const PaygradeDetailScreen({super.key, required this.paygradeId});
+  const PaygradeDetailScreen({
+    super.key,
+    required this.paygradeId,
+    this.getPaygradesUseCase,
+  });
 
   final String paygradeId;
+  final GetPaygradesUseCase? getPaygradesUseCase;
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -40,18 +51,20 @@ class PaygradeDetailScreen extends StatelessWidget {
               createGetPaygradeDetailUseCase(repository),
         ),
         ChangeNotifierProvider<PaygradeDetailController>(
-          create: (context) =>
-              PaygradeDetailController(context.read<GetPaygradesUseCase>())
-                ..initialize(paygradeId),
+          create: (context) => PaygradeDetailController(
+            getPaygradesUseCase ?? context.read<GetPaygradesUseCase>(),
+          )..initialize(paygradeId),
         ),
       ],
-      child: const _PaygradeDetailScreenView(),
+      child: const PaygradeDetailView(),
     );
   }
 }
 
-class _PaygradeDetailScreenView extends StatelessWidget {
-  const _PaygradeDetailScreenView();
+class PaygradeDetailView extends StatelessWidget {
+  const PaygradeDetailView({super.key, this.isShared = false});
+
+  final bool isShared;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +81,8 @@ class _PaygradeDetailScreenView extends StatelessWidget {
             listenable: AppManager.instance,
             builder: (context, _) {
               final canManageContent =
+                  !isShared &&
+                  !controller.isShared &&
                   AppManager.instance.currentUserCanManagePaygrades;
 
               return Column(
@@ -91,66 +106,11 @@ class _PaygradeDetailScreenView extends StatelessWidget {
                     )
                   else
                     Expanded(
-                      child: ListView(
-                        children: [
-                          _buildSummary(detail),
-                          if (canManageContent) ...[
-                            const SizedBox(height: 18),
-                            AppAiGenerateButton(
-                              label: AppStrings.paygradesGenerateWithAiAction,
-                              expand: true,
-                              minHeight: 48,
-                              textSize: 15,
-                              fontWeight: FontWeight.w700,
-                              isLoading: controller.isGeneratingPaygrades,
-                              onTap: controller.isGeneratingPaygrades
-                                  ? null
-                                  : () => _openGeneratePaygradesSheet(
-                                      context,
-                                      controller,
-                                    ),
-                            ),
-                          ],
-                          const SizedBox(height: 18),
-                          if (detail.payGrades.isNotEmpty)
-                            for (
-                              var index = 0;
-                              index < detail.payGrades.length;
-                              index++
-                            )
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _PaygradeEntryCard(
-                                  isEditable: canManageContent,
-                                  isDeleting: controller.isDeletingPaygrade(
-                                    detail.payGrades[index].id,
-                                  ),
-                                  entry: detail.payGrades[index],
-                                  rowNumber: index + 1,
-                                  onEditTap: canManageContent
-                                      ? () => _openPaygradeSheet(
-                                          context,
-                                          controller,
-                                          detail.payGrades[index],
-                                        )
-                                      : null,
-                                  onDeleteTap: canManageContent
-                                      ? () => _showDeleteDialog(
-                                          context,
-                                          controller,
-                                          detail.payGrades[index],
-                                        )
-                                      : null,
-                                ),
-                              ),
-                          if (canManageContent) ...[
-                            SizedBox(height: detail.payGrades.isEmpty ? 18 : 2),
-                            _AddPaygradeLevelButton(
-                              onTap: () =>
-                                  _openCreatePaygradeSheet(context, controller),
-                            ),
-                          ],
-                        ],
+                      child: _buildContent(
+                        context,
+                        controller,
+                        detail,
+                        canManageContent,
                       ),
                     ),
                 ],
@@ -162,62 +122,157 @@ class _PaygradeDetailScreenView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
+  Widget _buildContent(
+    BuildContext context,
+    PaygradeDetailController controller,
+    PaygradeDetail detail,
+    bool canManageContent,
+  ) {
+    final isSharedContent = isShared || controller.isShared;
+    return ListView(
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: InkWell(
-            onTap: () => Navigator.of(context).pop(),
-            child: SvgPicture.asset(
-              '${AppStrings.imagePath}back.svg',
-              width: 24,
-              height: 24,
-              colorFilter: const ColorFilter.mode(
-                Colors.white,
-                BlendMode.srcIn,
-              ),
-            ),
+        _buildSummary(
+          detail,
+          onShare:
+              !isSharedContent &&
+                  (controller.shareController?.canManage ?? false)
+              ? () => showPaygradeShareDialogue(
+                  context,
+                  controller.shareController!,
+                )
+              : null,
+        ),
+        if (canManageContent) ...[
+          const SizedBox(height: 18),
+          AppAiGenerateButton(
+            label: AppStrings.paygradesGenerateWithAiAction,
+            expand: true,
+            minHeight: 44,
+            showOutline: true,
+            isLoading: controller.isGeneratingPaygrades,
+            onTap: controller.isGeneratingPaygrades
+                ? null
+                : () => _openGeneratePaygradesSheet(context, controller),
           ),
-        ),
-        AppTextView.body(
-          AppStrings.paygradesDetailsTitle,
-          color: AppColors.secondaryColor,
-          fontSize: 24,
-          fontWeight: FontWeight.w500,
-        ),
+        ],
+        const SizedBox(height: 18),
+        if (detail.payGrades.isEmpty)
+          _buildMessage(AppStrings.paygradesNoDetailItemsFound),
+        ...detail.payGrades.asMap().entries.map((item) {
+          final entry = item.value;
+          return Padding(
+            key: ValueKey(
+              '${controller.selectedTab.name}-${entry.id}-${item.key}',
+            ),
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _PaygradeEntryCard(
+              isEditable: canManageContent,
+              isDeleting: controller.isDeletingPaygrade(entry.id),
+              entry: entry,
+              rowNumber: isShared ? entry.level : item.key + 1,
+              alwaysExpanded: isSharedContent,
+              showPayRate: !isSharedContent && controller.includesPayRates,
+              payRateLabel: controller.payRateLabel,
+              onPayRateTap: canManageContent && controller.canEditPayRate(entry)
+                  ? (title) => showPaygradePayRateDialog(
+                      context,
+                      controller: controller,
+                      entry: entry,
+                      title: title,
+                    )
+                  : null,
+              onEditTap: canManageContent
+                  ? () => _openPaygradeSheet(context, controller, entry)
+                  : null,
+              onDeleteTap: canManageContent
+                  ? () => _showDeleteDialog(context, controller, entry)
+                  : null,
+            ),
+          );
+        }),
+        if (canManageContent) ...[
+          SizedBox(height: detail.payGrades.isEmpty ? 18 : 2),
+          _AddPaygradeLevelButton(
+            onTap: () => _openCreatePaygradeSheet(context, controller),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildSummary(PaygradeDetail detail) {
+  void _goBack(BuildContext context) {
+    final navigator = Navigator.of(context);
+    if (!isShared || navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    final destination = AppPreference.getAuthToken().trim().isEmpty
+        ? AppRouter.login
+        : AppRouter.defaultAuthenticatedRouteName;
+    navigator.pushReplacementNamed(destination);
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () => _goBack(context),
+          icon: SvgPicture.asset(
+            '${AppStrings.imagePath}back.svg',
+            width: 24,
+            height: 24,
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          ),
+        ),
+        Expanded(
+          child: AppTextView.body(
+            AppStrings.paygradesDetailsTitle,
+            textAlign: TextAlign.center,
+            color: AppColors.secondaryColor,
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 48),
+      ],
+    );
+  }
+
+  Widget _buildSummary(PaygradeDetail detail, {VoidCallback? onShare}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          AppTextView.body1(
-            detail.title,
-            color: AppColors.secondaryColor,
-            fontWeight: FontWeight.w700,
-          ),
-          if (detail.department.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            AppTextView.body2(
-              detail.department,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextView.body1(
+                  detail.title,
+                  color: AppColors.secondaryColor,
+                  fontWeight: FontWeight.w700,
+                ),
+                if (detail.department.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  AppTextView.body2(
+                    detail.department,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ],
+              ],
             ),
+          ),
+          if (onShare != null) ...[
+            const SizedBox(width: 12),
+            AppShareButton(onTap: onShare),
           ],
-          // if (detail.paygradeUnit.isNotEmpty) ...[
-          //   const SizedBox(height: 12),
-          //   _buildSummaryRow(AppStrings.paygradesUnit, detail.paygradeUnit),
-          // ],
         ],
       ),
     );
@@ -244,7 +299,10 @@ class _PaygradeDetailScreenView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: controller.retry, child: const Text('Retry')),
+          FilledButton(
+            onPressed: controller.retry,
+            child: const Text(AppStrings.actionRetry),
+          ),
         ],
       ),
     );
@@ -438,37 +496,57 @@ class _PaygradeEntryCard extends StatefulWidget {
     required this.rowNumber,
     required this.isEditable,
     required this.isDeleting,
+    required this.showPayRate,
+    required this.payRateLabel,
+    this.alwaysExpanded = false,
     this.onEditTap,
     this.onDeleteTap,
+    this.onPayRateTap,
   });
 
   final PaygradeEntry entry;
   final int rowNumber;
   final bool isEditable;
   final bool isDeleting;
+  final bool showPayRate;
+  final String payRateLabel;
+  final bool alwaysExpanded;
   final VoidCallback? onEditTap;
   final VoidCallback? onDeleteTap;
+  final ValueChanged<String>? onPayRateTap;
 
   @override
   State<_PaygradeEntryCard> createState() => _PaygradeEntryCardState();
 }
 
 class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
-  bool _isExpanded = false;
+  final ValueNotifier<bool> _isExpanded = ValueNotifier(false);
 
-  void _toggleExpanded() {
-    setState(() => _isExpanded = !_isExpanded);
+  @override
+  void dispose() {
+    _isExpanded.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isExpanded,
+      builder: (context, isExpanded, _) =>
+          _buildCard(context, widget.alwaysExpanded || isExpanded),
+    );
+  }
+
+  Widget _buildCard(BuildContext context, bool isExpanded) {
     final entry = widget.entry;
     final cleanedTitle = _cleanPaygradeTitle(entry.title);
     final paygradePrefix = _buildPaygradePrefix(cleanedTitle, widget.rowNumber);
-    final shouldShowExpandedDetails = _isExpanded;
+    final cardTitle = '$paygradePrefix: $cleanedTitle';
     final card = InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: _toggleExpanded,
+      onTap: widget.alwaysExpanded
+          ? null
+          : () => _isExpanded.value = !isExpanded,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -486,18 +564,34 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
                 children: [
                   Expanded(
                     child: AppTextView.body1(
-                      '$paygradePrefix: $cleanedTitle',
+                      cardTitle,
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  _ForwardArrowBadge(isExpanded: _isExpanded),
+                  if (!widget.alwaysExpanded) ...[
+                    const SizedBox(width: 12),
+                    _ForwardArrowBadge(isExpanded: isExpanded),
+                  ],
                 ],
               ),
-              const SizedBox(height: 14),
-              _buildRow(AppStrings.paygradesRate, entry.payRate),
-              if (shouldShowExpandedDetails) ...[
+              if (widget.showPayRate) ...[
+                const SizedBox(height: 14),
+                InkWell(
+                  onTap: widget.onPayRateTap == null
+                      ? null
+                      : () => widget.onPayRateTap!(cardTitle),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: _buildRow(
+                      widget.payRateLabel,
+                      AppStrings.paygradesHourlyRate(entry.payRate),
+                    ),
+                  ),
+                ),
+              ],
+              if (isExpanded) ...[
                 const SizedBox(height: 10),
                 _buildMultilineRow(
                   context,
@@ -622,10 +716,14 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
         Expanded(
           child: AppTextView.body2(label, color: AppColors.textSecondary),
         ),
-        AppTextView.body2(
-          value,
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
+        const SizedBox(width: 12),
+        Flexible(
+          child: AppTextView.body2(
+            value,
+            textAlign: TextAlign.end,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -721,7 +819,7 @@ class _PaygradeExpandedTextDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: AppColors.surfaceDark,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: AppDialogStyle.shape(radius: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620, maxHeight: 520),
         child: Padding(

@@ -45,6 +45,7 @@ class ApiCallExecutor {
     bool allowConflictRetry = true,
     bool invalidateCacheBeforeRequest = false,
   }) async {
+    final sessionVersion = AppPreference.sessionVersion;
     final resolvedEndpoint = ApiEndPoints.resolveEndpoint(endpoint);
     final resolvedAuthToken =
         authToken ??
@@ -88,8 +89,16 @@ class ApiCallExecutor {
 
     if (statusCode == 401 &&
         allowAutoRefresh &&
+        (resolvedAuthToken?.trim().isNotEmpty ?? false) &&
+        sessionVersion == AppPreference.sessionVersion &&
         endpoint != ApiEndPoints.refreshToken) {
-      final refreshedAccessToken = await AuthController.requestRefreshToken();
+      final refreshedAccessToken = await AuthController.requestRefreshToken(
+        failedAccessToken: resolvedAuthToken,
+        sessionVersion: sessionVersion,
+      );
+      if (sessionVersion != AppPreference.sessionVersion) {
+        throw ApiError.requestFailed(401);
+      }
       debugPrint('Retrying $fullEndpoint after token refresh');
       return processApi<Response>(
         apiCallType: apiCallType,

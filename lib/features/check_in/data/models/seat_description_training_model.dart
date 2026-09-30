@@ -127,7 +127,7 @@ class SeatDescriptionTrainingAssignmentModel
     Map<String, dynamic> json,
   ) {
     return SeatDescriptionTrainingAssignmentModel(
-      uuid: _readString(json['uuid']) ?? '',
+      uuid: _readString(json['uuid']) ?? _readString(json['id']) ?? '',
       title: _readString(json['title']),
       instructions: _readString(json['instructions']),
     );

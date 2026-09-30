@@ -1,6 +1,7 @@
 import '../../../seat_profile/domain/entities/department.dart';
 import '../../domain/entities/paygrade_detail.dart';
 import '../../domain/entities/paygrade_page.dart';
+import '../../domain/entities/shared_paygrades_content.dart';
 import '../../domain/repositories/paygrade_repository.dart';
 import '../datasources/paygrade_remote_data_source.dart';
 
@@ -8,6 +9,21 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
   const PaygradeRepositoryImpl(this._remoteDataSource);
 
   final PaygradeRemoteDataSource _remoteDataSource;
+
+  @override
+  Future<String?> getPaygradesPublicLink(String jobId) {
+    return _remoteDataSource.getPaygradesPublicLink(jobId);
+  }
+
+  @override
+  Future<String> createPaygradesPublicLink(String jobId) {
+    return _remoteDataSource.createPaygradesPublicLink(jobId);
+  }
+
+  @override
+  Future<void> deletePaygradesPublicLink(String jobId) {
+    return _remoteDataSource.deletePaygradesPublicLink(jobId);
+  }
 
   @override
   Future<PaygradePage> getPaygrades({
@@ -40,6 +56,11 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
       paygradeId: paygradeId,
       type: type,
     );
+  }
+
+  @override
+  Future<SharedPaygradesContent> getSharedPaygrades(String publicId) {
+    return _remoteDataSource.getSharedPaygrades(publicId);
   }
 
   @override
@@ -88,6 +109,17 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
       title: title,
       description: description,
       promotionRequirement: promotionRequirement,
+    );
+  }
+
+  @override
+  Future<void> updatePayRate({
+    required String paygradeId,
+    required String payRate,
+  }) {
+    return _remoteDataSource.updatePayRate(
+      paygradeId: paygradeId,
+      payRate: payRate,
     );
   }
 

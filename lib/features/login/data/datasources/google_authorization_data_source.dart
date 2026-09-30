@@ -6,6 +6,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/navigation/browser_app_link.dart';
 import '../../domain/entities/google_authorization.dart';
 import '../../google_sign_in_diagnostics.dart';
 import 'google_oauth_configuration.dart';
@@ -139,11 +140,14 @@ class GoogleAuthorizationDataSource {
   }
 
   void _handleCallback(
-    Uri uri,
+    Uri incomingUri,
     Uri callback,
     String expectedState,
     Completer<GoogleAuthorization?> result,
   ) {
+    final uri = resolveBrowserAppLink(incomingUri);
+    if (uri == null) return;
+
     GoogleSignInDiagnostics.log(
       'callback.received',
       data: {'url': uri, 'parameters': uri.queryParametersAll},

@@ -1,8 +1,13 @@
 import '../../../seat_profile/domain/entities/department.dart';
 import '../entities/paygrade_detail.dart';
 import '../entities/paygrade_page.dart';
+import '../entities/shared_paygrades_content.dart';
 
 abstract class PaygradeRepository {
+  Future<String?> getPaygradesPublicLink(String jobId);
+  Future<String> createPaygradesPublicLink(String jobId);
+  Future<void> deletePaygradesPublicLink(String jobId);
+
   Future<PaygradePage> getPaygrades({
     required int page,
     int pageSize = 10,
@@ -16,6 +21,8 @@ abstract class PaygradeRepository {
     required String paygradeId,
     required String type,
   });
+
+  Future<SharedPaygradesContent> getSharedPaygrades(String publicId);
 
   Future<void> generatePaygrades({
     required String actualId,
@@ -38,6 +45,11 @@ abstract class PaygradeRepository {
     required String title,
     required String description,
     required String promotionRequirement,
+  });
+
+  Future<void> updatePayRate({
+    required String paygradeId,
+    required String payRate,
   });
 
   Future<void> deletePaygrade(String paygradeId);
