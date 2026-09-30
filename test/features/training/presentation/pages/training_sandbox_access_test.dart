@@ -26,198 +26,207 @@ void main() {
   for (final organizationType in ['parent', 'sandbox', 'child']) {
     for (final isOwner in [false, true]) {
       for (final hasSandboxAccess in [false, true]) {
-        final canAccessExtras =
-            hasSandboxAccess || (isOwner && organizationType != 'child');
-        for (final isViewer in [false, true]) {
-          final canEdit = isOwner && organizationType != 'child' && !isViewer;
-          testWidgets(
-            '$organizationType ${isViewer ? 'viewer' : 'editor'} respects '
-            'sandbox access $hasSandboxAccess (owner: $isOwner) for Quiz and Assignment',
-            (tester) async {
-              tester.view.physicalSize = const Size(390, 844);
-              tester.view.devicePixelRatio = 1;
-              addTearDown(tester.view.resetPhysicalSize);
-              addTearDown(tester.view.resetDevicePixelRatio);
-              SharedPreferences.setMockInitialValues({});
-              await AppPreference.init();
-              AppManager.instance.resetSessionState();
-              ApiCallExecutor.clearGetCache();
-              addTearDown(AppManager.instance.resetSessionState);
-              addTearDown(ApiCallExecutor.clearGetCache);
-              writes.clear();
-              activeOrganizationType = organizationType;
+        for (final managesSeat in [false, true]) {
+          final canManage =
+              (isOwner || managesSeat) && organizationType != 'child';
+          final canAccessExtras =
+              canManage || (hasSandboxAccess && (isOwner || managesSeat));
+          for (final isViewer in [false, true]) {
+            final canEdit = canManage && !isViewer;
+            testWidgets(
+              '$organizationType ${isViewer ? 'viewer' : 'editor'} respects '
+              'sandbox access $hasSandboxAccess (owner: $isOwner, managed: $managesSeat) '
+              'for Quiz and Assignment',
+              (tester) async {
+                tester.view.physicalSize = const Size(390, 844);
+                tester.view.devicePixelRatio = 1;
+                addTearDown(tester.view.resetPhysicalSize);
+                addTearDown(tester.view.resetDevicePixelRatio);
+                SharedPreferences.setMockInitialValues({});
+                await AppPreference.init();
+                AppManager.instance.resetSessionState();
+                ApiCallExecutor.clearGetCache();
+                addTearDown(AppManager.instance.resetSessionState);
+                addTearDown(ApiCallExecutor.clearGetCache);
+                writes.clear();
+                activeOrganizationType = organizationType;
 
-              await http.runWithClient(() async {
-                await AppManager.instance.fetchOrganizations(
-                  requireSuccess: true,
-                );
-                AppManager.instance.updateCurrentUser(
-                  User(
-                    uuid: 'learner',
-                    isOwner: isOwner,
-                    roles: organizationType == 'child'
-                        ? const ['dept_lead']
-                        : const ['team_member'],
-                    hierarchyMemberships: organizationType == 'child'
-                        ? const [
-                            UserHierarchyMembership(
-                              nodeUuid: 'node',
-                              role: 'dept_lead',
-                              manageableSeatProfileIds: ['seat'],
-                            ),
-                          ]
-                        : const [],
-                    organizationUuid: 'org-id',
-                    hasSandboxAccess: hasSandboxAccess,
-                  ),
-                );
-                expect(
-                  AppManager.instance.currentOrganization?.type,
-                  organizationType,
-                );
-                const route = SeatDescriptionTrainingRoute(
-                  job: 'seat',
-                  category: 'category',
-                  description: 'description',
-                  initialModuleId: 'lesson',
-                );
-                await tester.pumpWidget(
-                  ChangeNotifierProvider<AppManager>.value(
-                    value: AppManager.instance,
-                    child: MaterialApp(
-                      home: isViewer
-                          ? const TrainingLessonViewerScreen(
-                              trainingRoute: route,
-                            )
-                          : const Scaffold(
-                              body: EditTrainingSection(trainingRoute: route),
-                            ),
+                await http.runWithClient(() async {
+                  await AppManager.instance.fetchOrganizations(
+                    requireSuccess: true,
+                  );
+                  AppManager.instance.updateCurrentUser(
+                    User(
+                      uuid: 'learner',
+                      isOwner: isOwner,
+                      roles: const ['dept_lead'],
+                      hierarchyMemberships: [
+                        UserHierarchyMembership(
+                          nodeUuid: 'node',
+                          role: 'dept_lead',
+                          manageableSeatProfileIds: managesSeat
+                              ? const ['seat']
+                              : const ['other-seat'],
+                        ),
+                      ],
+                      organizationUuid: 'org-id',
+                      hasSandboxAccess: hasSandboxAccess,
                     ),
-                  ),
-                );
-                await tester.pumpAndSettle();
+                  );
+                  expect(
+                    AppManager.instance.currentOrganization?.type,
+                    organizationType,
+                  );
+                  const route = SeatDescriptionTrainingRoute(
+                    job: 'seat',
+                    category: 'category',
+                    description: 'description',
+                    initialModuleId: 'lesson',
+                  );
+                  await tester.pumpWidget(
+                    ChangeNotifierProvider<AppManager>.value(
+                      value: AppManager.instance,
+                      child: MaterialApp(
+                        home: isViewer
+                            ? const TrainingLessonViewerScreen(
+                                trainingRoute: route,
+                              )
+                            : const Scaffold(
+                                body: EditTrainingSection(trainingRoute: route),
+                              ),
+                      ),
+                    ),
+                  );
+                  await tester.pumpAndSettle();
 
-                final tabs = tester.widget<TrainingTabs>(
-                  find.byType(TrainingTabs),
-                );
-                expect(tabs.maxTabIndex, canAccessExtras ? 3 : 1);
-                await tester.tap(_tab(AppStrings.trainingSopTab));
-                await tester.pumpAndSettle();
-                expect(tabs.navigation.selectedIndex, 1);
-                if (!canEdit) {
-                  expect(find.text('Procedure'), findsOneWidget);
-                  final sopField = find.byWidgetPredicate(
-                    (widget) =>
-                        widget is TextField &&
-                        widget.decoration?.hintText ==
-                            AppStrings.trainingSopHint,
+                  final tabs = tester.widget<TrainingTabs>(
+                    find.byType(TrainingTabs),
                   );
-                  expect(sopField, isViewer ? findsNothing : findsOneWidget);
-                  if (!isViewer) {
-                    expect(tester.widget<TextField>(sopField).readOnly, isTrue);
-                  }
-                  expect(
-                    find.text(AppStrings.trainingCreateWithAi),
-                    findsNothing,
-                  );
-                }
-                await tester.tap(_tab(AppStrings.trainingVideoTab));
-                await tester.pumpAndSettle();
-                await tester.tap(_tab(AppStrings.trainingQuizTab));
-                await tester.pumpAndSettle();
-                if (canAccessExtras) {
-                  expect(tabs.navigation.selectedIndex, 2);
-                  expect(find.text('Training question?'), findsOneWidget);
-                  expect(
-                    find.byTooltip(AppStrings.trainingQuestionActions),
-                    canEdit ? findsOneWidget : findsNothing,
-                  );
-                  expect(
-                    find.text(AppStrings.trainingAddNewQuestion),
-                    canEdit ? findsOneWidget : findsNothing,
-                  );
-                  if (canEdit) {
-                    expect(
-                      tester
-                          .widget<IconButton>(
-                            find.byWidgetPredicate(
-                              (widget) =>
-                                  widget is IconButton &&
-                                  widget.tooltip ==
-                                      AppStrings.trainingQuestionActions,
-                            ),
-                          )
-                          .onPressed,
-                      isNotNull,
-                    );
-                  }
-                  await tester.fling(
-                    find.byType(PageView),
-                    const Offset(-320, 0),
-                    1000,
-                  );
-                  await tester.pumpAndSettle();
-                  expect(tabs.navigation.selectedIndex, 3);
-
-                  final editor = find.byWidgetPredicate(
-                    (widget) =>
-                        widget is TextField &&
-                        widget.decoration?.hintText ==
-                            AppStrings.trainingAssignmentDescriptionHint,
-                  );
-                  if (!canEdit) {
-                    expect(editor, findsNothing);
-                    expect(
-                      find.text('Assignment instructions'),
-                      findsOneWidget,
-                    );
-                    expect(
-                      find.text(AppStrings.trainingGenerateAssignment),
-                      findsNothing,
-                    );
-                    expect(writes, isEmpty);
-                  } else {
-                    expect(editor, findsOneWidget);
-                    expect(tester.widget<TextField>(editor).readOnly, isFalse);
-                    await tester.enterText(editor, 'Updated instructions');
-                    await tester.pump(const Duration(milliseconds: 400));
-                    await tester.pump();
-                    expect(writes, hasLength(1));
-                    expect(writes.single.method, 'PATCH');
-                    expect(
-                      writes.single.url.path,
-                      endsWith('training_assignment/assignment-1/'),
-                    );
-                    expect(jsonDecode(writes.single.body), {
-                      'instructions': 'Updated instructions',
-                    });
-                  }
-                } else {
-                  expect(tabs.navigation.selectedIndex, 0);
-                  await tester.tap(_tab(AppStrings.trainingAssignmentTab));
-                  await tester.pumpAndSettle();
-                  expect(tabs.navigation.selectedIndex, 0);
-                  await tester.fling(
-                    find.byType(PageView),
-                    const Offset(-320, 0),
-                    1000,
-                  );
-                  await tester.pumpAndSettle();
-                  await tester.fling(
-                    find.byType(PageView),
-                    const Offset(-320, 0),
-                    1000,
-                  );
+                  expect(tabs.maxTabIndex, canAccessExtras ? 3 : 1);
+                  await tester.tap(_tab(AppStrings.trainingSopTab));
                   await tester.pumpAndSettle();
                   expect(tabs.navigation.selectedIndex, 1);
-                  expect(writes, isEmpty);
-                }
+                  if (!canEdit) {
+                    expect(find.text('Procedure'), findsOneWidget);
+                    final sopField = find.byWidgetPredicate(
+                      (widget) =>
+                          widget is TextField &&
+                          widget.decoration?.hintText ==
+                              AppStrings.trainingSopHint,
+                    );
+                    expect(sopField, isViewer ? findsNothing : findsOneWidget);
+                    if (!isViewer) {
+                      expect(
+                        tester.widget<TextField>(sopField).readOnly,
+                        isTrue,
+                      );
+                    }
+                    expect(
+                      find.text(AppStrings.trainingCreateWithAi),
+                      findsNothing,
+                    );
+                  }
+                  await tester.tap(_tab(AppStrings.trainingVideoTab));
+                  await tester.pumpAndSettle();
+                  await tester.tap(_tab(AppStrings.trainingQuizTab));
+                  await tester.pumpAndSettle();
+                  if (canAccessExtras) {
+                    expect(tabs.navigation.selectedIndex, 2);
+                    expect(find.text('Training question?'), findsOneWidget);
+                    expect(
+                      find.byTooltip(AppStrings.trainingQuestionActions),
+                      canEdit ? findsOneWidget : findsNothing,
+                    );
+                    expect(
+                      find.text(AppStrings.trainingAddNewQuestion),
+                      canEdit ? findsOneWidget : findsNothing,
+                    );
+                    if (canEdit) {
+                      expect(
+                        tester
+                            .widget<IconButton>(
+                              find.byWidgetPredicate(
+                                (widget) =>
+                                    widget is IconButton &&
+                                    widget.tooltip ==
+                                        AppStrings.trainingQuestionActions,
+                              ),
+                            )
+                            .onPressed,
+                        isNotNull,
+                      );
+                    }
+                    await tester.fling(
+                      find.byType(PageView),
+                      const Offset(-320, 0),
+                      1000,
+                    );
+                    await tester.pumpAndSettle();
+                    expect(tabs.navigation.selectedIndex, 3);
 
-                expect(tester.takeException(), isNull);
-                await tester.pumpWidget(const SizedBox.shrink());
-              }, () => client);
-            },
-          );
+                    final editor = find.byWidgetPredicate(
+                      (widget) =>
+                          widget is TextField &&
+                          widget.decoration?.hintText ==
+                              AppStrings.trainingAssignmentDescriptionHint,
+                    );
+                    if (!canEdit) {
+                      expect(editor, findsNothing);
+                      expect(
+                        find.text('Assignment instructions'),
+                        findsOneWidget,
+                      );
+                      expect(
+                        find.text(AppStrings.trainingGenerateAssignment),
+                        findsNothing,
+                      );
+                      expect(writes, isEmpty);
+                    } else {
+                      expect(editor, findsOneWidget);
+                      expect(
+                        tester.widget<TextField>(editor).readOnly,
+                        isFalse,
+                      );
+                      await tester.enterText(editor, 'Updated instructions');
+                      await tester.pump(const Duration(milliseconds: 400));
+                      await tester.pump();
+                      expect(writes, hasLength(1));
+                      expect(writes.single.method, 'PATCH');
+                      expect(
+                        writes.single.url.path,
+                        endsWith('training_assignment/assignment-1/'),
+                      );
+                      expect(jsonDecode(writes.single.body), {
+                        'instructions': 'Updated instructions',
+                      });
+                    }
+                  } else {
+                    expect(tabs.navigation.selectedIndex, 0);
+                    await tester.tap(_tab(AppStrings.trainingAssignmentTab));
+                    await tester.pumpAndSettle();
+                    expect(tabs.navigation.selectedIndex, 0);
+                    await tester.fling(
+                      find.byType(PageView),
+                      const Offset(-320, 0),
+                      1000,
+                    );
+                    await tester.pumpAndSettle();
+                    await tester.fling(
+                      find.byType(PageView),
+                      const Offset(-320, 0),
+                      1000,
+                    );
+                    await tester.pumpAndSettle();
+                    expect(tabs.navigation.selectedIndex, 1);
+                    expect(writes, isEmpty);
+                  }
+
+                  expect(tester.takeException(), isNull);
+                  await tester.pumpWidget(const SizedBox.shrink());
+                }, () => client);
+              },
+            );
+          }
         }
       }
     }

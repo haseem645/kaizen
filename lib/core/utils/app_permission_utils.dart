@@ -243,8 +243,16 @@ class AppPermissionUtils {
     required Organization? currentOrganization,
     required String seatProfileId,
   }) {
-    // Sandbox grants viewing even in child organisations, never editing.
-    return user?.hasSandboxAccess == true ||
+    // Sandbox adds managed-seat viewing even in child organisations. Owners
+    // keep their existing access, and editing permissions remain separate.
+    final canViewWithSandbox =
+        user?.hasSandboxAccess == true &&
+        (user?.isOwner == true ||
+            user?.hierarchyMemberships?.any(
+                  (membership) => membership.managesSeatProfile(seatProfileId),
+                ) ==
+                true);
+    return canViewWithSandbox ||
         canManageTrainingForSeatProfile(
           user: user,
           currentOrganization: currentOrganization,
