@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -34,8 +35,7 @@ class _ComplianceFullScreenVideoViewState
   );
   static const Duration _bufferingIndicatorDelay = Duration(milliseconds: 350);
 
-  bool _isScrubbing = false;
-  double? _scrubPositionMillis;
+  final ValueNotifier<double?> _scrubPositionMillis = ValueNotifier(null);
   final ValueNotifier<bool> _showBufferingIndicator = ValueNotifier<bool>(
     false,
   );
@@ -47,6 +47,7 @@ class _ComplianceFullScreenVideoViewState
   @override
   void initState() {
     super.initState();
+    _enterFullscreen();
     _attachController(widget.controller);
     _syncInitialPosition();
   }
@@ -56,8 +57,7 @@ class _ComplianceFullScreenVideoViewState
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
       _detachController(oldWidget.controller);
-      _isScrubbing = false;
-      _scrubPositionMillis = null;
+      _scrubPositionMillis.value = null;
       _attachController(widget.controller);
       _syncInitialPosition();
     }
@@ -67,7 +67,23 @@ class _ComplianceFullScreenVideoViewState
   void dispose() {
     _detachController(widget.controller);
     _showBufferingIndicator.dispose();
+    _scrubPositionMillis.dispose();
+    unawaited(
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]),
+    );
+    unawaited(VideoPlaybackService.setFullscreen(false));
     super.dispose();
+  }
+
+  void _enterFullscreen() {
+    unawaited(
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]),
+    );
+    unawaited(VideoPlaybackService.setFullscreen(true));
   }
 
   void _attachController(VideoPlayerController controller) {
@@ -209,97 +225,97 @@ class _ComplianceFullScreenVideoViewState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: ValueListenableBuilder<VideoPlayerValue>(
-          valueListenable: widget.controller,
-          child: VideoPlayer(widget.controller),
-          builder: (context, controllerValue, child) {
-            final controller = widget.controller;
-            final isReady = controllerValue.isInitialized;
+      body: ValueListenableBuilder<VideoPlayerValue>(
+        valueListenable: widget.controller,
+        child: VideoPlayer(widget.controller),
+        builder: (context, controllerValue, child) {
+          final controller = widget.controller;
+          final isReady = controllerValue.isInitialized;
 
-            return ValueListenableBuilder<bool>(
-              valueListenable: _showBufferingIndicator,
-              builder: (context, showBufferingIndicator, _) {
-                return Stack(
-                  children: [
+          return ValueListenableBuilder<bool>(
+            valueListenable: _showBufferingIndicator,
+            builder: (context, showBufferingIndicator, _) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Center(
+                    child: isReady
+                        ? AspectRatio(
+                            aspectRatio: controllerValue.aspectRatio,
+                            child: child ?? VideoPlayer(controller),
+                          )
+                        : FastCircularProgressIndicator(width: 32, height: 32),
+                  ),
+                  if (isReady &&
+                      controllerValue.isBuffering &&
+                      showBufferingIndicator)
                     Center(
-                      child: isReady
-                          ? AspectRatio(
-                              aspectRatio: controllerValue.aspectRatio,
-                              child: child ?? VideoPlayer(controller),
-                            )
-                          : FastCircularProgressIndicator(
-                              width: 32,
-                              height: 32,
-                            ),
-                    ),
-                    if (isReady &&
-                        controllerValue.isBuffering &&
-                        showBufferingIndicator)
-                      Center(
-                        child: SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: FastCircularProgressIndicator(),
-                        ),
-                      ),
-                    Positioned(
-                      left: 12,
-                      top: 12,
-                      child: AppBackButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                      child: SizedBox(
+                        width: 30,
+                        height: 30,
+                        child: FastCircularProgressIndicator(),
                       ),
                     ),
-                    Positioned(
-                      left: 24,
-                      right: 24,
-                      bottom: 24,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AppTextView.body1(
-                            widget.title,
-                            color: AppColors.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          const SizedBox(height: 8),
-                          _FullScreenVideoControls(
-                            controllerValue: controllerValue,
-                            isReady: isReady,
-                            isScrubbing: _isScrubbing,
-                            scrubPositionMillis: _scrubPositionMillis,
-                            onTogglePlayback: _togglePlayback,
-                            onScrubStart: (value) {
-                              setState(() {
-                                _isScrubbing = true;
-                                _scrubPositionMillis = value;
-                              });
-                            },
-                            onScrubChanged: (value) {
-                              setState(() {
-                                _scrubPositionMillis = value;
-                              });
-                            },
-                            onScrubEnd: (value) async {
-                              setState(() {
-                                _isScrubbing = false;
-                                _scrubPositionMillis = null;
-                              });
-                              await controller.seekTo(
-                                Duration(milliseconds: value.round()),
-                              );
-                            },
-                          ),
-                        ],
+                  _buildControlsOverlay(controllerValue),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildControlsOverlay(VideoPlayerValue controllerValue) {
+    return SafeArea(
+      child: Stack(
+        children: [
+          Positioned(
+            left: 12,
+            top: 12,
+            child: AppBackButton(onPressed: () => Navigator.of(context).pop()),
+          ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 24,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppTextView.body1(
+                  widget.title,
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                ValueListenableBuilder<double?>(
+                  valueListenable: _scrubPositionMillis,
+                  builder: (context, scrubPosition, _) =>
+                      _FullScreenVideoControls(
+                        controllerValue: controllerValue,
+                        isReady: controllerValue.isInitialized,
+                        isScrubbing: scrubPosition != null,
+                        scrubPositionMillis: scrubPosition,
+                        onTogglePlayback: _togglePlayback,
+                        onScrubStart: (value) =>
+                            _scrubPositionMillis.value = value,
+                        onScrubChanged: (value) =>
+                            _scrubPositionMillis.value = value,
+                        onScrubEnd: (value) async {
+                          _scrubPositionMillis.value = null;
+                          await widget.controller.seekTo(
+                            Duration(milliseconds: value.round()),
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
