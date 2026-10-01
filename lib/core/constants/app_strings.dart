@@ -797,6 +797,13 @@ class AppStrings {
   static const String trainingQuestionOptionsRequired =
       'Please fill in every option before saving.';
   static const String trainingQuestionCorrectOptionRequired = 'Please select the correct option.';
+  static const String trainingViewTranscript = 'View Transcript';
+  static const String trainingCc = 'CC';
+  static const String trainingHideActiveTranscript = 'Hide active transcript';
+  static const String trainingShowActiveTranscript = 'Show active transcript';
+  static const String trainingTranscriptTitle = 'Transcript';
+  static const String trainingTranscriptSeekFailed =
+      'Unable to jump to this part of the video. Please try again.';
   static const String trainingNoTranscriptAvailable = 'No transcript available.';
   static const String trainingNoSummaryAvailable = 'No summary available.';
   static const String trainingNoSummaryAvailableSnackBar = 'No Summary Available';

@@ -836,28 +836,48 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
             : SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _TrainingOverviewCard(
-                        detail: detail,
-                        currentModuleNumber: _controller.currentModuleNumber,
-                        moduleCount: _controller.moduleCount,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _TrainingOverviewCard(
+                          detail: detail,
+                          currentModuleNumber: _controller.currentModuleNumber,
+                          moduleCount: _controller.moduleCount,
+                        ),
                       ),
                       const SizedBox(height: 6),
-                      _TrainingTabs(controller: _tabController),
-                      const SizedBox(height: 18),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _TrainingTabs(controller: _tabController),
+                      ),
+                      const SizedBox(height: 8),
                       Expanded(
                         child: TabBarView(
                           controller: _tabController,
                           children: [
-                            ComplianceVideoScreen(detail: detail),
-                            ComplianceTrainingDocumentScreen(detail: detail),
-                            ComplianceQuizScreen(
-                              trackAssignmentUuid: widget.trackAssignmentUuid,
-                              trainingModuleUuid: detail.trainingModuleUuid,
-                              isActive: _selectedTabIndex == 2,
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              child: FractionallySizedBox(
+                                heightFactor: 0.8,
+                                widthFactor: 1,
+                                alignment: const Alignment(0, 0.25),
+                                child: ComplianceVideoScreen(detail: detail),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
+                              child: ComplianceTrainingDocumentScreen(detail: detail),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
+                              child: ComplianceQuizScreen(
+                                trackAssignmentUuid: widget.trackAssignmentUuid,
+                                trainingModuleUuid: detail.trainingModuleUuid,
+                                isActive: _selectedTabIndex == 2,
+                              ),
                             ),
                           ],
                         ),
