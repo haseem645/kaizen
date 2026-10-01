@@ -62,13 +62,14 @@ class _VideoTabContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (canRevealVideo)
-          ComplianceVideoPlayer(
-            key: ValueKey<String>(videoUrl),
+          ComplianceVideoTranscriptPanel(
+            videoId: (detail?.uuid, video?.uuid),
+            transcript: video?.transcript,
             videoUrl: videoUrl,
             localVideoPath: localVideoPath,
             title: detail?.title ?? '',
             thumbnailLink: detail?.previewThumbnailLink,
-            height: (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0),
+            videoHeight: (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0) - 60,
             fillBounds: true,
             topRightActions: !isReadOnly
                 ? [
