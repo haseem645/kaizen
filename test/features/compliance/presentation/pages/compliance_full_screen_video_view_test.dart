@@ -3,8 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/rendering.dart';
+import 'package:provider/provider.dart';
+import 'package:sparrowkaizen/core/constants/app_colors.dart';
+import 'package:sparrowkaizen/core/constants/app_strings.dart';
 import 'package:sparrowkaizen/core/widgets/app_back_button.dart';
 import 'package:sparrowkaizen/features/compliance/presentation/pages/training/compliance_full_screen_video_view.dart';
+import 'package:sparrowkaizen/features/compliance/presentation/providers/compliance_video_controller.dart';
 import 'package:video_player/video_player.dart';
 // ignore: depend_on_referenced_packages
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
@@ -50,7 +55,12 @@ void main() {
     messenger.setMockMethodCallHandler(fullscreenChannel, null);
   });
 
-  Future<void> openPlayer(WidgetTester tester, {bool playing = true}) async {
+  Future<void> openPlayer(
+    WidgetTester tester, {
+    bool playing = true,
+    ComplianceVideoController? transcriptController,
+    double textScale = 1,
+  }) async {
     controller = VideoPlayerController.networkUrl(
       Uri.parse('https://example.com/video.mp4'),
     );
@@ -61,16 +71,29 @@ void main() {
     });
     await tester.pumpWidget(
       MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         home: Builder(
           builder: (context) => Scaffold(
             body: ElevatedButton(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
-                  builder: (_) => ComplianceFullScreenVideoView(
-                    controller: controller,
-                    title: 'Lesson',
-                    initialPosition: controller.value.position,
-                  ),
+                  builder: (_) {
+                    final view = ComplianceFullScreenVideoView(
+                      controller: controller,
+                      title: 'Lesson',
+                      initialPosition: controller.value.position,
+                    );
+                    return transcriptController == null
+                        ? view
+                        : ChangeNotifierProvider<
+                            ComplianceVideoController
+                          >.value(value: transcriptController, child: view);
+                  },
                 ),
               ),
               child: const Text('Open'),
@@ -82,6 +105,159 @@ void main() {
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'fullscreen captions sit above the title and transcript rows seek playback',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      final transcript = ComplianceVideoController(
+        '[00:00 --> 00:05] Introduction\n[00:10 --> 00:30] Active caption',
+      );
+      addTearDown(transcript.dispose);
+      transcript.setSeekHandler((position) async {
+        await controller.seekTo(position);
+        await controller.play();
+        return true;
+      });
+      await openPlayer(
+        tester,
+        playing: false,
+        transcriptController: transcript,
+      );
+      final titleRow = find
+          .ancestor(of: find.text('Lesson'), matching: find.byType(Row))
+          .first;
+      final titleBounds = tester.getRect(titleRow);
+      final captionContainer = find.byKey(
+        const ValueKey('fullscreen-active-transcript'),
+      );
+      expect(
+        tester.getTopLeft(titleRow).dy -
+            tester.getBottomLeft(captionContainer).dy,
+        closeTo(6, 0.01),
+      );
+      final action = find.ancestor(
+        of: find.text(AppStrings.trainingViewTranscript),
+        matching: find.byType(TextButton),
+      );
+      expect(tester.getBottomRight(action).dx, titleBounds.right);
+      expect(
+        tester.getTopLeft(find.text('Active caption')).dx,
+        titleBounds.left + 12,
+      );
+
+      await controller.seekTo(const Duration(seconds: 35));
+      await tester.pump();
+      expect(find.text('Active caption'), findsNothing);
+      expect(tester.getRect(titleRow), titleBounds);
+      await controller.seekTo(const Duration(seconds: 20));
+      await tester.pump();
+      transcript.toggleCc();
+      await tester.pump();
+      expect(find.text('Active caption'), findsNothing);
+      expect(tester.getRect(titleRow), titleBounds);
+      transcript.toggleCc();
+      await tester.pump();
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      final activeSheetCaption = find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Active caption'),
+      );
+      expect(
+        tester.widget<Text>(activeSheetCaption).style?.color,
+        AppColors.secondaryColor,
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text('Introduction'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(controller.value.position, Duration.zero);
+      expect(controller.value.isPlaying, isTrue);
+      expect(find.text('Introduction'), findsOneWidget);
+      expect(
+        tester.getTopLeft(titleRow).dy -
+            tester.getBottomLeft(captionContainer).dy,
+        closeTo(6, 0.01),
+      );
+      await controller.pause();
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'long fullscreen captions scroll without covering the title actions',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 640);
+      addTearDown(tester.view.reset);
+      final cue = List.filled(
+        30,
+        'Long caption content that wraps across the display',
+      ).join('\n');
+      final transcript = ComplianceVideoController('[00:00] $cue');
+      addTearDown(transcript.dispose);
+      await openPlayer(
+        tester,
+        playing: false,
+        transcriptController: transcript,
+        textScale: 2,
+      );
+      final caption = find.text(cue);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: caption, matching: find.byType(RichText)),
+      );
+      expect(paragraph.didExceedMaxLines, isFalse);
+      final viewport = find.ancestor(
+        of: caption,
+        matching: find.byType(SingleChildScrollView),
+      );
+      final titleRow = find
+          .ancestor(of: find.text('Lesson'), matching: find.byType(Row))
+          .first;
+      expect(
+        tester.getTopLeft(titleRow).dy -
+            tester
+                .getBottomLeft(
+                  find.byKey(const ValueKey('fullscreen-active-transcript')),
+                )
+                .dy,
+        closeTo(6, 0.01),
+      );
+      final scrollable = find.descendant(
+        of: viewport,
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.state<ScrollableState>(scrollable).position;
+      expect(position.maxScrollExtent, greaterThan(0));
+      await tester.drag(viewport, Offset(0, -position.maxScrollExtent - 100));
+      await tester.pumpAndSettle();
+      expect(position.pixels, closeTo(position.maxScrollExtent, 1));
+      await tester.tap(find.text(AppStrings.trainingViewTranscript));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('fullscreen transcript action handles empty content', (
+    tester,
+  ) async {
+    await openPlayer(tester, playing: false);
+    await tester.tap(find.text(AppStrings.trainingViewTranscript));
+    await tester.pumpAndSettle();
+    expect(find.text(AppStrings.trainingNoTranscriptAvailable), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
 
   for (final useSystemBack in [false, true]) {
     testWidgets(

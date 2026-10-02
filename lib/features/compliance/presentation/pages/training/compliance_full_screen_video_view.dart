@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -10,6 +12,8 @@ import '../../../../../core/utils/custom_functions.dart';
 import '../../../../../core/widgets/app_back_button.dart';
 import '../../../../../core/widgets/app_text_view.dart';
 import '../../../../../core/widgets/fast_circular_progress.dart';
+import '../../providers/compliance_video_controller.dart';
+import '../../widgets/compliance_video_transcript_sheet.dart';
 
 class ComplianceFullScreenVideoView extends StatefulWidget {
   const ComplianceFullScreenVideoView({
@@ -43,10 +47,12 @@ class _ComplianceFullScreenVideoViewState
   Timer? _pendingBufferingIndicatorTimer;
   Duration _lastObservedPosition = Duration.zero;
   bool _isEntryBufferingSuppressed = false;
+  late final ComplianceVideoController? _transcriptController;
 
   @override
   void initState() {
     super.initState();
+    _transcriptController = context.read<ComplianceVideoController?>();
     _enterFullscreen();
     _attachController(widget.controller);
     _syncInitialPosition();
@@ -133,6 +139,18 @@ class _ComplianceFullScreenVideoViewState
   void _handleControllerChanged() {
     final value = widget.controller.value;
     final position = value.position;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _transcriptController?.updatePlaybackPosition(
+            widget.controller.value.position,
+          );
+        }
+      });
+    } else {
+      _transcriptController?.updatePlaybackPosition(position);
+    }
     final hasPositionChanged = position != _lastObservedPosition;
     _lastObservedPosition = position;
 
@@ -268,30 +286,27 @@ class _ComplianceFullScreenVideoViewState
 
   Widget _buildControlsOverlay(VideoPlayerValue controllerValue) {
     return SafeArea(
-      child: Stack(
-        children: [
-          Positioned(
-            left: 12,
-            top: 12,
-            child: AppBackButton(onPressed: () => Navigator.of(context).pop()),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 24,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppTextView.body1(
-                  widget.title,
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+      child: LayoutBuilder(
+        builder: (context, constraints) => Stack(
+          children: [
+            Positioned(
+              left: 12,
+              top: 12,
+              child: AppBackButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 24,
+              child: _FullScreenVideoFooter(
+                title: widget.title,
+                maxHeight: (constraints.maxHeight - 100).clamp(
+                  0,
+                  double.infinity,
                 ),
-                const SizedBox(height: 8),
-                ValueListenableBuilder<double?>(
+                controls: ValueListenableBuilder<double?>(
                   valueListenable: _scrubPositionMillis,
                   builder: (context, scrubPosition, _) =>
                       _FullScreenVideoControls(
@@ -312,7 +327,100 @@ class _ComplianceFullScreenVideoViewState
                         },
                       ),
                 ),
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenVideoFooter extends StatelessWidget {
+  const _FullScreenVideoFooter({
+    required this.title,
+    required this.maxHeight,
+    required this.controls,
+  });
+
+  final String title;
+  final double maxHeight;
+  final Widget controls;
+
+  @override
+  Widget build(BuildContext context) {
+    final caption = context.select<ComplianceVideoController?, String?>(
+      (controller) => controller?.hasVisibleActiveTranscript == true
+          ? controller!.activeTranscriptLine!.text
+          : null,
+    );
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Padding(
+        key: const ValueKey('fullscreen-video-footer'),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (caption != null) ...[
+              Flexible(
+                child: Container(
+                  key: const ValueKey('fullscreen-active-transcript'),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: SingleChildScrollView(
+                    key: ValueKey(caption),
+                    primary: false,
+                    child: AppTextView.body3(
+                      caption,
+                      color: AppColors.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+            _FullScreenVideoTitleRow(title: title),
+            const SizedBox(height: 8),
+            controls,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenVideoTitleRow extends StatelessWidget {
+  const _FullScreenVideoTitleRow({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        children: [
+          Expanded(
+            child: AppTextView.body1(
+              title,
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.6),
+            child: ComplianceVideoTranscriptButton(
+              onPressed: () => showComplianceVideoTranscriptSheet(context),
+              padding: const EdgeInsets.fromLTRB(12, 4, 0, 6),
             ),
           ),
         ],
@@ -360,48 +468,59 @@ class _FullScreenVideoControls extends StatelessWidget {
       currentMillis: currentMillis,
     );
 
-    return Row(
-      children: [
-        IconButton(
-          onPressed: isReady ? onTogglePlayback : null,
-          icon: Icon(
-            controllerValue.isPlaying
-                ? Icons.pause_rounded
-                : Icons.play_arrow_rounded,
-            color: AppColors.textPrimary,
-            size: 34,
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        children: [
+          IconButton(
+            onPressed: isReady ? onTogglePlayback : null,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.fromLTRB(0, 8, 16, 8),
+            icon: Icon(
+              controllerValue.isPlaying
+                  ? Icons.pause_rounded
+                  : Icons.play_arrow_rounded,
+              color: AppColors.textPrimary,
+              size: 34,
+            ),
           ),
-        ),
-        Expanded(
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: AppColors.secondaryColor,
-              secondaryActiveTrackColor: AppColors.textPrimary.withValues(
-                alpha: 0.55,
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.secondaryColor,
+                secondaryActiveTrackColor: AppColors.textPrimary.withValues(
+                  alpha: 0.55,
+                ),
+                inactiveTrackColor: AppColors.textPrimary.withValues(
+                  alpha: 0.35,
+                ),
+                thumbColor: AppColors.textPrimary,
+                overlayColor: AppColors.secondaryColor.withValues(alpha: 0.18),
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
               ),
-              inactiveTrackColor: AppColors.textPrimary.withValues(alpha: 0.35),
-              thumbColor: AppColors.textPrimary,
-              overlayColor: AppColors.secondaryColor.withValues(alpha: 0.18),
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
-            ),
-            child: Slider(
-              value: currentMillis,
-              secondaryTrackValue: bufferedMillis,
-              min: 0,
-              max: maxMillis,
-              onChangeStart: !isReady ? null : onScrubStart,
-              onChanged: !isReady ? null : onScrubChanged,
-              onChangeEnd: !isReady ? null : onScrubEnd,
+              child: Slider(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                value: currentMillis,
+                secondaryTrackValue: bufferedMillis,
+                min: 0,
+                max: maxMillis,
+                onChangeStart: !isReady ? null : onScrubStart,
+                onChanged: !isReady ? null : onScrubChanged,
+                onChangeEnd: !isReady ? null : onScrubEnd,
+              ),
             ),
           ),
-        ),
-        AppTextView.body4(
-          '${CustomFunctions.formatDuration(position.inSeconds)}/${CustomFunctions.formatDuration(duration.inSeconds)}',
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ],
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.45),
+            child: AppTextView.body4(
+              '${CustomFunctions.formatDuration(position.inSeconds)}/${CustomFunctions.formatDuration(duration.inSeconds)}',
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
