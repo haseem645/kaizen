@@ -38,6 +38,7 @@ abstract class PaygradeRepository {
     required String promotionRequirement,
     required int position,
     required bool fromSandbox,
+    String? payRate,
   });
 
   Future<void> updatePaygrade({
@@ -45,6 +46,7 @@ abstract class PaygradeRepository {
     required String title,
     required String description,
     required String promotionRequirement,
+    String? payRate,
   });
 
   Future<void> updatePayRate({

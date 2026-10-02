@@ -84,6 +84,7 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
     required String promotionRequirement,
     required int position,
     required bool fromSandbox,
+    String? payRate,
   }) {
     return _remoteDataSource.createPaygrade(
       jobId: jobId,
@@ -94,6 +95,7 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
       promotionRequirement: promotionRequirement,
       position: position,
       fromSandbox: fromSandbox,
+      payRate: payRate,
     );
   }
 
@@ -103,12 +105,14 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
     required String title,
     required String description,
     required String promotionRequirement,
+    String? payRate,
   }) {
     return _remoteDataSource.updatePaygrade(
       paygradeId: paygradeId,
       title: title,
       description: description,
       promotionRequirement: promotionRequirement,
+      payRate: payRate,
     );
   }
 

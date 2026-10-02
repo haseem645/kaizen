@@ -159,7 +159,9 @@ class PaygradeRemoteDataSource {
     required String promotionRequirement,
     required int position,
     required bool fromSandbox,
+    String? payRate,
   }) {
+    final rate = payRate?.trim();
     return _apiCallExecutor.processApi<PaygradeEntryModel>(
       apiCallType: ApiCallType.post,
       endpoint: ApiEndPoints.payGrade,
@@ -173,6 +175,7 @@ class PaygradeRemoteDataSource {
         'position': position,
         'from_sandbox': fromSandbox,
         'job': jobId,
+        if (rate != null && rate.isNotEmpty) 'pay_rate': rate,
       },
       decoder: (json) {
         return PaygradeEntryModel.fromApiJson(_decodePaygradeEntryJson(json));
@@ -185,6 +188,7 @@ class PaygradeRemoteDataSource {
     required String title,
     required String description,
     required String promotionRequirement,
+    String? payRate,
   }) {
     return _apiCallExecutor.processApi<void>(
       apiCallType: ApiCallType.patch,
@@ -194,6 +198,7 @@ class PaygradeRemoteDataSource {
         'title': title,
         'description': description,
         'promotion_requirement': promotionRequirement,
+        if (payRate != null) 'pay_rate': payRate,
       },
       decoder: (_) {},
     );
