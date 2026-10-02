@@ -155,11 +155,6 @@ class AppRouter {
       .where((destination) => destination.menu.isBottomNavigationTab)
       .toList(growable: false);
 
-  static bool _canSelectMainMenu(AppMenuType menu) {
-    return !AppManager.instance.usesParentApiEndpoints ||
-        menu == AppMenuType.library;
-  }
-
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final destination = _navigationDestinations
         .where((destination) => destination.routeName == settings.name)
@@ -172,7 +167,6 @@ class AppRouter {
         settings: settings,
         destinations: _mainDestinations,
         initialMenu: destination.menu,
-        canSelectMenu: _canSelectMainMenu,
         onRouteNameChanged: AppManager.instance.updateCurrentRouteName,
       );
     }
