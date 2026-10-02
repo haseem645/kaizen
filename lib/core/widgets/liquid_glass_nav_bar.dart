@@ -119,7 +119,10 @@ class _GlassDestinations extends StatelessWidget {
                 child: FractionallySizedBox(
                   widthFactor: 1 / items.length,
                   heightFactor: 1,
-                  child: const _GlassSelectionLens(),
+                  child: _GlassSelectionLens(
+                    horizontalPadding:
+                        items[selectedIndex].selectionHorizontalPadding,
+                  ),
                 ),
               ),
             ),
@@ -140,7 +143,9 @@ class _GlassDestinations extends StatelessWidget {
 }
 
 class _GlassSelectionLens extends StatelessWidget {
-  const _GlassSelectionLens();
+  const _GlassSelectionLens({required this.horizontalPadding});
+
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -148,18 +153,24 @@ class _GlassSelectionLens extends StatelessWidget {
       color: AppColors.textPrimary.withValues(alpha: 0.22),
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border(top: edge, left: edge, right: edge),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.textPrimary.withValues(alpha: 0.2),
-            AppColors.secondaryColor.withValues(alpha: 0.15),
-            AppColors.textPrimary.withValues(alpha: 0.065),
-          ],
+    return LayoutBuilder(
+      builder: (context, constraints) => OverflowBox(
+        minWidth: constraints.maxWidth + horizontalPadding * 2,
+        maxWidth: constraints.maxWidth + horizontalPadding * 2,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border(top: edge, left: edge, right: edge),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.textPrimary.withValues(alpha: 0.2),
+                AppColors.secondaryColor.withValues(alpha: 0.15),
+                AppColors.textPrimary.withValues(alpha: 0.065),
+              ],
+            ),
+          ),
         ),
       ),
     );
