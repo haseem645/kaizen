@@ -302,6 +302,8 @@ class AppStrings {
   static const String paygradesEditSheetDescription =
       'Review and update the selected paygrade details.';
   static const String paygradesEditAction = 'Edit';
+  static const String paygradesShowMoreAction = 'Show More';
+  static const String paygradesShowLessAction = 'Show Less';
   static const String paygradesNameLabel = 'Name';
   static const String paygradesNameHint = 'Enter paygrade name';
   static const String paygradesDescriptionHint = 'Enter paygrade specifics';
@@ -397,6 +399,7 @@ class AppStrings {
   static const String seatProfilePercentageHold = 'Percentage Hold';
   static const String seatProfileMilestoneDays = 'Milestone Days';
   static const String seatProfileAuditSpecifics = 'Audit Specifics';
+  static const String seatProfileDescriptionEllipsis = '... ';
   static const String training = 'Training';
   static const String seatProfileViewTrainings = 'View Training';
   static const String seatProfileSetupTrainingTitle = 'Create Training';

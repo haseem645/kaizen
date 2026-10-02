@@ -859,13 +859,8 @@ class _ComplianceTrainingScreenViewState extends State<_ComplianceTrainingScreen
                           controller: _tabController,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 24),
-                              child: FractionallySizedBox(
-                                heightFactor: 0.8,
-                                widthFactor: 1,
-                                alignment: const Alignment(0, 0.25),
-                                child: ComplianceVideoScreen(detail: detail),
-                              ),
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                              child: ComplianceVideoScreen(detail: detail),
                             ),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
