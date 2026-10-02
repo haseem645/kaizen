@@ -12,6 +12,9 @@ class ComplianceVideoController extends ChangeNotifier {
   final ComplianceVideoTranscript _transcript;
   int? _activeTranscriptIndex;
   bool _isCcEnabled = false;
+  bool _arePlaybackControlsVisible = true;
+  double? _videoBottom;
+  VoidCallback? _revealControlsHandler;
   bool _isDisposed = false;
   int? _seekingIndex;
   String? _seekError;
@@ -21,8 +24,14 @@ class ComplianceVideoController extends ChangeNotifier {
   List<ComplianceTranscriptLine> get transcriptLines => _transcript.lines;
   int? get activeTranscriptIndex => _activeTranscriptIndex;
   ComplianceTranscriptLine? get activeTranscriptLine =>
-      _activeTranscriptIndex == null ? null : transcriptLines[_activeTranscriptIndex!];
+      _activeTranscriptIndex == null
+      ? null
+      : transcriptLines[_activeTranscriptIndex!];
   bool get isCcEnabled => _isCcEnabled;
+  bool get hasVisibleActiveTranscript =>
+      !_isCcEnabled && activeTranscriptLine != null;
+  bool get arePlaybackControlsVisible => _arePlaybackControlsVisible;
+  double? get videoBottom => _videoBottom;
   bool get isSeeking => _seekingIndex != null;
   int? get seekingIndex => _seekingIndex;
   String? get seekError => _seekError;
@@ -32,6 +41,25 @@ class ComplianceVideoController extends ChangeNotifier {
     _isCcEnabled = !_isCcEnabled;
     notifyListeners();
   }
+
+  void updatePlaybackControlsVisibility(bool visible) {
+    if (_isDisposed || _arePlaybackControlsVisible == visible) return;
+    _arePlaybackControlsVisible = visible;
+    notifyListeners();
+  }
+
+  void updateVideoBottom(double? bottom) {
+    if (_isDisposed || _videoBottom == bottom) return;
+    _videoBottom = bottom;
+    notifyListeners();
+  }
+
+  void setRevealControlsHandler(VoidCallback? handler) {
+    if (_isDisposed) return;
+    _revealControlsHandler = handler;
+  }
+
+  void revealPlaybackControls() => _revealControlsHandler?.call();
 
   void setSeekHandler(Future<bool> Function(Duration)? handler) {
     if (_isDisposed) return;
@@ -49,7 +77,12 @@ class ComplianceVideoController extends ChangeNotifier {
   }
 
   Future<bool> seekToTranscriptLine(int index) async {
-    if (_isDisposed || isSeeking || index < 0 || index >= transcriptLines.length) return false;
+    if (_isDisposed ||
+        isSeeking ||
+        index < 0 ||
+        index >= transcriptLines.length) {
+      return false;
+    }
     final start = transcriptLines[index].start;
     if (start == null) return false;
     _seekingIndex = index;
@@ -58,7 +91,9 @@ class ComplianceVideoController extends ChangeNotifier {
     try {
       final handler =
           _seekHandler ??
-          await (_seekHandlerReady ??= Completer<Future<bool> Function(Duration)?>()).future
+          await (_seekHandlerReady ??=
+                  Completer<Future<bool> Function(Duration)?>())
+              .future
               .timeout(const Duration(seconds: 10), onTimeout: () => null);
       if (_isDisposed) return false;
       final succeeded = handler != null && await handler(start);
@@ -90,6 +125,7 @@ class ComplianceVideoController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _revealControlsHandler = null;
     _seekHandler = null;
     _seekHandlerReady?.complete(null);
     _seekHandlerReady = null;

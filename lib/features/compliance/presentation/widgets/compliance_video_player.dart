@@ -1,18 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/services/video_playback_service.dart';
 import '../../../../core/utils/custom_functions.dart';
 import '../../../../core/widgets/app_text_view.dart';
 import '../../../../core/widgets/fast_circular_progress.dart';
 import '../pages/training/compliance_full_screen_video_view.dart';
+import '../providers/compliance_video_controller.dart';
 
 class ComplianceVideoPlayer extends StatefulWidget {
+  static const bottomControlsInset = 30.0;
+  static const contentHorizontalInset = 10.0;
+  static const contentPadding = EdgeInsets.symmetric(horizontal: contentHorizontalInset);
+
   const ComplianceVideoPlayer({
     super.key,
     required this.videoUrl,
@@ -27,6 +32,10 @@ class ComplianceVideoPlayer extends StatefulWidget {
     this.topRightActions = const <Widget>[],
     this.onPositionChanged,
     this.onSeekHandlerChanged,
+    this.onPlaybackControlsVisibilityChanged,
+    this.onVideoBottomChanged,
+    this.onRevealControlsHandlerChanged,
+    this.layoutBuilder,
   });
 
   final String videoUrl;
@@ -41,6 +50,10 @@ class ComplianceVideoPlayer extends StatefulWidget {
   final List<Widget> topRightActions;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<Future<bool> Function(Duration)?>? onSeekHandlerChanged;
+  final ValueChanged<bool>? onPlaybackControlsVisibilityChanged;
+  final ValueChanged<double?>? onVideoBottomChanged;
+  final ValueChanged<VoidCallback?>? onRevealControlsHandlerChanged;
+  final Widget Function(Widget video, Widget bottomControls)? layoutBuilder;
 
   @override
   State<ComplianceVideoPlayer> createState() => _ComplianceVideoPlayerState();
@@ -49,7 +62,6 @@ class ComplianceVideoPlayer extends StatefulWidget {
 class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     with AutomaticKeepAliveClientMixin<ComplianceVideoPlayer> {
   static const _cacheMaxAge = Duration(days: 30);
-  static const _bottomControlsHorizontalInset = 10.0;
 
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
@@ -62,20 +74,29 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   bool _isScrubbing = false;
   double? _scrubPositionMillis;
   final ValueNotifier<bool> _showPlaybackControls = ValueNotifier<bool>(true);
+  final _videoFrameKey = GlobalKey();
+  GlobalKey _videoKey = GlobalKey();
+  GlobalKey _thumbnailKey = GlobalKey();
   Timer? _hidePlaybackControlsTimer;
   bool _wasPlaybackActive = false;
 
   @override
   void initState() {
     super.initState();
+    _showPlaybackControls.addListener(_notifyControlsVisibility);
     _showThumbnailPreview = _hasThumbnail;
     _setupController();
     widget.onSeekHandlerChanged?.call(_seekToPosition);
+    widget.onRevealControlsHandlerChanged?.call(_revealPlaybackControls);
   }
 
   @override
   void didUpdateWidget(covariant ComplianceVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.onRevealControlsHandlerChanged != widget.onRevealControlsHandlerChanged) {
+      oldWidget.onRevealControlsHandlerChanged?.call(null);
+      widget.onRevealControlsHandlerChanged?.call(_revealPlaybackControls);
+    }
     if (oldWidget.onSeekHandlerChanged != widget.onSeekHandlerChanged) {
       oldWidget.onSeekHandlerChanged?.call(null);
       widget.onSeekHandlerChanged?.call(_seekToPosition);
@@ -84,6 +105,11 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
         oldWidget.localVideoPath != widget.localVideoPath ||
         oldWidget.thumbnailLink != widget.thumbnailLink) {
       _showThumbnailPreview = _hasThumbnail;
+      // A fading video can still be mounted when the new thumbnail is played.
+      if (_showThumbnailPreview) {
+        _videoKey = GlobalKey();
+        _thumbnailKey = GlobalKey();
+      }
       _isScrubbing = false;
       _scrubPositionMillis = null;
     }
@@ -99,7 +125,9 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
 
   @override
   void dispose() {
+    _showPlaybackControls.removeListener(_notifyControlsVisibility);
     widget.onSeekHandlerChanged?.call(null);
+    widget.onRevealControlsHandlerChanged?.call(null);
     _disposeController();
     _showPlaybackControls.dispose();
     super.dispose();
@@ -108,6 +136,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   void _setupController() {
     _initializationError = null;
     _controller = null;
+    _videoKey = GlobalKey();
     final generation = ++_initializationGeneration;
     _initializeFuture = _initializeController(generation, viewType: _currentViewType);
     // Observe fallback failures even before FutureBuilder receives the new future.
@@ -189,6 +218,19 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
       _syncPlaybackControls();
       widget.onPositionChanged?.call(controller.value.position);
     }
+  }
+
+  void _notifyControlsVisibility() {
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      // Source changes can reset visibility during a parent's build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          widget.onPlaybackControlsVisibilityChanged?.call(_showPlaybackControls.value);
+        }
+      });
+      return;
+    }
+    widget.onPlaybackControlsVisibilityChanged?.call(_showPlaybackControls.value);
   }
 
   bool get _isPlaybackActive {
@@ -418,6 +460,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     }
 
     final initialPosition = controller.value.position;
+    final transcriptController = context.read<ComplianceVideoController?>();
     if (mounted) {
       setState(() {
         _isPreparingPlayback = false;
@@ -425,11 +468,19 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => ComplianceFullScreenVideoView(
-          controller: controller,
-          title: widget.title,
-          initialPosition: initialPosition,
-        ),
+        builder: (_) {
+          final view = ComplianceFullScreenVideoView(
+            controller: controller,
+            title: widget.title,
+            initialPosition: initialPosition,
+          );
+          return transcriptController == null
+              ? view
+              : ChangeNotifierProvider<ComplianceVideoController>.value(
+                  value: transcriptController,
+                  child: view,
+                );
+        },
       ),
     );
   }
@@ -482,10 +533,15 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
             !isReady &&
             snapshot.connectionState == ConnectionState.waiting);
 
-    return Column(
+    if (widget.onVideoBottomChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reportVideoBottom());
+    }
+
+    final video = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
+          key: _videoFrameKey,
           height: widget.height,
           decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
           child: ClipRRect(
@@ -500,17 +556,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
                           switchInCurve: Curves.easeOutCubic,
                           switchOutCurve: Curves.easeInCubic,
                           child: showThumbnailPreview
-                              ? Image.network(
-                                  thumbnailUrl,
-                                  key: const ValueKey('video-thumbnail-preview'),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const ColoredBox(
-                                      key: ValueKey('video-loading-background'),
-                                      color: Colors.black,
-                                    );
-                                  },
-                                )
+                              ? _buildThumbnailPreview(thumbnailUrl)
                               : isReady
                               ? FittedBox(
                                   key: ValueKey(controller),
@@ -518,7 +564,7 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
                                   child: SizedBox(
                                     width: controllerValue!.size.width,
                                     height: controllerValue.size.height,
-                                    child: VideoPlayer(controller),
+                                    child: VideoPlayer(controller, key: _videoKey),
                                   ),
                                 )
                               : const ColoredBox(
@@ -548,19 +594,12 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
                           switchInCurve: Curves.easeOutCubic,
                           switchOutCurve: Curves.easeInCubic,
                           child: showThumbnailPreview
-                              ? Image.network(
-                                  thumbnailUrl,
-                                  key: const ValueKey('video-thumbnail-preview'),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const ColoredBox(
-                                      key: ValueKey('video-loading-background'),
-                                      color: Colors.black,
-                                    );
-                                  },
-                                )
+                              ? _buildThumbnailPreview(thumbnailUrl)
                               : isReady
-                              ? VideoPlayer(controller, key: ValueKey(controller))
+                              ? KeyedSubtree(
+                                  key: ValueKey(controller),
+                                  child: VideoPlayer(controller, key: _videoKey),
+                                )
                               : const ColoredBox(
                                   key: ValueKey('video-loading-background'),
                                   color: Colors.black,
@@ -582,6 +621,49 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
         ),
       ],
     );
+    return widget.layoutBuilder?.call(video, _buildBottomControls(controller, controllerValue)) ??
+        video;
+  }
+
+  Widget _buildThumbnailPreview(String thumbnailUrl) {
+    return KeyedSubtree(
+      key: const ValueKey('video-thumbnail-preview'),
+      child: Image.network(
+        thumbnailUrl,
+        key: _thumbnailKey,
+        fit: BoxFit.cover,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (frame != null && widget.onVideoBottomChanged != null) {
+            // Image decoding can finish without rebuilding the player.
+            WidgetsBinding.instance.addPostFrameCallback((_) => _reportVideoBottom());
+          }
+          return child;
+        },
+        errorBuilder: (context, error, stackTrace) =>
+            const ColoredBox(key: ValueKey('video-loading-background'), color: Colors.black),
+      ),
+    );
+  }
+
+  void _reportVideoBottom() {
+    if (!mounted) return;
+    final frame = _videoFrameKey.currentContext?.findRenderObject();
+    if (frame is! RenderBox || !frame.hasSize) return;
+    final showThumbnail =
+        _showThumbnailPreview &&
+        _hasThumbnail &&
+        _initializationError == null &&
+        _controller?.value.isPlaying != true;
+    final media = (showThumbnail ? _thumbnailKey : _videoKey).currentContext?.findRenderObject();
+    if (media is! RenderBox || !media.hasSize || media.size.isEmpty) {
+      // Keep the panel's compact initial bounds until there is visible media.
+      widget.onVideoBottomChanged?.call(null);
+      return;
+    }
+    // The initial thumbnail and playing video can both be centered in a taller
+    // frame. Anchor the footer to the currently visible media, including transforms.
+    final bounds = MatrixUtils.transformRect(media.getTransformTo(frame), Offset.zero & media.size);
+    widget.onVideoBottomChanged?.call(bounds.bottom.clamp(0.0, frame.size.height));
   }
 
   Widget _buildOverlay({
@@ -626,8 +708,8 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
         if (isReady && isBuffering && !showThumbnailPreview)
           Center(child: SizedBox(width: 28, height: 28, child: FastCircularProgressIndicator())),
         Positioned(
-          left: 10,
-          right: 10,
+          left: ComplianceVideoPlayer.contentHorizontalInset,
+          right: ComplianceVideoPlayer.contentHorizontalInset,
           top: 0,
           bottom: 0,
           child: _buildPlaybackControlsVisibility(
@@ -653,40 +735,40 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
             ),
           ),
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 6,
-          child: _buildPlaybackControlsVisibility(
-            child: _buildBottomControls(controller, controllerValue),
+        if (widget.layoutBuilder == null)
+          ValueListenableBuilder<bool>(
+            valueListenable: _showPlaybackControls,
+            builder: (context, showControls, _) => Positioned(
+              left: ComplianceVideoPlayer.contentHorizontalInset,
+              right: ComplianceVideoPlayer.contentHorizontalInset,
+              bottom: ComplianceVideoPlayer.bottomControlsInset,
+              child: showControls
+                  ? _buildBottomControls(controller, controllerValue)
+                  : const SizedBox.shrink(),
+            ),
           ),
-        ),
         Positioned(
           top: 10,
           right: 10,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ...widget.topRightActions.expand((action) => [const SizedBox(width: 8), action]),
               GestureDetector(
                 key: const ValueKey('video-fullscreen-button'),
-                behavior: HitTestBehavior.opaque,
                 onTap: _openFullScreenVideo,
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 30,
+                  height: 30,
+                  margin: EdgeInsets.only(left: 7),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    shape: BoxShape.circle,
+                    color: AppColors.surfaceDark2,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: SvgPicture.asset(
-                    '${AppStrings.imagePath}expand.svg',
-                    width: 35,
-                    height: 35,
-                  ),
+                  child: Icon(Icons.fullscreen, size: 23, color: AppColors.textPrimary),
                 ),
               ),
-              ...widget.topRightActions.expand((action) => [const SizedBox(width: 8), action]),
             ],
           ),
         ),
@@ -700,15 +782,11 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
   ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.showTitle || widget.showDuration)
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              _bottomControlsHorizontalInset,
-              0,
-              _bottomControlsHorizontalInset,
-              widget.showSeekBar ? 0 : 8,
-            ),
+            padding: EdgeInsets.only(bottom: widget.showSeekBar ? 0 : 8),
             child: LayoutBuilder(
               builder: (context, constraints) => Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -743,7 +821,10 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
             ),
           ),
         if (widget.showSeekBar)
-          SizedBox(height: 24, child: _buildSeekBar(controller, controllerValue)),
+          Padding(
+            padding: EdgeInsets.only(left: 3),
+            child: SizedBox(height: 18, child: _buildSeekBar(controller, controllerValue)),
+          ),
       ],
     );
   }
@@ -778,7 +859,8 @@ class _ComplianceVideoPlayerState extends State<ComplianceVideoPlayer>
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
       ),
       child: Slider(
-        padding: const EdgeInsets.symmetric(horizontal: _bottomControlsHorizontalInset),
+        // The containing footer owns the inset for title, track and captions.
+        padding: EdgeInsets.zero,
         value: currentMillis,
         secondaryTrackValue: bufferedMillis,
         min: 0,

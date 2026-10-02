@@ -69,8 +69,6 @@ class _VideoTabContent extends StatelessWidget {
             localVideoPath: localVideoPath,
             title: detail?.title ?? '',
             thumbnailLink: detail?.previewThumbnailLink,
-            videoHeight: (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0) - 60,
-            fillBounds: true,
             topRightActions: !isReadOnly
                 ? [
                     _TrainingVideoActionButton(
