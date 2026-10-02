@@ -20,7 +20,9 @@ import '../../widgets/seat_profile_search_bar.dart';
 import '../providers/seat_profile_controller.dart';
 
 class SeatProfileScreen extends StatelessWidget {
-  const SeatProfileScreen({super.key});
+  const SeatProfileScreen({super.key, this.getSeatProfilesUseCase});
+
+  final GetSeatProfilesUseCase? getSeatProfilesUseCase;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,9 @@ class SeatProfileScreen extends StatelessWidget {
           update: (_, repository, __) => createGetSeatProfilesUseCase(repository),
         ),
         ChangeNotifierProvider<SeatProfileController>(
-          create: (context) => SeatProfileController(context.read<GetSeatProfilesUseCase>()),
+          create: (context) => SeatProfileController(
+            getSeatProfilesUseCase ?? context.read<GetSeatProfilesUseCase>(),
+          ),
         ),
       ],
       child: const _SeatProfileScreenView(),
@@ -160,19 +164,25 @@ class _SeatProfileScreenViewState extends State<_SeatProfileScreenView> {
       );
     }
 
-    return ListView(
+    return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        for (var index = 0; index < items.length; index++) ...[
-          _SeatProfileCard(profile: items[index]),
-          if (index != items.length - 1) const SizedBox(height: 16),
-        ],
-        if (controller.isLoadingMore) ...[
-          const SizedBox(height: 18),
-          Center(child: FastCircularProgressIndicator()),
-        ],
-      ],
+      itemCount: items.length + (controller.isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == items.length) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: Center(child: FastCircularProgressIndicator()),
+          );
+        }
+
+        final profile = items[index];
+        return Padding(
+          key: ValueKey(profile.id),
+          padding: EdgeInsets.only(bottom: index == items.length - 1 ? 0 : 16),
+          child: _SeatProfileCard(profile: profile),
+        );
+      },
     );
   }
 
@@ -275,8 +285,50 @@ class _SeatProfileCard extends StatefulWidget {
   State<_SeatProfileCard> createState() => _SeatProfileCardState();
 }
 
-class _SeatProfileCardState extends State<_SeatProfileCard> {
-  bool _isExpanded = false;
+class _SeatProfileCardState extends State<_SeatProfileCard> with SingleTickerProviderStateMixin {
+  static const _expandDuration = Duration(milliseconds: 320);
+  static const _collapseDuration = Duration(milliseconds: 280);
+
+  late final AnimationController _expansionController;
+  late final CurvedAnimation _expansion;
+  late final Animation<double> _chevronTurns;
+
+  @override
+  void initState() {
+    super.initState();
+    _expansionController = AnimationController(
+      vsync: this,
+      duration: _expandDuration,
+      reverseDuration: _collapseDuration,
+    );
+    _expansion = CurvedAnimation(parent: _expansionController, curve: Curves.easeInOutCubic);
+    _chevronTurns = Tween<double>(begin: 0, end: 0.5).animate(_expansion);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    _expansionController
+      ..duration = disableAnimations ? Duration.zero : _expandDuration
+      ..reverseDuration = disableAnimations ? Duration.zero : _collapseDuration;
+  }
+
+  @override
+  void dispose() {
+    _expansion.dispose();
+    _expansionController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExpansion() {
+    if (_expansionController.status == AnimationStatus.forward ||
+        _expansionController.isCompleted) {
+      _expansionController.reverse();
+    } else {
+      _expansionController.forward();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -284,95 +336,134 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => setState(() => _isExpanded = !_isExpanded),
+      onTap: _toggleExpansion,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOut,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: AppTextView.body1(
-                      profile.name,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AppTextView.body1(
+                    profile.name,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(width: 12),
-                  _CardForwardArrow(isExpanded: _isExpanded),
-                ],
-              ),
-              if (_isExpanded) ...[
-                const SizedBox(height: 14),
-                _buildStatRow(
-                  AppStrings.seatProfileCategoriesCount,
-                  '${profile.categoriesCount}',
-                  isStatus: false,
                 ),
-                const SizedBox(height: 10),
-                _buildStatRow(
-                  AppStrings.seatProfileDescriptionsCount,
-                  '${profile.descriptionsCount}',
-                  isStatus: false,
-                ),
-                const SizedBox(height: 10),
-                _buildStatRow(
-                  AppStrings.seatProfilePrimaryPaygrade,
-                  profile.hasPrimaryPaygrade ? 'Yes' : 'No',
-                  isStatus: true,
-                ),
-                const SizedBox(height: 10),
-                _buildStatRow(
-                  AppStrings.seatProfileAncillaryPaygrade,
-                  profile.hasAncillaryPaygrade ? 'Yes' : 'No',
-                  isStatus: true,
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () {
-                    AppRouter.pushNamed(
+                const SizedBox(width: 12),
+                _CardForwardArrow(turns: _chevronTurns),
+              ],
+            ),
+            // Keep the header fixed while revealing the mounted details from the top.
+            SizeTransition(
+              sizeFactor: _expansion,
+              axisAlignment: -1,
+              child: FadeTransition(
+                opacity: _expansion,
+                child: AnimatedBuilder(
+                  animation: _expansionController,
+                  builder: (context, child) {
+                    final canInteract = _expansionController.isCompleted;
+                    return IgnorePointer(
+                      ignoring: !canInteract,
+                      child: ExcludeSemantics(
+                        excluding: !canInteract,
+                        child: ExcludeFocus(excluding: !canInteract, child: child!),
+                      ),
+                    );
+                  },
+                  child: _SeatProfileCardDetails(
+                    profile: profile,
+                    onDetailsTap: () => AppRouter.pushNamed(
                       context,
                       AppRouter.seatProfileDetail,
                       arguments: SeatProfileDetailRouteArgs(seatId: profile.resolvedDetailId),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(999),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppTextView.body2(
-                        AppStrings.seatProfileDetailsTitle,
-                        color: AppColors.secondaryColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: AppColors.secondaryColor,
-                        size: 14,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _SeatProfileCardDetails extends StatelessWidget {
+  const _SeatProfileCardDetails({required this.profile, required this.onDetailsTap});
+
+  final SeatProfile profile;
+  final VoidCallback onDetailsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 14),
+        _buildStatRow(
+          AppStrings.seatProfileCategoriesCount,
+          '${profile.categoriesCount}',
+          isStatus: false,
+        ),
+        const SizedBox(height: 10),
+        _buildStatRow(
+          AppStrings.seatProfileDescriptionsCount,
+          '${profile.descriptionsCount}',
+          isStatus: false,
+        ),
+        const SizedBox(height: 10),
+        _buildStatRow(
+          AppStrings.seatProfilePrimaryPaygrade,
+          profile.hasPrimaryPaygrade
+              ? AppStrings.paygradesAvailableYes
+              : AppStrings.paygradesAvailableNo,
+          isStatus: true,
+        ),
+        const SizedBox(height: 10),
+        _buildStatRow(
+          AppStrings.seatProfileAncillaryPaygrade,
+          profile.hasAncillaryPaygrade
+              ? AppStrings.paygradesAvailableYes
+              : AppStrings.paygradesAvailableNo,
+          isStatus: true,
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: onDetailsTap,
+          borderRadius: BorderRadius.circular(999),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: AppTextView.body2(
+                  AppStrings.seatProfileDetailsTitle,
+                  color: AppColors.secondaryColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.secondaryColor,
+                size: 14,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildStatRow(String label, String value, {required bool isStatus}) {
-    final isPositive = value == 'Yes';
+    final isPositive = value == AppStrings.paygradesAvailableYes;
 
     return Row(
       children: [
@@ -393,7 +484,7 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
           )
         else
           Padding(
-            padding: EdgeInsets.only(right: 17),
+            padding: const EdgeInsets.only(right: 17),
             child: AppTextView.body2(
               value,
               color: AppColors.textPrimary,
@@ -406,15 +497,14 @@ class _SeatProfileCardState extends State<_SeatProfileCard> {
 }
 
 class _CardForwardArrow extends StatelessWidget {
-  const _CardForwardArrow({required this.isExpanded});
+  const _CardForwardArrow({required this.turns});
 
-  final bool isExpanded;
+  final Animation<double> turns;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedRotation(
-      turns: isExpanded ? 0.5 : 0,
-      duration: const Duration(milliseconds: 220),
+    return RotationTransition(
+      turns: turns,
       child: Container(
         width: 32,
         height: 32,
