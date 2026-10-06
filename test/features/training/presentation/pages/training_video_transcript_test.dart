@@ -178,8 +178,15 @@ void main() {
               matching: find.byType(Material),
             )
             .first;
-        expect(bounds.height, 362);
-        expect(tester.widget<ComplianceVideoPlayer>(player).height, 362);
+        expect(bounds.height, 368);
+        expect(bounds.left, 0);
+        expect(bounds.right, 390);
+        expect(tester.widget<ComplianceVideoPlayer>(player).height, 368);
+        expect(mediaBounds.left, closeTo(bounds.left, 0.01));
+        expect(mediaBounds.right, closeTo(bounds.right, 0.01));
+        expect(mediaBounds.width / mediaBounds.height, closeTo(16 / 9, 0.01));
+        expect(mediaBounds.top, greaterThanOrEqualTo(bounds.top));
+        expect(mediaBounds.bottom, lessThanOrEqualTo(bounds.bottom));
         expect(tester.widget<ComplianceVideoPlayer>(player).fillBounds, isTrue);
         expect(controller.transcriptLines.map((line) => line.text), [
           'Introduction',
@@ -198,8 +205,8 @@ void main() {
 
         expect(find.text('Introduction'), findsOneWidget);
         _expectGap(tester, video, controls, 10);
-        _expectGap(tester, slider, find.text('Introduction'), 10);
-        _expectGap(tester, find.text('Introduction'), actions, 4);
+        _expectCaptionOverlay(tester, mediaBounds, find.text('Introduction'));
+        _expectGap(tester, slider, actions, 6);
         expect(tester.getTopLeft(ccButton).dx, bounds.left + 10);
         expect(
           tester.getBottomRight(transcriptButton).dx,
@@ -211,8 +218,8 @@ void main() {
         await tester.pump();
         expect(nativeController.value.isPlaying, isTrue);
         expect(slider, findsNothing);
-        _expectGap(tester, video, find.text('Introduction'), 6);
-        _expectGap(tester, find.text('Introduction'), actions, 4);
+        _expectCaptionOverlay(tester, mediaBounds, find.text('Introduction'));
+        _expectGap(tester, video, actions, 6);
         final playingHeight = tester.getSize(surface).height;
         expect(playingHeight, lessThan(expandedHeight));
         expect(tester.getRect(frame), bounds);
@@ -221,7 +228,7 @@ void main() {
         await tester.tap(find.text('Introduction'));
         await tester.pump();
         _expectGap(tester, video, controls, 10);
-        _expectGap(tester, slider, find.text('Introduction'), 10);
+        _expectCaptionOverlay(tester, mediaBounds, find.text('Introduction'));
         expect(tester.getRect(slider), seekBounds);
         await tester.pump(const Duration(milliseconds: 2999));
         expect(slider, findsOneWidget);
@@ -232,7 +239,7 @@ void main() {
         await tester.pump();
         expect(find.text('Introduction'), findsNothing);
         _expectGap(tester, video, actions, 6);
-        expect(tester.getSize(surface).height, lessThan(playingHeight));
+        expect(tester.getSize(surface).height, playingHeight);
         expect(tester.getRect(frame), bounds);
         await tester.tapAt(bounds.topLeft + const Offset(20, 50));
         await tester.pump();
@@ -260,20 +267,23 @@ void main() {
         expect(find.text(mainCaption), findsNothing);
         await tester.tap(cc);
         await tester.pump();
+        expect(find.text('Main'), findsOneWidget);
+        await nativeController.seekTo(const Duration(seconds: 9));
+        await tester.pump();
         final caption = find.text(mainCaption);
         expect(caption, findsOneWidget);
-        _expectGap(tester, slider, caption, 10);
-        _expectGap(tester, caption, actions, 4);
+        _expectCaptionOverlay(tester, mediaBounds, caption);
+        _expectGap(tester, slider, actions, 6);
         final paragraph = tester.renderObject<RenderParagraph>(
           find.descendant(of: caption, matching: find.byType(RichText)),
         );
-        expect(paragraph.didExceedMaxLines, isFalse);
-        expect(tester.getSize(surface).height, greaterThan(expandedHeight));
+        expect(paragraph.didExceedMaxLines, isTrue);
+        expect(tester.getSize(surface).height, expandedHeight);
         await tester.pump(const Duration(seconds: 3));
         expect(slider, findsNothing);
-        _expectGap(tester, video, caption, 6);
-        _expectGap(tester, caption, actions, 4);
-        expect(tester.getSize(surface).height, greaterThan(playingHeight));
+        _expectCaptionOverlay(tester, mediaBounds, caption);
+        _expectGap(tester, video, actions, 6);
+        expect(tester.getSize(surface).height, playingHeight);
         await tester.tap(caption);
         await tester.pump();
         await tester.tap(find.byIcon(Icons.pause_rounded));
@@ -281,7 +291,7 @@ void main() {
         expect(slider, findsOneWidget);
         expect(nativeController.value.isPlaying, isFalse);
         _expectGap(tester, video, controls, 10);
-        _expectGap(tester, slider, caption, 10);
+        _expectCaptionOverlay(tester, mediaBounds, caption);
         expect(tester.getRect(frame), bounds);
         expect(tester.getRect(video), mediaBounds);
 
@@ -313,6 +323,22 @@ void _expectGap(WidgetTester tester, Finder above, Finder below, double gap) {
     tester.getTopLeft(below).dy - tester.getBottomLeft(above).dy,
     closeTo(gap, 0.01),
   );
+}
+
+void _expectCaptionOverlay(
+  WidgetTester tester,
+  Rect videoBounds,
+  Finder caption,
+) {
+  final overlay = tester.getRect(
+    find.byKey(const ValueKey('active-video-caption')),
+  );
+  expect(overlay.bottom, closeTo(videoBounds.bottom - 8, 0.01));
+  expect(overlay.left, videoBounds.left + 8);
+  expect(overlay.right, videoBounds.right - 8);
+  expect(overlay.top, greaterThanOrEqualTo(videoBounds.top + 8));
+  expect(tester.widget<Text>(caption).maxLines, 2);
+  expect(tester.widget<Text>(caption).overflow, TextOverflow.ellipsis);
 }
 
 class _TrainingVideoPlatform extends VideoPlayerPlatform {

@@ -90,13 +90,10 @@ class _TrainingLibraryLessons extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
           child: Column(
             children: [
-              TrainingLibraryLessonSearchBar(
-                controller: controller,
-                onSelectLesson: onSelectLesson,
-              ),
+              TrainingLibraryLessonSearchBar(controller: controller, onSelectLesson: onSelectLesson),
               const SizedBox(height: 28),
               Expanded(
                 child: lessons.isEmpty

@@ -125,6 +125,7 @@ class _DocumentRepository extends Fake implements AuditRepository {
   @override
   Future<SeatDescriptionTrainingModuleDetail> getSeatDescriptionTrainingModuleDetail({
     required String moduleId,
+    bool forceRefresh = false,
   }) async => SeatDescriptionTrainingModuleDetail(
     uuid: moduleId,
     actualId: moduleId,
