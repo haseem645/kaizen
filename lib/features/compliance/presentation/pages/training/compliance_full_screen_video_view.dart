@@ -47,6 +47,7 @@ class _ComplianceFullScreenVideoViewState
   Timer? _pendingBufferingIndicatorTimer;
   Duration _lastObservedPosition = Duration.zero;
   bool _isEntryBufferingSuppressed = false;
+  bool _animateTranscript = true;
   late final ComplianceVideoController? _transcriptController;
 
   @override
@@ -56,6 +57,16 @@ class _ComplianceFullScreenVideoViewState
     _enterFullscreen();
     _attachController(widget.controller);
     _syncInitialPosition();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animateTranscript = !MediaQuery.disableAnimationsOf(context);
+    if (_animateTranscript != animateTranscript) {
+      _animateTranscript = animateTranscript;
+      _handleControllerChanged();
+    }
   }
 
   @override
@@ -145,11 +156,15 @@ class _ComplianceFullScreenVideoViewState
         if (mounted) {
           _transcriptController?.updatePlaybackPosition(
             widget.controller.value.position,
+            animate: _animateTranscript,
           );
         }
       });
     } else {
-      _transcriptController?.updatePlaybackPosition(position);
+      _transcriptController?.updatePlaybackPosition(
+        position,
+        animate: _animateTranscript,
+      );
     }
     final hasPositionChanged = position != _lastObservedPosition;
     _lastObservedPosition = position;
@@ -349,11 +364,18 @@ class _FullScreenVideoFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final caption = context.select<ComplianceVideoController?, String?>(
-      (controller) => controller?.hasVisibleActiveTranscript == true
-          ? controller!.activeTranscriptLine!.text
-          : null,
-    );
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    final (caption, activeCueIndex) = context
+        .select<ComplianceVideoController?, (String?, int?)>(
+          (controller) => (
+            controller?.hasVisibleActiveTranscript == true
+                ? disableAnimations
+                      ? controller!.activeTranscriptLine!.text
+                      : controller!.activeTranscriptText
+                : null,
+            controller?.activeTranscriptIndex,
+          ),
+        );
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
       child: Padding(
@@ -373,12 +395,13 @@ class _FullScreenVideoFooter extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: SingleChildScrollView(
-                    key: ValueKey(caption),
+                    key: ValueKey(activeCueIndex),
                     primary: false,
                     child: AppTextView.body3(
                       caption,
                       color: AppColors.textPrimary,
                       height: 1.4,
+                      textAlign: TextAlign.left,
                     ),
                   ),
                 ),
