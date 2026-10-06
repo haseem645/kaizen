@@ -263,15 +263,16 @@ class _TrainingSectionHeader extends StatelessWidget {
 }
 
 class _TrainingDisplayCard extends StatelessWidget {
-  const _TrainingDisplayCard({required this.child});
+  const _TrainingDisplayCard({required this.child, this.padding = const EdgeInsets.all(16)});
 
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: padding,
       decoration: BoxDecoration(
         color: AppColors.surfaceDark2.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(18),

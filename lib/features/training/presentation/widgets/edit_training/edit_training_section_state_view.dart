@@ -64,9 +64,14 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         top: false,
         bottom: false,
         minimum: const EdgeInsets.only(top: 10, bottom: 14),
-        child: TrainingTabs(
-          navigation: _tabNavigation,
-          maxTabIndex: controller.maxAccessibleTabIndex,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.horizontalContentPadding,
+          ),
+          child: TrainingTabs(
+            navigation: _tabNavigation,
+            maxTabIndex: controller.maxAccessibleTabIndex,
+          ),
         ),
       ),
     );
@@ -127,10 +132,13 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
           unawaited(controller.loadAssignmentForSelectedModule());
         }
       },
-      // Quiz keeps the screen's 16px inset, reducing its former 24px margin by a third.
-      pagePaddingBuilder: (index) => index == 2
+      // The video reaches the page edges; other tabs retain their content insets.
+      pagePaddingBuilder: (index) => index == 0
           ? EdgeInsets.zero
-          : const EdgeInsets.symmetric(horizontal: 8),
+          : EdgeInsets.symmetric(
+              horizontal:
+                  widget.horizontalContentPadding + (index == 2 ? 0 : 4),
+            ),
       pageBuilder: (context, index) {
         final showsLoading =
             (controller.isLoading && controller.selectedModuleDetail == null) ||
@@ -154,7 +162,14 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
           children: [
             Offstage(
               offstage: !showLessonHeader,
-              child: _buildLessonHeader(controller, tabIndex: index),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: index == 0
+                      ? widget.horizontalContentPadding + 4
+                      : 0,
+                ),
+                child: _buildLessonHeader(controller, tabIndex: index),
+              ),
             ),
             if (fillsPage) Expanded(child: tabContent) else tabContent,
           ],
@@ -195,6 +210,7 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         isEditingSummary: false,
         isSavingSummary: false,
         summaryController: controller.summaryController,
+        contentHorizontalPadding: widget.horizontalContentPadding + 4,
       );
     }
 
@@ -232,12 +248,26 @@ extension _EditTrainingSectionViewStateView on _EditTrainingSectionViewState {
         isEditingSummary: controller.isEditingSummary,
         isSavingSummary: controller.isSavingSummary,
         summaryController: controller.summaryController,
+        contentHorizontalPadding: widget.horizontalContentPadding + 4,
+        canGenerateSummary:
+            controller.canGenerateSummaryForSelectedModule &&
+            !isBackgroundVideoUploadActive,
+        isGeneratingSummary: controller.isGeneratingSummary,
+        isWritingSummary: controller.isWritingSummary,
         onUploadVideoTap: () => _selectVideoSourceAndUpload(controller),
         onReUploadVideoTap: () => _reUploadVideo(controller),
         onUpdateThumbnailTap: () => _pickAndUploadThumbnail(controller),
         onEditSummaryTap: controller.startEditingSummary,
         onCancelSummaryTap: controller.cancelEditingSummary,
         onSaveSummaryTap: () => controller.saveSummaryForSelectedModule(),
+        onGenerateSummaryTap: () {
+          FocusScope.of(context).unfocus();
+          unawaited(
+            controller.generateSummaryForSelectedModule(
+              animate: !MediaQuery.disableAnimationsOf(context),
+            ),
+          );
+        },
       );
     }
 

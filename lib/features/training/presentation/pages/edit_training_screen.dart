@@ -113,6 +113,7 @@ class EditTrainingScreen extends StatelessWidget {
         canManageTraining: canManageTraining,
         startNewLessonWhenEmpty: startNewLessonWhenEmpty,
         useNonBlockingVideoUpload: useNonBlockingVideoUpload,
+        horizontalContentPadding: 8,
         builder: (context, section, headerActions) => Scaffold(
           backgroundColor: AppColors.mainBg,
           resizeToAvoidBottomInset: false,
@@ -121,16 +122,11 @@ class EditTrainingScreen extends StatelessWidget {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
                   child: _buildHeader(context, headerActions),
                 ),
                 const SizedBox(height: 18),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: section,
-                  ),
-                ),
+                Expanded(child: section),
               ],
             ),
           ),
@@ -185,6 +181,7 @@ class EditTrainingSection extends StatelessWidget {
     this.skipResumeSessionRefreshOnMediaPicker = false,
     this.showOnlyApiErrorSnackBars = false,
     this.useNonBlockingVideoUpload = false,
+    this.horizontalContentPadding = 0,
     this.builder,
   });
 
@@ -196,6 +193,7 @@ class EditTrainingSection extends StatelessWidget {
   final bool skipResumeSessionRefreshOnMediaPicker;
   final bool showOnlyApiErrorSnackBars;
   final bool useNonBlockingVideoUpload;
+  final double horizontalContentPadding;
 
   /// Builds the surrounding screen within the section's controller scope.
   final Widget Function(
@@ -253,6 +251,7 @@ class EditTrainingSection extends StatelessWidget {
             skipResumeSessionRefreshOnMediaPicker,
         showOnlyApiErrorSnackBars: showOnlyApiErrorSnackBars,
         useNonBlockingVideoUpload: useNonBlockingVideoUpload,
+        horizontalContentPadding: horizontalContentPadding,
         builder: builder,
       ),
     );
@@ -268,6 +267,7 @@ class _EditTrainingSectionView extends StatefulWidget {
     required this.skipResumeSessionRefreshOnMediaPicker,
     required this.showOnlyApiErrorSnackBars,
     required this.useNonBlockingVideoUpload,
+    required this.horizontalContentPadding,
     this.builder,
   });
 
@@ -278,6 +278,7 @@ class _EditTrainingSectionView extends StatefulWidget {
   final bool skipResumeSessionRefreshOnMediaPicker;
   final bool showOnlyApiErrorSnackBars;
   final bool useNonBlockingVideoUpload;
+  final double horizontalContentPadding;
   final Widget Function(
     BuildContext context,
     Widget section,

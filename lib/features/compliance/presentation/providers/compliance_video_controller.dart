@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 
@@ -7,13 +8,19 @@ import '../../domain/entities/compliance_video_transcript.dart';
 
 class ComplianceVideoController extends ChangeNotifier {
   ComplianceVideoController(String? transcript)
-    : _transcript = ComplianceVideoTranscript.parse(transcript);
+    : _transcriptSource = transcript,
+      _transcript = ComplianceVideoTranscript.parse(transcript);
 
-  final ComplianceVideoTranscript _transcript;
+  String? _transcriptSource;
+  ComplianceVideoTranscript _transcript;
   int? _activeTranscriptIndex;
+  String? _activeTranscriptText;
+  List<int> _activeTranscriptWordEnds = const [];
+  Duration? _lastPlaybackPosition;
+  bool _animateActiveTranscript = true;
   bool _isCcEnabled = false;
   bool _arePlaybackControlsVisible = true;
-  double? _videoBottom;
+  Rect? _videoBounds;
   VoidCallback? _revealControlsHandler;
   bool _isDisposed = false;
   int? _seekingIndex;
@@ -27,18 +34,34 @@ class ComplianceVideoController extends ChangeNotifier {
       _activeTranscriptIndex == null
       ? null
       : transcriptLines[_activeTranscriptIndex!];
+  String? get activeTranscriptText => _activeTranscriptText;
   bool get isCcEnabled => _isCcEnabled;
   bool get hasVisibleActiveTranscript =>
       !_isCcEnabled && activeTranscriptLine != null;
   bool get arePlaybackControlsVisible => _arePlaybackControlsVisible;
-  double? get videoBottom => _videoBottom;
+  Rect? get videoBounds => _videoBounds;
   bool get isSeeking => _seekingIndex != null;
   int? get seekingIndex => _seekingIndex;
   String? get seekError => _seekError;
 
+  void updateTranscript(String? transcript) {
+    if (_isDisposed || transcript == _transcriptSource) return;
+    _transcriptSource = transcript;
+    _transcript = ComplianceVideoTranscript.parse(transcript);
+    final position = _lastPlaybackPosition;
+    _activeTranscriptIndex = position == null
+        ? null
+        : _transcript.activeLineAt(position);
+    _updateActiveTranscriptWordEnds();
+    _updateActiveTranscriptText();
+    _seekError = null;
+    notifyListeners();
+  }
+
   void toggleCc() {
     if (_isDisposed) return;
     _isCcEnabled = !_isCcEnabled;
+    _updateActiveTranscriptText();
     notifyListeners();
   }
 
@@ -48,9 +71,9 @@ class ComplianceVideoController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateVideoBottom(double? bottom) {
-    if (_isDisposed || _videoBottom == bottom) return;
-    _videoBottom = bottom;
+  void updateVideoBounds(Rect? bounds) {
+    if (_isDisposed || _videoBounds == bounds) return;
+    _videoBounds = bounds;
     notifyListeners();
   }
 
@@ -112,14 +135,54 @@ class ComplianceVideoController extends ChangeNotifier {
     }
   }
 
-  void updatePlaybackPosition(Duration position) {
+  void updatePlaybackPosition(Duration position, {bool animate = true}) {
     if (_isDisposed) return;
     final index = _transcript.activeLineAt(position);
-    if (index == _activeTranscriptIndex) {
-      return;
+    final previousIndex = _activeTranscriptIndex;
+    final previousText = _activeTranscriptText;
+    _lastPlaybackPosition = position;
+    _animateActiveTranscript = animate;
+    if (index != previousIndex) {
+      _activeTranscriptIndex = index;
+      _updateActiveTranscriptWordEnds();
     }
-    _activeTranscriptIndex = index;
-    notifyListeners();
+    _updateActiveTranscriptText();
+    if (index != previousIndex || _activeTranscriptText != previousText) {
+      notifyListeners();
+    }
+  }
+
+  void _updateActiveTranscriptWordEnds() {
+    // Slice the original cue at word boundaries to retain breaks and spacing.
+    _activeTranscriptWordEnds = RegExp(r'\S+')
+        .allMatches(activeTranscriptLine?.text ?? '')
+        .map((match) => match.end)
+        .toList(growable: false);
+  }
+
+  void _updateActiveTranscriptText() {
+    final line = activeTranscriptLine;
+    _activeTranscriptText = line?.text;
+    if (line == null || !_animateActiveTranscript || _isCcEnabled) return;
+
+    final wordCount = _activeTranscriptWordEnds.length;
+    if (wordCount < 2) return;
+    final elapsed = (_lastPlaybackPosition ?? line.start!) - line.start!;
+    // Pace words over the cue instead of finishing after a short typing timer.
+    // A final cue without an end uses a slower 450 ms per word fallback.
+    final duration = line.end == null
+        ? Duration(milliseconds: 450 * wordCount)
+        : line.end! - line.start!;
+    if (duration <= Duration.zero) return;
+    final visibleWords =
+        (1 + elapsed.inMicroseconds * wordCount ~/ duration.inMicroseconds)
+            .clamp(1, wordCount);
+    if (visibleWords < wordCount) {
+      _activeTranscriptText = line.text.substring(
+        0,
+        _activeTranscriptWordEnds[visibleWords - 1],
+      );
+    }
   }
 
   @override

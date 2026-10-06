@@ -119,9 +119,9 @@ void main() {
         tester
             .getSize(find.byKey(const ValueKey('training-video-frame')))
             .height,
-        362,
+        368,
       );
-      expect(player.height, 362);
+      expect(player.height, 368);
       expect(player.fillBounds, isTrue);
       expect(player.topRightActions, isEmpty);
       expect(
@@ -146,7 +146,7 @@ void main() {
   );
 
   testWidgets(
-    'CC collapses complete captions without changing the video bounds',
+    'CC hides the two-line caption overlay without changing video or footer bounds',
     (tester) async {
       tester.view.physicalSize = const Size(320, 640);
       tester.view.devicePixelRatio = 1;
@@ -167,40 +167,37 @@ void main() {
       final controller = tester.element(cc).read<ComplianceVideoController>();
       final video = find.byType(FastCircularProgressIndicator);
       final videoBounds = tester.getRect(video);
-      expect(videoBounds.height, 260);
+      expect(videoBounds.height, 266);
       expect(controller.isCcEnabled, isFalse);
       expect(tester.getTopLeft(ccButton).dx, videoBounds.left + 10);
       expect(
         tester.getBottomRight(actionButton).dx,
         videoBounds.right - ComplianceVideoPlayer.contentHorizontalInset,
       );
-      controller.updatePlaybackPosition(Duration.zero);
+      controller.updatePlaybackPosition(const Duration(milliseconds: 3999));
       await tester.pump();
       final paragraph = tester.renderObject<RenderParagraph>(
         find.descendant(of: find.text(cue), matching: find.byType(RichText)),
       );
-      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(paragraph.didExceedMaxLines, isTrue);
       expect(tester.getRect(video), videoBounds);
-      expect(tester.getTopLeft(find.text(cue)).dy, videoBounds.bottom + 6);
-      final captionScroll = find.byType(SingleChildScrollView).last;
-      final scrollable = find.descendant(
-        of: captionScroll,
-        matching: find.byType(Scrollable),
+      final overlay = tester.getRect(
+        find.byKey(const ValueKey('active-video-caption')),
       );
-      final position = tester.state<ScrollableState>(scrollable).position;
-      expect(position.maxScrollExtent, greaterThan(0));
-      await tester.drag(
-        captionScroll,
-        Offset(0, -position.maxScrollExtent - 100),
-      );
-      await tester.pump(const Duration(seconds: 1));
-      expect(position.pixels, closeTo(position.maxScrollExtent, 1));
-      expect(tester.getRect(video), videoBounds);
+      expect(overlay.bottom, closeTo(videoBounds.bottom - 8, 0.01));
+      expect(overlay.left, videoBounds.left + 8);
+      expect(overlay.right, videoBounds.right - 8);
+      expect(overlay.top, greaterThanOrEqualTo(videoBounds.top + 8));
+      final caption = tester.widget<Text>(find.text(cue));
+      expect(caption.maxLines, 2);
+      expect(caption.overflow, TextOverflow.ellipsis);
+      final actionBounds = tester.getRect(actionButton);
 
       await tester.tap(cc);
       await tester.pump();
       expect(controller.isCcEnabled, isTrue);
       expect(find.text(cue), findsNothing);
+      expect(tester.getRect(actionButton), actionBounds);
       expect(tester.getTopLeft(actionButton).dy, videoBounds.bottom + 6);
       expect(tester.getRect(video), videoBounds);
       await _openTranscript(tester);

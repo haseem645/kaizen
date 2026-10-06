@@ -44,14 +44,17 @@ void main() {
     ValueChanged<Future<bool> Function(Duration)?>? onSeekHandlerChanged,
     String? transcript,
     double textScale = 1,
+    bool disableAnimations = true,
   }) async {
     await tester.runAsync(() async {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(textScale),
+              // Layout checks use complete captions; pacing is verified separately.
+              disableAnimations: disableAnimations,
+            ),
             child: child!,
           ),
           home: Scaffold(
@@ -77,7 +80,10 @@ void main() {
     });
     await tester.pump();
     await tester.pump(); // Apply the measured video edge to the shared footer.
-    return tester.widget<VideoPlayer>(find.byType(VideoPlayer)).controller;
+    final controller = tester
+        .widget<VideoPlayer>(find.byType(VideoPlayer))
+        .controller;
+    return controller;
   }
 
   Future<void> disposePlayer(WidgetTester tester) async {
@@ -102,15 +108,18 @@ void main() {
     await tester.pump();
   }
 
-  void expectCaptionActionGap(WidgetTester tester, Finder caption) {
-    final actionButton = find.ancestor(
-      of: find.text(AppStrings.trainingViewTranscript),
-      matching: find.byType(TextButton),
+  void expectCaptionOverlay(WidgetTester tester, Finder caption) {
+    final media = tester.getRect(find.byType(VideoPlayer));
+    final overlay = tester.getRect(
+      find.byKey(const ValueKey('active-video-caption')),
     );
-    expect(
-      tester.getTopLeft(actionButton).dy - tester.getBottomLeft(caption).dy,
-      closeTo(4, 0.01),
-    );
+    expect(overlay.left, closeTo(media.left + 8, 0.01));
+    expect(overlay.right, closeTo(media.right - 8, 0.01));
+    expect(overlay.bottom, closeTo(media.bottom - 8, 0.01));
+    expect(overlay.top, greaterThanOrEqualTo(media.top + 8));
+    final text = tester.widget<Text>(caption);
+    expect(text.maxLines, 2);
+    expect(text.overflow, TextOverflow.ellipsis);
   }
 
   void expectControls({required bool visible, bool playing = true}) {
@@ -140,7 +149,7 @@ void main() {
   }
 
   testWidgets(
-    'opens compactly before loading and anchors controls below the thumbnail',
+    'preserves the whole preview and anchors controls below its visible image',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -204,7 +213,10 @@ void main() {
           .first;
       final initialSurfaceBounds = tester.getRect(surface);
       final initialTitleBounds = tester.getRect(find.text('Lesson'));
-      expect(initialTitleBounds.top, lessThan(frameBounds.bottom));
+      final previewBottom =
+          frameBounds.top +
+          (frameBounds.height + frameBounds.width / (16 / 9)) / 2;
+      expect(initialTitleBounds.top, closeTo(previewBottom + 10, 0.01));
       await tester.pump();
       expect(tester.getRect(surface), initialSurfaceBounds);
       expect(tester.getRect(find.text('Lesson')), initialTitleBounds);
@@ -225,10 +237,27 @@ void main() {
       }
       expect(tester.widget<RawImage>(thumbnail).image, isNotNull);
       await tester.pump();
-      final thumbnailBounds = tester.getRect(thumbnail);
+      final rawImage = tester.widget<RawImage>(thumbnail);
+      expect(rawImage.fit, BoxFit.contain);
+      final image = rawImage.image!;
+      final thumbnailBox = tester.getRect(thumbnail);
+      final fitted = applyBoxFit(
+        BoxFit.contain,
+        Size(image.width.toDouble(), image.height.toDouble()),
+        thumbnailBox.size,
+      );
+      final thumbnailBounds = Alignment.center.inscribe(
+        fitted.destination,
+        thumbnailBox,
+      );
       expect(tester.getRect(surface), initialSurfaceBounds);
       expect(tester.getRect(find.text('Lesson')), initialTitleBounds);
-      expect(thumbnailBounds.bottom, lessThan(frameBounds.bottom));
+      expect(thumbnailBounds.left, frameBounds.left);
+      expect(thumbnailBounds.right, frameBounds.right);
+      expect(
+        thumbnailBounds.width / thumbnailBounds.height,
+        closeTo(16 / 9, 0.01),
+      );
       expect(find.text('Later caption'), findsNothing);
       expect(
         tester.getTopLeft(find.text('Lesson')).dy - thumbnailBounds.bottom,
@@ -325,7 +354,62 @@ void main() {
   );
 
   testWidgets(
-    'captions replace hidden controls and return below without moving the video',
+    'caption writing follows native playback and freezes when paused',
+    (tester) async {
+      final controller = await mountPlayer(
+        tester,
+        transcript: '[00:00 --> 00:05] First second third fourth',
+        disableAnimations: false,
+      );
+      expect(find.text('First'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.text('First'), findsOneWidget);
+
+      await controller.play();
+      await tester.pump();
+      platform.position = const Duration(milliseconds: 1250);
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      expect(find.text('First second'), findsOneWidget);
+
+      await controller.pause();
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.text('First second'), findsOneWidget);
+      await controller.play();
+      platform.position = const Duration(milliseconds: 2500);
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      expect(find.text('First second third'), findsOneWidget);
+
+      await controller.pause();
+      await tester.tap(find.byKey(const ValueKey('video-fullscreen-button')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ComplianceFullScreenVideoView), findsOneWidget);
+      expect(find.text('First second third'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text('First second third')).textAlign,
+        TextAlign.left,
+      );
+      await controller.seekTo(Duration.zero);
+      await tester.pump();
+      expect(find.text('First'), findsOneWidget);
+      await controller.seekTo(const Duration(milliseconds: 3750));
+      await tester.pump();
+      expect(find.text('First second third fourth'), findsOneWidget);
+      await tester.tap(find.byType(AppBackButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(ComplianceFullScreenVideoView), findsNothing);
+      expect(find.text('First second third fourth'), findsOneWidget);
+      expect(
+        tester.widget<VideoPlayer>(find.byType(VideoPlayer)).controller,
+        same(controller),
+      );
+      await disposePlayer(tester);
+    },
+  );
+
+  testWidgets(
+    'captions overlay the image through playback, CC, timing gaps and completion',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -336,12 +420,18 @@ void main() {
         tester,
         transcript: '[00:00 --> 00:04] First caption\n[00:10] $secondCaption',
       );
-      final player = find.byKey(const ValueKey('training-video-frame'));
-      final videoBounds = tester.getRect(player);
-      final titleBounds = tester.getRect(find.text('Lesson'));
-      final durationBounds = tester.getRect(find.text('01:00'));
+      final frame = find.byKey(const ValueKey('training-video-frame'));
+      final frameBounds = tester.getRect(frame);
+      expect(frameBounds.width, 390);
+      expect(frameBounds.height, 368);
       final seekBounds = tester.getRect(find.byType(Slider));
+      final titleBounds = tester.getRect(find.text('Lesson'));
       final mediaBounds = tester.getRect(find.byType(VideoPlayer));
+      expect(mediaBounds.left, closeTo(frameBounds.left, 0.01));
+      expect(mediaBounds.right, closeTo(frameBounds.right, 0.01));
+      expect(mediaBounds.top, greaterThanOrEqualTo(frameBounds.top));
+      expect(mediaBounds.bottom, lessThanOrEqualTo(frameBounds.bottom));
+      expect(mediaBounds.width / mediaBounds.height, closeTo(16 / 9, 0.01));
       expect(titleBounds.top - mediaBounds.bottom, closeTo(10, 0.01));
       final surface = find
           .descendant(
@@ -350,151 +440,116 @@ void main() {
           )
           .first;
       final expandedHeight = tester.getSize(surface).height;
-      expectCaptionActionGap(tester, find.text('First caption'));
-
-      expect(
-        tester.getTopLeft(find.text('First caption')).dy,
-        seekBounds.bottom + 10,
+      expectCaptionOverlay(tester, find.text('First caption'));
+      expectSeekActionGap(tester);
+      final overlayBounds = tester.getRect(
+        find.byKey(const ValueKey('active-video-caption')),
       );
+
       await tester.tap(find.byIcon(Icons.play_arrow_rounded));
       await tester.pump();
       expectControls(visible: false);
-      expect(find.text('First caption'), findsOneWidget);
-      expect(
-        tester.getTopLeft(find.text('First caption')).dy,
-        closeTo(mediaBounds.bottom + 6, 0.01),
-      );
-      expectCaptionActionGap(tester, find.text('First caption'));
+      expectCaptionOverlay(tester, find.text('First caption'));
       final collapsedHeight = tester.getSize(surface).height;
       expect(collapsedHeight, lessThan(expandedHeight));
-      expect(tester.getRect(player), videoBounds);
+      expect(tester.getRect(frame), frameBounds);
       expect(tester.getRect(find.byType(VideoPlayer)), mediaBounds);
 
-      // Tapping the caption itself must reveal the controls just like a video tap.
       await tester.tap(find.text('First caption'));
       await tester.pump();
       expectControls(visible: true);
-      expect(tester.getRect(find.text('Lesson')), titleBounds);
-      expect(tester.getRect(find.text('01:00')), durationBounds);
       expect(tester.getRect(find.byType(Slider)), seekBounds);
+      expect(tester.getRect(find.text('Lesson')), titleBounds);
       expect(
-        tester.getTopLeft(find.text('First caption')).dy,
-        seekBounds.bottom + 10,
+        tester.getRect(find.byKey(const ValueKey('active-video-caption'))),
+        overlayBounds,
       );
-      expect(tester.getSize(surface).height, expandedHeight);
-      expectCaptionActionGap(tester, find.text('First caption'));
       await tester.pump(const Duration(milliseconds: 2999));
-      expect(
-        tester.getTopLeft(find.text('First caption')).dy,
-        seekBounds.bottom + 10,
-      );
+      expectControls(visible: true);
       await tester.pump(const Duration(milliseconds: 1));
       expectControls(visible: false);
-      expect(tester.getSize(surface).height, collapsedHeight);
 
       await controller.seekTo(const Duration(seconds: 15));
       await tester.pump();
-      expect(find.text('First caption'), findsNothing);
-      expect(find.text(secondCaption), findsOneWidget);
-      expect(
-        tester.getTopLeft(find.text(secondCaption)).dy,
-        closeTo(mediaBounds.bottom + 6, 0.01),
+      final caption = find.text(secondCaption);
+      expectCaptionOverlay(tester, caption);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: caption, matching: find.byType(RichText)),
       );
-      final multilineHeight = tester.getSize(surface).height;
-      expect(multilineHeight, greaterThan(collapsedHeight));
-      expectCaptionActionGap(tester, find.text(secondCaption));
+      expect(paragraph.didExceedMaxLines, isTrue);
+      expect(tester.getSize(surface).height, collapsedHeight);
       await tester.tap(find.text(AppStrings.trainingCc));
       await tester.pump();
-      expect(find.text(secondCaption), findsNothing);
-      expectControls(visible: false);
+      expect(caption, findsNothing);
+      expect(find.byKey(const ValueKey('active-video-caption')), findsNothing);
+      expect(tester.getSize(surface).height, collapsedHeight);
       expect(controller.value.isPlaying, isTrue);
-      final ccCollapsedHeight = tester.getSize(surface).height;
-      expect(ccCollapsedHeight, lessThan(collapsedHeight));
-      expect(tester.getBottomLeft(surface).dy, lessThan(videoBounds.bottom));
-      expect(tester.getRect(player), videoBounds);
-      final actionButton = find.ancestor(
-        of: find.text(AppStrings.trainingViewTranscript),
-        matching: find.byType(TextButton),
-      );
-      expect(
-        tester.getTopLeft(actionButton).dy,
-        closeTo(mediaBounds.bottom + 6, 0.01),
-      );
 
-      // The seek area's space returns only while its controls are visible.
       await tapVideo(tester);
       expectControls(visible: true);
       expectSeekActionGap(tester);
-      expect(tester.getSize(surface).height, greaterThan(ccCollapsedHeight));
-      expect(tester.getRect(find.text('Lesson')), titleBounds);
-      expect(tester.getRect(find.text('01:00')), durationBounds);
       expect(tester.getRect(find.byType(Slider)), seekBounds);
-      await tester.pump(const Duration(seconds: 3));
-      expectControls(visible: false);
-      expect(find.text(secondCaption), findsNothing);
-      expect(tester.getSize(surface).height, ccCollapsedHeight);
-      expect(tester.getRect(player), videoBounds);
-      expect(tester.getRect(find.byType(VideoPlayer)), mediaBounds);
-
       await tester.tap(find.text(AppStrings.trainingCc));
       await tester.pump();
-      expect(find.text(secondCaption), findsOneWidget);
-      expect(tester.getSize(surface).height, multilineHeight);
-      expectCaptionActionGap(tester, find.text(secondCaption));
-
-      await tapVideo(tester);
+      expectCaptionOverlay(tester, caption);
       await tester.tap(find.byIcon(Icons.pause_rounded));
       await tester.pump(const Duration(seconds: 4));
       expectControls(visible: true, playing: false);
-      expect(tester.getSize(surface).height, greaterThan(expandedHeight));
-      expectCaptionActionGap(tester, find.text(secondCaption));
-      expect(
-        tester.getTopLeft(find.text(secondCaption)).dy,
-        seekBounds.bottom + 10,
-      );
-      expect(tester.getRect(find.byType(Slider)), seekBounds);
+      expect(tester.getSize(surface).height, expandedHeight);
+      expectCaptionOverlay(tester, caption);
       await tester.tap(find.byIcon(Icons.play_arrow_rounded));
       await tester.pump();
-      expectControls(visible: false);
       await completeVideo(tester);
       expectControls(visible: true, playing: false);
-      expect(tester.getSize(surface).height, greaterThan(expandedHeight));
-      expectCaptionActionGap(tester, find.text(secondCaption));
-      expect(
-        tester.getTopLeft(find.text(secondCaption)).dy,
-        seekBounds.bottom + 10,
-      );
-      expect(tester.getRect(player), videoBounds);
+      expectCaptionOverlay(tester, caption);
+      expect(tester.getRect(frame), frameBounds);
       expect(
         tester.widget<VideoPlayer>(find.byType(VideoPlayer)).controller,
         same(controller),
       );
 
-      // Both a timing gap and CC hiding a current cue leave only 6 dp below the seek bar.
       await controller.seekTo(const Duration(seconds: 5));
       await tester.pump();
-      expect(find.text(secondCaption), findsNothing);
+      expect(caption, findsNothing);
       expectSeekActionGap(tester);
       expect(tester.getRect(find.byType(Slider)), seekBounds);
-      expect(tester.getRect(player), videoBounds);
-      await controller.seekTo(const Duration(seconds: 15));
-      await tester.pump();
-      expectCaptionActionGap(tester, find.text(secondCaption));
-      await tester.tap(find.text(AppStrings.trainingCc));
-      await tester.pump();
-      expect(find.text(secondCaption), findsNothing);
-      expectSeekActionGap(tester);
-      expect(tester.getRect(find.byType(Slider)), seekBounds);
-      expect(tester.getRect(player), videoBounds);
-      await tester.tap(find.text(AppStrings.trainingCc));
-      await tester.pump();
-      expectCaptionActionGap(tester, find.text(secondCaption));
       await disposePlayer(tester);
     },
   );
 
   testWidgets(
-    'long captions wrap and scroll in the hidden seek area with enlarged text',
+    'portrait videos preserve their sides and keep captions within the image',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      platform.videoSize = const Size(360, 640);
+      await mountPlayer(tester, transcript: '[00:00] Portrait caption');
+      final frame = tester.getRect(
+        find.byKey(const ValueKey('training-video-frame')),
+      );
+      final media = tester.getRect(find.byType(VideoPlayer));
+      expect(media.height, closeTo(frame.height, 0.01));
+      expect(media.width / media.height, closeTo(9 / 16, 0.01));
+      expect(media.left, greaterThan(frame.left));
+      expect(media.right, lessThan(frame.right));
+      expect(media.center.dx, closeTo(frame.center.dx, 0.01));
+      expectCaptionOverlay(tester, find.text('Portrait caption'));
+      expect(
+        tester.getTopLeft(find.text('Lesson')).dy - media.bottom,
+        closeTo(10, 0.01),
+      );
+      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await tester.pump();
+      expectCaptionOverlay(tester, find.text('Portrait caption'));
+      expect(tester.getRect(find.byType(VideoPlayer)), media);
+      await disposePlayer(tester);
+    },
+  );
+
+  testWidgets(
+    'long scaled captions ellipsize inside the image while the transcript keeps full text',
     (tester) async {
       tester.view.physicalSize = const Size(320, 640);
       tester.view.devicePixelRatio = 1;
@@ -509,61 +564,37 @@ void main() {
         transcript: '[00:00] $cue',
         textScale: 2,
       );
-      final player = find.byKey(const ValueKey('training-video-frame'));
-      final videoBounds = tester.getRect(player);
+      final frame = find.byKey(const ValueKey('training-video-frame'));
+      final frameBounds = tester.getRect(frame);
       final seekBounds = tester.getRect(find.byType(Slider));
-      final mediaBounds = tester.getRect(find.byType(VideoPlayer));
-      final controls = find
-          .ancestor(of: find.byType(Slider), matching: find.byType(Column))
-          .first;
-      expect(
-        tester.getTopLeft(controls).dy - mediaBounds.bottom,
-        closeTo(10, 0.01),
-      );
+      expect(frameBounds.width, 320);
+      expect(frameBounds.height, 266);
       await tester.tap(find.byIcon(Icons.play_arrow_rounded));
       await tester.pump();
       final caption = find.text(cue);
-      expect(caption, findsOneWidget);
+      expectCaptionOverlay(tester, caption);
       final paragraph = tester.renderObject<RenderParagraph>(
         find.descendant(of: caption, matching: find.byType(RichText)),
       );
-      expect(paragraph.didExceedMaxLines, isFalse);
-      final viewport = find
-          .ancestor(of: caption, matching: find.byType(SingleChildScrollView))
-          .first;
-      expect(viewport, findsOneWidget);
-      final viewportBounds = tester.getRect(viewport);
-      expect(viewportBounds.top, closeTo(mediaBounds.bottom + 6, 0.01));
-      expect(
-        tester.getTopLeft(caption).dy,
-        closeTo(mediaBounds.bottom + 6, 0.01),
-      );
-      expect(viewportBounds.bottom, greaterThan(videoBounds.bottom));
-      final scrollable = find.descendant(
-        of: viewport,
-        matching: find.byType(Scrollable),
-      );
-      final position = tester.state<ScrollableState>(scrollable).position;
-      expect(position.maxScrollExtent, greaterThan(0));
-      await tester.drag(viewport, Offset(0, -position.maxScrollExtent - 100));
-      await tester.pump(const Duration(seconds: 1));
-      expect(position.pixels, closeTo(position.maxScrollExtent, 1));
-      expectCaptionActionGap(tester, caption);
-      expect(find.byType(Slider), findsNothing);
-      expect(tester.getRect(player), videoBounds);
-
-      await tester.tapAt(viewportBounds.center);
+      expect(paragraph.didExceedMaxLines, isTrue);
+      await tester.tap(caption);
       await tester.pump();
       expect(find.byType(Slider), findsOneWidget);
       expect(tester.getRect(find.byType(Slider)), seekBounds);
-      expect(tester.getTopLeft(caption).dy, seekBounds.bottom + 10);
-      expect(tester.getRect(player), videoBounds);
-      // Scaled controls can extend beyond the fixed frame and remain tappable.
-      expect(seekBounds.bottom, greaterThan(videoBounds.bottom));
+      expectCaptionOverlay(tester, caption);
       await tester.tap(find.byType(Slider));
       await tester.pump();
       expect(controller.value.position, greaterThan(Duration.zero));
-      expect(find.byType(Slider), findsOneWidget);
+      expect(tester.getRect(frame), frameBounds);
+      await tester.tap(find.text(AppStrings.trainingViewTranscript));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: find.byType(BottomSheet), matching: find.text(cue)),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
       await disposePlayer(tester);
     },
   );
@@ -772,6 +803,7 @@ class _FakeVideoPlatform extends VideoPlayerPlatform {
   final initialized = Completer<void>();
   final created = Completer<void>();
   bool autoInitialize = true;
+  Size videoSize = const Size(640, 360);
   int seekFailures = 0;
   int playFailures = 0;
   final events = StreamController<VideoEvent>();
@@ -792,7 +824,7 @@ class _FakeVideoPlatform extends VideoPlayerPlatform {
       VideoEvent(
         eventType: VideoEventType.initialized,
         duration: const Duration(minutes: 1),
-        size: const Size(640, 360),
+        size: videoSize,
       ),
     );
   }

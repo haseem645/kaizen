@@ -32,17 +32,23 @@ class ComplianceVideoTranscriptPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      key: ValueKey((videoId, videoUrl, transcript)),
+    return ChangeNotifierProxyProvider0<ComplianceVideoController>(
+      key: ValueKey((videoId, videoUrl)),
       create: (_) => ComplianceVideoController(transcript),
+      update: (_, controller) {
+        final captions = controller!;
+        // An open transcript sheet listens from a separate route. Notify after build.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          captions.updateTranscript(transcript);
+        });
+        return captions;
+      },
       child: _VideoPlayerArea(panel: this),
     );
   }
 }
 
 class _VideoTranscriptLayout extends StatelessWidget {
-  static const _initialMediaAspectRatio = 16 / 9;
-
   const _VideoTranscriptLayout({
     required this.panel,
     required this.video,
@@ -57,28 +63,30 @@ class _VideoTranscriptLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (hasCaption, controlsVisible, videoBottom) = context
-        .select<ComplianceVideoController, (bool, bool, double?)>(
+    final (hasCaption, controlsVisible, videoBounds) = context
+        .select<ComplianceVideoController, (bool, bool, Rect?)>(
           (controller) => (
             controller.hasVisibleActiveTranscript,
             controller.arePlaybackControlsVisible,
-            controller.videoBottom,
+            controller.videoBounds,
           ),
         );
     final showControls = controlsVisible && controls != null;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Reserve the centered preview's compact bounds before media decoding.
-        final initialMediaHeight =
-            (constraints.maxWidth / _initialMediaAspectRatio).clamp(
-              0.0,
-              videoHeight,
+        final previewHeight = (constraints.maxWidth / (16 / 9)).clamp(
+          0.0,
+          videoHeight,
+        );
+        final mediaBounds =
+            videoBounds ??
+            Rect.fromLTWH(
+              0,
+              controls == null ? 0 : (videoHeight - previewHeight) / 2,
+              constraints.maxWidth,
+              controls == null ? videoHeight : previewHeight,
             );
-        final footerTop =
-            videoBottom ??
-            (controls == null
-                ? videoHeight
-                : (videoHeight + initialMediaHeight) / 2);
+        final footerTop = mediaBounds.bottom;
         final minimumHeight =
             videoHeight + MediaQuery.textScalerOf(context).scale(120) + 80;
         // Training owns its page scroll; LTC also supplies a bounded viewport.
@@ -93,7 +101,6 @@ class _VideoTranscriptLayout extends StatelessWidget {
             ),
             child: Material(
               color: Colors.black,
-              borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
@@ -107,8 +114,7 @@ class _VideoTranscriptLayout extends StatelessWidget {
                       child: video,
                     ),
                   ),
-                  // Only the footer sets the surface height. The video keeps its
-                  // fixed bounds as hidden controls collapse and captions grow down.
+                  // The footer owns the surface height; captions overlay the image.
                   Padding(
                     padding: EdgeInsets.only(top: footerTop),
                     child: ColoredBox(
@@ -122,10 +128,8 @@ class _VideoTranscriptLayout extends StatelessWidget {
                             SizedBox(height: showControls ? 10 : 6),
                             if (showControls) ...[
                               controls!,
-                              SizedBox(height: hasCaption ? 10 : 6),
+                              const SizedBox(height: 6),
                             ],
-                            const Flexible(child: _ActiveTranscriptLine()),
-                            if (hasCaption) const SizedBox(height: 4),
                             _TranscriptActions(
                               onViewTranscript: () =>
                                   showComplianceVideoTranscriptSheet(context),
@@ -136,6 +140,20 @@ class _VideoTranscriptLayout extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (hasCaption)
+                    Positioned(
+                      top: mediaBounds.top,
+                      left: mediaBounds.left + 8,
+                      right: constraints.maxWidth - mediaBounds.right + 8,
+                      height: mediaBounds.height,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: _ActiveTranscriptLine(),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -153,8 +171,9 @@ class _VideoPlayerArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final animateTranscript = !MediaQuery.disableAnimationsOf(context);
     final height =
-        (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0) - 60;
+        (MediaQuery.sizeOf(context).height * 0.5).clamp(320.0, 520.0) - 39;
     final videoUrl = panel.videoUrl?.trim();
     if (videoUrl == null || videoUrl.isEmpty) {
       return _VideoTranscriptLayout(
@@ -171,18 +190,18 @@ class _VideoPlayerArea extends StatelessWidget {
       height: height,
       fillBounds: true,
       topRightActions: panel.topRightActions,
-      onPositionChanged: context
+      onPositionChanged: (position) => context
           .read<ComplianceVideoController>()
-          .updatePlaybackPosition,
+          .updatePlaybackPosition(position, animate: animateTranscript),
       onSeekHandlerChanged: context
           .read<ComplianceVideoController>()
           .setSeekHandler,
       onPlaybackControlsVisibilityChanged: context
           .read<ComplianceVideoController>()
           .updatePlaybackControlsVisibility,
-      onVideoBottomChanged: context
+      onVideoBoundsChanged: context
           .read<ComplianceVideoController>()
-          .updateVideoBottom,
+          .updateVideoBounds,
       onRevealControlsHandlerChanged: context
           .read<ComplianceVideoController>()
           .setRevealControlsHandler,
@@ -269,10 +288,13 @@ class _ActiveTranscriptLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
     final (text, isCcEnabled, controlsVisible) = context
         .select<ComplianceVideoController, (String?, bool, bool)>(
           (controller) => (
-            controller.activeTranscriptLine?.text,
+            disableAnimations
+                ? controller.activeTranscriptLine?.text
+                : controller.activeTranscriptText,
             controller.isCcEnabled,
             controller.arePlaybackControlsVisible,
           ),
@@ -283,13 +305,21 @@ class _ActiveTranscriptLine extends StatelessWidget {
       onTap: controlsVisible
           ? null
           : context.read<ComplianceVideoController>().revealPlaybackControls,
-      child: SingleChildScrollView(
-        primary: false,
-        key: ValueKey((text, controlsVisible)),
+      child: Container(
+        key: const ValueKey('active-video-caption'),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(6),
+        ),
         child: AppTextView.body3(
           text,
           color: AppColors.textPrimary,
           height: 1.4,
+          textAlign: TextAlign.left,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
