@@ -19,8 +19,12 @@ class ComplianceRepositoryImpl implements ComplianceRepository {
   @override
   Future<ComplianceOverview> getComplianceOverview({
     bool forceRefresh = false,
+    String? name,
   }) {
-    return _remoteDataSource.getComplianceOverview(forceRefresh: forceRefresh);
+    return _remoteDataSource.getComplianceOverview(
+      forceRefresh: forceRefresh,
+      name: name,
+    );
   }
 
   @override

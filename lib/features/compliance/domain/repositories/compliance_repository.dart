@@ -12,6 +12,7 @@ import '../entities/learning_module_detail_track.dart';
 abstract class ComplianceRepository {
   Future<ComplianceOverview> getComplianceOverview({
     bool forceRefresh = false,
+    String? name,
   });
   Future<List<ComplianceDocument>> getComplianceDocuments({
     bool forceRefresh = false,

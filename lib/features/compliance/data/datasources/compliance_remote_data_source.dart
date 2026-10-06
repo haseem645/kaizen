@@ -27,10 +27,12 @@ class ComplianceRemoteDataSource {
   Future<ComplianceOverviewModel> getComplianceOverview({
     bool forceRefresh = false,
     bool requireSuccess = false,
+    String? name,
   }) async {
     final learningTracks = await _getComplianceOverviewLearningTracks(
       forceRefresh: forceRefresh,
-      requireSuccess: requireSuccess,
+      requireSuccess: requireSuccess || (name?.trim().isNotEmpty ?? false),
+      name: name,
     );
 
     return ComplianceOverviewModel(
@@ -42,11 +44,16 @@ class ComplianceRemoteDataSource {
   Future<List<LearningTrackModuleDetail>> _getComplianceOverviewLearningTracks({
     bool forceRefresh = false,
     bool requireSuccess = false,
+    String? name,
   }) async {
+    final searchName = name?.trim();
     try {
       return await _apiCallExecutor.processApi<List<LearningTrackModuleDetail>>(
         apiCallType: ApiCallType.get,
         endpoint: ApiEndPoints.myLearningTracks,
+        parameters: searchName != null && searchName.isNotEmpty
+            ? {'page': 1, 'name': searchName, 'page_size': 10}
+            : null,
         authToken: AppPreference.getAuthToken(),
         invalidateCacheBeforeRequest: forceRefresh,
         decoder: (json) {

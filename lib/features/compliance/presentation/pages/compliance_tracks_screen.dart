@@ -129,7 +129,10 @@ class _ComplianceTracksScreenViewState
                             ),
                           )
                         : ListView.separated(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 12,
+                            ),
                             itemCount: tracks.length,
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 18),
