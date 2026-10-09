@@ -43,6 +43,7 @@ class TrainingLibraryDetailView extends StatelessWidget {
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           automaticallyImplyLeading: false,
+          leadingWidth: 40,
           leading: isBusy ? null : AppBackButton(onPressed: onBack),
           title: const AppTextView.title1(
             AppStrings.trainingLibraryTitle,
