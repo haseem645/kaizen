@@ -1,12 +1,16 @@
 import AVFoundation
 import Flutter
+import ObjectiveC
 import UIKit
 import UserNotifications
+import WebKit
+import webview_flutter_wkwebview
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let trainingUploadNotificationBridge = TrainingUploadNotificationBridge()
   private let videoAudioSessionBridge = VideoAudioSessionBridge()
+  private let trainingSopWebViewBridge = TrainingSopWebViewBridge()
 
   override func application(
     _ application: UIApplication,
@@ -20,6 +24,7 @@ import UserNotifications
     if let controller = window?.rootViewController as? FlutterViewController {
       trainingUploadNotificationBridge.register(with: controller.binaryMessenger)
       videoAudioSessionBridge.register(with: controller.binaryMessenger)
+      trainingSopWebViewBridge.register(with: controller.binaryMessenger, registry: self)
     }
     return didFinishLaunching
   }
@@ -35,6 +40,69 @@ import UserNotifications
       didReceive: response,
       withCompletionHandler: completionHandler
     )
+  }
+}
+
+/// Applies keyboard presentation only to the SOP's own WKWebView instance.
+final class TrainingSopWebViewBridge {
+  func register(with messenger: FlutterBinaryMessenger, registry: FlutterPluginRegistry) {
+    let channel = FlutterMethodChannel(
+      name: "kaizenteams/training_sop_webview", binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak registry] call, result in
+      guard call.method == "configureEditing" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      guard let registry,
+        let arguments = call.arguments as? [String: Any],
+        let identifier = arguments["webViewIdentifier"] as? NSNumber,
+        let webView = FWFWebViewFlutterWKWebViewExternalAPI.webView(
+          forIdentifier: identifier.int64Value, withPluginRegistry: registry),
+        Self.hideKeyboardAccessory(in: webView)
+      else {
+        result(FlutterError(code: "SOP_WEBVIEW_UNAVAILABLE", message: nil, details: nil))
+        return
+      }
+      result(nil)
+    }
+  }
+
+  @discardableResult
+  static func hideKeyboardAccessory(in webView: WKWebView) -> Bool {
+    func configure(_ view: UIView) -> Bool {
+      guard view is UITextInput else {
+        return view.subviews.map(configure).contains(true)
+      }
+      guard let originalClass = object_getClass(view) else { return false }
+      let className = NSStringFromClass(originalClass)
+      let prefix = "KaizenSopKeyboard_"
+      if className.hasPrefix(prefix) { return true }
+
+      // WKWebView exposes no accessory setter. Override the public responder
+      // getter on this text-input instance only; other WebViews stay untouched.
+      let selector = #selector(getter: UIResponder.inputAccessoryView)
+      guard let getter = class_getInstanceMethod(originalClass, selector) else { return false }
+      let subclassName = prefix + className
+      let subclass: AnyClass
+      if let existing = NSClassFromString(subclassName) {
+        subclass = existing
+      } else {
+        guard let created = objc_allocateClassPair(originalClass, subclassName, 0) else {
+          return false
+        }
+        let noAccessory: @convention(block) (AnyObject) -> UIView? = { _ in nil }
+        class_addMethod(
+          created, selector, imp_implementationWithBlock(noAccessory), method_getTypeEncoding(getter))
+        objc_registerClassPair(created)
+        subclass = created
+      }
+      object_setClass(view, subclass)
+      view.inputAssistantItem.leadingBarButtonGroups = []
+      view.inputAssistantItem.trailingBarButtonGroups = []
+      if view.isFirstResponder { view.reloadInputViews() }
+      return true
+    }
+    return configure(webView.scrollView)
   }
 }
 

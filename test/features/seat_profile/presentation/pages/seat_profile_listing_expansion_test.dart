@@ -19,111 +19,129 @@ void main() {
   });
   tearDown(AppManager.instance.resetSessionState);
 
-  testWidgets('expansion keeps the title fixed and moves the next card smoothly', (tester) async {
-    await _openScreen(tester);
-    final card = find.byKey(const ValueKey('first-seat'));
-    final title = find.text('Operations Lead');
-    final nextTitle = find.text('Designer');
-    final details = _firstDetails();
-    final collapsedHeight = tester.getSize(card).height;
-    final titleTop = tester.getTopLeft(title).dy;
-    final nextTitleTop = tester.getTopLeft(nextTitle).dy;
-    expect(details.hitTestable(), findsNothing);
+  testWidgets(
+    'expansion keeps the title fixed and moves the next card smoothly',
+    (tester) async {
+      await _openScreen(tester);
+      final card = find.byKey(const ValueKey('first-seat'));
+      final title = find.text('Operations Lead');
+      final nextTitle = find.text('Designer');
+      final details = _firstDetails();
+      final collapsedHeight = tester.getSize(card).height;
+      final titleTop = tester.getTopLeft(title).dy;
+      final nextTitleTop = tester.getTopLeft(nextTitle).dy;
+      expect(details.hitTestable(), findsNothing);
 
-    await tester.tap(title);
-    await tester.pump();
-    var previousHeight = collapsedHeight;
-    for (var frame = 0; frame < 8; frame++) {
-      await tester.pump(const Duration(milliseconds: 40));
-      final height = tester.getSize(card).height;
-      expect(height, greaterThan(previousHeight));
-      expect(tester.getTopLeft(title).dy, closeTo(titleTop, 0.01));
-      expect(
-        tester.getTopLeft(nextTitle).dy,
-        closeTo(nextTitleTop + height - collapsedHeight, 0.01),
-      );
-      if (frame < 7) {
-        expect(details.hitTestable(), findsNothing);
+      await tester.tap(title);
+      await tester.pump();
+      var previousHeight = collapsedHeight;
+      for (var frame = 0; frame < 8; frame++) {
+        await tester.pump(const Duration(milliseconds: 40));
+        final height = tester.getSize(card).height;
+        expect(height, greaterThan(previousHeight));
+        expect(tester.getTopLeft(title).dy, closeTo(titleTop, 0.01));
+        expect(
+          tester.getTopLeft(nextTitle).dy,
+          closeTo(nextTitleTop + height - collapsedHeight, 0.01),
+        );
+        if (frame < 7) {
+          expect(details.hitTestable(), findsNothing);
+        }
+        previousHeight = height;
       }
-      previousHeight = height;
-    }
-    final expandedHeight = previousHeight;
-    await tester.pumpAndSettle();
-    expect(details.hitTestable(), findsOneWidget);
-    expect(find.text('7'), findsOneWidget);
-    expect(find.text('18'), findsOneWidget);
-    expect(tester.getSize(find.byKey(const ValueKey('second-seat'))).height, collapsedHeight - 16);
+      final expandedHeight = previousHeight;
+      await tester.pumpAndSettle();
+      expect(details.hitTestable(), findsOneWidget);
+      expect(find.text('7'), findsOneWidget);
+      expect(find.text('18'), findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('second-seat'))).height,
+        collapsedHeight - 16,
+      );
 
-    await tester.tap(title);
-    await tester.pump();
-    expect(details.hitTestable(), findsNothing);
-    previousHeight = expandedHeight;
-    for (var frame = 0; frame < 7; frame++) {
-      await tester.pump(const Duration(milliseconds: 40));
-      final height = tester.getSize(card).height;
-      expect(height, lessThan(previousHeight));
+      await tester.tap(title);
+      await tester.pump();
+      expect(details.hitTestable(), findsNothing);
+      previousHeight = expandedHeight;
+      for (var frame = 0; frame < 7; frame++) {
+        await tester.pump(const Duration(milliseconds: 40));
+        final height = tester.getSize(card).height;
+        expect(height, lessThan(previousHeight));
+        expect(tester.getTopLeft(title).dy, closeTo(titleTop, 0.01));
+        previousHeight = height;
+      }
+      expect(previousHeight, closeTo(collapsedHeight, 0.01));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'quick repeated taps reverse without jumping and retain details navigation',
+    (tester) async {
+      RouteSettings? openedRoute;
+      await _openScreen(tester, onRoute: (settings) => openedRoute = settings);
+      final card = find.byKey(const ValueKey('first-seat'));
+      final title = find.text('Operations Lead');
+      final collapsedHeight = tester.getSize(card).height;
+
+      await tester.tap(title);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 140));
+      final openingHeight = tester.getSize(card).height;
+      expect(openingHeight, greaterThan(collapsedHeight));
+      await tester.tap(title);
+      await tester.pump();
+      expect(tester.getSize(card).height, closeTo(openingHeight, 0.01));
+      await tester.pump(const Duration(milliseconds: 60));
+      final closingHeight = tester.getSize(card).height;
+      expect(closingHeight, lessThan(openingHeight));
+      expect(_firstDetails().hitTestable(), findsNothing);
+
+      await tester.tap(title);
+      await tester.pump();
+      expect(tester.getSize(card).height, closeTo(closingHeight, 0.01));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(card).height, greaterThan(openingHeight));
+      expect(_firstDetails().hitTestable(), findsOneWidget);
+      await tester.tap(_firstDetails());
+      await tester.pumpAndSettle();
+      expect(openedRoute?.name, AppRouter.seatProfileDetail);
+      expect(
+        (openedRoute!.arguments as SeatProfileDetailRouteArgs).seatId,
+        'first-detail',
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'long titles and large text expand on narrow screens without overflow',
+    (tester) async {
+      const longTitle = 'Operations and Customer Experience Department Lead';
+      await _openScreen(
+        tester,
+        firstTitle: longTitle,
+        width: 320,
+        textScale: 2,
+      );
+      final title = find.text(longTitle);
+      final titleTop = tester.getTopLeft(title).dy;
+      await tester.tap(title);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 160));
       expect(tester.getTopLeft(title).dy, closeTo(titleTop, 0.01));
-      previousHeight = height;
-    }
-    expect(previousHeight, closeTo(collapsedHeight, 0.01));
-    expect(tester.takeException(), isNull);
-  });
+      expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(_firstDetails());
+      await tester.pumpAndSettle();
+      expect(_firstDetails().hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('quick repeated taps reverse without jumping and retain details navigation', (
+  testWidgets('reduced motion expands and collapses immediately', (
     tester,
   ) async {
-    RouteSettings? openedRoute;
-    await _openScreen(tester, onRoute: (settings) => openedRoute = settings);
-    final card = find.byKey(const ValueKey('first-seat'));
-    final title = find.text('Operations Lead');
-    final collapsedHeight = tester.getSize(card).height;
-
-    await tester.tap(title);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 140));
-    final openingHeight = tester.getSize(card).height;
-    expect(openingHeight, greaterThan(collapsedHeight));
-    await tester.tap(title);
-    await tester.pump();
-    expect(tester.getSize(card).height, closeTo(openingHeight, 0.01));
-    await tester.pump(const Duration(milliseconds: 60));
-    final closingHeight = tester.getSize(card).height;
-    expect(closingHeight, lessThan(openingHeight));
-    expect(_firstDetails().hitTestable(), findsNothing);
-
-    await tester.tap(title);
-    await tester.pump();
-    expect(tester.getSize(card).height, closeTo(closingHeight, 0.01));
-    await tester.pumpAndSettle();
-    expect(tester.getSize(card).height, greaterThan(openingHeight));
-    expect(_firstDetails().hitTestable(), findsOneWidget);
-    await tester.tap(_firstDetails());
-    await tester.pumpAndSettle();
-    expect(openedRoute?.name, AppRouter.seatProfileDetail);
-    expect((openedRoute!.arguments as SeatProfileDetailRouteArgs).seatId, 'first-detail');
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('long titles and large text expand on narrow screens without overflow', (
-    tester,
-  ) async {
-    const longTitle = 'Operations and Customer Experience Department Lead';
-    await _openScreen(tester, firstTitle: longTitle, width: 320, textScale: 2);
-    final title = find.text(longTitle);
-    final titleTop = tester.getTopLeft(title).dy;
-    await tester.tap(title);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 160));
-    expect(tester.getTopLeft(title).dy, closeTo(titleTop, 0.01));
-    expect(tester.takeException(), isNull);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(_firstDetails());
-    await tester.pumpAndSettle();
-    expect(_firstDetails().hitTestable(), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('reduced motion expands and collapses immediately', (tester) async {
     await _openScreen(tester, disableAnimations: true);
     final card = find.byKey(const ValueKey('first-seat'));
     final title = find.text('Operations Lead');
@@ -165,9 +183,10 @@ Future<void> _openScreen(
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale), disableAnimations: disableAnimations),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+          disableAnimations: disableAnimations,
+        ),
         child: child!,
       ),
       onGenerateRoute: (settings) {
@@ -177,7 +196,9 @@ Future<void> _openScreen(
           builder: (_) => const Scaffold(body: SizedBox()),
         );
       },
-      home: SeatProfileScreen(getSeatProfilesUseCase: _SeatProfilesUseCase(firstTitle)),
+      home: SeatProfileScreen(
+        getSeatProfilesUseCase: _SeatProfilesUseCase(firstTitle),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -197,6 +218,7 @@ class _SeatProfilesUseCase extends Fake implements GetSeatProfilesUseCase {
     int pageSize = 10,
     String? departmentId,
     String title = '',
+    bool forceRefresh = false,
   }) async => SeatProfilePage(
     items: [
       SeatProfile(

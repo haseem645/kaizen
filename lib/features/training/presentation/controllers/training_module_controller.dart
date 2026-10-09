@@ -15,6 +15,13 @@ import '../../domain/entities/seat_description_training.dart';
 import '../../domain/entities/shared_lesson_content.dart';
 import '../../../check_in/domain/repositories/audit_repository.dart';
 import '../models/view_training_tab_access.dart';
+import 'training_sop_editor_controller.dart';
+
+typedef TrainingSopEditorFactory =
+    TrainingSopEditorController Function(
+      String html,
+      ValueChanged<String> onHtmlChanged,
+    );
 
 enum QuizGenerationDifficulty {
   easy('easy'),
@@ -886,9 +893,11 @@ class TrainingModuleController extends ChangeNotifier {
     FileUploader? fileUploader,
     bool canManageTraining = false,
     bool canViewQuizAndAssignment = false,
+    TrainingSopEditorFactory? sopEditorFactory,
     Future<SharedLessonContent> Function(String publicId)?
     sharedLessonDetailLoader,
-  }) : _fileUploader = fileUploader ?? const FileUploader(),
+  }) : _sopEditorFactory = sopEditorFactory,
+       _fileUploader = fileUploader ?? const FileUploader(),
        _canManageTraining = canManageTraining,
        _canViewQuizAndAssignment =
            canManageTraining || canViewQuizAndAssignment,
@@ -911,6 +920,7 @@ class TrainingModuleController extends ChangeNotifier {
   static String generateClientUuid() => _uuidGenerator.v1();
 
   final AuditRepository _auditRepository;
+  final TrainingSopEditorFactory? _sopEditorFactory;
   final Future<SharedLessonContent> Function(String publicId)?
   _sharedLessonDetailLoader;
   final FileUploader _fileUploader;
@@ -989,6 +999,9 @@ class TrainingModuleController extends ChangeNotifier {
   String _lastSavedSummaryText = '';
   int _summaryEditorVersion = 0;
   String _lastSavedDocumentHtml = '';
+  String _documentDraftHtml = '';
+  int _documentEditorVersion = 0;
+  TrainingSopEditorController? _sopEditorController;
   String _lastSavedAssignmentTitle = '';
   String _lastSavedAssignmentHtml = '';
   String _lastObservedAssignmentTitle = '';
@@ -1063,6 +1076,30 @@ class TrainingModuleController extends ChangeNotifier {
       _selectedModuleDetail?.isPubliclyAvailable ??
       false;
   bool get isSavingDocument => _isSavingDocument;
+  String get documentHtml => _documentDraftHtml;
+  int get documentEditorVersion => _documentEditorVersion;
+  TrainingSopEditorController get sopEditorController {
+    final existingEditor = _sopEditorController;
+    if (existingEditor != null) return existingEditor;
+    final moduleId = _selectedModuleId;
+    final editorVersion = _documentEditorVersion;
+    // Keep the engine and pending HTML reads alive when its pager page unmounts.
+    void onHtmlChanged(String html) => updateDocumentHtml(
+      moduleId: moduleId,
+      editorVersion: editorVersion,
+      html: html,
+    );
+    final editor =
+        _sopEditorFactory?.call(_documentDraftHtml, onHtmlChanged) ??
+        TrainingSopEditorController(
+          initialHtml: _documentDraftHtml,
+          onHtmlChanged: onHtmlChanged,
+        );
+    _sopEditorController = editor;
+    unawaited(editor.initialize());
+    return editor;
+  }
+
   bool get isSavingAssignment => _isSavingAssignment;
   String? get savingQuestionId => _savingQuestionId;
   String? get deletingQuestionId => _deletingQuestionId;
@@ -2176,6 +2213,7 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   Future<bool> saveDocumentForSelectedModule() async {
+    if (_isDisposed) return false;
     final resolvedModuleId = _selectedModuleId.trim();
     if (!canEditSelectedModuleDocument ||
         resolvedModuleId.isEmpty ||
@@ -2183,31 +2221,54 @@ class TrainingModuleController extends ChangeNotifier {
       return false;
     }
 
+    final editorVersion = _documentEditorVersion;
+    final documentId = _selectedModuleDocument?.uuid ?? '';
+    final text = _documentDraftHtml.trim();
     _isSavingDocument = true;
     _documentErrorMessage = null;
     notifyListeners();
 
     try {
-      final text = documentController.toHtml().trim();
       await _auditRepository.updateSeatDescriptionTrainingModuleDocument(
         moduleId: resolvedModuleId,
-        documentId: _selectedModuleDocument?.uuid ?? '',
+        documentId: documentId,
         text: text,
       );
+      if (_isDisposed || editorVersion != _documentEditorVersion) return false;
       _selectedModuleDocument = SeatDescriptionTrainingDocument(
-        uuid: _selectedModuleDocument?.uuid ?? '',
+        uuid: documentId,
         text: text.isEmpty ? null : text,
       );
       _lastSavedDocumentHtml = text;
       return true;
     } catch (error) {
+      if (_isDisposed || editorVersion != _documentEditorVersion) return false;
       _documentErrorMessage = error.toString();
       return false;
     } finally {
-      _isSavingDocument = false;
-      notifyListeners();
-      _scheduleDocumentAutoSaveIfNeeded();
+      if (!_isDisposed && editorVersion == _documentEditorVersion) {
+        _isSavingDocument = false;
+        notifyListeners();
+        _scheduleDocumentAutoSaveIfNeeded();
+      }
     }
+  }
+
+  void updateDocumentHtml({
+    required String moduleId,
+    required int editorVersion,
+    required String html,
+  }) {
+    if (_isDisposed ||
+        !canEditSelectedModuleDocument ||
+        _isDocumentLoading ||
+        moduleId != _selectedModuleId ||
+        editorVersion != _documentEditorVersion ||
+        html == _documentDraftHtml) {
+      return;
+    }
+    _documentDraftHtml = html;
+    _scheduleDocumentAutoSaveIfNeeded();
   }
 
   Future<bool> saveAssignmentForSelectedModule() async {
@@ -3340,6 +3401,8 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   void _handleDocumentChanged() {
+    if (_isSyncingDocumentController) return;
+    _documentDraftHtml = documentController.toHtml();
     _scheduleDocumentAutoSaveIfNeeded();
   }
 
@@ -3381,6 +3444,8 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   void _resetEditors() {
+    _disposeSopEditor();
+    _documentEditorVersion += 1;
     _summaryEditorVersion += 1;
     _cancelSummaryWriting();
     _assignmentEditorVersion += 1;
@@ -3398,6 +3463,7 @@ class TrainingModuleController extends ChangeNotifier {
     _lastSavedModuleTitle = '';
     _lastSavedSummaryText = '';
     _lastSavedDocumentHtml = '';
+    _documentDraftHtml = '';
     _lastSavedAssignmentTitle = '';
     _lastSavedAssignmentHtml = '';
     _isSyncingModuleTitleController = true;
@@ -3492,10 +3558,20 @@ class TrainingModuleController extends ChangeNotifier {
 
   void _documentTextToController() {
     final documentText = _selectedModuleDocument?.text?.trim() ?? '';
+    _disposeSopEditor();
+    _documentEditorVersion += 1;
+    _documentAutoSaveDebounce?.cancel();
+    _isSavingDocument = false;
+    _documentDraftHtml = documentText;
     _isSyncingDocumentController = true;
     documentController.loadFromHtml(documentText);
-    _lastSavedDocumentHtml = documentController.toHtml().trim();
+    _lastSavedDocumentHtml = documentText;
     _isSyncingDocumentController = false;
+  }
+
+  void _disposeSopEditor() {
+    _sopEditorController?.dispose();
+    _sopEditorController = null;
   }
 
   void _assignmentTextToController() {
@@ -3555,11 +3631,15 @@ class TrainingModuleController extends ChangeNotifier {
   }
 
   void _scheduleDocumentAutoSaveIfNeeded() {
-    if (_isSyncingDocumentController || !canEditSelectedModuleDocument) {
+    if (_isDisposed ||
+        _isSyncingDocumentController ||
+        _isDocumentLoading ||
+        _isSavingDocument ||
+        !canEditSelectedModuleDocument) {
       return;
     }
 
-    final currentText = documentController.toHtml().trim();
+    final currentText = _documentDraftHtml.trim();
     final savedText = _lastSavedDocumentHtml;
     if (currentText == savedText) {
       _documentAutoSaveDebounce?.cancel();
@@ -3567,7 +3647,7 @@ class TrainingModuleController extends ChangeNotifier {
     }
 
     _documentAutoSaveDebounce?.cancel();
-    _documentAutoSaveDebounce = Timer(const Duration(milliseconds: 700), () {
+    _documentAutoSaveDebounce = Timer(const Duration(milliseconds: 350), () {
       unawaited(saveDocumentForSelectedModule());
     });
   }
@@ -3596,6 +3676,7 @@ class TrainingModuleController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _disposeSopEditor();
     _cancelSummaryWriting();
     _documentRequestVersion += 1;
     _summaryEditorVersion += 1;

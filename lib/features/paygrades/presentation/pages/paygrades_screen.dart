@@ -110,81 +110,78 @@ class _PaygradesScreenViewState extends State<_PaygradesScreenView> {
     final items = controller.items;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      child: Column(
-        children: [
-          SeatProfileSearchBar(
-            controller: controller.searchController,
-            onChanged: controller.updateSearchQuery,
-            hintText: AppStrings.paygradesSearchHint,
-            onFilterTap: controller.departments.isEmpty
-                ? null
-                : () => _openDepartmentSheet(controller),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+      child: RefreshIndicator(
+        color: AppColors.purple2,
+        onRefresh: controller.refresh,
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: ClampingScrollPhysics(),
           ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: controller.refresh,
-              child: _buildListArea(controller, items),
+          slivers: [
+            SliverToBoxAdapter(
+              child: SeatProfileSearchBar(
+                controller: controller.searchController,
+                onChanged: controller.updateSearchQuery,
+                hintText: AppStrings.paygradesSearchHint,
+                onFilterTap: controller.departments.isEmpty
+                    ? null
+                    : () => _openDepartmentSheet(controller),
+              ),
             ),
-          ),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            _buildListArea(controller, items),
+            if (controller.isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 18),
+                  child: Center(child: FastCircularProgressIndicator()),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildListArea(PaygradesController controller, List<Paygrade> items) {
     if (controller.isListLoading) {
-      return ListView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 32),
-          Center(child: FastCircularProgressIndicator()),
-        ],
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: FastCircularProgressIndicator()),
       );
     }
 
     if (controller.errorMessage != null && items.isEmpty) {
-      return ListView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [_buildErrorState(controller)],
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: _buildErrorState(controller)),
       );
     }
 
     if (items.isEmpty) {
-      return ListView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [_buildEmptyState()],
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: _buildEmptyState()),
       );
     }
 
-    return ListView(
-      controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        ...items.asMap().entries.map(
-          (item) => Padding(
-            padding: EdgeInsets.only(
-              bottom: item.key == items.length - 1 ? 0 : 16,
-            ),
-            child: PaygradeListingCard(
-              paygrade: item.value,
-              onDetailsTap: () => AppRouter.pushNamed(
-                context,
-                AppRouter.paygradeDetail,
-                arguments: PaygradeDetailRouteArgs(paygradeId: item.value.id),
-              ),
-            ),
+    return SliverList.separated(
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final paygrade = items[index];
+        return PaygradeListingCard(
+          key: ValueKey(paygrade.id),
+          paygrade: paygrade,
+          onDetailsTap: () => AppRouter.pushNamed(
+            context,
+            AppRouter.paygradeDetail,
+            arguments: PaygradeDetailRouteArgs(paygradeId: paygrade.id),
           ),
-        ),
-        if (controller.isLoadingMore) ...[
-          const SizedBox(height: 18),
-          Center(child: FastCircularProgressIndicator()),
-        ],
-      ],
+        );
+      },
     );
   }
 
