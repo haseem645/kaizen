@@ -244,8 +244,8 @@ void main() {
       final surfaceBounds = tester.getRect(
         find.descendant(of: bar, matching: find.byType(ClipRRect)),
       );
-      expect(surfaceBounds.left, 16);
-      expect(surfaceBounds.right, 320 - 16);
+      expect(surfaceBounds.left, 12);
+      expect(surfaceBounds.right, 320 - 12);
       expect(surfaceBounds.bottom, 740 - 14);
       expect(
         tester.getBottomLeft(_tab(AppStrings.bottomNavPerformance)).dy,

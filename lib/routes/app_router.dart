@@ -43,6 +43,7 @@ import '../features/seat_profile/presentation/pages/seat_profile_descriptions_sc
 import '../features/seat_profile/presentation/pages/seat_profile_detail_screen.dart';
 import '../features/seat_profile/presentation/pages/seat_profile_screen.dart';
 import '../features/seat_profile/presentation/pages/shared_seat_profile_screen.dart';
+import '../features/seat_profile/presentation/providers/seat_profile_detail_controller.dart';
 import '../features/splash/presentation/pages/splash_screen.dart';
 import '../features/training/presentation/pages/setup_training_screen.dart';
 import '../features/training/presentation/pages/shared_lms_screen.dart';
@@ -323,6 +324,10 @@ class AppRouter {
                     weightPercent: 0,
                     descriptions: <SeatProfileDescription>[],
                   ),
+            controller: args is SeatProfileDescriptionsRouteArgs
+                ? args.controller
+                : null,
+            isShared: args is SeatProfileDescriptionsRouteArgs && args.isShared,
           ),
         );
       case seatProfileTrainingSetup:
@@ -596,9 +601,15 @@ class SeatProfileCreateRouteArgs {
 }
 
 class SeatProfileDescriptionsRouteArgs {
-  const SeatProfileDescriptionsRouteArgs({required this.category});
+  const SeatProfileDescriptionsRouteArgs({
+    required this.category,
+    this.controller,
+    this.isShared = false,
+  });
 
   final SeatProfileCategory category;
+  final SeatProfileDetailController? controller;
+  final bool isShared;
 }
 
 class SeatProfileTrainingSetupRouteArgs {

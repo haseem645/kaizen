@@ -88,6 +88,8 @@ class DrawerMainScreen extends StatelessWidget {
       scrolledUnderElevation: visibility == null ? null : 0,
       surfaceTintColor: visibility == null ? null : Colors.transparent,
       centerTitle: centerTitle,
+      // Center the 24-pixel leading icon within an 8-pixel side inset.
+      leadingWidth: 40,
       leading: _isBottomNavigationTab
           ? hasNavigationShell
                 ? DrawerButton(
