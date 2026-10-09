@@ -68,10 +68,12 @@ class PaygradeRemoteDataSource {
     String? departmentId,
     String name = '',
     String? title,
+    bool forceRefresh = false,
   }) {
     return _apiCallExecutor.processApi<PaygradePageModel>(
       apiCallType: ApiCallType.get,
       endpoint: ApiEndPoints.payGrade,
+      invalidateCacheBeforeRequest: forceRefresh,
       parameters: {
         if (title != null) 'department': departmentId?.trim() ?? '',
         if (title != null) 'title': title.trim(),

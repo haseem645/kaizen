@@ -27,6 +27,7 @@ class GetPaygradesUseCase {
     String? departmentId,
     String name = '',
     String? title,
+    bool forceRefresh = false,
   }) {
     return _repository.getPaygrades(
       page: page,
@@ -34,6 +35,7 @@ class GetPaygradesUseCase {
       departmentId: departmentId,
       name: name,
       title: title,
+      forceRefresh: forceRefresh,
     );
   }
 

@@ -14,6 +14,7 @@ abstract class PaygradeRepository {
     String? departmentId,
     String name = '',
     String? title,
+    bool forceRefresh = false,
   });
 
   Future<List<Department>> getDepartments({required bool isOwner});

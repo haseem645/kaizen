@@ -32,6 +32,7 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
     String? departmentId,
     String name = '',
     String? title,
+    bool forceRefresh = false,
   }) {
     return _remoteDataSource.getPaygrades(
       page: page,
@@ -39,6 +40,7 @@ class PaygradeRepositoryImpl implements PaygradeRepository {
       departmentId: departmentId,
       name: name,
       title: title,
+      forceRefresh: forceRefresh,
     );
   }
 
