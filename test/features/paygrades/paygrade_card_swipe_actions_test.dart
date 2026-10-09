@@ -63,7 +63,7 @@ void main() {
       await _swipeCard(tester, const Offset(180, 0));
       final showMore = find.text(AppStrings.paygradesShowMoreAction);
       expect(showMore.hitTestable(), findsOneWidget);
-      _expectBlueAction(tester, showMore);
+      _expectSecondaryColorAction(tester, showMore);
       expect(find.text('$tab specifics'), findsNothing);
       await tester.tap(showMore);
       await tester.pumpAndSettle();
@@ -87,7 +87,7 @@ void main() {
       await _swipeCard(tester, const Offset(-200, 0));
       final edit = find.text(AppStrings.paygradesEditAction);
       expect(edit.hitTestable(), findsOneWidget);
-      _expectBlueAction(tester, edit);
+      _expectSecondaryColorAction(tester, edit);
       expect(find.byTooltip(AppStrings.paygradesDeleteAction).hitTestable(), findsOneWidget);
       expect(useCase.updates, isEmpty);
       expect(useCase.deletions, isEmpty);
@@ -174,9 +174,9 @@ Future<void> _swipeCard(WidgetTester tester, Offset offset) async {
   await tester.pumpAndSettle();
 }
 
-void _expectBlueAction(WidgetTester tester, Finder label) {
+void _expectSecondaryColorAction(WidgetTester tester, Finder label) {
   final material = find.ancestor(of: label, matching: find.byType(Material)).first;
-  expect(tester.widget<Material>(material).color, AppColors.blue);
+  expect(tester.widget<Material>(material).color, AppColors.secondaryColor);
 }
 
 class _UseCase extends Fake implements GetPaygradesUseCase {

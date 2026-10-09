@@ -67,7 +67,7 @@ class PaygradeDetailView extends StatelessWidget {
       body: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
           child: ListenableBuilder(
             listenable: AppManager.instance,
             builder: (context, _) {
@@ -179,6 +179,8 @@ class PaygradeDetailView extends StatelessWidget {
       children: [
         IconButton(
           onPressed: () => _goBack(context),
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.zero,
           icon: SvgPicture.asset(
             '${AppStrings.imagePath}back.svg',
             width: 24,
@@ -544,7 +546,7 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
       leadingActionWidth: 80,
       leadingActionChild: _PaygradeSwipeAction(
         label: isExpanded ? AppStrings.paygradesShowLessAction : AppStrings.paygradesShowMoreAction,
-        color: AppColors.blue,
+        color: AppColors.secondaryColor,
       ),
       onLeadingActionTap: () => _isExpanded.value = !isExpanded,
       actionBuilder: canEdit || canDelete
@@ -555,7 +557,7 @@ class _PaygradeEntryCardState extends State<_PaygradeEntryCard> {
                   Expanded(
                     child: _PaygradeSwipeAction(
                       label: AppStrings.paygradesEditAction,
-                      color: AppColors.blue,
+                      color: AppColors.secondaryColor,
                       onTap: () {
                         close();
                         widget.onEditTap?.call();
