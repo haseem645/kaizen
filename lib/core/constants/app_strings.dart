@@ -353,7 +353,11 @@ class AppStrings {
       'Your organization\'s trial or subscription has ended. Upgrade your plan to create, edit, or delete content.';
   static const String upgradePlanButton = 'OK';
   static const String seatProfileDetailsTitle = 'Seat Profile Details';
-  static const String seatProfileDescriptionsTitle = 'Descriptions';
+  static const String seatProfileDescriptionsTitle = 'Descriptions List';
+  static const String seatProfileExpandDescriptionAction = 'Expand Description';
+  static const String seatProfileCollapseDescriptionAction = 'Collapse Description';
+  static const String seatProfileShowMoreAction = 'Show More';
+  static const String seatProfileShowLessAction = 'Show Less';
   static const String seatProfileSearchHint = 'Search Seat Profile';
   static const String seatProfileNameLabel = 'Seat Profile Name';
   static const String seatProfileNameHint = 'Enter seat profile name';
@@ -519,6 +523,8 @@ class AppStrings {
   static const String done = 'Done';
   static const String complianceMasteredBasics = "--- You've Mastered The Basics ---";
   static const String complianceNoTracksFound = 'No Learning Tracks Found';
+  static const String complianceTrackSearchFailed =
+      'Unable to search learning tracks. Please try again.';
   static const String complianceNoDocumentsFound = 'No Documents Found';
   static const String trainingVideoTab = 'Video';
   static const String trainingDocumentTab = 'Document';
@@ -814,6 +820,7 @@ class AppStrings {
   static const String trainingEditTextSheetDescription =
       'Update the text below and save your changes.';
   static const String trainingSummaryLabel = 'Summary';
+  static const String trainingGenerateSummaryAction = 'Generate';
   static const String trainingSummaryHint = noContentAvailable;
   static const String trainingSummarySavedSuccess = 'Summary updated successfully.';
   static const String trainingSaveAction = 'Save';
@@ -827,6 +834,7 @@ class AppStrings {
       'Learning module access to only seat functions with this seat profile and their upline leaders (good for protecting sensitive company protocols)';
   static const String trainingSopLabel = 'SOP';
   static const String trainingSopHint = 'Write SOP content for this lesson.';
+  static const String trainingSopEditorError = 'Unable to open the SOP editor. Please try again.';
   static const String trainingSopSavedSuccess = 'SOP updated successfully.';
   static const String trainingAssignmentDescriptionLabel = 'Description';
   static const String trainingAssignmentTitleHint = 'Enter assignment title';
