@@ -212,7 +212,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
         bottom: false,
         child: Column(
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 0), child: _buildHeader(context)),
+            Padding(padding: const EdgeInsets.fromLTRB(8, 2, 8, 0), child: _buildHeader(context)),
             const SizedBox(height: 18),
             if (state.isLoading)
               Expanded(child: Center(child: FastCircularProgressIndicator()))
@@ -228,7 +228,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
             else
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
                   child: Column(
                     children: [
                       _buildAuditProfileCard(audit),
@@ -452,7 +452,7 @@ class _CheckInDescriptionsListViewState extends State<_CheckInDescriptionsListVi
               borderRadius: BorderRadius.circular(20),
               onTap: () => Navigator.of(context).pop(),
               child: Padding(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.fromLTRB(0, 4, 8, 4),
                 child: SvgPicture.asset(
                   '${AppStrings.imagePath}back.svg',
                   height: 24,
