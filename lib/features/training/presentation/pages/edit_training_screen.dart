@@ -10,6 +10,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
+import 'package:tiptap_flutter/tiptap_flutter.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -35,9 +36,11 @@ import '../../domain/entities/seat_description_training_route.dart';
 import '../../domain/repositories/training_library_repository.dart';
 import '../controllers/training_module_controller.dart';
 import '../controllers/training_share_controller.dart';
+import '../controllers/training_sop_editor_controller.dart';
 import '../controllers/training_question_form_controller.dart';
 import '../controllers/training_quiz_question_editor_controller.dart';
 import '../controllers/training_tab_navigation_controller.dart';
+import '../widgets/training_sop_document_view.dart';
 import '../controllers/training_video_capture_bridge.dart';
 import '../controllers/training_video_upload_controller.dart';
 import '../widgets/training_option_delete_dialog.dart';
@@ -144,7 +147,7 @@ class EditTrainingScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           onTap: () => Navigator.of(context).maybePop(),
           child: Padding(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.fromLTRB(0, 4, 8, 4),
             child: SvgPicture.asset(
               '${AppStrings.imagePath}back.svg',
               height: 24,
@@ -230,6 +233,7 @@ class EditTrainingSection extends StatelessWidget {
               TrainingModuleController(
                 context.read<AuditRepositoryImpl>(),
                 canManageTraining: resolvedCanManageTraining,
+                sopEditorFactory: context.read<TrainingSopEditorFactory?>(),
                 canViewQuizAndAssignment: AppManager.instance
                     .canCurrentUserViewTrainingQuizAndAssignment(
                       seatProfileId: trainingRoute.job,
