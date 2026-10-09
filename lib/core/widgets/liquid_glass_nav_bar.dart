@@ -14,6 +14,8 @@ Widget liquidGlassNavBar({required List<AppBottomNavItem> items}) {
 class _LiquidGlassNavBar extends StatelessWidget {
   const _LiquidGlassNavBar({required this.items});
 
+  static const double _horizontalInset = 12;
+
   final List<AppBottomNavItem> items;
 
   @override
@@ -26,7 +28,12 @@ class _LiquidGlassNavBar extends StatelessWidget {
     return SafeArea(
       top: false,
       bottom: false,
-      minimum: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+      minimum: const EdgeInsets.fromLTRB(
+        _horizontalInset,
+        10,
+        _horizontalInset,
+        14,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
