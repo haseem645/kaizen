@@ -88,7 +88,7 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(left: 1, top: 12, right: 1),
+      padding: const EdgeInsets.only(top: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -100,6 +100,7 @@ class _ComplianceTracksScreenViewState
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         centerTitle: true,
+        leadingWidth: 40,
         leading: const AppBackButton(),
         title: AppTextView.body1(
           widget.title.trim().isEmpty
@@ -130,7 +131,7 @@ class _ComplianceTracksScreenViewState
                           )
                         : ListView.separated(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
+                              horizontal: 8,
                               vertical: 12,
                             ),
                             itemCount: tracks.length,

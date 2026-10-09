@@ -863,6 +863,7 @@ class _ComplianceTrainingScreenViewState
           backgroundColor: AppColors.mainBg,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
+          leadingWidth: 40,
           leading: AppBackButton(onPressed: _handleBackPressed),
         ),
         body: isLoading
@@ -887,7 +888,7 @@ class _ComplianceTrainingScreenViewState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: _TrainingOverviewCard(
                         detail: detail,
                         currentModuleNumber: _controller.currentModuleNumber,
@@ -896,7 +897,7 @@ class _ComplianceTrainingScreenViewState
                     ),
                     const SizedBox(height: 6),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: _TrainingTabs(controller: _tabController),
                     ),
                     const SizedBox(height: 8),
@@ -909,13 +910,13 @@ class _ComplianceTrainingScreenViewState
                             child: ComplianceVideoScreen(detail: detail),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 24),
+                            padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
                             child: ComplianceTrainingDocumentScreen(
                               detail: detail,
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 24),
+                            padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
                             child: ComplianceQuizScreen(
                               trackAssignmentUuid: widget.trackAssignmentUuid,
                               trainingModuleUuid: detail.trainingModuleUuid,

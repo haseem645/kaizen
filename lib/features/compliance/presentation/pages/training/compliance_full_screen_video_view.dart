@@ -305,10 +305,13 @@ class _ComplianceFullScreenVideoViewState
         builder: (context, constraints) => Stack(
           children: [
             Positioned(
-              left: 12,
+              left: 0,
               top: 12,
-              child: AppBackButton(
-                onPressed: () => Navigator.of(context).pop(),
+              child: SizedBox(
+                width: 40,
+                child: AppBackButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
             ),
             Positioned(
@@ -389,7 +392,7 @@ class _FullScreenVideoFooter extends StatelessWidget {
               Flexible(
                 child: Container(
                   key: const ValueKey('fullscreen-active-transcript'),
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(12),

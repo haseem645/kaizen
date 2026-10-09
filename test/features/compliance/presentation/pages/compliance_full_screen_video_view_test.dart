@@ -250,9 +250,20 @@ void main() {
         matching: find.byType(TextButton),
       );
       expect(tester.getBottomRight(action).dx, titleBounds.right);
+      final captionBounds = tester.getRect(find.text('Active caption'));
+      expect(captionBounds.left, titleBounds.left);
+      expect(captionBounds.right, titleBounds.right);
       expect(
-        tester.getTopLeft(find.text('Active caption')).dx,
-        titleBounds.left + 12,
+        tester.getTopLeft(find.byIcon(Icons.play_arrow_rounded)).dx,
+        titleBounds.left,
+      );
+      expect(
+        tester.getBottomRight(find.text(AppStrings.trainingViewTranscript)).dx,
+        titleBounds.right,
+      );
+      expect(
+        tester.getBottomRight(find.text('00:20/01:00')).dx,
+        titleBounds.right,
       );
 
       await controller.seekTo(const Duration(seconds: 35));
